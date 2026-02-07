@@ -1,10 +1,39 @@
 import { Routes, Route } from 'react-router-dom';
+import Login from '@/features/auth/screens/Login';
+import ForgotPassword from '@/features/auth/screens/ForgotPassword';
+import MainLayout from '@/components/layout/MainLayout'; // Import Layout
+import Dashboard from '@/features/dashboard/screens/Dashboard'; 
+
+// Component giả cho các trang chưa làm
+const RoomList = () => <h1>Danh sách phòng (Đang phát triển)</h1>;
+
 
 const AppRouter = () => {
   return (
     <Routes>
-      <Route path="/" element={<div>Trang chủ AN-IHBMS</div>} />
-      <Route path="/login" element={<div>Trang đăng nhập</div>} />
+      {/* --- NHÓM 1: CÁC TRANG PUBLIC (KHÔNG CÓ HEADER/SIDEBAR) --- */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      
+      {/* --- NHÓM 2: CÁC TRANG PRIVATE (CÓ FULL LAYOUT) --- */}
+      {/* Cách dùng: Bọc Component con vào trong MainLayout */}
+      
+    {/* Trang Dashboard */}
+      <Route path="/dashboard" element={
+        <MainLayout>
+          <Dashboard />
+        </MainLayout>
+      } />
+
+      {/* Trang Room List */}
+      <Route path="/rooms" element={
+        <MainLayout>
+          <RoomList />
+        </MainLayout>
+      } />
+
+      {/* Redirect mặc định về login */}
+      /<Route path="*" element={<Login />} />
     </Routes>
   );
 };
