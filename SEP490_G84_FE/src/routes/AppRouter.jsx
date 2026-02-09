@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 // Code của bạn tôi
 import Login from '@/features/auth/screens/Login';
 import ForgotPassword from '@/features/auth/screens/ForgotPassword';
@@ -12,7 +12,7 @@ import EditStaff from '@/components/EditStaff';
 import CreateAccount from '@/components/CreateAccount';
 
 // Component giả cho các trang chưa làm
-const RoomList = () => <h1>Danh sách phòng (Đang phát triển)</h1>;
+const RoomList = () => <h1>Room List (Coming soon)</h1>;
 
 const AppRouter = () => {
   return (
@@ -38,8 +38,12 @@ const AppRouter = () => {
       } />
 
       {/* --- NHÓM 3: ACCOUNT MANAGEMENT (Code của tôi) --- */}
-      <Route path="/" element={<AccountList />} />
-      <Route path="/accounts" element={<AccountList />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/accounts" element={
+        <MainLayout>
+          <AccountList />
+        </MainLayout>
+      } />
       <Route path="/accounts/create" element={<CreateAccount />} />
       <Route path="/accounts/:id" element={<UserDetail />} />
       <Route path="/accounts/:id/edit" element={<EditStaff />} />

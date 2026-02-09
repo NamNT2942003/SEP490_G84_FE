@@ -9,7 +9,7 @@ const Sidebar = () => {
     { path: '/bookings', label: 'Booking Management', icon: 'bi-calendar-check' },
     { path: '/rooms', label: 'Room List', icon: 'bi-door-open' },
     { path: '/services', label: 'Services', icon: 'bi-cup-hot' },
-    { path: '/staff', label: 'Staff Account', icon: 'bi-people' }, // Chỉ hiện nếu là Admin
+    { path: '/accounts', label: 'Staff Account', icon: 'bi-people' },
     { path: '/reports', label: 'Reports', icon: 'bi-bar-chart-line' },
   ];
 

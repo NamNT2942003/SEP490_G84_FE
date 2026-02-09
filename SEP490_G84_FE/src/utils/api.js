@@ -9,40 +9,38 @@ const apiClient = axios.create({
   },
 });
 
+// Attach JWT to all requests
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export const accountAPI = {
-  // Lấy tất cả accounts (với phân quyền nếu có currentUserId)
   getAllAccounts: (params = {}) => apiClient.get('/accounts', { params }),
-  
-  // Lấy account theo ID
   getAccountById: (id) => apiClient.get(`/accounts/${id}`),
-  
-  // Create new account
   createAccount: (data, currentUserId) => apiClient.post('/accounts', data, { params: { currentUserId } }),
-  
-  // Update account profile
   updateAccount: (id, data) => apiClient.put(`/accounts/${id}`, data),
-  
-  // Update status account
   updateAccountStatus: (id, status) => apiClient.patch(`/accounts/${id}/status`, { status }),
-  
-  // Delete account
+  uploadAvatar: (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.patch(`/accounts/${id}/avatar`, formData);
+  },
+  getBaseURL: () => (apiClient.defaults.baseURL || '').replace(/\/api\/?$/, '') || 'http://localhost:8081',
   deleteAccount: (id) => apiClient.delete(`/accounts/${id}`),
-  
-  // Lọc accounts
   filterAccounts: (params) => apiClient.get('/accounts/filter', { params }),
-  
-  // Tìm kiếm accounts
   searchAccounts: (fullName) => apiClient.get('/accounts/search', { params: { fullName } }),
-  
-  // Lấy accounts theo status
   getAccountsByStatus: (status) => apiClient.get(`/accounts/status/${status}`),
-  
-  // Lấy accounts theo branch
   getAccountsByBranch: (branchId) => apiClient.get(`/accounts/branch/${branchId}`),
 };
 
 export const branchAPI = {
-  // Lấy tất cả branches
   getAllBranches: () => apiClient.get('/branches'),
 };
 

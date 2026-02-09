@@ -1,32 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { accountAPI } from '../utils/api';
+import { accountAPI } from '@/utils/api';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import './AccountList.css';
 
 const AccountList = () => {
   const navigate = useNavigate();
-  
-  // ========== MOCK CURRENT USER ==========
-  // Comment/Uncomment để test các role khác nhau:
-  const currentUser = { userId: 1, role: 'ADMIN' };    // Test ADMIN - Xem tất cả users
-  // const currentUser = { userId: 2, role: 'MANAGER' }; // Test MANAGER - Xem tất cả STAFF
-  
+  const currentUser = useCurrentUser();
+
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
-  
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const accountsPerPage = 5;
 
   useEffect(() => {
-    fetchAccounts();
-  }, [currentUser.userId]);
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    if (currentUser.role === 'STAFF') {
+      navigate('/dashboard');
+      return;
+    }
+  }, [currentUser, navigate]);
 
-  // Reset trang về 1 khi search/filter thay đổi
+  useEffect(() => {
+    if (!currentUser || currentUser.role === 'STAFF') return;
+    fetchAccounts();
+  }, [currentUser?.userId]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedRole, selectedBranch, selectedStatus]);
@@ -34,11 +40,10 @@ const AccountList = () => {
   const fetchAccounts = async () => {
     try {
       setLoading(true);
-      // Gọi API với currentUserId để backend kiểm tra phân quyền
       const response = await accountAPI.getAllAccounts({ currentUserId: currentUser.userId });
       setAccounts(response.data);
     } catch (error) {
-      console.error('Error fetching accounts:', error);
+      setAccounts([]);
     } finally {
       setLoading(false);
     }
@@ -48,7 +53,8 @@ const AccountList = () => {
     try {
       setLoading(true);
       const params = {};
-      if (selectedBranch) params.branchId = selectedBranch;
+      const branchIdNum = parseInt(selectedBranch, 10);
+      if (!isNaN(branchIdNum)) params.branchId = branchIdNum;
       if (selectedStatus) params.status = selectedStatus;
       if (searchTerm) params.fullName = searchTerm;
 
@@ -56,7 +62,7 @@ const AccountList = () => {
       setAccounts(response.data);
       setCurrentPage(1);
     } catch (error) {
-      console.error('Error filtering accounts:', error);
+      setAccounts([]);
     } finally {
       setLoading(false);
     }
@@ -78,41 +84,38 @@ const AccountList = () => {
     try {
       const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
       await accountAPI.updateAccountStatus(userId, newStatus);
-      
-      // Refresh danh sách
       fetchAccounts();
     } catch (error) {
-      console.error('Error toggling status:', error);
-      alert('Không thể thay đổi trạng thái tài khoản!');
+      const msg = error.response?.data?.message || error.response?.data || error.message;
+      const status = error.response?.status;
+      alert('Could not update account status!' + (status ? ` (${status})` : '') + (msg ? `\n${msg}` : ''));
     }
   };
 
   const handleDelete = async (userId, username) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa tài khoản "${username}"?\nHành động này không thể hoàn tác!`)) {
+    if (!window.confirm(`Are you sure you want to delete account "${username}"?\nThis action cannot be undone.`)) {
       return;
     }
 
     try {
       await accountAPI.deleteAccount(userId);
-      alert('Xóa tài khoản thành công!');
-      
-      // Refresh danh sách
+      alert('Account deleted successfully.');
       fetchAccounts();
     } catch (error) {
-      console.error('Error deleting account:', error);
-      alert('Không thể xóa tài khoản! ' + (error.response?.data || error.message));
+      alert('Could not delete account. ' + (error.response?.data || error.message));
     }
   };
 
-  // Pagination logic - Filter accounts client-side
   const indexOfLastAccount = currentPage * accountsPerPage;
   const indexOfFirstAccount = indexOfLastAccount - accountsPerPage;
-  
-  // Client-side filtering
+  const uniqueBranches = [...new Set(accounts.map(a => a.mainBranch).filter(Boolean))].sort();
+  const searchLower = searchTerm.trim().toLowerCase();
   const filteredAccounts = accounts.filter(account => {
-    const matchesSearch = searchTerm === '' || 
-      (account.fullName && account.fullName.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesRole = selectedRole === '' || account.role === selectedRole;
+    const matchesSearch = searchLower === '' || 
+      (account.fullName && String(account.fullName).toLowerCase().includes(searchLower)) ||
+      (account.username && String(account.username).toLowerCase().includes(searchLower)) ||
+      (account.email && String(account.email).toLowerCase().includes(searchLower));
+    const matchesRole = selectedRole === '' || (account.role && account.role.toUpperCase() === selectedRole);
     const matchesBranch = selectedBranch === '' || account.mainBranch === selectedBranch;
     const matchesStatus = selectedStatus === '' || account.status === selectedStatus;
     
@@ -124,22 +127,20 @@ const AccountList = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+  if (!currentUser || currentUser.role === 'STAFF') return null;
+
   return (
     <div className="account-management-container">
       {/* Header */}
       <div className="account-header">
         <div>
           <h1 className="account-title">
-            {currentUser.role === 'MANAGER' 
+            {currentUser.role === 'MANAGER'
               ? 'Staff Management'
               : 'Account Management'}
           </h1>
-          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6c757d', fontStyle: 'italic' }}>
-            Current User: <strong>{currentUser.role}</strong>
-          </p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {/* Nút Create Account - Admin & Manager có quyền thêm */}
           <button 
             className="btn-add-account"
             onClick={() => navigate('/accounts/create')}
@@ -155,14 +156,14 @@ const AccountList = () => {
         <div className="toolbar-row">
           {/* Search */}
           <div className="search-box">
-            <i className="bi bi-search search-icon"></i>
             <input
               type="text"
               className="form-control search-input"
-              placeholder="Search by name..."
+              placeholder="Search accounts..."
               value={searchTerm}
               onChange={handleSearch}
             />
+            <i className="bi bi-search search-icon"></i>
           </div>
 
           {/* Filters - Horizontal */}
@@ -172,9 +173,9 @@ const AccountList = () => {
             onChange={(e) => setSelectedRole(e.target.value)}
           >
             <option value="">All Roles</option>
-            <option value="Admin">Admin</option>
-            <option value="Staff">Staff</option>
-            <option value="Manager">Manager</option>
+            <option value="ADMIN">ADMIN</option>
+            <option value="MANAGER">MANAGER</option>
+            <option value="STAFF">STAFF</option>
           </select>
 
           <select
@@ -183,9 +184,9 @@ const AccountList = () => {
             onChange={(e) => setSelectedBranch(e.target.value)}
           >
             <option value="">All Branches</option>
-            <option value="1">Hanoi Branch</option>
-            <option value="2">Ho Chi Minh Branch</option>
-            <option value="3">Da Nang Branch</option>
+            {uniqueBranches.map((branch) => (
+              <option key={branch} value={branch}>{branch}</option>
+            ))}
           </select>
 
           <select
@@ -198,13 +199,10 @@ const AccountList = () => {
             <option value="Inactive">Inactive</option>
           </select>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Chỉ giữ Filter */}
           <div className="action-buttons">
             <button className="btn-icon" onClick={handleFilter} title="Apply Filter">
               <i className="bi bi-funnel"></i>
-            </button>
-            <button className="btn-icon" title="Export">
-              <i className="bi bi-download"></i>
             </button>
           </div>
         </div>
@@ -237,17 +235,29 @@ const AccountList = () => {
                 </thead>
                 <tbody>
                   {currentAccounts.length > 0 ? (
-                    currentAccounts.map((account) => (
+                    currentAccounts.map((account, index) => (
                       <tr key={account.userId}>
-                        <td>{account.userId}</td>
+                        <td>{(currentPage - 1) * accountsPerPage + index + 1}</td>
                         <td>
                           <img
-                            src={account.image || 'https://via.placeholder.com/40'}
+                            src={
+                              account.image
+                                ? account.image.startsWith('http')
+                                  ? account.image
+                                  : (accountAPI.getBaseURL?.() || 'http://localhost:8081') + account.image
+                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(account.fullName || 'U')}&size=40&background=56785e&color=fff`
+                            }
                             alt={account.fullName}
                             className="avatar-img"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(account.fullName || 'U')}&size=40&background=56785e&color=fff`;
+                            }}
                           />
                         </td>
-                        <td className="fw-semibold">{account.fullName}</td>
+                        <td>
+                          <div className="fw-semibold">{account.fullName}</div>
+                        </td>
                         <td>{account.email}</td>
                         <td>{account.role}</td>
                         <td>
@@ -320,7 +330,7 @@ const AccountList = () => {
             {/* Pagination - Always show */}
             <div className="pagination-container">
               <div className="pagination-info">
-                Showing {indexOfFirstAccount + 1} to {Math.min(indexOfLastAccount, accounts.length)} of {accounts.length} entries
+                Showing {indexOfFirstAccount + 1} to {Math.min(indexOfLastAccount, filteredAccounts.length)} of {filteredAccounts.length} entries
               </div>
               <div className="pagination">
                 <button

@@ -24,7 +24,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #5a7063;
+  background-color: #56785e;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -36,14 +36,14 @@
 }
 
 .btn-add-account:hover {
-  background-color: #4a5d53;
+  background-color: #4a6652;
 }
 
-/* Toolbar */
+/* Toolbar - Một hàng ngang: Search | All Roles | All Branches | All Status | Filter | Download */
 .account-toolbar {
   background: white;
   border-radius: 8px;
-  padding: 20px;
+  padding: 16px 20px;
   margin-bottom: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
@@ -54,27 +54,42 @@
   align-items: center;
   gap: 12px;
   flex-wrap: nowrap;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
-/* Search Box */
+.toolbar-row .filter-select {
+  width: 140px;
+  flex-shrink: 0;
+}
+
+/* Search Box - nằm cùng hàng với dropdown và nút */
 .search-box {
   position: relative;
-  flex: 1 1 250px;
-  max-width: 300px;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 280px;
 }
 
 .search-icon {
   position: absolute;
-  left: 14px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: #6c757d;
-  font-size: 16px;
+  font-size: 1.1rem;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .search-input {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  padding: 10px 10px 10px 42px;
+  box-sizing: border-box;
+  padding: 10px 40px 10px 12px;
+  background-color: #fff;
   border: 1px solid #dee2e6;
   border-radius: 6px;
   font-size: 14px;
@@ -83,8 +98,8 @@
 
 .search-input:focus {
   outline: none;
-  border-color: #5a7063;
-  box-shadow: 0 0 0 3px rgba(90, 112, 99, 0.1);
+  border-color: #56785e;
+  box-shadow: 0 0 0 3px rgba(86, 120, 94, 0.15);
 }
 
 .search-input::placeholder {
@@ -101,7 +116,7 @@
 
 .filter-select {
   flex-shrink: 0;
-  width: 160px;
+  width: 140px;
   padding: 8px 12px;
   border: 1px solid #dee2e6;
   border-radius: 6px;
