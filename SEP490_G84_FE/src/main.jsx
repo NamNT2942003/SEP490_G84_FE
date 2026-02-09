@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { Provider } from 'react-redux'; // <--- BẠN ĐANG THIẾU DÒNG NÀY
-import store from './store';            // <--- VÀ DÒNG NÀY (Để lấy store truyền vào)
+import { Provider } from 'react-redux'; 
+import store from './store';           
 import App from './App';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 

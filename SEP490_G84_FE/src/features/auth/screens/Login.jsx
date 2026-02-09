@@ -11,7 +11,9 @@ const Login = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '', rememberMe: false });
   
   const navigate = useNavigate();
-  const dispatch = useDispatch(); // Hook để bắn action
+  const dispatch = useDispatch(); 
+
+  const [showPassword, setShowPassword] = useState(false);
 
   // Lấy state từ Redux về (để hiển thị loading hoặc lỗi)
   const { isLoading, error, token } = useSelector((state) => state.auth);
@@ -70,7 +72,8 @@ const handleGoogleSuccess = async (credentialResponse) => {
 
     } catch (error) {
         console.error("Lỗi Google Login:", error);
-        alert("Đăng nhập Google thất bại!");
+        alert("Google login failed!");
+
     }
   };
 
@@ -105,18 +108,18 @@ const handleGoogleSuccess = async (credentialResponse) => {
               {/* Hiển thị lỗi nếu có (VD: Sai mật khẩu) */}
               {error && (
                   <div className="alert alert-danger py-2" role="alert">
-                      <small>{typeof error === 'string' ? error : 'Đăng nhập thất bại'}</small>
+                      <small>{typeof error === 'string' ? error : 'Login failed'}</small>
                   </div>
               )}
             </div>
 
             <form onSubmit={handleSubmit}>
               <div className="form-floating mb-3">
-                <input 
-                    type="text" // Đổi thành text để nhập username admin cho dễ
+             <input 
+                    type="text" 
                     className="form-control" 
                     id="floatingInput" 
-                    name="email" // Giữ nguyên name để khớp với state, nhưng logic là username
+                    name="email" 
                     placeholder="name@example.com" 
                     value={credentials.email} 
                     onChange={handleChange} 
@@ -125,9 +128,9 @@ const handleGoogleSuccess = async (credentialResponse) => {
                 <label htmlFor="floatingInput" className="text-muted">Username or Email</label>
               </div>
 
-              <div className="form-floating mb-3 position-relative">
+             <div className="form-floating mb-3 position-relative">
                 <input 
-                    type="password" 
+                    type={showPassword ? "text" : "password"} 
                     className="form-control" 
                     id="floatingPassword" 
                     name="password" 
@@ -135,8 +138,18 @@ const handleGoogleSuccess = async (credentialResponse) => {
                     value={credentials.password} 
                     onChange={handleChange} 
                     required 
+                    style={{ paddingRight: '40px' }} 
                 />
                 <label htmlFor="floatingPassword">Password</label>
+                
+                {/* Nút con mắt */}
+                <span
+                  className="position-absolute top-50 end-0 translate-middle-y me-3"
+                  style={{ cursor: 'pointer', zIndex: 10, color: '#6c757d' }}
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                </span>
               </div>
 
               {/* Checkbox & Forgot Pass (Giữ nguyên) */}
