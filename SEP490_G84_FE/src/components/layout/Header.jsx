@@ -4,24 +4,31 @@ import { useNavigate } from 'react-router-dom'; // 2. Hook để chuyển trang
 import { logout } from '@/features/auth/authSlice'; // 3. Import Action Logout
 import Buttons from '@/components/ui/Buttons';
 import { COLORS, APP_STRINGS } from '@/constants';
+import Swal from 'sweetalert2';
 
 const Header = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Hàm xử lý Đăng xuất
   const handleLogout = () => {
-    // Bước 1: Hỏi xác nhận (Tùy chọn, cho chuyên nghiệp)
-    if (window.confirm('Bạn có chắc chắn muốn đăng xuất không?')) {
-      
-      // Bước 2: Bắn action logout lên Redux 
-      // (Nó sẽ tự xóa token trong localStorage và reset state user về null)
-      dispatch(logout());
-
-      // Bước 3: Đá người dùng về trang Login ngay lập tức
-      navigate('/login');
-    }
-  };
+    // Thay thế window.confirm bằng Swal.fire
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You will be logged out of the system.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6', // Màu nút OK (Xanh hoặc màu Brand của bạn)
+        cancelButtonColor: '#d33',    // Màu nút Cancel (Đỏ)
+        confirmButtonText: 'Yes, log out!', // <--- SỬA THÀNH TIẾNG ANH Ở ĐÂY
+        cancelButtonText: 'Cancel'          // <--- SỬA THÀNH TIẾNG ANH Ở ĐÂY
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Nếu bấm OK thì mới thực hiện logout
+            dispatch(logout());
+            navigate('/login');
+        }
+    });
+};
 
   return (
     <header className="py-3 px-4 bg-white border-bottom shadow-sm d-flex justify-content-between align-items-center">

@@ -37,8 +37,6 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Backend đang chờ field là "username", nhưng form bạn đặt là "email"
     // Nên phải map lại dữ liệu trước khi gửi
     const loginPayload = {
         username: credentials.email, // Mapping email -> username
@@ -48,7 +46,6 @@ const Login = () => {
     // Gọi Redux Action
     dispatch(loginUser(loginPayload));
     
-    // Lưu ý: Việc chuyển trang (navigate) sẽ được xử lý bởi useEffect ở trên
     // khi token thay đổi từ null -> có giá trị.
   };
 
