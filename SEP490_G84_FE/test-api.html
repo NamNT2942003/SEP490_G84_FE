@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Account API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        .account-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .avatar-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .status-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-badge.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="account-card">
+            <h1 class="mb-4"><i class="bi bi-people-fill"></i> Account Management</h1>
+            <div id="loading" class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Loading accounts from API...</p>
+            </div>
+            <div id="error" class="alert alert-danger" style="display:none;"></div>
+            <div id="accounts" class="table-responsive" style="display:none;">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Avatar</th>
+                            <th>Full Name</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Main Branch</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchAccounts() {
+            try {
+                const response = await fetch('http://localhost:8081/api/accounts');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const accounts = await response.json();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('accounts').style.display = 'block';
+                
+                const tbody = document.getElementById('accountsBody');
+                tbody.innerHTML = accounts.map(account => `
+                    <tr>
+                        <td>${account.userId}</td>
+                        <td>
+                            <img src="${account.image || 'https://via.placeholder.com/50'}" 
+                                 alt="${account.fullName}" 
+                                 class="avatar-img">
+                        </td>
+                        <td><strong>${account.fullName}</strong></td>
+                        <td>${account.username}</td>
+                        <td>${account.email || 'N/A'}</td>
+                        <td><span class="badge bg-primary">${account.role || 'N/A'}</span></td>
+                        <td>${account.mainBranch || 'N/A'}</td>
+                        <td>
+                            <span class="status-badge ${account.status.toLowerCase()}">
+                                ${account.status}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = 
+                    `Failed to load accounts: ${error.message}. Make sure backend is running on http://localhost:8081`;
+            }
+        }
+
+        fetchAccounts();
+    </script>
+</body>
+</html>
