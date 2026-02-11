@@ -5,4 +5,12 @@ export const API_ENDPOINTS = {
     SEARCH: "/rooms/search",
     DETAIL: "/rooms",
   },
+  BRANCHES: {
+    LIST: "/branches",
+    DETAIL: "/branches",
+  },
+  ROOM_TYPES: {
+    LIST: "/room-types",
+    BY_BRANCH: "/room-types/by-branch",
+  },
 };

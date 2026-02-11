@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import SearchForm from "../components/SearchForm";
-import RoomCard from "../components/RoomCard";
-import FilterSidebar from "../components/FilterSidebar";
-import RoomDetailModal from "../components/RoomDetailModal";
-import Pagination from "../components/Pagination";
-import { roomService } from "../services/roomService";
+import SearchForm from "../../../components/SearchForm";
+import RoomCard from "../../../components/RoomCard";
+import FilterSidebar from "../../../components/FilterSidebar";
+import RoomDetailModal from "../../../components/RoomDetailModal";
+import Pagination from "../../../components/Pagination";
+import { roomService } from "../../../services/roomService";
 
 const SearchRoom = () => {
   const [rooms, setRooms] = useState([]);
@@ -27,7 +27,6 @@ const SearchRoom = () => {
   const searchRooms = async (searchFormParams) => {
     setLoading(true);
     setError(null);
-    // Save search params for reuse when filters change
     setSearchParams(searchFormParams);
     try {
       const params = {
@@ -48,7 +47,6 @@ const SearchRoom = () => {
     }
   };
 
-  // Separate function to refetch with saved params
   const refetchRooms = async () => {
     if (!searchParams) return;
 
@@ -126,16 +124,14 @@ const SearchRoom = () => {
     if (searchParams) {
       refetchRooms();
     }
-  }, [filters.roomTypeIds, filters.sortPrice, filters.page]);
+  }, [filters.branchId, filters.roomTypeIds, filters.sortPrice, filters.page]);
 
   return (
     <div className="search-room-page">
-      {/* Search Form */}
       <div className="container mt-4">
         <SearchForm onSearch={searchRooms} loading={loading} />
       </div>
 
-      {/* Breadcrumb */}
       <div className="container mt-3">
         <nav aria-label="breadcrumb">
           <ol className="breadcrumb">
@@ -151,20 +147,17 @@ const SearchRoom = () => {
         </nav>
       </div>
 
-      {/* Main Content */}
       <div className="container mb-5">
         <div className="row">
-          {/* Sidebar */}
           <div className="col-md-3">
             <FilterSidebar
               onFilterChange={handleFilterChange}
               selectedRoomTypes={filters.roomTypeIds}
+              selectedBranchId={filters.branchId}
             />
           </div>
 
-          {/* Results */}
           <div className="col-md-9">
-            {/* Header with count and sort */}
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h5 className="mb-0">Available Rooms ({totalElements})</h5>
               <div className="d-flex align-items-center gap-2">
@@ -181,7 +174,6 @@ const SearchRoom = () => {
               </div>
             </div>
 
-            {/* Loading State */}
             {loading && (
               <div className="text-center py-5">
                 <div
@@ -197,7 +189,6 @@ const SearchRoom = () => {
               </div>
             )}
 
-            {/* Error State */}
             {error && !loading && (
               <div className="alert alert-danger" role="alert">
                 <i className="bi bi-exclamation-triangle me-2"></i>
@@ -205,7 +196,6 @@ const SearchRoom = () => {
               </div>
             )}
 
-            {/* Empty State */}
             {!loading && !error && rooms.length === 0 && (
               <div className="text-center py-5">
                 <i
@@ -221,7 +211,6 @@ const SearchRoom = () => {
               </div>
             )}
 
-            {/* Room List */}
             {!loading && !error && rooms.length > 0 && (
               <div>
                 {rooms.map((room) => (

@@ -1,17 +1,71 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
+import { branchService, roomTypeService } from "../services/roomService";
 
-const ROOM_TYPES = [
-  { id: 4, label: "Standard Room" },
-  { id: 1, label: "Deluxe Suite" },
-  { id: 2, label: "Executive Suite" },
-  { id: 5, label: "Family Room" },
-];
-
-const FilterSidebar = ({ onFilterChange, selectedRoomTypes }) => {
+const FilterSidebar = ({
+  onFilterChange,
+  selectedRoomTypes,
+  selectedBranchId,
+}) => {
+  const [branches, setBranches] = useState([]);
+  const [roomTypes, setRoomTypes] = useState([]);
+  const [localBranchId, setLocalBranchId] = useState(selectedBranchId || "");
   const [localSelectedTypes, setLocalSelectedTypes] = useState(
     selectedRoomTypes || [],
   );
+  const [loadingBranches, setLoadingBranches] = useState(true);
+  const [loadingRoomTypes, setLoadingRoomTypes] = useState(false);
+
+  // Fetch branches on component mount
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        setLoadingBranches(true);
+        const data = await branchService.getAllBranches();
+        setBranches(data);
+        // Set default branch to first one if none selected
+        if (!selectedBranchId && data.length > 0) {
+          setLocalBranchId(data[0].branchId);
+          onFilterChange({ branchId: data[0].branchId });
+        }
+      } catch (error) {
+        console.error("Failed to fetch branches:", error);
+      } finally {
+        setLoadingBranches(false);
+      }
+    };
+    fetchBranches();
+  }, []);
+
+  // Fetch room types when branch changes
+  useEffect(() => {
+    const fetchRoomTypes = async () => {
+      if (!localBranchId) {
+        setRoomTypes([]);
+        return;
+      }
+      try {
+        setLoadingRoomTypes(true);
+        const data = await roomTypeService.getRoomTypesByBranch(localBranchId);
+        setRoomTypes(data);
+        // Clear room type selection when branch changes
+        setLocalSelectedTypes([]);
+        onFilterChange({ roomTypeIds: undefined });
+      } catch (error) {
+        console.error("Failed to fetch room types:", error);
+        setRoomTypes([]);
+      } finally {
+        setLoadingRoomTypes(false);
+      }
+    };
+    fetchRoomTypes();
+  }, [localBranchId]);
+
+  const handleBranchChange = (e) => {
+    const branchId = e.target.value ? parseInt(e.target.value) : "";
+    setLocalBranchId(branchId);
+    onFilterChange({ branchId: branchId || undefined });
+  };
 
   const handleRoomTypeChange = (roomTypeId) => {
     const newSelection = localSelectedTypes.includes(roomTypeId)
@@ -28,32 +82,53 @@ const FilterSidebar = ({ onFilterChange, selectedRoomTypes }) => {
     <div className="filter-sidebar bg-white p-3 rounded shadow-sm">
       <div className="mb-4">
         <h6 className="fw-bold mb-3">Location</h6>
-        <select className="form-select" defaultValue="all">
-          <option value="all">All Locations</option>
-          <option value="1">Hanoi</option>
-          <option value="2">Ho Chi Minh City</option>
-        </select>
+        {loadingBranches ? (
+          <div className="text-muted small">Loading locations...</div>
+        ) : (
+          <select
+            className="form-select"
+            value={localBranchId}
+            onChange={handleBranchChange}
+          >
+            <option value="">All Locations</option>
+            {branches.map((branch) => (
+              <option key={branch.branchId} value={branch.branchId}>
+                {branch.branchName}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       <div>
         <h6 className="fw-bold mb-3">Room Type</h6>
-        {ROOM_TYPES.map((type) => (
-          <div className="form-check mb-2" key={type.id}>
-            <input
-              className="form-check-input"
-              type="checkbox"
-              id={`room-type-${type.id}`}
-              checked={localSelectedTypes.includes(type.id)}
-              onChange={() => handleRoomTypeChange(type.id)}
-            />
-            <label
-              className="form-check-label"
-              htmlFor={`room-type-${type.id}`}
-            >
-              {type.label}
-            </label>
+        {loadingRoomTypes ? (
+          <div className="text-muted small">Loading room types...</div>
+        ) : roomTypes.length > 0 ? (
+          roomTypes.map((type) => (
+            <div className="form-check mb-2" key={type.roomTypeId}>
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id={`room-type-${type.roomTypeId}`}
+                checked={localSelectedTypes.includes(type.roomTypeId)}
+                onChange={() => handleRoomTypeChange(type.roomTypeId)}
+              />
+              <label
+                className="form-check-label"
+                htmlFor={`room-type-${type.roomTypeId}`}
+              >
+                {type.name}
+              </label>
+            </div>
+          ))
+        ) : (
+          <div className="text-muted small">
+            {localBranchId
+              ? "No room types available"
+              : "Select a location first"}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
@@ -62,6 +137,7 @@ const FilterSidebar = ({ onFilterChange, selectedRoomTypes }) => {
 FilterSidebar.propTypes = {
   onFilterChange: PropTypes.func.isRequired,
   selectedRoomTypes: PropTypes.array,
+  selectedBranchId: PropTypes.number,
 };
 
 export default FilterSidebar;
