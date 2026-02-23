@@ -1,27 +1,30 @@
 import { useMemo } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { STORAGE_ACCESS_TOKEN } from '@/constants';
+
+const DEFAULT_ROLE = 'STAFF';
+const ROLE_PREFIX = 'ROLE_';
 
 /**
- * Lấy currentUser từ accessToken (JWT) trong localStorage.
- * Dùng cho Account Management thay cho mock test.
+ * Current user from JWT in localStorage.
  * @returns {{ userId: number, role: string, fullName: string, branchName: string } | null}
  */
 export function useCurrentUser() {
   return useMemo(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem(STORAGE_ACCESS_TOKEN);
     if (!token) return null;
     try {
       const decoded = jwtDecode(token);
       const roleRaw = (decoded.role || '').split(',')[0] || '';
-      const role = roleRaw.replace('ROLE_', '').toUpperCase(); // ADMIN, MANAGER, STAFF
+      const role = roleRaw.replace(ROLE_PREFIX, '').toUpperCase();
       return {
         userId: decoded.userId ?? null,
-        role: role || 'STAFF',
+        role: role || DEFAULT_ROLE,
         fullName: decoded.fullName || '',
         branchName: decoded.branchName || '',
       };
-    } catch (e) {
+    } catch {
       return null;
     }
-  }, []); // Re-compute khi component mount (token thay đổi thì cần refresh trang)
+  }, []);
 }

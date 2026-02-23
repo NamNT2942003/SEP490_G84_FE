@@ -5,15 +5,11 @@ import Footer from './Footer';
 
 const MainLayout = ({ children }) => {
   return (
-    <div className="d-flex vh-100 overflow-hidden">
-      {/* Cố định Sidebar bên trái */}
+    <div className="d-flex vh-100 overflow-hidden" style={{ pointerEvents: 'auto' }}>
       <Sidebar />
-      
-      {/* Phần nội dung bên phải (Header + Content + Footer) */}
-      <div className="d-flex flex-column flex-grow-1 overflow-auto">
+      <div className="d-flex flex-column flex-grow-1 overflow-auto" style={{ pointerEvents: 'auto' }}>
         <Header />
-        
-        {/* Nội dung thay đổi của từng trang nằm ở đây */}
+        {/* Main content area */}
         <main className="p-4 flex-grow-1 bg-light">
           {children}
         </main>

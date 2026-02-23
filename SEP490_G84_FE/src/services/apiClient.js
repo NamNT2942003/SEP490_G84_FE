@@ -1,7 +1,8 @@
 import axios from 'axios';
 
+// Relative URL so Vite proxies /api to backend (avoids CORS)
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8081/api', // Đổi port 8081 nếu backend bạn chạy port khác
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },

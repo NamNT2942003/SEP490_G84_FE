@@ -1,39 +1,42 @@
 import axios from 'axios';
+import { STORAGE_ACCESS_TOKEN } from '@/constants';
 
-const API_BASE_URL = 'http://localhost:8081/api';
+const BASE_URL_API = '/api';
 
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: BASE_URL_API,
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach JWT to all requests
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
+    const token = localStorage.getItem(STORAGE_ACCESS_TOKEN);
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => Promise.reject(error)
 );
 
+const withCurrentUser = (params, currentUserId) =>
+  currentUserId != null ? { ...params, currentUserId } : params;
+
 export const accountAPI = {
   getAllAccounts: (params = {}) => apiClient.get('/accounts', { params }),
-  getAccountById: (id) => apiClient.get(`/accounts/${id}`),
-  createAccount: (data, currentUserId) => apiClient.post('/accounts', data, { params: { currentUserId } }),
-  updateAccount: (id, data) => apiClient.put(`/accounts/${id}`, data),
-  updateAccountStatus: (id, status) => apiClient.patch(`/accounts/${id}/status`, { status }),
+  getAccountById: (id, params = {}) => apiClient.get(`/accounts/${id}`, { params }),
+  createAccount: (data, currentUserId) =>
+    apiClient.post('/accounts', data, { params: withCurrentUser({}, currentUserId) }),
+  updateAccount: (id, data, currentUserId) =>
+    apiClient.put(`/accounts/${id}`, data, { params: withCurrentUser({}, currentUserId) }),
+  updateAccountStatus: (id, status, currentUserId) =>
+    apiClient.patch(`/accounts/${id}/status`, { status }, { params: withCurrentUser({}, currentUserId) }),
   uploadAvatar: (id, file) => {
     const formData = new FormData();
     formData.append('file', file);
     return apiClient.patch(`/accounts/${id}/avatar`, formData);
   },
-  getBaseURL: () => (apiClient.defaults.baseURL || '').replace(/\/api\/?$/, '') || 'http://localhost:8081',
-  deleteAccount: (id) => apiClient.delete(`/accounts/${id}`),
+  getBaseURL: () => window.location.origin,
+  deleteAccount: (id, currentUserId) =>
+    apiClient.delete(`/accounts/${id}`, { params: withCurrentUser({}, currentUserId) }),
   filterAccounts: (params) => apiClient.get('/accounts/filter', { params }),
   searchAccounts: (fullName) => apiClient.get('/accounts/search', { params: { fullName } }),
   getAccountsByStatus: (status) => apiClient.get(`/accounts/status/${status}`),

@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 
 /**
  * Reusable Button Component theo brand color
- * * @param {string} variant - Loại nút: 'primary' (đặc), 'outline' (viền), 'text' (chữ)
- * @param {string} className - Các class bổ sung (ví dụ: w-100, mb-3)
- * @param {boolean} isLoading - Trạng thái đang tải (hiện spinner)
- * @param {node} icon - Icon hiển thị trước chữ (ví dụ: <i className="bi bi-save"></i>)
- * @param {function} onClick - Hàm xử lý sự kiện click
+ * @param {string} variant - 'primary' | 'outline' | 'text' | 'danger'
+ * @param {string} className - Additional CSS classes
+ * @param {boolean} isLoading - Show spinner when loading
+ * @param {node} icon - Icon node
+ * @param {function} onClick - Click handler
  */
 const Buttons = ({ 
   children, 
@@ -21,13 +21,13 @@ const Buttons = ({
   ...props 
 }) => {
   
-  // Map variant sang class Bootstrap tương ứng đã định nghĩa trong CSS
+  // Map variant to Bootstrap-style classes
   const getButtonsClass = () => {
     switch (variant) {
       case 'outline': return 'btn-outline-brand';
       case 'text': return 'btn-text-brand';
-      case 'danger': return 'btn-danger text-white'; // Giữ nguyên màu đỏ cho nút xóa
-      default: return 'btn-brand'; // Mặc định là nút xanh rêu đặc
+      case 'danger': return 'btn-danger text-white';
+      default: return 'btn-brand';
     }
   };
 

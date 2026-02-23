@@ -52,7 +52,7 @@ const AccountList = () => {
   const handleFilter = async () => {
     try {
       setLoading(true);
-      const params = {};
+      const params = { currentUserId: currentUser?.userId };
       const branchIdNum = parseInt(selectedBranch, 10);
       if (!isNaN(branchIdNum)) params.branchId = branchIdNum;
       if (selectedStatus) params.status = selectedStatus;
@@ -83,7 +83,7 @@ const AccountList = () => {
   const handleToggleStatus = async (userId, currentStatus) => {
     try {
       const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-      await accountAPI.updateAccountStatus(userId, newStatus);
+      await accountAPI.updateAccountStatus(userId, newStatus, currentUser?.userId);
       fetchAccounts();
     } catch (error) {
       const msg = error.response?.data?.message || error.response?.data || error.message;
@@ -98,11 +98,12 @@ const AccountList = () => {
     }
 
     try {
-      await accountAPI.deleteAccount(userId);
+      await accountAPI.deleteAccount(userId, currentUser?.userId);
       alert('Account deleted successfully.');
       fetchAccounts();
     } catch (error) {
-      alert('Could not delete account. ' + (error.response?.data || error.message));
+      const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response?.data : error.message);
+      alert('Could not delete account. ' + (msg || ''));
     }
   };
 
@@ -135,9 +136,7 @@ const AccountList = () => {
       <div className="account-header">
         <div>
           <h1 className="account-title">
-            {currentUser.role === 'MANAGER'
-              ? 'Staff Management'
-              : 'Account Management'}
+            Account List
           </h1>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -199,7 +198,7 @@ const AccountList = () => {
             <option value="Inactive">Inactive</option>
           </select>
 
-          {/* Action Buttons - Chỉ giữ Filter */}
+          {/* Action buttons */}
           <div className="action-buttons">
             <button className="btn-icon" onClick={handleFilter} title="Apply Filter">
               <i className="bi bi-funnel"></i>
@@ -288,7 +287,7 @@ const AccountList = () => {
                         </td>
                         <td>
                           <div className="action-icons">
-                            {/* View - Hiển thị cho cả Admin và Manager */}
+                            {/* View */}
                             <button 
                               className="action-btn view" 
                               title="View" 
@@ -297,7 +296,7 @@ const AccountList = () => {
                               <i className="bi bi-eye"></i>
                             </button>
                             
-                            {/* Edit & Delete - Admin và Manager đều có quyền */}
+                            {/* Edit & Delete */}
                             <button 
                               className="action-btn edit" 
                               title="Edit"

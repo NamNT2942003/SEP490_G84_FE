@@ -9,9 +9,23 @@ const __dirname = path.dirname(__filename);
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    port: 5173,
+    strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+      },
+    },
+  },
   resolve: {
     alias: {
-      // Cấu hình dấu @ để thay thế cho ./src
+      // @ alias for ./src
       '@': path.resolve(__dirname, './src'),
     },
   },

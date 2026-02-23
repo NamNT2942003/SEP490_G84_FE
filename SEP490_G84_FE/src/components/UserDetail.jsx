@@ -1,35 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { accountAPI } from '../utils/api';
+import { accountAPI } from '@/utils/api';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import './UserDetail.css';
 
 const UserDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const [showPassword, setShowPassword] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [displayOrder, setDisplayOrder] = useState(null);
+  const [error403, setError403] = useState(false);
 
   useEffect(() => {
     const fetchUserDetail = async () => {
       try {
         setLoading(true);
-        console.log('Fetching user ID:', id);
-        
-        // Call API using accountAPI from api.js
-        const response = await accountAPI.getAccountById(id);
+        setError403(false);
+        const params = currentUser?.userId != null ? { currentUserId: currentUser.userId } : {};
+        const response = await accountAPI.getAccountById(id, params);
         const userData = response.data;
-        
-        console.log('API Response:', userData);
-        
-        // Transform API data to match our component structure
+        const baseURL = accountAPI.getBaseURL?.() || 'http://localhost:8081';
+        const imageUrl = userData.image
+          ? (userData.image.startsWith('http') ? userData.image : baseURL + userData.image)
+          : 'https://i.pravatar.cc/150?img=12';
         const transformedUser = {
           userId: userData.userId,
           username: userData.username,
           fullName: userData.fullName,
-          email: userData.email || `${userData.username}@hotel.com`,
-          password: '***********', // Don't show real password
-          image: userData.image || 'https://i.pravatar.cc/150?img=12',
+          email: userData.email ?? '',
+          password: '***********',
+          image: imageUrl,
           role: {
             id: 1,
             name: userData.role || 'Staff',
@@ -55,27 +58,40 @@ const UserDetail = () => {
             }))
           ]
         };
-        
-        console.log('Transformed User:', transformedUser);
         setUser(transformedUser);
       } catch (error) {
-        console.error('Error fetching user detail:', error);
-        console.error('API URL:', `http://localhost:8081/api/accounts/${id}`);
-        console.error('Error details:', error.message);
-        setUser(null);
+        if (error.response?.status === 403) {
+          setUser(null);
+          setError403(true);
+        } else {
+          setUser(null);
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserDetail();
-  }, [id]);
+    if (currentUser !== undefined) fetchUserDetail();
+  }, [id, currentUser?.userId]);
+
+  useEffect(() => {
+    if (!currentUser || !id) return;
+    const fetchOrder = async () => {
+      try {
+        const res = await accountAPI.getAllAccounts({ currentUserId: currentUser.userId });
+        const list = Array.isArray(res.data) ? res.data : [];
+        const index = list.findIndex((a) => String(a.userId) === String(id));
+        setDisplayOrder(index >= 0 ? index + 1 : null);
+      } catch (e) {
+        setDisplayOrder(null);
+      }
+    };
+    fetchOrder();
+  }, [currentUser?.userId, id]);
 
   const handleBack = () => {
     navigate('/accounts');
   };
-
-  console.log('UserDetail - loading:', loading, 'user:', user);
 
   if (loading) {
     return (
@@ -98,8 +114,8 @@ const UserDetail = () => {
           <span className="breadcrumb-current">User Details</span>
         </div>
         <div className="alert alert-danger">
-          <h4>User not found</h4>
-          <p>Unable to load user details for ID: {id}</p>
+          <h4>{error403 ? 'Access denied' : 'User not found'}</h4>
+          <p>{error403 ? 'Manager can only view staff accounts.' : `Unable to load user details for ID: ${id}`}</p>
           <button className="btn btn-primary" onClick={handleBack}>
             Back to Users
           </button>
@@ -132,7 +148,7 @@ const UserDetail = () => {
             <div className="form-grid">
               <div className="form-group">
                 <label>User ID</label>
-                <input type="text" value={user.userId} readOnly className="form-control" />
+                <input type="text" value={displayOrder != null ? displayOrder : user.userId} readOnly className="form-control" />
               </div>
               <div className="form-group">
                 <label>Username</label>
@@ -219,10 +235,13 @@ const UserDetail = () => {
           <div className="detail-card profile-card">
             <h3 className="card-title">Profile</h3>
             <div className="profile-content">
-              <img src={user.image} alt={user.fullName} className="profile-avatar" />
+              <img
+                src={user.image}
+                alt={user.fullName}
+                className="profile-avatar"
+              />
               <h4 className="profile-name">{user.fullName}</h4>
               <p className="profile-username">@{user.username}</p>
-              <button className="btn-change-photo">Change Photo</button>
             </div>
           </div>
         </div>

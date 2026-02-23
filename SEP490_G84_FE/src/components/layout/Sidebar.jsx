@@ -1,15 +1,25 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom'; // Dùng NavLink để tự động highlight menu đang chọn
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { logout } from '@/features/auth/authSlice';
 import { COLORS } from '@/constants';
 
 const Sidebar = () => {
-  // Danh sách menu dựa trên SRS
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const handleSignOut = () => {
+    if (window.confirm('Are you sure you want to sign out?')) {
+      dispatch(logout());
+      navigate('/login');
+    }
+  };
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
     { path: '/bookings', label: 'Booking Management', icon: 'bi-calendar-check' },
     { path: '/rooms', label: 'Room List', icon: 'bi-door-open' },
     { path: '/services', label: 'Services', icon: 'bi-cup-hot' },
-    { path: '/accounts', label: 'Staff Account', icon: 'bi-people' },
+    { path: '/accounts', label: 'Account List', icon: 'bi-people' },
     { path: '/reports', label: 'Reports', icon: 'bi-bar-chart-line' },
   ];
 
@@ -55,15 +65,15 @@ const Sidebar = () => {
       
       {/* User Info Mini */}
       <div className="dropdown">
-        <a href="#" className="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-          <img src="" alt="" width="32" height="32" className="rounded-circle me-2" />
+        <button type="button" className="btn btn-link d-flex align-items-center text-white text-decoration-none dropdown-toggle p-0 border-0" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+          <span className="rounded-circle bg-white me-2 d-inline-block" style={{ width: 32, height: 32 }} />
           <strong>Manager</strong>
-        </a>
+        </button>
         <ul className="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
-          <li><a className="dropdown-item" href="#">Profile</a></li>
-          <li><a className="dropdown-item" href="#">Settings</a></li>
+          <li><NavLink className="dropdown-item" to="/dashboard">Profile</NavLink></li>
+          <li><NavLink className="dropdown-item" to="/accounts">Account List</NavLink></li>
           <li><hr className="dropdown-divider" /></li>
-          <li><a className="dropdown-item" href="#">Sign out</a></li>
+          <li><button type="button" className="dropdown-item bg-transparent border-0 w-100 text-start" onClick={handleSignOut}>Sign out</button></li>
         </ul>
       </div>
     </div>

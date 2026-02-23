@@ -39,7 +39,7 @@
   background-color: #4a6652;
 }
 
-/* Toolbar - Một hàng ngang: Search | All Roles | All Branches | All Status | Filter | Download */
+/* Toolbar row */
 .account-toolbar {
   background: white;
   border-radius: 8px;
@@ -64,7 +64,7 @@
   flex-shrink: 0;
 }
 
-/* Search Box - nằm cùng hàng với dropdown và nút */
+/* Search box */
 .search-box {
   position: relative;
   flex: 1 1 auto;

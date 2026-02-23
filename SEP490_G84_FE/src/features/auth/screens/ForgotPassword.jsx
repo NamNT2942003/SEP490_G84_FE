@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// 1. Import đúng theo tên file bạn đặt (Buttons.jsx) và dùng Alias @
 import Buttons from '@/components/ui/Buttons.jsx'; 
-import { APP_STRINGS, COLORS } from '@/constants'; // Dùng @ luôn cho đồng bộ
+import { APP_STRINGS, COLORS } from '@/constants';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -20,7 +19,7 @@ const ForgotPassword = () => {
     <div className="container-fluid vh-100 p-0 overflow-hidden">
       <div className="row g-0 h-100">
         
-        {/* CỘT TRÁI (Branding) */}
+        {/* Left column */}
         <div className="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center position-relative text-white">
           <div className="position-absolute w-100 h-100" style={{ backgroundColor: COLORS.PRIMARY, zIndex: 1 }}></div>
           <img src="/assets/hotel-preview.png" alt="Background" className="position-absolute w-100 h-100" style={{ objectFit: 'cover', opacity: 0.2, zIndex: 0 }} />
@@ -31,16 +30,16 @@ const ForgotPassword = () => {
           </div>
         </div>
 
-        {/* CỘT PHẢI (Form) */}
+        {/* Right column - form */}
         <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white">
           <div className="w-100 p-5" style={{ maxWidth: '500px' }}>
             
             <div className="mb-4 text-start">
   <Buttons 
     variant="text" // Dùng variant text để bỏ màu nền
-    className="p-0" // Bỏ padding để nó gọn như văn bản
+    className="p-0"
     onClick={() => navigate('/login')}
-    icon={<i className="bi bi-arrow-left"></i>} // Icon mũi tên quay lại
+    icon={<i className="bi bi-arrow-left"></i>}
   >
     Back to Login
   </Buttons>
@@ -66,7 +65,6 @@ const ForgotPassword = () => {
                     <label htmlFor="resetEmail" className="text-muted">Enter your email</label>
                   </div>
 
-                  {/* SỬ DỤNG COMPONENT BUTTONS VỚI TÊN MỚI */}
                   <Buttons 
                     type="submit" 
                     className="w-100 py-3 shadow-sm mb-3"

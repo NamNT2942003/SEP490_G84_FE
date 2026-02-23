@@ -1,17 +1,19 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { STORAGE_ACCESS_TOKEN } from '@/constants';
 import { authApi } from './api/authApi';
 
-// 1. Tạo thunk để xử lý bất đồng bộ (Gọi API)
+const getStoredToken = () => localStorage.getItem(STORAGE_ACCESS_TOKEN) || null;
+
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (userData, { rejectWithValue }) => {
     try {
       const response = await authApi.login(userData);
-      // response.accessToken là cái token backend trả về
-      return response; 
+      return response;
     } catch (error) {
-      // Nếu lỗi, trả về message từ backend hoặc lỗi mặc định
-      return rejectWithValue(error.response?.data || 'Đăng nhập thất bại');
+      const data = error.response?.data;
+      const message = (typeof data === 'object' && data?.message) ? data.message : (data || 'Login failed');
+      return rejectWithValue(message);
     }
   }
 );
@@ -20,7 +22,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState: {
     user: null,
-    token: localStorage.getItem('accessToken') || null, // Lấy token nếu user F5 lại trang
+    token: getStoredToken(),
     isLoading: false,
     error: null,
   },
@@ -28,7 +30,7 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.token = null;
-      localStorage.removeItem('accessToken');
+      localStorage.removeItem(STORAGE_ACCESS_TOKEN);
     },
     clearError: (state) => {
       state.error = null;
@@ -36,19 +38,15 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Khi đang gọi API
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      // Khi gọi thành công
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.token = action.payload.accessToken;
-        // Lưu token vào localStorage ngay lập tức
-        localStorage.setItem('accessToken', action.payload.accessToken);
+        localStorage.setItem(STORAGE_ACCESS_TOKEN, action.payload.accessToken);
       })
-      // Khi gọi thất bại
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;

@@ -11,12 +11,8 @@ const Login = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '', rememberMe: false });
   
   const navigate = useNavigate();
-  const dispatch = useDispatch(); // Hook để bắn action
-
-  // Lấy state từ Redux về (để hiển thị loading hoặc lỗi)
+  const dispatch = useDispatch();
   const { isLoading, error, token } = useSelector((state) => state.auth);
-
-  // Nếu đã có token (đã login rồi) thì đá sang dashboard luôn
   useEffect(() => {
     if (token) {
       navigate('/dashboard');
@@ -35,42 +31,25 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Backend đang chờ field là "username", nhưng form bạn đặt là "email"
-    // Nên phải map lại dữ liệu trước khi gửi
     const loginPayload = {
-        username: credentials.email, // Mapping email -> username
-        password: credentials.password
+      username: credentials.email,
+      password: credentials.password
     };
-
-    // Gọi Redux Action
     dispatch(loginUser(loginPayload));
-    
-    // Lưu ý: Việc chuyển trang (navigate) sẽ được xử lý bởi useEffect ở trên
-    // khi token thay đổi từ null -> có giá trị.
   };
 
 
 const handleGoogleSuccess = async (credentialResponse) => {
     try {
-        // 1. Lấy token từ Google trả về
         const token = credentialResponse.credential;
-
-        // 2. Gửi về Backend của mình để đổi lấy JWT
         const res = await apiClient.post('/auth/google', { token: token });
-
-        // 3. Backend trả về accessToken -> Lưu vào Redux/LocalStorage
         const { accessToken } = res.data;
-        
-        // Lưu token
         localStorage.setItem('accessToken', accessToken);
-        
-        // Chuyển trang (Reload nhẹ để cập nhật state)
         window.location.href = '/dashboard';
 
     } catch (error) {
-        console.error("Lỗi Google Login:", error);
-        alert("Đăng nhập Google thất bại!");
+        console.error("Google login error:", error);
+        alert("Google login failed.");
     }
   };
 
@@ -79,7 +58,7 @@ const handleGoogleSuccess = async (credentialResponse) => {
     <div className="container-fluid vh-100 p-0 overflow-hidden">
       <div className="row g-0 h-100">
         
-        {/* CỘT TRÁI (Giữ nguyên code của bạn) */}
+        {/* Left column - branding */}
         <div className="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center position-relative text-white">
           <div className="position-absolute w-100 h-100" style={{ backgroundColor: COLORS.PRIMARY, zIndex: 1 }}></div>
           <div className="position-relative text-center p-5" style={{ zIndex: 2 }}>
@@ -90,7 +69,7 @@ const handleGoogleSuccess = async (credentialResponse) => {
           </div>
         </div>
 
-        {/* CỘT PHẢI */}
+        {/* Right column - form */}
         <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white">
           <div className="w-100 p-5" style={{ maxWidth: '500px' }}>
             
@@ -102,10 +81,10 @@ const handleGoogleSuccess = async (credentialResponse) => {
               <h3 className="fw-bold text-dark">Welcome Back</h3>
               <p className="text-muted">Please sign in to your staff account.</p>
               
-              {/* Hiển thị lỗi nếu có (VD: Sai mật khẩu) */}
+              {/* Error message */}
               {error && (
                   <div className="alert alert-danger py-2" role="alert">
-                      <small>{typeof error === 'string' ? error : 'Đăng nhập thất bại'}</small>
+                      <small>{error}</small>
                   </div>
               )}
             </div>
@@ -113,10 +92,10 @@ const handleGoogleSuccess = async (credentialResponse) => {
             <form onSubmit={handleSubmit}>
               <div className="form-floating mb-3">
                 <input 
-                    type="text" // Đổi thành text để nhập username admin cho dễ
+                    type="text"
                     className="form-control" 
                     id="floatingInput" 
-                    name="email" // Giữ nguyên name để khớp với state, nhưng logic là username
+                    name="email"
                     placeholder="name@example.com" 
                     value={credentials.email} 
                     onChange={handleChange} 
@@ -139,7 +118,7 @@ const handleGoogleSuccess = async (credentialResponse) => {
                 <label htmlFor="floatingPassword">Password</label>
               </div>
 
-              {/* Checkbox & Forgot Pass (Giữ nguyên) */}
+              {/* Remember me & Forgot password */}
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <div className="form-check">
                   <input className="form-check-input" type="checkbox" id="rememberMe" name="rememberMe" checked={credentials.rememberMe} onChange={handleChange} />
@@ -150,11 +129,11 @@ const handleGoogleSuccess = async (credentialResponse) => {
                 </span>
               </div>
 
-              {/* Nút Login có hiệu ứng Loading */}
+              {/* Login button */}
               <button 
                 type="submit" 
                 className="btn btn-brand btn-lg w-100 py-3 shadow-sm mb-3"
-                disabled={isLoading} // Disable nút khi đang load
+                disabled={isLoading}
               >
                 {isLoading ? (
                     <span>
@@ -166,16 +145,13 @@ const handleGoogleSuccess = async (credentialResponse) => {
                 )}
               </button>
 
-              {/* Phần Google Login giữ nguyên */}
               <div className="d-flex justify-content-center mt-3 w-100">
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
-            onError={() => {
-              console.log('Login Failed');
-            }}
+            onError={() => console.log('Login Failed')}
             useOneTap
             shape="rectangular"
-            width="300" // Độ rộng nút
+            width="300"
           />
       </div>
 

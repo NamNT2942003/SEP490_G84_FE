@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { accountAPI, branchAPI } from '../utils/api';
+import { accountAPI, branchAPI } from '@/utils/api';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import './EditStaff.css';
 
 const EditStaff = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  
-  // ========== MOCK CURRENT USER ==========
-  // Comment/Uncomment để test các role khác nhau:
-  const currentUser = { userId: 1, role: 'ADMIN' };    // Test ADMIN
-  // const currentUser = { userId: 2, role: 'MANAGER' }; // Test MANAGER
-  
+  const currentUser = useCurrentUser();
+
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -29,28 +26,41 @@ const EditStaff = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, [id]);
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    if (currentUser.role === 'STAFF') {
+      navigate('/dashboard');
+      return;
+    }
+  }, [currentUser, navigate]);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role !== 'STAFF') fetchData();
+  }, [id, currentUser]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      
-      // Load branches
-      const branchesRes = await branchAPI.getAllBranches();
-      setBranches(branchesRes.data);
-      
-      // Load user data
-      const userRes = await accountAPI.getAccountById(id);
+      let branchesList = [];
+      try {
+        const branchesRes = await branchAPI.getAllBranches();
+        branchesList = branchesRes.data || [];
+      } catch (e) {
+        console.warn('Branches not loaded:', e);
+      }
+      setBranches(branchesList);
+
+      const params = currentUser?.userId != null ? { currentUserId: currentUser.userId } : {};
+      const userRes = await accountAPI.getAccountById(id, params);
       const user = userRes.data;
-      
-      // Tìm branchId của primary branch
-      const primaryBranch = branchesRes.data.find(b => b.branchName === user.mainBranch);
-      
+      const primaryBranch = branchesList.find(b => b.branchName === user.mainBranch);
+
       setFormData({
         username: user.username || '',
         email: user.email || '',
-        password: '********', // Không load password thật
+        password: '********',
         role: user.role || 'STAFF',
         primaryBranchId: primaryBranch ? primaryBranch.branchId : '',
         primaryBranchName: user.mainBranch || '',
@@ -58,7 +68,12 @@ const EditStaff = () => {
       });
     } catch (error) {
       console.error('Error fetching data:', error);
-      alert('Không thể load thông tin!');
+      if (error.response?.status === 403) {
+        alert('Manager can only edit staff accounts.');
+        navigate('/accounts');
+      } else {
+        alert('Could not load user. Check that the user exists.');
+      }
     } finally {
       setLoading(false);
     }
@@ -101,40 +116,34 @@ const EditStaff = () => {
     try {
       setSaving(true);
       
-      // Chuyển đổi branch names thành IDs
+      // Map branch names to IDs
       const additionalBranchIds = branches
         .filter(b => formData.additionalBranches.includes(b.branchName))
         .map(b => b.branchId);
       
       const updateData = {
-        email: formData.email,
+        ...(currentUser?.role === 'ADMIN' && { email: formData.email }),
         role: formData.role,
-        primaryBranchId: formData.primaryBranchId,
+        primaryBranchId: formData.primaryBranchId || null,
         additionalBranchIds: additionalBranchIds
       };
       
-      // DEBUG: Log data gửi lên backend
-      console.log('=== UPDATE DATA ===');
-      console.log('User ID:', id);
-      console.log('Update Data:', updateData);
-      console.log('Primary Branch ID:', updateData.primaryBranchId);
-      console.log('Additional Branch IDs:', updateData.additionalBranchIds);
+      await accountAPI.updateAccount(id, updateData, currentUser?.userId);
       
-      await accountAPI.updateAccount(id, updateData);
-      
-      alert('Cập nhật thành công!');
+      alert('Updated successfully.');
       navigate('/accounts');
     } catch (error) {
       console.error('Error updating user:', error);
-      alert('Không thể cập nhật user!');
+      const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response?.data : JSON.stringify(error.response?.data));
+      alert('Could not update user.' + (msg ? '\n' + msg : ''));
     } finally {
       setSaving(false);
     }
   };
 
   const handleResetPassword = () => {
-    if (window.confirm('Bạn có chắc muốn reset password cho user này?')) {
-      alert('Chức năng Reset Password sẽ được implement sau!');
+    if (window.confirm('Are you sure you want to reset password for this user?')) {
+      alert('Reset Password feature will be implemented later.');
     }
   };
 
@@ -145,19 +154,21 @@ const EditStaff = () => {
   // Get available roles based on current user's role
   const getAvailableRoles = () => {
     if (currentUser.role === 'ADMIN') {
-      // Admin có thể đổi account thành MANAGER hoặc STAFF (không thể tạo ADMIN mới)
+      // Admin can set role to MANAGER or STAFF
       return [
         { value: 'MANAGER', label: 'Manager' },
         { value: 'STAFF', label: 'Staff' }
       ];
     } else if (currentUser.role === 'MANAGER') {
-      // Manager chỉ có thể phân role STAFF
+      // Manager can only assign STAFF
       return [
         { value: 'STAFF', label: 'Staff' }
       ];
     }
     return [];
   };
+
+  if (!currentUser || currentUser.role === 'STAFF') return null;
 
   if (loading) {
     return (
@@ -211,6 +222,8 @@ const EditStaff = () => {
                 onChange={handleInputChange}
                 className="form-control"
                 required
+                readOnly={currentUser?.role !== 'ADMIN'}
+                title={currentUser?.role !== 'ADMIN' ? 'Only Admin can edit email' : ''}
               />
             </div>
           </div>
@@ -241,19 +254,22 @@ const EditStaff = () => {
             
             <div className="form-group">
               <label htmlFor="role">Role</label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleInputChange}
-                className="form-control"
-              >
-                {getAvailableRoles().map(role => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                ))}
-              </select>
+              <div className="select-arrow-wrapper">
+                <select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  className="form-control select-with-arrow"
+                >
+                  {getAvailableRoles().map(role => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
+                </select>
+                <i className="bi bi-chevron-down select-arrow-icon" aria-hidden="true" />
+              </div>
             </div>
           </div>
 
@@ -261,21 +277,23 @@ const EditStaff = () => {
           <div className="form-row">
             <div className="form-group full-width">
               <label htmlFor="primaryBranch">Primary Branch</label>
-              <select
-                id="primaryBranch"
-                name="primaryBranch"
-                value={formData.primaryBranchId}
-                onChange={handlePrimaryBranchChange}
-                className="form-control"
-                required
-              >
-                <option value="">Select primary branch...</option>
-                {branches.map(branch => (
-                  <option key={branch.branchId} value={branch.branchId}>
-                    {branch.branchName}
-                  </option>
-                ))}
-              </select>
+              <div className="select-arrow-wrapper">
+                <select
+                  id="primaryBranch"
+                  name="primaryBranch"
+                  value={formData.primaryBranchId || ''}
+                  onChange={handlePrimaryBranchChange}
+                  className="form-control select-with-arrow"
+                >
+                  <option value="">— No branch —</option>
+                  {branches.map(branch => (
+                    <option key={branch.branchId} value={branch.branchId}>
+                      {branch.branchName}
+                    </option>
+                  ))}
+                </select>
+                <i className="bi bi-chevron-down select-arrow-icon" aria-hidden="true" />
+              </div>
             </div>
           </div>
 

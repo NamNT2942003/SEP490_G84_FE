@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { accountAPI, branchAPI } from '../utils/api';
+import { accountAPI, branchAPI } from '@/utils/api';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import './CreateAccount.css';
 
 const CreateAccount = () => {
   const navigate = useNavigate();
-  
-  // ========== MOCK CURRENT USER ==========
-  // Comment/Uncomment để test các role khác nhau:
-  const currentUser = { userId: 1, role: 'ADMIN' };    // Test ADMIN - Tạo tất cả roles
-  // const currentUser = { userId: 2, role: 'MANAGER' }; // Test MANAGER - Chỉ tạo STAFF
-  
+  const currentUser = useCurrentUser();
+
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -26,8 +23,19 @@ const CreateAccount = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchBranches();
-  }, []);
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    if (currentUser.role === 'STAFF') {
+      navigate('/dashboard');
+      return;
+    }
+  }, [currentUser, navigate]);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role !== 'STAFF') fetchBranches();
+  }, [currentUser]);
 
   const fetchBranches = async () => {
     try {
@@ -137,6 +145,8 @@ const CreateAccount = () => {
     return [];
   };
 
+  if (!currentUser || currentUser.role === 'STAFF') return null;
+
   return (
     <div className="create-account-container">
       {/* Breadcrumb */}
@@ -225,39 +235,45 @@ const CreateAccount = () => {
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="role">Role</label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleInputChange}
-                className="form-control"
-                required
-              >
-                {getAvailableRoles().map(role => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                ))}
-              </select>
+              <div className="select-arrow-wrapper">
+                <select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  className="form-control select-with-arrow"
+                  required
+                >
+                  {getAvailableRoles().map(role => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
+                </select>
+                <i className="bi bi-chevron-down select-arrow-icon" aria-hidden="true" />
+              </div>
             </div>
             
             <div className="form-group">
               <label htmlFor="primaryBranch">Primary Branch</label>
-              <select
-                id="primaryBranch"
-                name="primaryBranch"
-                value={formData.primaryBranch}
-                onChange={handlePrimaryBranchChange}
-                className="form-control"
-                required
-              >
-                <option value="">Select primary branch...</option>
-                {branches.map(branch => (
-                  <option key={branch.branchId} value={branch.branchId}>
-                    {branch.branchName}
-                  </option>
-                ))}
-              </select>
+              <div className="select-arrow-wrapper">
+                <select
+                  id="primaryBranch"
+                  name="primaryBranch"
+                  value={formData.primaryBranch}
+                  onChange={handlePrimaryBranchChange}
+                  className="form-control select-with-arrow"
+                  required
+                >
+                  <option value="">Select primary branch...</option>
+                  {branches.map(branch => (
+                    <option key={branch.branchId} value={branch.branchId}>
+                      {branch.branchName}
+                    </option>
+                  ))}
+                </select>
+                <i className="bi bi-chevron-down select-arrow-icon" aria-hidden="true" />
+              </div>
             </div>
           </div>
 
