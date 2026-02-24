@@ -9,18 +9,18 @@ import PropTypes from 'prop-types';
  * @param {node} icon - Icon hiển thị trước chữ (ví dụ: <i className="bi bi-save"></i>)
  * @param {function} onClick - Hàm xử lý sự kiện click
  */
-const Buttons = ({ 
-  children, 
-  variant = 'primary', 
-  type = 'button', 
-  className = '', 
-  isLoading = false, 
-  disabled = false, 
+const Buttons = ({
+  children,
+  variant = 'primary',
+  type = 'button',
+  className = '',
+  isLoading = false,
+  disabled = false,
   icon = null,
   onClick,
-  ...props 
+  ...props
 }) => {
-  
+
   // Map variant sang class Bootstrap tương ứng đã định nghĩa trong CSS
   const getButtonsClass = () => {
     switch (variant) {

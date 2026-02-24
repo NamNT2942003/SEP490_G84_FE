@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom'; 
-import Buttons from '@/components/ui/Buttons.jsx'; 
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import Buttons from '@/components/ui/Buttons.jsx';
 import { APP_STRINGS, COLORS } from '@/constants';
 import { forgotPass } from '../api/forgotPass'; // Hoặc authApi tuỳ bạn đặt tên
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token'); 
+  const token = searchParams.get('token');
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -14,7 +14,7 @@ const ResetPassword = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
-  const [showPassword, setShowPassword] = useState(false); 
+  const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
@@ -36,7 +36,7 @@ const ResetPassword = () => {
 
     try {
       await forgotPass.resetPassword(token, password);
-      setSuccess(true); 
+      setSuccess(true);
       setTimeout(() => {
         navigate('/login');
       }, 3000);
@@ -52,7 +52,7 @@ const ResetPassword = () => {
   return (
     <div className="container-fluid vh-100 p-0 overflow-hidden">
       <div className="row g-0 h-100">
-        
+
         {/* CỘT TRÁI (Giữ nguyên) */}
         <div className="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center position-relative text-white">
           <div className="position-absolute w-100 h-100" style={{ backgroundColor: COLORS.PRIMARY, zIndex: 1 }}></div>
@@ -66,14 +66,14 @@ const ResetPassword = () => {
         {/* CỘT PHẢI */}
         <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white">
           <div className="w-100 p-5" style={{ maxWidth: '500px' }}>
-            
+
             {!success ? (
               <>
                 {/* --- [MỚI] THÊM NÚT BACK Ở ĐÂY --- */}
                 <div className="mb-4 text-start">
-                  <Buttons 
-                    variant="text" 
-                    className="p-0" 
+                  <Buttons
+                    variant="text"
+                    className="p-0"
                     onClick={() => navigate('/login')}
                     icon={<i className="bi bi-arrow-left"></i>}
                   >
@@ -85,7 +85,7 @@ const ResetPassword = () => {
                 <div className="mb-4">
                   <h3 className="fw-bold text-dark">Set New Password</h3>
                   <p className="text-muted">Please create a strong password for your account.</p>
-                  
+
                   {error && (
                     <div className="alert alert-danger p-2 small text-center" role="alert">
                       <i className="bi bi-exclamation-triangle me-2"></i>{error}
@@ -104,7 +104,7 @@ const ResetPassword = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      style={{ paddingRight: '40px' }} 
+                      style={{ paddingRight: '40px' }}
                     />
                     <label htmlFor="newPass">New Password</label>
                     <span
@@ -155,7 +155,7 @@ const ResetPassword = () => {
                 </Buttons>
               </div>
             )}
-            
+
           </div>
         </div>
       </div>

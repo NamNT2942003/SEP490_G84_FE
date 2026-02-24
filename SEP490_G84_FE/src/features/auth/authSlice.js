@@ -8,7 +8,7 @@ export const loginUser = createAsyncThunk(
     try {
       const response = await authApi.login(userData);
       // response.accessToken là cái token backend trả về
-      return response; 
+      return response;
     } catch (error) {
       // Nếu lỗi, trả về message từ backend hoặc lỗi mặc định
       return rejectWithValue(error.response?.data || 'Đăng nhập thất bại');

@@ -1,16 +1,15 @@
-const Input = ({ label, icon, ...props }) => (
-  <div className="mb-4">
-    <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
-    <div className="relative">
-      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-        <i className={`fa-solid ${icon}`}></i>
+// src/components/ui/Input.jsx
+
+const Input = ({ label, icon, id, ...props }) => (
+  <div className="mb-3">
+    <label htmlFor={id} className="form-label small fw-bold">{label}</label>
+    <div className="input-group">
+      <span className="input-group-text bg-white">
+        <i className={`fa-solid ${icon} text-muted`}></i>
       </span>
-      <input 
-        className="block w-full pl-10 pr-3 py-3 bg-white border border-gray-200 rounded-xl focus:ring-olive focus:border-olive" 
-        {...props} 
-      />
+      <input id={id} className="form-control form-control-lg fs-6" {...props} />
     </div>
   </div>
 );
 
-export default Input
+export default Input;

@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import Login from '@/features/auth/screens/Login';
 import ForgotPassword from '@/features/auth/screens/ForgotPassword';
 import MainLayout from '@/components/layout/MainLayout'; // Import Layout
-import Dashboard from '@/features/dashboard/screens/Dashboard'; 
+import Dashboard from '@/features/dashboard/screens/Dashboard';
 import ResetPassword from '@/features/auth/screens/ResetPassword';
 import BookingSummary from '@/features/booking/components/BookingSummary';
 import GuestInformation from '@/features/booking/screens/GuestInformation';
@@ -22,7 +22,7 @@ const AppRouter = () => {
 
       {/* --- NHÓM 2: CÁC TRANG PRIVATE (CÓ FULL LAYOUT) --- */}
       {/* Cách dùng: Bọc Component con vào trong MainLayout */}
-      
+
     {/* Trang Dashboard */}
       <Route path="/dashboard" element={
         <MainLayout>
