@@ -1,7 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
+import authReducer from '@/features/auth/authSlice';
 
 export const store = configureStore({
   reducer: {
-  // auth: authReducer, sẽ được thêm ở đây
+    auth: authReducer,
+    // sau này thêm booking: bookingReducer...
   },
 });
+
+export default store;

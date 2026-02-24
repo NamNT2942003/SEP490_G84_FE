@@ -12,7 +12,7 @@ export const COLORS = {
 export const APP_STRINGS = {
   APP_NAME: 'AN NGUYEN',
   APP_SUBTITLE: 'Hotel & Serviced Apartment',
-  SLOGAN: '"Tinh tế trong từng chi tiết. Sang trọng trong mọi không gian."',
+  SLOGAN: '"Sophistication in every detail. Luxury in every space."', 
   
   // Các nút bấm dùng chung (Button Labels)
   BUTTONS: {
@@ -21,11 +21,11 @@ export const APP_STRINGS = {
     GOOGLE_LOGIN: 'Sign in with Google',
     FORGOT_PASS: 'Forgot Password?',
     REMEMBER_ME: 'Remember me',
-    SAVE: 'Lưu thay đổi',
-    CANCEL: 'Hủy bỏ',
-    DELETE: 'Xóa',
-    EDIT: 'Chỉnh sửa',
-    Confirm: 'Xác nhận'
+    SAVE: 'Save Changes',
+    CANCEL: 'Cancel',
+    DELETE: 'Delete',
+    EDIT: 'Edit',
+    Confirm: 'Confirm'
   },
 
   // Footer
