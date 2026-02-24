@@ -1,13 +1,6 @@
-import MainLayout from './components/layout/MainLayout';
-import GuestInformation from './features/booking/screens/GuestInformation';
+import AppRouter from './routes/AppRouter';
 
 function App() {
-  return (
-    <MainLayout>
-      {/* Trong thực tế bạn sẽ dùng <Routes> ở đây, hiện tại ta render trực tiếp để test */}
-      <GuestInformation />
-    </MainLayout>
-  );
+  return <AppRouter />;
 }
-
 export default App;

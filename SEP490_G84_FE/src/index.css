@@ -3,6 +3,8 @@
 :root {
   --brand-color: #465c47;
   --brand-hover: #384a39;
+  --hotel-gold: #c1a67a;
+  --hotel-gold-dark: #af9160;
 }
 
 /* Nút đặc (Solid) - Dùng cho hành động chính (Login, Save) */
@@ -67,4 +69,22 @@
 .link-brand:active {
   transform: scale(0.95); /* 3. Nhún nhỏ lại một chút */
   color: #2c3e2d !important; /* Màu tối hơn nữa */
+}
+
+.bg-olive { background-color: var(--brand-color) !important; color: white; }
+.text-olive { color: var(--brand-color) !important; }
+.btn-gold { 
+  background-color: var(--hotel-gold); 
+  color: white; 
+  border: none;
+  transition: all 0.3s;
+}
+.btn-gold:hover { background-color: var(--hotel-gold-dark); color: white; }
+.card-custom { border-radius: 15px; border: 1px solid #eee; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+
+.img-container {
+  width: 100%;
+  height: 200px; /* Hoặc độ cao bạn muốn */
+  overflow: hidden;
+  border-radius: 12px;
 }
