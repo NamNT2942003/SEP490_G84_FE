@@ -12,6 +12,7 @@ const Login = () => {
   
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [showPassword, setShowPassword] = useState(false);
   const { isLoading, error, token } = useSelector((state) => state.auth);
   useEffect(() => {
     if (token) {
@@ -84,17 +85,17 @@ const handleGoogleSuccess = async (credentialResponse) => {
               {/* Error message */}
               {error && (
                   <div className="alert alert-danger py-2" role="alert">
-                      <small>{error}</small>
+                      <small>{typeof error === 'string' ? error : 'Login failed'}</small>
                   </div>
               )}
             </div>
 
             <form onSubmit={handleSubmit}>
               <div className="form-floating mb-3">
-                <input 
+                <input
                     type="text"
-                    className="form-control" 
-                    id="floatingInput" 
+                    className="form-control"
+                    id="floatingInput"
                     name="email"
                     placeholder="name@example.com" 
                     value={credentials.email} 
@@ -104,9 +105,9 @@ const handleGoogleSuccess = async (credentialResponse) => {
                 <label htmlFor="floatingInput" className="text-muted">Username or Email</label>
               </div>
 
-              <div className="form-floating mb-3 position-relative">
+             <div className="form-floating mb-3 position-relative">
                 <input 
-                    type="password" 
+                    type={showPassword ? "text" : "password"} 
                     className="form-control" 
                     id="floatingPassword" 
                     name="password" 
@@ -114,8 +115,18 @@ const handleGoogleSuccess = async (credentialResponse) => {
                     value={credentials.password} 
                     onChange={handleChange} 
                     required 
+                    style={{ paddingRight: '40px' }} 
                 />
                 <label htmlFor="floatingPassword">Password</label>
+                
+                {/* Nút con mắt */}
+                <span
+                  className="position-absolute top-50 end-0 translate-middle-y me-3"
+                  style={{ cursor: 'pointer', zIndex: 10, color: '#6c757d' }}
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                </span>
               </div>
 
               {/* Remember me & Forgot password */}

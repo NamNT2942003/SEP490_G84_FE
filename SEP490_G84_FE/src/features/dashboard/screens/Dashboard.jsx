@@ -20,11 +20,12 @@ const Dashboard = () => {
           branchName: decoded.branchName || ""
         };
       } catch (error) {
-        console.error("Error reading token:", error);
+        console.error("Error decoding token:", error);
       }
     }
     return initialUser;
   });
+
   return (
     <div className="container-fluid p-0 fade-in">
       {/* Welcome banner */}
@@ -46,7 +47,6 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

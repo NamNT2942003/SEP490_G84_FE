@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { logout } from '@/features/auth/authSlice'; // 3. Import Action Logout
 import Buttons from '@/components/ui/Buttons';
 import { COLORS, APP_STRINGS } from '@/constants';
+import Swal from 'sweetalert2';
 
 const Header = () => {
   const dispatch = useDispatch();
@@ -13,10 +14,21 @@ const Header = () => {
   const pageTitle = isAccountsPage ? 'Account List' : 'Dashboard';
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to sign out?')) {
-      dispatch(logout());
-      navigate('/login');
-    }
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You will be logged out of the system.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, log out!',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        dispatch(logout());
+        navigate('/login');
+      }
+    });
   };
 
   return (

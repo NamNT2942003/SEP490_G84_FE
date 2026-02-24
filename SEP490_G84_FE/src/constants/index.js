@@ -15,14 +15,13 @@ export const APP_STRINGS = {
   APP_NAME: 'AN NGUYEN',
   APP_SUBTITLE: 'Hotel & Serviced Apartment',
   SLOGAN: '"Refined in every detail. Luxurious in every space."',
-
   BUTTONS: {
     LOGIN: 'Secure Login',
     LOGOUT: 'Sign Out',
     GOOGLE_LOGIN: 'Sign in with Google',
     FORGOT_PASS: 'Forgot Password?',
     REMEMBER_ME: 'Remember me',
-    SAVE: 'Save changes',
+    SAVE: 'Save Changes',
     CANCEL: 'Cancel',
     DELETE: 'Delete',
     EDIT: 'Edit',
