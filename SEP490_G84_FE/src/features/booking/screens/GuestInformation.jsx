@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 import BookingSummary from '../components/BookingSummary';
 import Input from '../../../components/ui/Input';
-import Header from '../../../components/layout/Header'; // Using the main Header
-import Footer from '../../../components/layout/Footer'; // Using the main Footer
 
 const GuestInformation = () => {
   const [isBookingForSomeone, setIsBookingForSomeone] = useState(false);
 
-  const handleContinue = () => {
-    // Logic for continuing to payment
-    console.log("Continue to payment clicked");
-  };
-
   return (
-    <div className="bg-light" style={{ paddingBottom: '120px' }}>
-      <Header title="Guest Information" variant="booking" />
+    <div className="bg-light" style={{ paddingBottom: '150px' }}>
+      {/* Header */}
+      <header className="bg-olive p-3 sticky-top shadow-sm">
+        <div className="container d-flex align-items-center">
+          <button className="btn text-white p-0 me-3 fs-5">
+            <i className="fa-solid fa-arrow-left"></i>
+          </button>
+          <h5 className="mb-0 mx-auto text-white fw-semibold">Guest Information</h5>
+        </div>
+      </header>
 
       <main className="container mt-4">
         <div className="row g-4">
@@ -131,7 +132,18 @@ const GuestInformation = () => {
         </div>
       </main>
 
-      <Footer variant="booking" price="$250.00" onContinue={handleContinue} />
+      {/* Footer */}
+      <footer className="fixed-bottom bg-white border-top p-3 shadow-lg">
+        <div className="container d-flex justify-content-between align-items-center">
+          <div>
+            <small className="text-muted small fw-bold text-uppercase">Total Price</small>
+            <h4 className="mb-0 fw-bold">$250.00</h4>
+          </div>
+          <button className="btn btn-gold px-4 py-2 fw-bold rounded-3">
+            Continue to Payment <i className="fa-solid fa-arrow-right ms-2"></i>
+          </button>
+        </div>
+      </footer>
     </div>
   );
 };
