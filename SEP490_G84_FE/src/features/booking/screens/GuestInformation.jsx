@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
-import BookingSummary from '../components/BookingSummary';
-import Input from '../../../components/ui/Input';
+import BookingSummary from '@/features/booking/components/BookingSummary';
+import Input from '@/components/ui/Input';
 
 const GuestInformation = () => {
-  const [isBookingForSomeone, setIsBookingForSomeone] = useState(false);
+    const [isBookingForSomeone, setIsBookingForSomeone] = useState(false);
 
-  return (
-    <div className="bg-light" style={{ paddingBottom: '150px' }}>
-      {/* Header */}
-      <header className="bg-olive p-3 sticky-top shadow-sm">
-        <div className="container d-flex align-items-center">
-          <button className="btn text-white p-0 me-3 fs-5">
-            <i className="fa-solid fa-arrow-left"></i>
-          </button>
-          <h5 className="mb-0 mx-auto text-white fw-semibold">Guest Information</h5>
-        </div>
-      </header>
+    return (
+        <div className="bg-light" style={{ minHeight: '100vh', paddingBottom: '120px' }}>
+            {/* Header - Giữ nguyên nhưng đảm bảo z-index cao nhất */}
+            <header className="bg-olive p-3 sticky-top shadow-sm" style={{ zIndex: 1030 }}>
+                <div className="container d-flex align-items-center">
+                    <button className="btn text-white p-0 me-3 fs-5">
+                        <i className="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h5 className="mb-0 mx-auto text-white fw-semibold">Guest Information</h5>
+                </div>
+            </header>
 
       <main className="container mt-4">
         <div className="row g-4">
@@ -123,11 +123,23 @@ const GuestInformation = () => {
           </div>
 
           {/* Right Column: Summary */}
-          <div className="col-lg-4">
-            <div className="sticky-top" style={{ top: '80px' }}>
-              <h5 className="fw-bold mb-3">Your Booking</h5>
-              <BookingSummary />
-            </div>
+            <div className="col-lg-4">
+                {/* Sử dụng sticky-top của Bootstrap kết hợp với inline style để override 'top' */}
+                <div
+                    className="sticky-top d-none d-lg-block"
+                    style={{ top: '90px', zIndex: 1020 }}
+                >
+                    <h5 className="fw-bold mb-3">Your Booking</h5>
+                    <div className="bg-white rounded-3 custom-shadow overflow-hidden">
+                        <BookingSummary />
+                    </div>
+                </div>
+
+                {/* Hiển thị summary bình thường trên mobile (không sticky) */}
+                <div className="d-lg-none mt-4">
+                    <h5 className="fw-bold mb-3">Your Booking</h5>
+                    <BookingSummary />
+                </div>
           </div>
         </div>
       </main>

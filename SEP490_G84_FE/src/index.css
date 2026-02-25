@@ -117,3 +117,9 @@
     height: 1.25em;
     cursor: pointer;
 }
+
+sticky-summary {
+  position: sticky;
+  top: 85px; /* Chiều cao header (~60px) + khoảng cách đệm (25px) */
+  z-index: 10;
+}
