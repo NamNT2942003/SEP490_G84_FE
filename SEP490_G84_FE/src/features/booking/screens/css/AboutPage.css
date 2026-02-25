@@ -1,0 +1,686 @@
+/* ═══════════════════════════════════════════════════════
+   ABOUT PAGE STYLES
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  --hotel-green: #5c6f4e;
+  --hotel-green-dark: #4a5a3f;
+  --hotel-gold: #c9a96e;
+  --hotel-cream: #faf8f5;
+  --hotel-dark: #1e2a1e;
+  --hotel-text-light: #6b6b6b;
+}
+
+.about-page {
+  overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════
+   HERO SECTION
+   ═══════════════════════════════════════════════════════ */
+.about-hero {
+  position: relative;
+  height: 70vh;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: url("https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1920&q=80")
+    center/cover no-repeat;
+}
+
+.about-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(30, 42, 30, 0.7),
+    rgba(30, 42, 30, 0.85)
+  );
+}
+
+.about-hero-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  color: white;
+  padding: 0 20px;
+}
+
+.about-hero-content .hero-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  letter-spacing: 5px;
+  color: var(--hotel-gold);
+  border: 1px solid rgba(201, 169, 110, 0.4);
+  padding: 8px 24px;
+  margin-bottom: 30px;
+  font-family: "Cinzel", "Georgia", serif;
+}
+
+.about-hero-title {
+  font-size: 4rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+  letter-spacing: 3px;
+  animation: fadeInUp 1s ease both;
+}
+
+.about-hero-subtitle {
+  font-size: 1.2rem;
+  font-weight: 300;
+  opacity: 0.9;
+  letter-spacing: 2px;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+  font-style: italic;
+  animation: fadeInUp 1s ease 0.3s both;
+}
+
+/* ═══════════════════════════════════════════════════════
+   STORY SECTION
+   ═══════════════════════════════════════════════════════ */
+.story-section {
+  background: var(--hotel-cream);
+}
+
+.section-padding {
+  padding: 100px 0;
+}
+
+.story-images {
+  position: relative;
+  padding: 20px;
+}
+
+.story-img-main img {
+  width: 100%;
+  height: 520px;
+  object-fit: cover;
+  box-shadow: 20px 20px 0 var(--hotel-green);
+}
+
+.story-img-secondary {
+  position: absolute;
+  bottom: -20px;
+  right: -20px;
+  width: 220px;
+  border: 6px solid white;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.story-img-secondary img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.story-badge {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  background: var(--hotel-gold);
+  color: white;
+  padding: 20px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(201, 169, 110, 0.4);
+}
+
+.badge-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+}
+
+.badge-text {
+  font-size: 0.65rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-top: 4px;
+  font-family: "Cinzel", "Georgia", serif;
+}
+
+.story-content .section-subtitle {
+  display: inline-block;
+  font-size: 0.8rem;
+  letter-spacing: 4px;
+  color: var(--hotel-gold);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  font-family: "Cinzel", "Georgia", serif;
+}
+
+.story-content .section-title {
+  font-size: 2.8rem;
+  font-weight: 600;
+  color: var(--hotel-dark);
+  margin-bottom: 30px;
+  line-height: 1.2;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+}
+
+.text-accent {
+  color: var(--hotel-green);
+}
+
+.story-text {
+  color: var(--hotel-text-light);
+  line-height: 1.9;
+  margin-bottom: 20px;
+  font-size: 1.02rem;
+}
+
+.story-signature {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.story-signature img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--hotel-gold);
+}
+
+.story-signature h6 {
+  margin-bottom: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--hotel-dark);
+}
+
+.story-signature span {
+  font-size: 0.85rem;
+  color: var(--hotel-text-light);
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════
+   VALUES SECTION
+   ═══════════════════════════════════════════════════════ */
+.values-section {
+  background: white;
+}
+
+.section-subtitle {
+  display: inline-block;
+  font-size: 0.8rem;
+  letter-spacing: 4px;
+  color: var(--hotel-gold);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  font-family: "Cinzel", "Georgia", serif;
+}
+
+.section-title {
+  font-size: 2.8rem;
+  font-weight: 600;
+  color: var(--hotel-dark);
+  margin-bottom: 16px;
+  line-height: 1.2;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+}
+
+.section-desc {
+  color: var(--hotel-text-light);
+  font-size: 1.05rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.value-card {
+  background: var(--hotel-cream);
+  padding: 40px 30px;
+  text-align: center;
+  height: 100%;
+  transition: all 0.4s ease;
+  border: 1px solid transparent;
+}
+
+.value-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+  border-color: var(--hotel-gold);
+}
+
+.value-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--hotel-gold);
+  border: 2px solid var(--hotel-gold);
+  border-radius: 50%;
+  transition: all 0.4s ease;
+}
+
+.value-card:hover .value-icon {
+  background: var(--hotel-gold);
+  color: white;
+}
+
+.value-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--hotel-dark);
+  margin-bottom: 14px;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+}
+
+.value-desc {
+  color: var(--hotel-text-light);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MILESTONES SECTION
+   ═══════════════════════════════════════════════════════ */
+.milestones-section {
+  background: linear-gradient(
+    135deg,
+    var(--hotel-green-dark),
+    var(--hotel-green)
+  );
+  position: relative;
+}
+
+.text-white-50 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.milestones-section .section-title {
+  color: white;
+}
+
+.milestones-timeline {
+  position: relative;
+  padding-left: 40px;
+  margin-top: 50px;
+}
+
+.milestones-timeline::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.milestone-item {
+  position: relative;
+  padding-bottom: 50px;
+  padding-left: 40px;
+}
+
+.milestone-item:last-child {
+  padding-bottom: 0;
+}
+
+.milestone-item::before {
+  content: "";
+  position: absolute;
+  left: -40px;
+  top: 5px;
+  width: 16px;
+  height: 16px;
+  background: var(--hotel-gold);
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(201, 169, 110, 0.5);
+  transform: translateX(-50%);
+}
+
+.milestone-year {
+  display: inline-block;
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+  color: var(--hotel-gold);
+  font-family: "Cinzel", "Georgia", serif;
+  margin-bottom: 10px;
+}
+
+.milestone-content h4 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 10px;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+}
+
+.milestone-content p {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TEAM SECTION
+   ═══════════════════════════════════════════════════════ */
+.team-section {
+  background: var(--hotel-cream);
+}
+
+.team-card {
+  background: white;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.team-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+}
+
+.team-image {
+  position: relative;
+  overflow: hidden;
+  height: 320px;
+}
+
+.team-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.team-card:hover .team-image img {
+  transform: scale(1.08);
+}
+
+.team-info {
+  padding: 30px;
+  text-align: center;
+}
+
+.team-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--hotel-dark);
+  margin-bottom: 8px;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+}
+
+.team-role {
+  display: inline-block;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  color: var(--hotel-gold);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  font-family: "Cinzel", "Georgia", serif;
+}
+
+.team-desc {
+  color: var(--hotel-text-light);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CTA SECTION
+   ═══════════════════════════════════════════════════════ */
+.about-cta-section {
+  position: relative;
+  padding: 120px 0;
+  background: url("https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1920&q=80")
+    center/cover fixed;
+}
+
+.about-cta-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(30, 42, 30, 0.9),
+    rgba(30, 42, 30, 0.8)
+  );
+}
+
+.about-cta-content {
+  text-align: center;
+  color: white;
+}
+
+.about-cta-content h2 {
+  font-size: 3rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+}
+
+.about-cta-content p {
+  font-size: 1.15rem;
+  opacity: 0.9;
+  margin-bottom: 40px;
+}
+
+.about-cta-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.cta-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 16px 36px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: all 0.4s ease;
+  font-family: "Cinzel", "Georgia", serif;
+}
+
+.cta-btn-primary {
+  background: var(--hotel-gold);
+  color: var(--hotel-dark);
+}
+
+.cta-btn-primary:hover {
+  background: #b8944f;
+  color: white;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(201, 169, 110, 0.4);
+}
+
+.cta-btn-outline {
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  color: white;
+}
+
+.cta-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: white;
+  color: white;
+  transform: translateY(-3px);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════ */
+.pre-animate {
+  opacity: 0;
+  transform: translateY(40px);
+}
+
+.pre-animate-left {
+  opacity: 0;
+  transform: translateX(-60px);
+}
+
+.pre-animate-right {
+  opacity: 0;
+  transform: translateX(60px);
+}
+
+.pre-animate-scale {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.animate-fade-up {
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+.animate-slide-right {
+  animation: slideRight 0.8s ease forwards;
+}
+
+.animate-slide-left {
+  animation: slideLeft 0.8s ease forwards;
+}
+
+.animate-zoom-in {
+  animation: zoomIn 0.8s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 992px) {
+  .about-hero-title {
+    font-size: 3rem;
+  }
+
+  .section-title,
+  .story-content .section-title {
+    font-size: 2.2rem;
+  }
+
+  .story-img-main img {
+    height: 400px;
+  }
+
+  .milestones-timeline {
+    padding-left: 30px;
+  }
+
+  .milestone-item {
+    padding-left: 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .about-hero {
+    height: 60vh;
+    min-height: 400px;
+  }
+
+  .about-hero-title {
+    font-size: 2.5rem;
+  }
+
+  .section-padding {
+    padding: 70px 0;
+  }
+
+  .story-images {
+    margin-bottom: 40px;
+  }
+
+  .story-img-secondary {
+    width: 160px;
+  }
+
+  .about-cta-content h2 {
+    font-size: 2rem;
+  }
+
+  .team-image {
+    height: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-hero-title {
+    font-size: 2rem;
+  }
+
+  .about-hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .section-title,
+  .story-content .section-title {
+    font-size: 1.8rem;
+  }
+
+  .value-card {
+    padding: 30px 20px;
+  }
+
+  .milestone-content h4 {
+    font-size: 1.2rem;
+  }
+
+  .cta-btn {
+    padding: 14px 24px;
+    font-size: 0.8rem;
+  }
+}
