@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { logout } from '@/features/auth/authSlice'; // 3. Import Action Logout
+import { logout } from '@/features/auth/authSlice';
 import Buttons from '@/components/ui/Buttons';
 import { COLORS, APP_STRINGS } from '@/constants';
 import Swal from 'sweetalert2';
@@ -32,21 +32,16 @@ const Header = () => {
   };
 
   return (
-    <header className="py-3 px-4 bg-white border-bottom shadow-sm d-flex justify-content-between align-items-center">
-      
-      {/* Title / Breadcrumb */}
-      <div className="d-flex align-items-center">
-        <h4 className="m-0 fw-bold" style={{ color: COLORS.PRIMARY }}>{pageTitle}</h4>
+    <header className="layout-header">
+      <div>
+        <h4 style={{ margin: 0, fontWeight: 700, color: '#465c47' }}>{pageTitle}</h4>
       </div>
-
-      {/* Right Actions */}
-      <div className="d-flex align-items-center gap-3">
-       
-        <div className="border-start mx-2" style={{height: '24px'}}></div>
-        <Buttons 
-          variant="outline" 
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ width: 1, height: 24, background: '#d1d5db', margin: '0 0.5rem' }} />
+        <Buttons
+          variant="outline"
           className="btn-sm py-1 px-3"
-          icon={<i className="bi bi-box-arrow-right"></i>}
+          icon={<i className="bi bi-box-arrow-right" />}
           onClick={handleLogout}
         >
           {APP_STRINGS.BUTTONS.LOGOUT || 'Logout'}

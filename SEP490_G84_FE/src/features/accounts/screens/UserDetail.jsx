@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { accountAPI } from '@/utils/api';
+import { accountAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import './UserDetail.css';
 
@@ -22,10 +22,12 @@ const UserDetail = () => {
         const params = currentUser?.userId != null ? { currentUserId: currentUser.userId } : {};
         const response = await accountAPI.getAccountById(id, params);
         const userData = response.data;
-        const baseURL = accountAPI.getBaseURL?.() || 'http://localhost:8081';
+        const baseURL = accountAPI.getBaseURL?.() || (typeof window !== 'undefined' ? window.location.origin : '');
         const imageUrl = userData.image
           ? (userData.image.startsWith('http') ? userData.image : baseURL + userData.image)
           : 'https://i.pravatar.cc/150?img=12';
+        // Chỉ dùng dữ liệu từ API. Không có address/description từ BE thì hiển thị "—"
+        const noValue = '—';
         const transformedUser = {
           userId: userData.userId,
           username: userData.username,
@@ -34,26 +36,28 @@ const UserDetail = () => {
           password: '***********',
           image: imageUrl,
           role: {
-            id: 1,
-            name: userData.role || 'Staff',
-            description: 'Full system access and management'
+            id: userData.userId,
+            name: userData.role || noValue,
+            description: noValue // API không trả role description
           },
           primaryBranch: {
-            id: 1,
-            name: userData.mainBranch || 'Main Branch',
-            address: '123 Main Street, New York, NY 10001'
+            id: userData.userId,
+            name: userData.mainBranch || noValue,
+            address: noValue // API chỉ trả mainBranch (tên), không trả address
           },
           assignedBranches: [
-            { 
-              id: 1, 
-              name: userData.mainBranch || 'Main Branch', 
-              address: '123 Main Street, New York, NY 10001', 
-              isPrimary: true 
-            },
+            ...(userData.mainBranch
+              ? [{
+                  id: 1,
+                  name: userData.mainBranch,
+                  address: noValue,
+                  isPrimary: true
+                }]
+              : []),
             ...(userData.additionalBranches || []).map((branch, index) => ({
               id: index + 2,
               name: branch,
-              address: 'Branch Address',
+              address: noValue,
               isPrimary: false
             }))
           ]
@@ -161,15 +165,14 @@ const UserDetail = () => {
               <div className="form-group full-width">
                 <label>Password</label>
                 <div className="password-field">
-                  <input 
+                  <input
                     type="text"
-                    value={showPassword ? "Password hidden for security" : "***********"} 
-                    readOnly 
-                    className="form-control" 
-                    style={{ fontStyle: showPassword ? 'italic' : 'normal' }}
+                    value={showPassword ? "Password hidden for security" : "***********"}
+                    readOnly
+                    className={`form-control ${showPassword ? 'italic' : ''}`}
                   />
-                  <button 
-                    className="btn-toggle-password" 
+                  <button
+                    className="btn-toggle-password"
                     onClick={() => setShowPassword(!showPassword)}
                     title={showPassword ? "Hide password" : "Show password"}
                   >
@@ -183,7 +186,7 @@ const UserDetail = () => {
           {/* Role & Primary Branch */}
           <div className="detail-card">
             <h3 className="card-title">Role & Primary Branch</h3>
-            
+
             <div className="info-section">
               <label>Role</label>
               <div className="role-info">

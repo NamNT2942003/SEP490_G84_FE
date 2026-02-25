@@ -14,71 +14,63 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Reset lại lỗi và bật loading
     setError(null);
     setIsLoading(true);
     try {
-      // --- 3. Gọi API ---
-      await forgotPass.forgotPassword(email); 
-      // Nếu thành công -> Chuyển sang màn hình thông báo
+      await forgotPass.forgotPassword(email);
       setIsSubmitted(true);
     } catch (err) {
-      // Nếu lỗi -> Hiện thông báo (Lấy message từ Backend trả về hoặc text mặc định)
-      const msg = err.response?.data || "An error occurred, please try again.";
+      const msg = err.response?.data || 'An error occurred, please try again.';
       setError(msg);
     } finally {
-      // Tắt loading dù thành công hay thất bại
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="container-fluid vh-100 p-0 overflow-hidden">
-      <div className="row g-0 h-100">
-        
+    <div className="min-h-screen w-full p-0 overflow-hidden">
+      <div className="flex h-full">
         {/* Left column */}
-        <div className="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center position-relative text-white">
-          <div className="position-absolute w-100 h-100" style={{ backgroundColor: COLORS.PRIMARY, zIndex: 1 }}></div>
-          <img src="/assets/hotel-preview.png" alt="Background" className="position-absolute w-100 h-100" style={{ objectFit: 'cover', opacity: 0.2, zIndex: 0 }} />
-          <div className="position-relative text-center p-5" style={{ zIndex: 2 }}>
-            <h2 className="fw-bold text-uppercase mb-2">{APP_STRINGS.APP_NAME}</h2>
-            <p className="lead opacity-75">Password Recovery Service</p>
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center relative text-white">
+          <div className="absolute inset-0 bg-brand z-[1]" />
+          <img src="/assets/hotel-preview.png" alt="Background" className="absolute inset-0 w-full h-full object-cover opacity-20 z-0" />
+          <div className="relative text-center p-8 z-10">
+            <h2 className="font-bold uppercase mb-2 text-xl">{APP_STRINGS.APP_NAME}</h2>
+            <p className="text-lg opacity-75">Password Recovery Service</p>
           </div>
         </div>
 
         {/* Right column - form */}
-        <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white">
-          <div className="w-100 p-5" style={{ maxWidth: '500px' }}>
-            
-            <div className="mb-4 text-start">
+        <div className="w-full lg:w-1/2 flex flex-col justify-center items-center bg-white">
+          <div className="w-full p-8 max-w-[500px]">
+            <div className="mb-6 text-start">
               <Buttons
                 variant="text"
                 className="p-0"
                 onClick={() => navigate('/login')}
-                icon={<i className="bi bi-arrow-left"></i>}
+                icon={<i className="bi bi-arrow-left" />}
               >
                 Back to Login
               </Buttons>
             </div>
             {!isSubmitted ? (
               <>
-                <div className="mb-4">
-                  <h3 className="fw-bold text-dark">Forgot Password?</h3>
-                  <p className="text-muted">Enter your email to receive reset instructions.</p>
-                  
-                  {/* --- 4. HIỂN THỊ LỖI NẾU CÓ --- */}
+                <div className="mb-6">
+                  <h3 className="font-bold text-gray-900 text-xl">Forgot Password?</h3>
+                  <p className="text-gray-500 mt-1">Enter your email to receive reset instructions.</p>
                   {error && (
-                    <div className="alert alert-danger p-2 small text-center" role="alert">
-                      <i className="bi bi-exclamation-circle me-2"></i>
+                    <div className="mt-2 p-2 text-center text-sm text-red-600 bg-red-50 rounded" role="alert">
+                      <i className="bi bi-exclamation-circle me-2" />
                       {error}
                     </div>
                   )}
                 </div>
                 <form onSubmit={handleSubmit}>
-                  <div className="form-floating mb-4">
+                  <div className="mb-4">
+                    <label htmlFor="resetEmail" className="block text-sm font-medium text-gray-600 mb-1">Enter your email</label>
                     <input
                       type="email"
-                      className="form-control"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
                       id="resetEmail"
                       placeholder="name@example.com"
                       value={email}
@@ -89,21 +81,20 @@ const ForgotPassword = () => {
                       required
                       disabled={isLoading} // Khóa input khi đang gửi
                     />
-                    <label htmlFor="resetEmail" className="text-muted">Enter your email</label>
                   </div>
 
-                  <Buttons 
-                    type="submit" 
-                    className="w-100 py-3 shadow-sm mb-3"
-                    disabled={isLoading} // Khóa nút khi đang gửi
+                  <Buttons
+                    type="submit"
+                    className="w-full py-3 shadow-sm mb-3"
+                    disabled={isLoading}
                   >
                     {isLoading ? (
                       <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
                         Sending...
                       </>
                     ) : (
-                      "SEND RESET LINK"
+                      'SEND RESET LINK'
                     )}
                   </Buttons>
                 </form>
@@ -111,26 +102,21 @@ const ForgotPassword = () => {
             ) : (
               /* Màn hình thành công (Giữ nguyên logic của bạn) */
               <div className="text-center">
-                <div className="mb-4 mx-auto d-flex align-items-center justify-content-center rounded-circle" style={{ width: '80px', height: '80px', backgroundColor: '#e8f5e9' }}>
-                  <i className="bi bi-check-lg fs-1" style={{ color: COLORS.PRIMARY }}></i>
+                <div className="mb-6 mx-auto flex items-center justify-center rounded-full w-20 h-20 bg-green-100">
+                  <i className="bi bi-check-lg text-4xl text-brand" />
                 </div>
-                <h3 className="fw-bold text-dark">Check your inbox</h3>
-                <p className="text-muted mb-4">Email sent to: <strong>{email}</strong></p>
-                <p className="small text-muted">Please check your email and click on the provided link to reset your password.</p>
-                
-                <Buttons 
-                  className="w-100 py-2"
-                  onClick={() => navigate('/login')}
-                >
+                <h3 className="font-bold text-gray-900 text-xl">Check your inbox</h3>
+                <p className="text-gray-500 mb-6 mt-2">Email sent to: <strong>{email}</strong></p>
+                <p className="text-sm text-gray-500 mb-4">Please check your email and click on the provided link to reset your password.</p>
+                <Buttons className="w-full py-2" onClick={() => navigate('/login')}>
                   Back to Login
                 </Buttons>
               </div>
             )}
-            
-            <div className="mt-5 text-center text-muted" style={{ fontSize: '11px' }}>
+
+            <div className="mt-8 text-center text-gray-500 text-[11px]">
               {APP_STRINGS.FOOTER}
             </div>
-
           </div>
         </div>
       </div>

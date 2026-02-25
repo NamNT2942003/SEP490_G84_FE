@@ -1,29 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { accountAPI, branchAPI } from '@/utils/api';
+import { useNavigate } from 'react-router-dom';
+import { accountAPI, branchAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import './EditStaff.css';
+import './CreateAccount.css';
 
-const EditStaff = () => {
+const CreateAccount = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
   const currentUser = useCurrentUser();
 
   const [formData, setFormData] = useState({
     username: '',
-    email: '',
     password: '',
+    fullName: '',
+    email: '',
     role: 'STAFF',
-    primaryBranchId: '',
-    primaryBranchName: '',
+    primaryBranch: '',
     additionalBranches: [] // Array of branch names
   });
-  
+
   const [branches, setBranches] = useState([]);
-  
-  const [loading, setLoading] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!currentUser) {
@@ -37,45 +34,16 @@ const EditStaff = () => {
   }, [currentUser, navigate]);
 
   useEffect(() => {
-    if (currentUser && currentUser.role !== 'STAFF') fetchData();
-  }, [id, currentUser]);
+    if (currentUser && currentUser.role !== 'STAFF') fetchBranches();
+  }, [currentUser]);
 
-  const fetchData = async () => {
+  const fetchBranches = async () => {
     try {
-      setLoading(true);
-      let branchesList = [];
-      try {
-        const branchesRes = await branchAPI.getAllBranches();
-        branchesList = branchesRes.data || [];
-      } catch (e) {
-        console.warn('Branches not loaded:', e);
-      }
-      setBranches(branchesList);
-
-      const params = currentUser?.userId != null ? { currentUserId: currentUser.userId } : {};
-      const userRes = await accountAPI.getAccountById(id, params);
-      const user = userRes.data;
-      const primaryBranch = branchesList.find(b => b.branchName === user.mainBranch);
-
-      setFormData({
-        username: user.username || '',
-        email: user.email || '',
-        password: '********',
-        role: user.role || 'STAFF',
-        primaryBranchId: primaryBranch ? primaryBranch.branchId : '',
-        primaryBranchName: user.mainBranch || '',
-        additionalBranches: user.additionalBranches || []
-      });
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      if (error.response?.status === 403) {
-        alert('Manager can only edit staff accounts.');
-        navigate('/accounts');
-      } else {
-        alert('Could not load user. Check that the user exists.');
-      }
-    } finally {
-      setLoading(false);
+      const response = await branchAPI.getAllBranches();
+      setBranches(response.data);
+    } catch (err) {
+      console.error('Error fetching branches:', err);
+      setError('Unable to load branch list');
     }
   };
 
@@ -101,49 +69,59 @@ const EditStaff = () => {
 
   const handlePrimaryBranchChange = (e) => {
     const selectedId = parseInt(e.target.value);
-    const selectedBranch = branches.find(b => b.branchId === selectedId);
-    
     setFormData(prev => ({
       ...prev,
-      primaryBranchId: selectedId,
-      primaryBranchName: selectedBranch ? selectedBranch.branchName : ''
+      primaryBranch: selectedId
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setError('');
+    setLoading(true);
+
     try {
-      setSaving(true);
-      
-      // Map branch names to IDs
+      // Validation
+      if (!formData.username || !formData.password || !formData.fullName || !formData.email || !formData.role || !formData.primaryBranch) {
+        setError('Please fill in all required fields');
+        setLoading(false);
+        return;
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError('Invalid email');
+        setLoading(false);
+        return;
+      }
+
+      // Convert branch names to IDs
       const additionalBranchIds = branches
         .filter(b => formData.additionalBranches.includes(b.branchName))
         .map(b => b.branchId);
-      
-      const updateData = {
-        ...(currentUser?.role === 'ADMIN' && { email: formData.email }),
+
+      // Prepare data for API
+      const requestData = {
+        username: formData.username,
+        password: formData.password,
+        fullName: formData.fullName,
+        email: formData.email,
         role: formData.role,
-        primaryBranchId: formData.primaryBranchId || null,
+        primaryBranchId: parseInt(formData.primaryBranch),
         additionalBranchIds: additionalBranchIds
       };
-      
-      await accountAPI.updateAccount(id, updateData, currentUser?.userId);
-      
-      alert('Updated successfully.');
-      navigate('/accounts');
-    } catch (error) {
-      console.error('Error updating user:', error);
-      const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response?.data : JSON.stringify(error.response?.data));
-      alert('Could not update user.' + (msg ? '\n' + msg : ''));
-    } finally {
-      setSaving(false);
-    }
-  };
 
-  const handleResetPassword = () => {
-    if (window.confirm('Are you sure you want to reset password for this user?')) {
-      alert('Reset Password feature will be implemented later.');
+      await accountAPI.createAccount(requestData, currentUser.userId);
+
+      alert('Account created successfully!');
+      navigate('/accounts');
+    } catch (err) {
+      console.error('Error creating account:', err);
+      const errorMessage = err.response?.data?.message || err.response?.data || 'Unable to create account';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -154,13 +132,12 @@ const EditStaff = () => {
   // Get available roles based on current user's role
   const getAvailableRoles = () => {
     if (currentUser.role === 'ADMIN') {
-      // Admin can set role to MANAGER or STAFF
       return [
+        { value: 'ADMIN', label: 'Admin' },
         { value: 'MANAGER', label: 'Manager' },
         { value: 'STAFF', label: 'Staff' }
       ];
     } else if (currentUser.role === 'MANAGER') {
-      // Manager can only assign STAFF
       return [
         { value: 'STAFF', label: 'Staff' }
       ];
@@ -170,34 +147,29 @@ const EditStaff = () => {
 
   if (!currentUser || currentUser.role === 'STAFF') return null;
 
-  if (loading) {
-    return (
-      <div className="edit-staff-container">
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="edit-staff-container">
+    <div className="create-account-container">
       {/* Breadcrumb */}
       <div className="breadcrumb-nav">
-        <span onClick={() => navigate('/accounts')} className="breadcrumb-link">Users</span>
+        <span onClick={handleCancel} className="breadcrumb-link">Users</span>
         <i className="bi bi-chevron-right"></i>
-        <span className="breadcrumb-current">Edit User</span>
+        <span className="breadcrumb-current">Create New Account</span>
       </div>
 
       {/* Title */}
-      <h1 className="edit-staff-title">Edit User Details</h1>
+      <h1 className="create-account-title">Create New Account</h1>
+
+      {error && (
+        <div className="alert alert-danger">
+          <i className="bi bi-exclamation-circle"></i>
+          {error}
+        </div>
+      )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="edit-staff-form">
+      <form onSubmit={handleSubmit} className="create-account-form">
         <div className="form-card">
-          {/* Username & Email */}
+          {/* Username & Full Name */}
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="username">Username</label>
@@ -208,10 +180,28 @@ const EditStaff = () => {
                 value={formData.username}
                 onChange={handleInputChange}
                 className="form-control"
-                readOnly
+                placeholder="Enter username"
+                required
               />
             </div>
-            
+
+            <div className="form-group">
+              <label htmlFor="fullName">Full Name</label>
+              <input
+                type="text"
+                id="fullName"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                className="form-control"
+                placeholder="Enter full name"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Email & Password */}
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="email">Gmail</label>
               <input
@@ -221,37 +211,28 @@ const EditStaff = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 className="form-control"
+                placeholder="example@gmail.com"
                 required
-                readOnly={currentUser?.role !== 'ADMIN'}
-                title={currentUser?.role !== 'ADMIN' ? 'Only Admin can edit email' : ''}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                className="form-control"
+                placeholder="Enter password"
+                required
               />
             </div>
           </div>
 
-          {/* Password & Role */}
+          {/* Role & Primary Branch */}
           <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <div className="password-input-wrapper">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="form-control"
-                  disabled
-                />
-                <button
-                  type="button"
-                  className="btn-toggle-password"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
-                </button>
-              </div>
-            </div>
-            
             <div className="form-group">
               <label htmlFor="role">Role</label>
               <div className="select-arrow-wrapper">
@@ -261,6 +242,7 @@ const EditStaff = () => {
                   value={formData.role}
                   onChange={handleInputChange}
                   className="form-control select-with-arrow"
+                  required
                 >
                   {getAvailableRoles().map(role => (
                     <option key={role.value} value={role.value}>
@@ -271,21 +253,19 @@ const EditStaff = () => {
                 <i className="bi bi-chevron-down select-arrow-icon" aria-hidden="true" />
               </div>
             </div>
-          </div>
 
-          {/* Primary Branch */}
-          <div className="form-row">
-            <div className="form-group full-width">
+            <div className="form-group">
               <label htmlFor="primaryBranch">Primary Branch</label>
               <div className="select-arrow-wrapper">
                 <select
                   id="primaryBranch"
                   name="primaryBranch"
-                  value={formData.primaryBranchId || ''}
+                  value={formData.primaryBranch}
                   onChange={handlePrimaryBranchChange}
                   className="form-control select-with-arrow"
+                  required
                 >
-                  <option value="">— No branch —</option>
+                  <option value="">Select primary branch...</option>
                   {branches.map(branch => (
                     <option key={branch.branchId} value={branch.branchId}>
                       {branch.branchName}
@@ -325,28 +305,18 @@ const EditStaff = () => {
           >
             Cancel
           </button>
-          
-          <div className="right-actions">
-            <button
-              type="button"
-              onClick={handleResetPassword}
-              className="btn btn-reset"
-            >
-              Reset Password
-            </button>
-            
-            <button
-              type="submit"
-              className="btn btn-submit"
-              disabled={saving}
-            >
-              {saving ? 'Updating...' : 'Update User'}
-            </button>
-          </div>
+
+          <button
+            type="submit"
+            className="btn btn-submit"
+            disabled={loading}
+          >
+            {loading ? 'Creating...' : 'Create Account'}
+          </button>
         </div>
       </form>
     </div>
   );
 };
 
-export default EditStaff;
+export default CreateAccount;

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { accountAPI } from '@/utils/api';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { accountAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import './AccountList.css';
 
 const AccountList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const currentUser = useCurrentUser();
 
   const [accounts, setAccounts] = useState([]);
@@ -30,8 +31,8 @@ const AccountList = () => {
 
   useEffect(() => {
     if (!currentUser || currentUser.role === 'STAFF') return;
-    fetchAccounts();
-  }, [currentUser?.userId]);
+    if (location.pathname === '/accounts') fetchAccounts();
+  }, [currentUser?.userId, location.pathname, location.state?.refreshList]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -112,17 +113,17 @@ const AccountList = () => {
   const uniqueBranches = [...new Set(accounts.map(a => a.mainBranch).filter(Boolean))].sort();
   const searchLower = searchTerm.trim().toLowerCase();
   const filteredAccounts = accounts.filter(account => {
-    const matchesSearch = searchLower === '' || 
+    const matchesSearch = searchLower === '' ||
       (account.fullName && String(account.fullName).toLowerCase().includes(searchLower)) ||
       (account.username && String(account.username).toLowerCase().includes(searchLower)) ||
       (account.email && String(account.email).toLowerCase().includes(searchLower));
     const matchesRole = selectedRole === '' || (account.role && account.role.toUpperCase() === selectedRole);
     const matchesBranch = selectedBranch === '' || account.mainBranch === selectedBranch;
     const matchesStatus = selectedStatus === '' || account.status === selectedStatus;
-    
+
     return matchesSearch && matchesRole && matchesBranch && matchesStatus;
   });
-  
+
   const currentAccounts = filteredAccounts.slice(indexOfFirstAccount, indexOfLastAccount);
   const totalPages = Math.ceil(filteredAccounts.length / accountsPerPage);
 
@@ -139,8 +140,8 @@ const AccountList = () => {
             Account List
           </h1>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <button 
+        <div className="flex gap-3 items-center">
+          <button
             className="btn-add-account"
             onClick={() => navigate('/accounts/create')}
           >
@@ -243,7 +244,7 @@ const AccountList = () => {
                               account.image
                                 ? account.image.startsWith('http')
                                   ? account.image
-                                  : (accountAPI.getBaseURL?.() || 'http://localhost:8081') + account.image
+                                  : (accountAPI.getBaseURL?.() || (typeof window !== 'undefined' ? window.location.origin : '')) + account.image
                                 : `https://ui-avatars.com/api/?name=${encodeURIComponent(account.fullName || 'U')}&size=40&background=56785e&color=fff`
                             }
                             alt={account.fullName}
@@ -288,24 +289,24 @@ const AccountList = () => {
                         <td>
                           <div className="action-icons">
                             {/* View */}
-                            <button 
-                              className="action-btn view" 
-                              title="View" 
+                            <button
+                              className="action-btn view"
+                              title="View"
                               onClick={() => navigate(`/accounts/${account.userId}`)}
                             >
                               <i className="bi bi-eye"></i>
                             </button>
-                            
+
                             {/* Edit & Delete */}
-                            <button 
-                              className="action-btn edit" 
+                            <button
+                              className="action-btn edit"
                               title="Edit"
                               onClick={() => navigate(`/accounts/${account.userId}/edit`)}
                             >
                               <i className="bi bi-pencil"></i>
                             </button>
-                            <button 
-                              className="action-btn delete" 
+                            <button
+                              className="action-btn delete"
                               title="Delete"
                               onClick={() => handleDelete(account.userId, account.username)}
                             >
@@ -339,7 +340,7 @@ const AccountList = () => {
                 >
                   <i className="bi bi-chevron-left"></i>
                 </button>
-                
+
                 {[...Array(totalPages)].map((_, index) => (
                   <button
                     key={index + 1}
@@ -349,7 +350,7 @@ const AccountList = () => {
                     {index + 1}
                   </button>
                 ))}
-                
+
                 <button
                   className="pagination-btn"
                   onClick={() => paginate(currentPage + 1)}

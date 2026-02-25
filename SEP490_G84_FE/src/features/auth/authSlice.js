@@ -12,7 +12,13 @@ export const loginUser = createAsyncThunk(
       return response;
     } catch (error) {
       const data = error.response?.data;
-      const message = (typeof data === 'object' && data?.message) ? data.message : (data || 'Login failed');
+      const status = error.response?.status;
+      let message = 'Login failed';
+      if (typeof data === 'object' && data?.message) message = data.message;
+      else if (status === 401) message = 'Sai tên đăng nhập hoặc mật khẩu.';
+      else if (status === 403) message = 'Tài khoản bị khóa hoặc không có quyền truy cập.';
+      else if (status === 500 && data) message = typeof data === 'string' ? data : (data.message || 'Lỗi server.');
+      else if (data && typeof data === 'string') message = data;
       return rejectWithValue(message);
     }
   }
@@ -44,8 +50,9 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.token = action.payload.accessToken;
-        localStorage.setItem(STORAGE_ACCESS_TOKEN, action.payload.accessToken);
+        const token = action.payload?.accessToken ?? action.payload?.token ?? null;
+        state.token = token;
+        if (token) localStorage.setItem(STORAGE_ACCESS_TOKEN, token);
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;

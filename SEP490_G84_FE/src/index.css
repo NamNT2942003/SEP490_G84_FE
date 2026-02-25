@@ -1,4 +1,83 @@
 /* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Layout chính: sidebar trái cố định + content phải (dùng CSS thuần để luôn đúng) */
+.layout-main {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+  background: #f3f4f6;
+}
+.layout-main__right {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+.layout-main__content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem;
+}
+.sidebar-wrap {
+  width: 260px;
+  min-height: 100vh;
+  background: #465c47;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+.sidebar-wrap nav { flex: 1; overflow-y: auto; }
+.sidebar-wrap .sidebar-dropdown { display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 4px; width: 12rem; padding: 4px 0; background: #1f2937; border-radius: 8px; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); font-size: 0.875rem; z-index: 50; border: 1px solid #374151; }
+.sidebar-wrap .sidebar-user-group:hover .sidebar-dropdown { display: block; }
+.sidebar-wrap .sidebar-dropdown a,
+.sidebar-wrap .sidebar-dropdown button { display: block; width: 100%; text-align: left; padding: 8px 1rem; color: #e5e7eb; background: transparent; border: none; cursor: pointer; font: inherit; }
+.sidebar-wrap .sidebar-dropdown a:hover,
+.sidebar-wrap .sidebar-dropdown button:hover { background: #374151; }
+.sidebar-nav-link:hover { background: rgba(255,255,255,0.1) !important; }
+.sidebar-nav-link.active { background: rgba(255,255,255,0.2) !important; font-weight: 600; }
+.layout-header {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.layout-footer {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+  background: #f3f4f6;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.dashboard-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08);
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.dashboard-card h2 { font-size: 1.25rem; font-weight: 700; color: #465c47; margin-bottom: 0.5rem; }
+.dashboard-card .muted { color: #6b7280; font-size: 1.125rem; margin: 0; }
+.stat-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08);
+  padding: 1rem;
+}
+.stat-card h6 { color: #6b7280; text-transform: uppercase; font-size: 0.75rem; margin: 0 0 0.5rem 0; }
+.stat-card h3 { font-weight: 700; font-size: 1.5rem; margin: 0.5rem 0; }
 
 :root {
   --brand-color: #465c47;

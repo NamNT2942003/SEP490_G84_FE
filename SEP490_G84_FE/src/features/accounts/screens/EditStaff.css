@@ -322,20 +322,20 @@
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .branch-checkboxes {
     grid-template-columns: 1fr;
   }
-  
+
   .form-actions {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .right-actions {
     width: 100%;
   }
-  
+
   .btn {
     width: 100%;
     justify-content: center;
