@@ -1,5 +1,4 @@
 import { useState } from "react";
-import PropTypes from "prop-types";
 import DateRangePicker from "./DateRangePicker";
 
 const SearchForm = ({ onSearch, loading }) => {
@@ -126,11 +125,6 @@ const SearchForm = ({ onSearch, loading }) => {
       </form>
     </div>
   );
-};
-
-SearchForm.propTypes = {
-  onSearch: PropTypes.func.isRequired,
-  loading: PropTypes.bool,
 };
 
 export default SearchForm;

@@ -1,5 +1,3 @@
-import PropTypes from "prop-types";
-
 const Pagination = ({
   currentPage,
   totalPages,
@@ -99,14 +97,6 @@ const Pagination = ({
       </nav>
     </div>
   );
-};
-
-Pagination.propTypes = {
-  currentPage: PropTypes.number.isRequired,
-  totalPages: PropTypes.number.isRequired,
-  totalElements: PropTypes.number.isRequired,
-  onPageChange: PropTypes.func.isRequired,
-  pageSize: PropTypes.number.isRequired,
 };
 
 export default Pagination;

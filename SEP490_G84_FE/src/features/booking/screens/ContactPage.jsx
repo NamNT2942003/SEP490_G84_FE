@@ -4,7 +4,7 @@ import {
   useScrollAnimation,
   useStaggerAnimation,
 } from "../../../hooks/useScrollAnimation";
-import "./ContactPage.css";
+import "./css/ContactPage.css";
 
 const BRANCHES_CONTACT = [
   {

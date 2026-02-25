@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import PropTypes from "prop-types";
-import { branchService, roomTypeService } from "../services/roomService";
+import { branchService } from "../api/branchService";
+import { roomTypeService } from "../api/roomTypeService";
 
 const FilterSidebar = ({
   onFilterChange,
@@ -134,10 +134,6 @@ const FilterSidebar = ({
   );
 };
 
-FilterSidebar.propTypes = {
-  onFilterChange: PropTypes.func.isRequired,
-  selectedRoomTypes: PropTypes.array,
-  selectedBranchId: PropTypes.number,
-};
+
 
 export default FilterSidebar;

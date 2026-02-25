@@ -1,5 +1,5 @@
-import Header from "./components/Header";
-import Footer from "./components/Footer";
+import Header from "./components/layout/Header";
+import Footer from "./components/layout/Footer";
 import AppRouter from "./routes/AppRouter";
 
 function App() {
@@ -13,4 +13,5 @@ function App() {
     </div>
   );
 }
+
 export default App;

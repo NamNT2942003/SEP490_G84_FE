@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import PropTypes from "prop-types";
 
 const DateRangePicker = ({
   checkIn,
@@ -440,11 +439,6 @@ const DateRangePicker = ({
   );
 };
 
-DateRangePicker.propTypes = {
-  checkIn: PropTypes.string,
-  checkOut: PropTypes.string,
-  onDateChange: PropTypes.func.isRequired,
-  minDate: PropTypes.instanceOf(Date),
-};
+
 
 export default DateRangePicker;

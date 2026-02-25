@@ -4,7 +4,7 @@ import {
   useScrollAnimation,
   useStaggerAnimation,
 } from "../../../hooks/useScrollAnimation";
-import "./AboutPage.css";
+import "./css/AboutPage.css";
 
 const TEAM_MEMBERS = [
   {

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import SearchForm from "../../../components/SearchForm";
-import RoomCard from "../../../components/RoomCard";
-import FilterSidebar from "../../../components/FilterSidebar";
-import RoomDetailModal from "../../../components/RoomDetailModal";
-import Pagination from "../../../components/Pagination";
-import { roomService } from "../../../services/roomService";
+import SearchForm from "./SearchForm";
+import RoomCard from "./RoomCard";
+import FilterSidebar from "./FilterSidebar";
+import RoomDetailModal from "./RoomDetailModal";
+import Pagination from "../../../components/layout/Pagination";
+import { roomService } from "../api/roomService";
 
 const SearchRoom = () => {
   const [rooms, setRooms] = useState([]);

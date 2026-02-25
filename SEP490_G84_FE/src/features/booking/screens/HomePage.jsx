@@ -4,8 +4,7 @@ import {
   useScrollAnimation,
   useStaggerAnimation,
 } from "../../../hooks/useScrollAnimation";
-import "./HomePage.css";
-
+import "./css/HomePage.css";
 const HERO_SLIDES = [
   {
     image:

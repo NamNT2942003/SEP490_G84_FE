@@ -1,5 +1,3 @@
-import PropTypes from "prop-types";
-
 const RoomCard = ({ room, onBooking, onViewDetail }) => {
   const formatPrice = (price) => {
     return new Intl.NumberFormat("en-US", {
@@ -81,12 +79,6 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
       </div>
     </div>
   );
-};
-
-RoomCard.propTypes = {
-  room: PropTypes.object.isRequired,
-  onBooking: PropTypes.func.isRequired,
-  onViewDetail: PropTypes.func.isRequired,
 };
 
 export default RoomCard;

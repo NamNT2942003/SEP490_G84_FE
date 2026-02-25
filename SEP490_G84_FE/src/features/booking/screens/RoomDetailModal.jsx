@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import PropTypes from "prop-types";
-import { roomService } from "../services/roomService";
+import { roomService } from "../api/roomService";
 
 const RoomDetailModal = ({ room, show, onClose }) => {
   const [roomDetail, setRoomDetail] = useState(null);
@@ -245,12 +244,6 @@ const RoomDetailModal = ({ room, show, onClose }) => {
       {show && <div className="modal-backdrop fade show"></div>}
     </>
   );
-};
-
-RoomDetailModal.propTypes = {
-  room: PropTypes.object,
-  show: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
 };
 
 export default RoomDetailModal;

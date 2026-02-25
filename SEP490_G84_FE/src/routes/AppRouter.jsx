@@ -1,8 +1,9 @@
 import { Routes, Route } from "react-router-dom";
-import HomePage from "../features/public/screens/HomePage";
-import SearchRoom from "../features/public/screens/SearchRoom";
-import AboutPage from "../features/public/screens/AboutPage";
-import ContactPage from "../features/public/screens/ContactPage";
+
+import HomePage from "../features/booking/screens/HomePage";
+import SearchRoom from "../features/booking/screens/SearchRoom";
+import AboutPage from "../features/booking/screens/AboutPage";
+import ContactPage from "../features/booking/screens/ContactPage";
 
 const AppRouter = () => {
   return (
