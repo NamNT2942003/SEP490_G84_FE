@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import SearchForm from "./SearchForm";
-import RoomCard from "./RoomCard";
-import FilterSidebar from "./FilterSidebar";
-import RoomDetailModal from "./RoomDetailModal";
-import Pagination from "../../../components/layout/Pagination";
-import { roomService } from "../api/roomService";
+import SearchForm from "./SearchForm.jsx";
+import RoomCard from "./RoomCard.jsx";
+import FilterSidebar from "./FilterSidebar.jsx";
+import RoomDetailModal from "./RoomDetailModal.jsx";
+import Pagination from "../../../components/layout/Pagination.jsx";
+import { roomService } from "../../booking/api/roomService.js";
 
 const SearchRoom = () => {
   const [rooms, setRooms] = useState([]);
@@ -136,7 +136,7 @@ const SearchRoom = () => {
         <nav aria-label="breadcrumb">
           <ol className="breadcrumb">
             <li className="breadcrumb-item">
-              <a href="/" style={{ color: "#5C6F4E" }}>
+              <a href="/public" style={{ color: "#5C6F4E" }}>
                 Home
               </a>
             </li>

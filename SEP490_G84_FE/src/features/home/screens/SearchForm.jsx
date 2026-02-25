@@ -1,5 +1,5 @@
 import { useState } from "react";
-import DateRangePicker from "./DateRangePicker";
+import DateRangePicker from "./DateRangePicker.jsx";
 
 const SearchForm = ({ onSearch, loading }) => {
   const formatYmdLocal = (date) => {

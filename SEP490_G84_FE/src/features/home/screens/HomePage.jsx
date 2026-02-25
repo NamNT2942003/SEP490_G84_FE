@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   useScrollAnimation,
   useStaggerAnimation,
-} from "../../../hooks/useScrollAnimation";
+} from "../../../hooks/useScrollAnimation.js";
 import "./css/HomePage.css";
 const HERO_SLIDES = [
   {
