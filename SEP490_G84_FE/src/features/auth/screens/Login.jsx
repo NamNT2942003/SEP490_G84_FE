@@ -80,15 +80,16 @@ const handleGoogleSuccess = async (credentialResponse) => {
       <div className="row g-0 h-100">
         
         {/* CỘT TRÁI (Giữ nguyên code của bạn) */}
-        <div className="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center position-relative text-white">
-          <div className="position-absolute w-100 h-100" style={{ backgroundColor: COLORS.PRIMARY, zIndex: 1 }}></div>
-          <div className="position-relative text-center p-5" style={{ zIndex: 2 }}>
-            <h2 className="display-6 fw-bold text-uppercase mb-3" style={{ letterSpacing: '3px' }}>{APP_STRINGS.APP_NAME}</h2>
-            <h5 className="fw-light text-uppercase mb-4" style={{ letterSpacing: '2px', opacity: 0.9 }}>{APP_STRINGS.APP_SUBTITLE}</h5>
-            <hr className="w-25 mx-auto border-white opacity-75 mb-4" />
-            <p className="lead fst-italic px-5" style={{ opacity: 0.8 }}>{APP_STRINGS.SLOGAN}</p>
-          </div>
-        </div>
+      <div 
+          className="col-lg-6 d-none d-lg-block overflow-hidden" 
+          style={{ 
+            backgroundImage: `url('/img1.jpg')`, 
+            backgroundSize: 'cover',              
+            backgroundPosition: 'center center',  
+            backgroundRepeat: 'no-repeat'
+          }}
+        >
+          {/* Có thể để trống hoặc thêm nội dung đè lên ảnh tại đây (nhưng nên để trống cho đẹp) */}     </div>
 
         {/* CỘT PHẢI */}
         <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white">

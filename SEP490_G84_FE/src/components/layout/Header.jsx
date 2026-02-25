@@ -1,58 +1,145 @@
-import React from 'react';
-import { useDispatch } from 'react-redux'; // 1. Hook để gọi Action
-import { useNavigate } from 'react-router-dom'; // 2. Hook để chuyển trang
-import { logout } from '@/features/auth/authSlice'; // 3. Import Action Logout
-import Buttons from '@/components/ui/Buttons';
-import { COLORS, APP_STRINGS } from '@/constants';
-import Swal from 'sweetalert2';
+import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import Logo from "./Logo";
 
 const Header = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const location = useLocation();
+  const isHome = location.pathname === "/";
+  const [scrolled, setScrolled] = useState(false);
 
-  const handleLogout = () => {
-    // Thay thế window.confirm bằng Swal.fire
-    Swal.fire({
-        title: 'Are you sure?',
-        text: "You will be logged out of the system.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6', // Màu nút OK (Xanh hoặc màu Brand của bạn)
-        cancelButtonColor: '#d33',    // Màu nút Cancel (Đỏ)
-        confirmButtonText: 'Yes, log out!', // <--- SỬA THÀNH TIẾNG ANH Ở ĐÂY
-        cancelButtonText: 'Cancel'          // <--- SỬA THÀNH TIẾNG ANH Ở ĐÂY
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Nếu bấm OK thì mới thực hiện logout
-            dispatch(logout());
-            navigate('/login');
-        }
-    });
-};
+  useEffect(() => {
+    if (!isHome) {
+      setScrolled(true);
+      return;
+    }
+    const handleScroll = () => setScrolled(window.scrollY > 80);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isHome]);
 
   return (
-    <header className="py-3 px-4 bg-white border-bottom shadow-sm d-flex justify-content-between align-items-center">
-      
-      {/* Title / Breadcrumb */}
-      <div className="d-flex align-items-center">
-        <h4 className="m-0 fw-bold" style={{ color: COLORS.PRIMARY }}>Dashboard</h4>
-      </div>
+    <header
+      className="py-3 shadow-sm"
+      style={{
+        backgroundColor: scrolled ? "#465c47" : "transparent",
+        position: isHome ? "fixed" : "relative",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1030,
+        transition: "background-color 0.4s ease, box-shadow 0.4s ease",
+        boxShadow: scrolled ? "0 2px 20px rgba(0,0,0,0.15)" : "none",
+      }}
+    >
+      <div className="container">
+        <nav className="navbar navbar-expand-lg navbar-dark p-0">
+          <Link className="navbar-brand" to="/">
+            <Logo variant="light" size="md" />
+          </Link>
 
-      {/* Right Actions */}
-      <div className="d-flex align-items-center gap-3">
-       
-        {/* Thanh ngăn cách dọc */}
-        <div className="border-start mx-2" style={{height: '24px'}}></div>
+          <button
+            className="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarNav"
+          >
+            <span className="navbar-toggler-icon"></span>
+          </button>
 
-        {/* Nút Logout */}
-        <Buttons 
-          variant="outline" 
-          className="btn-sm py-1 px-3"
-          icon={<i className="bi bi-box-arrow-right"></i>}
-          onClick={handleLogout} // <--- Gắn hàm xử lý vào đây
-        >
-          {APP_STRINGS.BUTTONS.LOGOUT || 'Logout'}
-        </Buttons>
+          <div className="collapse navbar-collapse" id="navbarNav">
+            <ul className="navbar-nav ms-auto align-items-center gap-1">
+              <li className="nav-item">
+                <Link
+                  className="nav-link px-3"
+                  to="/"
+                  style={{
+                    fontWeight: location.pathname === "/" ? "700" : "500",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Home
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link
+                  className="nav-link px-3"
+                  to="/search"
+                  style={{
+                    fontWeight: location.pathname === "/search" ? "700" : "500",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Find Rooms
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link
+                  className="nav-link px-3"
+                  to="/about"
+                  style={{
+                    fontWeight: location.pathname === "/about" ? "700" : "500",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  About Us
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link
+                  className="nav-link px-3"
+                  to="/contact"
+                  style={{
+                    fontWeight:
+                      location.pathname === "/contact" ? "700" : "500",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Contact
+                </Link>
+              </li>
+              
+              {/* Nút Book Now */}
+              <li className="nav-item ms-2">
+                <Link
+                  className="btn btn-sm px-4 py-2"
+                  to="/search"
+                  style={{
+                    backgroundColor: "#C9A96E",
+                    color: "#1E2A1E",
+                    fontWeight: 700,
+                    border: "none",
+                    letterSpacing: "0.5px",
+                    fontSize: "0.85rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Book Now
+                </Link>
+              </li>
+
+              {/* TẠO MỚI: Nút Login */}
+              <li className="nav-item ms-2">
+                <Link
+                  className="btn btn-sm px-4 py-2"
+                  to="/login"
+                   style={{
+                    backgroundColor: "#C9A96E",
+                    color: "#1E2A1E",
+                    fontWeight: 700,
+                    border: "none",
+                    letterSpacing: "0.5px",
+                    fontSize: "0.85rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Login
+                </Link>
+              </li>
+
+            </ul>
+          </div>
+        </nav>
       </div>
     </header>
   );
