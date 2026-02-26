@@ -108,7 +108,11 @@ const AccountList = () => {
 
   const handleToggleStatus = async (userId, currentStatus) => {
     try {
-      const nextStatus = (statusesList && statusesList.find(s => s !== currentStatus)) ?? currentStatus;
+      const list = Array.isArray(statusesList) ? statusesList.filter(s => typeof s === 'string' && String(s).trim()) : [];
+      const cur = (currentStatus && String(currentStatus).trim()) || '';
+      const other = list.find(s => String(s).trim().toLowerCase() !== cur.toLowerCase());
+      const nextStatus = other != null ? String(other).trim() : (list[0] && cur.toLowerCase() !== String(list[0]).trim().toLowerCase() ? String(list[0]).trim() : list[1] ? String(list[1]).trim() : null);
+      if (!nextStatus || nextStatus === cur) return;
       await accountAPI.updateAccountStatus(userId, nextStatus, currentUser?.userId);
       fetchAccounts();
     } catch (error) {

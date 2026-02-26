@@ -1,8 +1,4 @@
 /* src/index.css */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Layout chính: sidebar trái cố định + content phải (dùng CSS thuần để luôn đúng) */
 .layout-main {
   display: grid;
