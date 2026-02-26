@@ -79,58 +79,53 @@ const FilterSidebar = ({
   };
 
   return (
-    <div className="filter-sidebar bg-white p-3 rounded shadow-sm">
-      <div className="mb-4">
-        <h6 className="fw-bold mb-3">Location</h6>
-        {loadingBranches ? (
-          <div className="text-muted small">Loading locations...</div>
-        ) : (
-          <select
-            className="form-select"
-            value={localBranchId}
-            onChange={handleBranchChange}
-          >
-            <option value="">All Locations</option>
-            {branches.map((branch) => (
-              <option key={branch.branchId} value={branch.branchId}>
-                {branch.branchName}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      <div>
-        <h6 className="fw-bold mb-3">Room Type</h6>
-        {loadingRoomTypes ? (
-          <div className="text-muted small">Loading room types...</div>
-        ) : roomTypes.length > 0 ? (
-          roomTypes.map((type) => (
-            <div className="form-check mb-2" key={type.roomTypeId}>
-              <input
-                className="form-check-input"
-                type="checkbox"
-                id={`room-type-${type.roomTypeId}`}
-                checked={localSelectedTypes.includes(type.roomTypeId)}
-                onChange={() => handleRoomTypeChange(type.roomTypeId)}
-              />
-              <label
-                className="form-check-label"
-                htmlFor={`room-type-${type.roomTypeId}`}
-              >
-                {type.name}
-              </label>
-            </div>
-          ))
-        ) : (
-          <div className="text-muted small">
-            {localBranchId
-              ? "No room types available"
-              : "Select a location first"}
+    <aside className="filter-sidebar p-3" style={{ position: 'sticky', top: 20 }}>
+      <div className="card shadow-sm border-0">
+        <div className="card-body">
+          <div className="mb-4">
+            <h6 className="fw-bold mb-3">Location</h6>
+            {loadingBranches ? (
+              <div className="text-muted small">Loading locations...</div>
+            ) : (
+              <select className="form-select" value={localBranchId} onChange={handleBranchChange}>
+                <option value="">All Locations</option>
+                {branches.map((branch) => (
+                  <option key={branch.branchId} value={branch.branchId}>
+                    {branch.branchName}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
-        )}
+
+          <div>
+            <h6 className="fw-bold mb-3">Room Type</h6>
+            {loadingRoomTypes ? (
+              <div className="text-muted small">Loading room types...</div>
+            ) : roomTypes.length > 0 ? (
+              roomTypes.map((type) => (
+                <div className="form-check mb-2" key={type.roomTypeId}>
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id={`room-type-${type.roomTypeId}`}
+                    checked={localSelectedTypes.includes(type.roomTypeId)}
+                    onChange={() => handleRoomTypeChange(type.roomTypeId)}
+                  />
+                  <label className="form-check-label" htmlFor={`room-type-${type.roomTypeId}`}>
+                    {type.name}
+                  </label>
+                </div>
+              ))
+            ) : (
+              <div className="text-muted small">
+                {localBranchId ? "No room types available" : "Select a location first"}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </aside>
   );
 };
 

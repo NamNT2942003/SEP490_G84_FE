@@ -50,79 +50,45 @@ const SearchForm = ({ onSearch, loading }) => {
   };
 
   return (
-    <div className="search-form-container bg-white shadow-sm p-4 rounded mb-4">
-      <form onSubmit={handleSubmit}>
-        <div className="row g-3">
-          <div className="col-md-4">
-            <label className="form-label small text-uppercase fw-bold">
-              Check-in & Check-out
-            </label>
-            <DateRangePicker
-              checkIn={searchParams.checkIn}
-              checkOut={searchParams.checkOut}
-              onDateChange={handleDateChange}
-            />
-          </div>
+    <div className="search-form-hero mb-4">
+      <div className="card shadow-sm border-0">
+        <div className="card-body py-3">
+          <form onSubmit={handleSubmit}>
+            <div className="row g-3 align-items-end">
+              <div className="col-lg-5 col-md-6">
+                <label className="form-label small text-uppercase fw-bold">Check-in & Check-out</label>
+                <DateRangePicker checkIn={searchParams.checkIn} checkOut={searchParams.checkOut} onDateChange={handleDateChange} />
+              </div>
 
-          <div className="col-md-2">
-            <label className="form-label small text-uppercase fw-bold">
-              Adults
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">
-                <i className="bi bi-person"></i>
-              </span>
-              <select
-                className="form-select"
-                name="adults"
-                value={searchParams.adults}
-                onChange={handleInputChange}
-              >
-                {[1, 2, 3, 4, 5, 6].map((num) => (
-                  <option key={num} value={num}>
-                    {num} Adult{num > 1 ? "s" : ""}
-                  </option>
-                ))}
-              </select>
+              <div className="col-lg-2 col-md-3">
+                <label className="form-label small text-uppercase fw-bold">Adults</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-white"><i className="bi bi-person"></i></span>
+                  <select className="form-select" name="adults" value={searchParams.adults} onChange={handleInputChange}>
+                    {[1,2,3,4,5,6].map(num => (<option key={num} value={num}>{num} Adult{num>1?'s':''}</option>))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="col-lg-2 col-md-3">
+                <label className="form-label small text-uppercase fw-bold">Children</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-white"><i className="bi bi-emoji-smile"></i></span>
+                  <select className="form-select" name="children" value={searchParams.children} onChange={handleInputChange}>
+                    {[0,1,2,3,4].map(num => (<option key={num} value={num}>{num} {num===1?'Child':'Children'}</option>))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="col-lg-3 col-md-12 d-grid">
+                <button type="submit" className="btn btn-primary btn-lg" disabled={loading} style={{ backgroundColor: '#5C6F4E', borderColor: '#5C6F4E' }}>
+                  <i className="bi bi-search me-2"></i>{loading ? 'Searching...' : 'Search'}
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className="col-md-2">
-            <label className="form-label small text-uppercase fw-bold">
-              Children
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">
-                <i className="bi bi-emoji-smile"></i>
-              </span>
-              <select
-                className="form-select"
-                name="children"
-                value={searchParams.children}
-                onChange={handleInputChange}
-              >
-                {[0, 1, 2, 3, 4].map((num) => (
-                  <option key={num} value={num}>
-                    {num} {num === 1 ? "Child" : "Children"}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="col-md-2 d-flex align-items-end">
-            <button
-              type="submit"
-              className="btn btn-primary w-100 d-flex align-items-center justify-content-center"
-              disabled={loading}
-              style={{ backgroundColor: "#5C6F4E", borderColor: "#5C6F4E" }}
-            >
-              <i className="bi bi-search me-2"></i>
-              {loading ? "Searching..." : "Search"}
-            </button>
-          </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

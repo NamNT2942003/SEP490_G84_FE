@@ -18,9 +18,9 @@ export const roomService = {
       }
     });
 
-    const response = await apiClient.get(
-      `${API_ENDPOINTS.ROOMS.SEARCH}?${queryParams.toString()}`,
-    );
+    const queryString = queryParams.toString();
+    console.debug("roomService.searchRooms -> GET", `${API_ENDPOINTS.ROOMS.SEARCH}?${queryString}`);
+    const response = await apiClient.get(`${API_ENDPOINTS.ROOMS.SEARCH}?${queryString}`);
     // Clean circular references before returning
     return cleanSearchResults(response.data);
   },

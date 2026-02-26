@@ -30,6 +30,7 @@ const SearchRoom = () => {
     setSearchParams(searchFormParams);
     try {
       const params = {
+        branchId: filters.branchId ?? 1,
         ...filters,
         ...searchFormParams,
       };
@@ -40,8 +41,10 @@ const SearchRoom = () => {
       setTotalPages(response.totalPages || 0);
       setTotalPages(response.totalPages || 0);
     } catch (err) {
-      setError(err.message || "Failed to search rooms");
-      console.error("Search error:", err);
+      // prefer backend message when available
+      const backendMsg = err?.response?.data || err?.message || "Failed to search rooms";
+      setError(typeof backendMsg === 'string' ? backendMsg : JSON.stringify(backendMsg));
+      console.error("Search error:", err, err?.response?.data);
     } finally {
       setLoading(false);
     }
@@ -54,6 +57,7 @@ const SearchRoom = () => {
     setError(null);
     try {
       const params = {
+        branchId: filters.branchId ?? 1,
         ...filters,
         ...searchParams,
       };
@@ -63,8 +67,9 @@ const SearchRoom = () => {
       setTotalElements(response.totalElements || 0);
       setTotalPages(response.totalPages || 0);
     } catch (err) {
-      setError(err.message || "Failed to search rooms");
-      console.error("Search error:", err);
+      const backendMsg = err?.response?.data || err?.message || "Failed to search rooms";
+      setError(typeof backendMsg === 'string' ? backendMsg : JSON.stringify(backendMsg));
+      console.error("Search error:", err, err?.response?.data);
     } finally {
       setLoading(false);
     }
@@ -113,6 +118,7 @@ const SearchRoom = () => {
     const tomorrow = formatYmdLocal(tomorrowDate);
 
     searchRooms({
+      branchId: filters.branchId ?? 1,
       checkIn: today,
       checkOut: tomorrow,
       adults: 1,
@@ -129,6 +135,10 @@ const SearchRoom = () => {
   return (
     <div className="search-room-page">
       <div className="container mt-4">
+        <div className="mb-3">
+          <h2 className="fw-bold" style={{ color: '#0f172a' }}>Find Rooms</h2>
+          <p className="text-muted">Search and book the perfect room for your stay — comfortable, elegant, and tailored for you.</p>
+        </div>
         <SearchForm onSearch={searchRooms} loading={loading} />
       </div>
 

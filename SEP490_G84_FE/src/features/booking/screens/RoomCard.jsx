@@ -22,59 +22,46 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
     }
   };
 
-  const imageSrc =
-    room.image && !room.image.includes(".jpg")
-      ? `/images/${room.image}`
-      : getPlaceholderImage(room.name);
+  const imageSrc = room?.image && !room.image.includes(".jpg") ? `/images/${room.image}` : getPlaceholderImage(room.name);
 
   return (
-    <div className="card mb-3 shadow-sm hover-card">
-      <div className="row g-0">
-        <div className="col-md-4">
-          <img
-            src={imageSrc}
-            className="img-fluid rounded-start h-100 object-fit-cover"
-            alt={room.name}
-            style={{
-              minHeight: "250px",
-              maxHeight: "250px",
-              objectFit: "cover",
-            }}
-            onError={(e) => {
-              e.target.src = getPlaceholderImage(room.name);
-            }}
-          />
+    <div className="card mb-4 shadow-sm border-0 room-card" style={{ overflow: 'hidden', borderRadius: 12 }}>
+      <div style={{ position: 'relative' }}>
+        <img
+          src={imageSrc}
+          alt={room.name}
+          style={{ width: '100%', height: 260, objectFit: 'cover', display: 'block' }}
+          onError={(e) => { e.target.src = getPlaceholderImage(room.name); }}
+        />
+
+        <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(255,255,255,0.9)', padding: '6px 10px', borderRadius: 8, fontWeight:700, color:'#0f172a' }}>
+          {room.beds ? `${room.beds} Bed` : ''}
         </div>
-        <div className="col-md-5">
-          <div className="card-body d-flex flex-column h-100 py-4">
-            <h5 className="card-title mb-3 fw-bold">{room.name}</h5>
-            <p className="card-text text-muted mb-3">{room.description}</p>
+
+        <div style={{ position: 'absolute', top: 12, right: 12 }}>
+          <div style={{ background: 'linear-gradient(180deg,#2563eb,#1e40af)', color:'#fff', padding: '8px 12px', borderRadius: 10, fontWeight:700 }}>
+            {formatPrice(room.basePrice)} <span style={{ fontSize: 12, fontWeight: 600 }}> / night</span>
           </div>
         </div>
-        <div className="col-md-3">
-          <div className="card-body d-flex flex-column h-100 justify-content-between py-4">
-            <div className="text-end">
-              <h4 className="mb-0 fw-bold" style={{ color: "#5C6F4E" }}>
-                {formatPrice(room.basePrice)}
-              </h4>
-              <div className="text-muted small mb-1">PER NIGHT</div>
-            </div>
-            <div className="d-flex flex-column gap-2 mt-3">
-              <button
-                className="btn btn-primary w-100"
-                onClick={() => onBooking(room)}
-                style={{ backgroundColor: "#5C6F4E", borderColor: "#5C6F4E" }}
-              >
-                Booking
-              </button>
-              <button
-                className="btn btn-outline-secondary w-100"
-                onClick={() => onViewDetail(room)}
-              >
-                View Detail
-              </button>
-            </div>
-          </div>
+      </div>
+
+      <div className="card-body d-flex flex-column gap-2" style={{ padding: '18px' }}>
+        <div className="d-flex justify-content-between align-items-start">
+          <h5 className="mb-1 fw-bold" style={{ fontSize: 18 }}>{room.name}</h5>
+          <div className="text-muted small">{room.rating ? `${room.rating} ★` : ''}</div>
+        </div>
+
+        <p className="text-muted mb-2" style={{ lineHeight: 1.4, maxHeight: 54, overflow: 'hidden' }}>{room.description}</p>
+
+        <div className="d-flex gap-2" style={{ flexWrap: 'wrap' }}>
+          {(room.amenities || ['Free WiFi','Breakfast']).slice(0,4).map((a, i) => (
+            <span key={i} className="badge bg-light text-dark" style={{ borderRadius: 8, padding: '6px 8px', border: '1px solid #eef2f7' }}>{a}</span>
+          ))}
+        </div>
+
+        <div className="d-flex gap-2 mt-3">
+          <button className="btn btn-outline-secondary" style={{ borderRadius: 8, borderColor:'#e6eef6' }} onClick={() => onViewDetail(room)}>View details</button>
+          <button className="btn" style={{ backgroundColor:'#5C6F4E', color:'#fff', borderRadius: 8 }} onClick={() => onBooking(room)}>Book now</button>
         </div>
       </div>
     </div>
