@@ -194,11 +194,16 @@ const DateRangePicker = ({
     if (!date) return "";
 
     let classes = "date-cell";
+    const dayOfWeek = date.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
 
     if (isDateDisabled(date)) {
       classes += " disabled";
     } else {
       classes += " selectable";
+      if (isWeekend) {
+        classes += " weekend";
+      }
 
       if (isDateSelected(date)) {
         classes += " selected";
@@ -210,6 +215,9 @@ const DateRangePicker = ({
         }
       } else if (isDateInRange(date)) {
         classes += " in-range";
+        if (isWeekend) {
+          classes += " in-range-weekend";
+        }
       } else if (isDateInHoverRange(date)) {
         classes += " hover-range";
       }
@@ -430,6 +438,11 @@ const DateRangePicker = ({
             font-size: 0.75rem;
             padding: 0.5rem 0.25rem;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          
+          .day-header.weekend {
+            color: #dc3545;
           }
           
           .date-cell {
@@ -438,32 +451,64 @@ const DateRangePicker = ({
             align-items: center;
             justify-content: center;
             font-size: 0.875rem;
+            font-weight: 500;
             position: relative;
-            transition: all 0.2s ease;
-            border-radius: 0.25rem;
+            transition: all 0.15s ease;
+            border-radius: 50%;
             cursor: pointer;
           }
           
           .date-cell.disabled {
             color: #d3d3d3 !important;
-            background: #f9f9f9 !important;
+            background: transparent !important;
             cursor: not-allowed !important;
-            opacity: 0.5;
+            opacity: 0.4;
             text-decoration: line-through;
           }
           
-          .date-cell.selectable:hover {
-            background: rgba(92, 111, 78, 0.1);
-            transform: scale(1.05);
+          .date-cell.weekend:not(.selected):not(.in-range) {
+            color: #dc3545;
+          }
+          
+          .date-cell.selectable:hover:not(.in-range):not(.selected) {
+            background: rgba(92, 111, 78, 0.15);
           }
           
           .date-cell.selected {
             background: #5C6F4E !important;
-            color: white;
+            color: white !important;
             font-weight: 600;
-            transform: scale(1.1);
             z-index: 2;
-            box-shadow: 0 2px 8px rgba(92, 111, 78, 0.3);
+            box-shadow: 0 0 0 2px rgba(92, 111, 78, 0.2);
+          }
+          
+          .date-cell.in-range {
+            background: rgba(92, 111, 78, 0.15);
+            color: #333;
+            border-radius: 0;
+          }
+          
+          .date-cell.in-range-weekend {
+            color: #dc3545;
+          }
+          
+          .date-cell.in-range.start {
+            border-top-left-radius: 50%;
+            border-bottom-left-radius: 50%;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+          }
+          
+          .date-cell.in-range.end {
+            border-top-right-radius: 50%;
+            border-bottom-right-radius: 50%;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+          }
+          
+          .date-cell.hover-range {
+            background: rgba(92, 111, 78, 0.1);
+            border-radius: 0;
           }
           
           .date-cell.start {
