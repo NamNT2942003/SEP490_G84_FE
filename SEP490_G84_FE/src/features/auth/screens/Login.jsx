@@ -11,14 +11,9 @@ const Login = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '', rememberMe: false });
   
   const navigate = useNavigate();
-  const dispatch = useDispatch(); 
-
+  const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
-
-  // Lấy state từ Redux về (để hiển thị loading hoặc lỗi)
   const { isLoading, error, token } = useSelector((state) => state.auth);
-
-  // Nếu đã có token (đã login rồi) thì đá sang dashboard luôn
   useEffect(() => {
     if (token) {
       navigate('/dashboard');
@@ -37,40 +32,25 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Nên phải map lại dữ liệu trước khi gửi
     const loginPayload = {
-        username: credentials.email, // Mapping email -> username
-        password: credentials.password
+      username: credentials.email,
+      password: credentials.password
     };
-
-    // Gọi Redux Action
     dispatch(loginUser(loginPayload));
-    
-    // khi token thay đổi từ null -> có giá trị.
   };
 
 
 const handleGoogleSuccess = async (credentialResponse) => {
     try {
-        // 1. Lấy token từ Google trả về
         const token = credentialResponse.credential;
-
-        // 2. Gửi về Backend của mình để đổi lấy JWT
         const res = await apiClient.post('/auth/google', { token: token });
-
-        // 3. Backend trả về accessToken -> Lưu vào Redux/LocalStorage
         const { accessToken } = res.data;
-        
-        // Lưu token
         localStorage.setItem('accessToken', accessToken);
-        
-        // Chuyển trang (Reload nhẹ để cập nhật state)
         window.location.href = '/dashboard';
 
     } catch (error) {
-        console.error("Lỗi Google Login:", error);
-        alert("Google login failed!");
-
+        console.error("Google login error:", error);
+        alert("Google login failed.");
     }
   };
 
@@ -91,114 +71,101 @@ const handleGoogleSuccess = async (credentialResponse) => {
         >
           {/* Có thể để trống hoặc thêm nội dung đè lên ảnh tại đây (nhưng nên để trống cho đẹp) */}     </div>
 
-        {/* CỘT PHẢI */}
+        {/* Right column - form */}
         <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white">
           <div className="w-100 p-5" style={{ maxWidth: '500px' }}>
-            
             <div className="d-lg-none text-center mb-4">
-               <h4 className="fw-bold mt-2 text-brand">AN NGUYEN</h4>
+              <h4 className="fw-bold mt-2 text-brand">AN NGUYEN</h4>
             </div>
 
             <div className="mb-4">
               <h3 className="fw-bold text-dark">Welcome Back</h3>
               <p className="text-muted">Please sign in to your staff account.</p>
-              
-              {/* Hiển thị lỗi nếu có (VD: Sai mật khẩu) */}
               {error && (
-                  <div className="alert alert-danger py-2" role="alert">
-                      <small>{typeof error === 'string' ? error : 'Login failed'}</small>
-                  </div>
+                <div className="alert alert-danger py-2" role="alert">
+                  <small>{typeof error === 'string' ? error : (error?.message || 'Login failed')}</small>
+                </div>
               )}
             </div>
 
             <form onSubmit={handleSubmit}>
               <div className="form-floating mb-3">
-             <input 
-                    type="text" 
-                    className="form-control" 
-                    id="floatingInput" 
-                    name="email" 
-                    placeholder="name@example.com" 
-                    value={credentials.email} 
-                    onChange={handleChange} 
-                    required 
+                <input
+                  type="text"
+                  className="form-control"
+                  id="floatingInput"
+                  name="email"
+                  placeholder="name@example.com"
+                  value={credentials.email}
+                  onChange={handleChange}
+                  required
                 />
                 <label htmlFor="floatingInput" className="text-muted">Username or Email</label>
               </div>
 
-             <div className="form-floating mb-3 position-relative">
-                <input 
-                    type={showPassword ? "text" : "password"} 
-                    className="form-control" 
-                    id="floatingPassword" 
-                    name="password" 
-                    placeholder="Password" 
-                    value={credentials.password} 
-                    onChange={handleChange} 
-                    required 
-                    style={{ paddingRight: '40px' }} 
+              <div className="form-floating mb-3 position-relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="form-control"
+                  id="floatingPassword"
+                  name="password"
+                  placeholder="Password"
+                  value={credentials.password}
+                  onChange={handleChange}
+                  required
+                  style={{ paddingRight: '40px' }}
                 />
                 <label htmlFor="floatingPassword">Password</label>
-                
-                {/* Nút con mắt */}
                 <span
                   className="position-absolute top-50 end-0 translate-middle-y me-3"
                   style={{ cursor: 'pointer', zIndex: 10, color: '#6c757d' }}
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                  <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} />
                 </span>
               </div>
 
-              {/* Checkbox & Forgot Pass (Giữ nguyên) */}
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <div className="form-check">
                   <input className="form-check-input" type="checkbox" id="rememberMe" name="rememberMe" checked={credentials.rememberMe} onChange={handleChange} />
                   <label className="form-check-label text-muted small" htmlFor="rememberMe">{APP_STRINGS.BUTTONS.REMEMBER_ME}</label>
                 </div>
-                <span className="link-brand" onClick={() => navigate('/forgot-password')}>
+                <span className="link-brand" onClick={() => navigate('/forgot-password')} style={{ cursor: 'pointer' }}>
                   {APP_STRINGS.BUTTONS.FORGOT_PASS}
                 </span>
               </div>
 
-              {/* Nút Login có hiệu ứng Loading */}
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="btn btn-brand btn-lg w-100 py-3 shadow-sm mb-3"
-                disabled={isLoading} // Disable nút khi đang load
+                disabled={isLoading}
               >
                 {isLoading ? (
-                    <span>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Checking...
-                    </span>
+                  <span>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                    Checking...
+                  </span>
                 ) : (
-                    APP_STRINGS.BUTTONS.LOGIN
+                  APP_STRINGS.BUTTONS.LOGIN
                 )}
               </button>
 
-              {/* Phần Google Login giữ nguyên */}
               <div className="d-flex justify-content-center mt-3 w-100">
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => {
-              console.log('Login Failed');
-            }}
-            useOneTap
-            shape="rectangular"
-            width="300" // Độ rộng nút
-          />
-      </div>
-
-
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => console.log('Login Failed')}
+                  useOneTap
+                  shape="rectangular"
+                  width="300"
+                />
+              </div>
             </form>
 
             <div className="mt-5 text-center text-muted" style={{ fontSize: '11px' }}>
-              {APP_STRINGS.COPYRIGHT}<br/>{APP_STRINGS.FOOTER}
+              {APP_STRINGS.COPYRIGHT}<br />{APP_STRINGS.FOOTER}
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

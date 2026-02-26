@@ -1,9 +1,11 @@
 // src/constants/index.js
 
+export const STORAGE_ACCESS_TOKEN = 'accessToken';
+
 export const COLORS = {
-  PRIMARY: '#465c47',       // Màu xanh rêu chủ đạo (Logo)
-  PRIMARY_HOVER: '#384a39', // Màu xanh đậm hơn một chút (dùng khi hover chuột)
-  SECONDARY: '#f0f2f0',     // Màu nền xám nhạt (Background)
+  PRIMARY: '#465c47',
+  PRIMARY_HOVER: '#384a39',
+  SECONDARY: '#f0f2f0',
   TEXT_DARK: '#333333',
   TEXT_LIGHT: '#ffffff',
   ERROR: '#dc3545',
@@ -12,9 +14,7 @@ export const COLORS = {
 export const APP_STRINGS = {
   APP_NAME: 'AN NGUYEN',
   APP_SUBTITLE: 'Hotel & Serviced Apartment',
-  SLOGAN: '"Sophistication in every detail. Luxury in every space."', 
-  
-  // Các nút bấm dùng chung (Button Labels)
+  SLOGAN: '"Refined in every detail. Luxurious in every space."',
   BUTTONS: {
     LOGIN: 'Secure Login',
     LOGOUT: 'Sign Out',
@@ -25,7 +25,7 @@ export const APP_STRINGS = {
     CANCEL: 'Cancel',
     DELETE: 'Delete',
     EDIT: 'Edit',
-    Confirm: 'Confirm'
+    CONFIRM: 'Confirm',
   },
 
   // Footer

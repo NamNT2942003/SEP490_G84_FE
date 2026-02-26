@@ -1,72 +1,94 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom'; // Dùng NavLink để tự động highlight menu đang chọn
-import { COLORS } from '@/constants';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { logout } from '@/features/auth/authSlice';
 
 const Sidebar = () => {
-  // Danh sách menu dựa trên SRS
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const handleSignOut = () => {
+    if (window.confirm('Are you sure you want to sign out?')) {
+      dispatch(logout());
+      navigate('/login');
+    }
+  };
+
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
     { path: '/bookings', label: 'Booking Management', icon: 'bi-calendar-check' },
     { path: '/rooms', label: 'Room List', icon: 'bi-door-open' },
     { path: '/services', label: 'Services', icon: 'bi-cup-hot' },
-    { path: '/staff', label: 'Staff Account', icon: 'bi-people' }, // Chỉ hiện nếu là Admin
+    { path: '/accounts', label: 'Account List', icon: 'bi-people' },
     { path: '/reports', label: 'Reports', icon: 'bi-bar-chart-line' },
   ];
 
+  const asideStyle = {
+    width: 260,
+    minHeight: '100vh',
+    background: '#465c47',
+    color: 'white',
+    display: 'flex',
+    flexDirection: 'column',
+    padding: 16,
+    boxSizing: 'border-box',
+  };
+  const logoRowStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    color: 'white',
+    textDecoration: 'none',
+  };
+  const logoBoxStyle = { width: 40, height: 40, borderRadius: '50%', background: 'white', overflow: 'hidden', flexShrink: 0 };
+  const navStyle = { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 };
+
   return (
-    <div 
-      className="d-flex flex-column flex-shrink-0 p-3 text-white vh-100" 
-      style={{ width: '280px', backgroundColor: COLORS.PRIMARY }}
-    >
-      {/* Logo Area */}
-      <a href="/" className="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
-        <div className="bg-white rounded-circle d-flex align-items-center justify-content-center me-2" style={{width: 40, height: 40}}>
-         <img src="./public/logo2.jpg" alt="Logo" style={{width: 50, height: 50,
-    borderRadius: '50%',
-    objectFit: 'cover'} } />
+    <aside className="sidebar-wrap" style={asideStyle}>
+      <a href="/" style={logoRowStyle}>
+        <div style={logoBoxStyle}>
+          <img src="/logo2.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
-        <span className="fs-5 fw-bold text-uppercase">An Nguyen</span>
+        <span style={{ fontSize: 18, fontWeight: 700, textTransform: 'uppercase' }}>An Nguyen</span>
       </a>
-      
-      <hr />
-      
-      {/* Menu List */}
-      <ul className="nav nav-pills flex-column mb-auto">
+
+      <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.2)', margin: '8px 0' }} />
+
+      <nav style={navStyle}>
         {menuItems.map((item, index) => (
-          <li className="nav-item mb-1" key={index}>
-            <NavLink 
-              to={item.path} 
-              className={({ isActive }) => 
-                `nav-link text-white d-flex align-items-center ${isActive ? 'active-menu' : ''}`
-              }
-              style={({ isActive }) => ({
-                backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : 'transparent', // Hiệu ứng khi chọn
-                fontWeight: isActive ? 'bold' : 'normal'
-              })}
-            >
-              <i className={`bi ${item.icon} me-3 fs-5`}></i>
-              {item.label}
-            </NavLink>
-          </li>
+          <NavLink
+            key={index}
+            to={item.path}
+            className={({ isActive }) => 'sidebar-nav-link' + (isActive ? ' active' : '')}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'white', padding: '10px 12px', borderRadius: 8, textDecoration: 'none' }}
+          >
+            <i className={`bi ${item.icon}`} style={{ fontSize: 18 }} />
+            {item.label}
+          </NavLink>
         ))}
-      </ul>
-      
-      <hr />
-      
-      {/* User Info Mini */}
-      <div className="dropdown">
-        <a href="#" className="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-          <img src="" alt="" width="32" height="32" className="rounded-circle me-2" />
+      </nav>
+
+      <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.2)', margin: '8px 0' }} />
+
+      <div className="sidebar-user-group" style={{ position: 'relative', flexShrink: 0 }}>
+        <button
+          type="button"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', color: 'white', padding: 0, border: 0, background: 'transparent', cursor: 'pointer' }}
+          aria-expanded="false"
+          aria-haspopup="true"
+        >
+          <span style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', flexShrink: 0 }} />
           <strong>Manager</strong>
-        </a>
-        <ul className="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
-          <li><a className="dropdown-item" href="#">Profile</a></li>
-          <li><a className="dropdown-item" href="#">Settings</a></li>
-          <li><hr className="dropdown-divider" /></li>
-          <li><a className="dropdown-item" href="#">Sign out</a></li>
-        </ul>
+        </button>
+        <div className="sidebar-dropdown">
+          <NavLink to="/dashboard" style={{ textDecoration: 'none' }}>Profile</NavLink>
+          <NavLink to="/accounts" style={{ textDecoration: 'none' }}>Account List</NavLink>
+          <hr style={{ borderColor: '#4b5563', margin: '4px 0' }} />
+          <button type="button" onClick={handleSignOut}>Sign out</button>
+        </div>
       </div>
-    </div>
+    </aside>
   );
 };
 

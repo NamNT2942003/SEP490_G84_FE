@@ -1,0 +1,442 @@
+/* User Detail - aligned with Account Management */
+.user-detail-container {
+  padding: 24px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+/* Breadcrumb */
+.breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.breadcrumb-link {
+  color: #56785e;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.breadcrumb-link:hover {
+  color: #3a4d3e;
+  text-decoration: underline;
+}
+
+.breadcrumb-current {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Header */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.detail-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #56785e;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: white;
+  color: #212529;
+  border: 1px solid #dee2e6;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-edit:hover {
+  background-color: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.btn-delete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: white;
+  color: #212529;
+  border: 1px solid #dee2e6;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-delete:hover {
+  background-color: #fff5f5;
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+/* Main Content */
+.detail-content {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .detail-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cards */
+.detail-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #56785e;
+  margin: 0 0 20px 0;
+}
+
+.card-header-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* Form */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Input fields */
+.form-control {
+  padding: 10px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #495057;
+  background-color: #fff;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #56785e;
+  box-shadow: 0 0 0 3px rgba(74, 93, 78, 0.1);
+}
+
+.form-control:read-only {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+
+/* Password Field */
+.password-field {
+  position: relative;
+}
+
+.btn-toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 8px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-toggle-password:hover {
+  color: #212529;
+}
+
+/* Info Sections */
+.info-section {
+  margin-bottom: 20px;
+}
+
+.info-section:last-child {
+  margin-bottom: 0;
+}
+
+.info-section label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 12px;
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Role & Branch info */
+.role-info,
+.branch-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.role-name,
+.branch-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #56785e;
+  margin-bottom: 4px;
+}
+
+.role-description,
+.branch-address {
+  font-size: 13px;
+  color: #495057;
+  line-height: 1.4;
+}
+
+.badge-dark {
+  background-color: #56785e;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Branches List */
+.btn-add-branch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #56785e;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-branch:hover {
+  background-color: #3a4d3e;
+}
+
+.branches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Branch list */
+.branch-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  transition: all 0.2s;
+}
+
+.branch-item:hover {
+  background-color: #f8f9fa;
+}
+
+.branch-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(45, 106, 79, 0.2);
+  border-radius: 6px;
+  color: #56785e;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.branch-details {
+  flex: 1;
+}
+
+.branch-details .branch-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #56785e;
+  margin-bottom: 2px;
+}
+
+.branch-details .branch-address {
+  font-size: 12px;
+  color: #495057;
+}
+
+.badge-primary-branch {
+  background-color: #56785e;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn-remove-branch {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  font-size: 18px;
+}
+
+.btn-remove-branch:hover {
+  background-color: #fff5f5;
+  color: #dc3545;
+}
+
+/* Profile Card */
+.profile-card {
+  position: sticky;
+  top: 24px;
+}
+
+.profile-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.profile-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #d8f3dc;
+  margin-bottom: 16px;
+}
+
+.profile-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #56785e;
+  margin: 0 0 4px 0;
+}
+
+.profile-username {
+  font-size: 14px;
+  color: #6c757d;
+  margin: 0 0 20px 0;
+}
+
+.profile-photo-input {
+  display: none;
+}
+
+.btn-change-photo {
+  width: 100%;
+  padding: 10px 20px;
+  background-color: #fff;
+  color: #56785e;
+  border: 1px solid #56785e;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-block;
+  text-align: center;
+  margin: 0;
+}
+
+.btn-change-photo:hover {
+  background-color: #56785e;
+  color: #fff;
+  border-color: #56785e;
+}
+
+/* Loading & Error States */
+.text-center {
+  text-align: center;
+}
+
+.py-5 {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.alert {
+  padding: 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}

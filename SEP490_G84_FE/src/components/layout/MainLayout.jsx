@@ -3,21 +3,34 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
 
+const layoutMain = {
+  display: 'grid',
+  gridTemplateColumns: '260px 1fr',
+  minHeight: '100vh',
+  background: '#f3f4f6',
+};
+const layoutRight = {
+  display: 'flex',
+  flexDirection: 'column',
+  minWidth: 0,
+  overflow: 'hidden',
+};
+const layoutContent = {
+  flex: 1,
+  minHeight: 0,
+  overflow: 'auto',
+  padding: 16,
+};
+
 const MainLayout = ({ children }) => {
   return (
-    <div className="d-flex vh-100 overflow-hidden">
-      {/* Cố định Sidebar bên trái */}
+    <div style={layoutMain}>
       <Sidebar />
-      
-      {/* Phần nội dung bên phải (Header + Content + Footer) */}
-      <div className="d-flex flex-column flex-grow-1 overflow-auto">
+      <div style={layoutRight}>
         <Header />
-        
-        {/* Nội dung thay đổi của từng trang nằm ở đây */}
-        <main className="p-4 flex-grow-1 bg-light">
+        <main style={layoutContent}>
           {children}
         </main>
-        
         <Footer />
       </div>
     </div>

@@ -1,0 +1,12 @@
+/* features/rooms/screens/RoomList.css */
+.room-list-container {
+  padding: 1.5rem;
+}
+.room-list-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.room-list-placeholder {
+  color: var(--bs-secondary, #6c757d);
+}

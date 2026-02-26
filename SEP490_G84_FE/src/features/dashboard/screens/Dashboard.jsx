@@ -1,58 +1,40 @@
-import React, { useState } from 'react'; 
-import { jwtDecode } from "jwt-decode"; 
-import { COLORS } from '@/constants';
-
+import React, { useState } from 'react';
+import { jwtDecode } from 'jwt-decode';
 const Dashboard = () => {
-  // --- Lazy Initialization ---
   const [userInfo] = useState(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = localStorage.getItem('accessToken');
     let initialUser = { fullName: 'User', role: 'User', branchName: '' };
 
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        const roleList = (decoded.role || "").split(",");
-        let mainRole = roleList.find(r => r.includes("ROLE_")) || roleList[0] || "User";
-        let roleDisplay = mainRole.replace("ROLE_", "").toLowerCase();
-        roleDisplay = roleDisplay.charAt(0).toUpperCase() + roleDisplay.slice(1); 
+        const roleList = (decoded.role || '').split(',');
+        const mainRole = roleList.find((r) => r.includes('ROLE_')) || roleList[0] || 'User';
+        let roleDisplay = mainRole.replace('ROLE_', '').toLowerCase();
+        roleDisplay = roleDisplay.charAt(0).toUpperCase() + roleDisplay.slice(1);
         initialUser = {
-          fullName: decoded.fullName || "User",
+          fullName: decoded.fullName || decoded.sub || decoded.username || 'User',
           role: roleDisplay,
-          branchName: decoded.branchName || ""
+          branchName: decoded.branchName || '',
         };
       } catch (error) {
-        console.error("Error decoding token:", error);
+        console.error('Error decoding token:', error);
       }
     }
     return initialUser;
   });
 
   return (
-    <div className="container-fluid p-0 fade-in">
-      {/* Welcome Banner */}
-      <div className="p-4 rounded-3 shadow-sm bg-white border mb-4">
-        <h2 className="fw-bold mb-2" style={{ color: COLORS.PRIMARY }}>
-          Welcome back, {userInfo.role} {userInfo.branchName ? `- ${userInfo.branchName}` : ''}!
-        </h2>
-        <p className="text-muted fs-5 m-0">
-          Hello <strong>{userInfo.fullName}</strong>, wishing you a productive day.
-        </p>
+    <div style={{ width: '100%' }}>
+      <div className="dashboard-card">
+        <h2>Welcome back, {userInfo.role} {userInfo.branchName ? `- ${userInfo.branchName}` : ''}!</h2>
+        <p className="muted">Hello <strong>{userInfo.fullName}</strong>, have a productive day.</p>
       </div>
-
-      {/* Dashboard Content */}
-      <div className="row g-4">
-        {/* Example Card 1 */}
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-body">
-              <h6 className="text-muted text-uppercase" style={{fontSize: '12px'}}>Total Bookings Today</h6>
-              <h3 className="fw-bold my-2">24</h3>
-            </div>
-          </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+        <div className="stat-card">
+          <h6>Today&apos;s total bookings</h6>
+          <h3>24</h3>
         </div>
-
-        {/* Example Card 2 */}
-        
       </div>
     </div>
   );
