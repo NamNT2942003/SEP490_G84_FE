@@ -38,6 +38,107 @@
   opacity: 0.95;
 }
 
+/* Nút viền (Outline) - Dùng cho hành động phụ (Cancel, Back) */
+.btn-outline-brand {
+  background-color: transparent !important;
+  border: 1px solid var(--brand-color) !important;
+  color: var(--brand-color) !important;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+.btn-outline-brand:hover {
+  background-color: var(--brand-color) !important;
+  color: white !important;
+}
+
+/* Nút text (Link) - Dùng cho các link nhỏ */
+.btn-text-brand {
+  color: var(--brand-color) !important;
+  font-weight: 600;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* Link màu thương hiệu - Cập nhật hiệu ứng */
+.link-brand {
+  color: var(--brand-color) !important;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer; /* 1. Biến con trỏ chuột thành hình bàn tay */
+  transition: all 0.2s ease-in-out; /* 2. Tạo độ mượt khi đổi màu */
+  display: inline-block; /* Để dùng được transform */
+}
+
+/* Hiệu ứng khi rê chuột vào (Hover) */
+.link-brand:hover {
+  color: var(--brand-hover) !important; /* Đổi màu đậm hơn */
+  text-decoration: underline !important; /* Hiện gạch chân */
+  opacity: 0.8;
+}
+
+/* Hiệu ứng khi BẤM chuột xuống (Active) -> Tạo cảm giác "ấn nút" */
+.link-brand:active {
+  transform: scale(0.95); /* 3. Nhún nhỏ lại một chút */
+  color: #2c3e2d !important; /* Màu tối hơn nữa */
+}
+
+.btn-text-brand:hover {
+  color: var(--brand-hover) !important;
+  text-decoration: underline;
+}
+
+.bg-olive { background-color: var(--brand-color) !important; color: white; }
+.text-olive { color: var(--brand-color) !important; }
+.btn-gold {
+  background-color: var(--hotel-gold);
+  color: white;
+  border: none;
+  transition: all 0.3s;
+}
+
+.btn-gold:hover { background-color: var(--hotel-gold-dark); color: white; }
+.card-custom { border-radius: 15px; border: 1px solid #eee; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+
+.img-container {
+  width: 100%;
+  height: 200px; /* Hoặc độ cao bạn muốn */
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.form-control {
+  border-left: 0;
+}
+
+.form-control:focus {
+  border-color: #ced4da; /* Keep default border color */
+  box-shadow: 0 0 0 0.25rem rgba(90, 110, 75, 0.25); /* Olive focus ring */
+  border-left: 1px solid #ced4da;
+}
+
+.input-group .form-control:focus {
+  border-left: 0;
+}
+
+.form-check-input:checked {
+  background-color: var(--brand-color);
+  border-color: var(--brand-color);
+}
+
+.form-check-input {
+  width: 2.5em;
+  height: 1.25em;
+  cursor: pointer;
+}
+
+sticky-summary {
+  position: sticky;
+  top: 85px; /* Chiều cao header (~60px) + khoảng cách đệm (25px) */
+  z-index: 10;
+}
+
 body {
   margin: 0;
   font-family:
