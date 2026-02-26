@@ -28,6 +28,10 @@ export const accountAPI = {
   searchAccounts: (fullName) => apiClient.get('/accounts/search', { params: { fullName } }),
   getAccountsByStatus: (status) => apiClient.get(`/accounts/status/${status}`),
   getAccountsByBranch: (branchId) => apiClient.get(`/accounts/branch/${branchId}`),
+  getRoles: () => apiClient.get('/accounts/roles'),
+  getStatuses: () => apiClient.get('/accounts/statuses'),
+  getAssignableRoles: (currentUserId) =>
+    apiClient.get('/accounts/assignable-roles', { params: currentUserId != null ? { currentUserId } : {} }),
 };
 
 export const branchAPI = {

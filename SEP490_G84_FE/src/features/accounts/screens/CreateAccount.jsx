@@ -13,12 +13,13 @@ const CreateAccount = () => {
     password: '',
     fullName: '',
     email: '',
-    role: 'STAFF',
+    role: '',
     primaryBranch: '',
-    additionalBranches: [] // Array of branch names
+    additionalBranches: []
   });
 
   const [branches, setBranches] = useState([]);
+  const [assignableRoles, setAssignableRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,15 +28,31 @@ const CreateAccount = () => {
       navigate('/login');
       return;
     }
-    if (currentUser.role === 'STAFF') {
+    if (!currentUser.permissions?.canAccessAccountList) {
       navigate('/dashboard');
       return;
     }
   }, [currentUser, navigate]);
 
   useEffect(() => {
-    if (currentUser && currentUser.role !== 'STAFF') fetchBranches();
+    if (currentUser?.permissions?.canAccessAccountList) {
+      fetchBranches();
+      fetchAssignableRoles();
+    }
   }, [currentUser]);
+
+  const fetchAssignableRoles = async () => {
+    if (!currentUser?.userId) return;
+    try {
+      const res = await accountAPI.getAssignableRoles(currentUser.userId);
+      const list = res.data || [];
+      setAssignableRoles(list);
+      setFormData(prev => ({ ...prev, role: prev.role || list[0]?.value || '' }));
+    } catch (err) {
+      console.warn('Assignable roles not loaded:', err);
+      setAssignableRoles([]);
+    }
+  };
 
   const fetchBranches = async () => {
     try {
@@ -129,23 +146,10 @@ const CreateAccount = () => {
     navigate('/accounts');
   };
 
-  // Get available roles based on current user's role
-  const getAvailableRoles = () => {
-    if (currentUser.role === 'ADMIN') {
-      return [
-        { value: 'ADMIN', label: 'Admin' },
-        { value: 'MANAGER', label: 'Manager' },
-        { value: 'STAFF', label: 'Staff' }
-      ];
-    } else if (currentUser.role === 'MANAGER') {
-      return [
-        { value: 'STAFF', label: 'Staff' }
-      ];
-    }
-    return [];
-  };
+  // Get available roles based on current user's role (from API)
+  const roleOptions = assignableRoles;
 
-  if (!currentUser || currentUser.role === 'STAFF') return null;
+  if (!currentUser || !currentUser.permissions?.canAccessAccountList) return null;
 
   return (
     <div className="create-account-container">
@@ -244,7 +248,7 @@ const CreateAccount = () => {
                   className="form-control select-with-arrow"
                   required
                 >
-                  {getAvailableRoles().map(role => (
+                  {roleOptions.map(role => (
                     <option key={role.value} value={role.value}>
                       {role.label}
                     </option>

@@ -271,7 +271,7 @@
   color: #2d6a4f;
 }
 
-.status-badge.inactive {
+.status-badge.deactive {
   background-color: #e9ecef;
   color: #6c757d;
 }
@@ -306,12 +306,12 @@
   box-shadow: 0 2px 6px rgba(45, 106, 79, 0.2);
 }
 
-.status-toggle-btn.inactive {
+.status-toggle-btn.deactive {
   background-color: #e9ecef;
   color: #6c757d;
 }
 
-.status-toggle-btn.inactive:hover {
+.status-toggle-btn.deactive:hover {
   background-color: #dee2e6;
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);

@@ -13,13 +13,14 @@ const EditStaff = () => {
     username: '',
     email: '',
     password: '',
-    role: 'STAFF',
+    role: '',
     primaryBranchId: '',
     primaryBranchName: '',
-    additionalBranches: [] // Array of branch names
+    additionalBranches: []
   });
 
   const [branches, setBranches] = useState([]);
+  const [assignableRoles, setAssignableRoles] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -30,14 +31,14 @@ const EditStaff = () => {
       navigate('/login');
       return;
     }
-    if (currentUser.role === 'STAFF') {
+    if (!currentUser.permissions?.canAccessAccountList) {
       navigate('/dashboard');
       return;
     }
   }, [currentUser, navigate]);
 
   useEffect(() => {
-    if (currentUser && currentUser.role !== 'STAFF') fetchData();
+    if (currentUser?.permissions?.canAccessAccountList) fetchData();
   }, [id, currentUser]);
 
   const fetchData = async () => {
@@ -52,6 +53,18 @@ const EditStaff = () => {
       }
       setBranches(branchesList);
 
+      let assignableList = [];
+      if (currentUser?.userId) {
+        try {
+          const rolesRes = await accountAPI.getAssignableRoles(currentUser.userId);
+          assignableList = rolesRes.data || [];
+          setAssignableRoles(assignableList);
+        } catch (e) {
+          console.warn('Assignable roles not loaded:', e);
+          setAssignableRoles([]);
+        }
+      }
+
       const params = currentUser?.userId != null ? { currentUserId: currentUser.userId } : {};
       const userRes = await accountAPI.getAccountById(id, params);
       const user = userRes.data;
@@ -61,7 +74,7 @@ const EditStaff = () => {
         username: user.username || '',
         email: user.email || '',
         password: '********',
-        role: user.role || 'STAFF',
+        role: user.role || assignableList[0]?.value || '',
         primaryBranchId: primaryBranch ? primaryBranch.branchId : '',
         primaryBranchName: user.mainBranch || '',
         additionalBranches: user.additionalBranches || []
@@ -122,11 +135,14 @@ const EditStaff = () => {
         .map(b => b.branchId);
 
       const updateData = {
-        ...(currentUser?.role === 'ADMIN' && { email: formData.email }),
         role: formData.role,
         primaryBranchId: formData.primaryBranchId || null,
         additionalBranchIds: additionalBranchIds
       };
+      if (currentUser?.permissions?.canEditUsername) {
+        updateData.username = formData.username;
+        updateData.email = formData.email;
+      }
 
       await accountAPI.updateAccount(id, updateData, currentUser?.userId);
 
@@ -151,24 +167,12 @@ const EditStaff = () => {
     navigate('/accounts');
   };
 
-  // Get available roles based on current user's role
-  const getAvailableRoles = () => {
-    if (currentUser.role === 'ADMIN') {
-      // Admin can set role to MANAGER or STAFF
-      return [
-        { value: 'MANAGER', label: 'Manager' },
-        { value: 'STAFF', label: 'Staff' }
-      ];
-    } else if (currentUser.role === 'MANAGER') {
-      // Manager can only assign STAFF
-      return [
-        { value: 'STAFF', label: 'Staff' }
-      ];
-    }
-    return [];
-  };
+  // Role options from API (assignable roles for current user)
+  const roleOptions = assignableRoles.some(r => r.value === formData.role)
+    ? assignableRoles
+    : [...assignableRoles, { value: formData.role, label: formData.role }];
 
-  if (!currentUser || currentUser.role === 'STAFF') return null;
+  if (!currentUser || !currentUser.permissions?.canAccessAccountList) return null;
 
   if (loading) {
     return (
@@ -208,7 +212,8 @@ const EditStaff = () => {
                 value={formData.username}
                 onChange={handleInputChange}
                 className="form-control"
-                readOnly
+                readOnly={!currentUser?.permissions?.canEditUsername}
+                title={!currentUser?.permissions?.canEditUsername ? 'Only Admin can edit username' : ''}
               />
             </div>
 
@@ -222,8 +227,8 @@ const EditStaff = () => {
                 onChange={handleInputChange}
                 className="form-control"
                 required
-                readOnly={currentUser?.role !== 'ADMIN'}
-                title={currentUser?.role !== 'ADMIN' ? 'Only Admin can edit email' : ''}
+                readOnly={!currentUser?.permissions?.canEditEmail}
+                title={!currentUser?.permissions?.canEditEmail ? 'Only Admin can edit email' : ''}
               />
             </div>
           </div>
@@ -262,7 +267,7 @@ const EditStaff = () => {
                   onChange={handleInputChange}
                   className="form-control select-with-arrow"
                 >
-                  {getAvailableRoles().map(role => (
+                  {roleOptions.map(role => (
                     <option key={role.value} value={role.value}>
                       {role.label}
                     </option>

@@ -10,7 +10,10 @@ const AccountList = () => {
   const currentUser = useCurrentUser();
 
   const [accounts, setAccounts] = useState([]);
+  const [rolesList, setRolesList] = useState([]);
+  const [statusesList, setStatusesList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedBranch, setSelectedBranch] = useState('');
@@ -23,14 +26,14 @@ const AccountList = () => {
       navigate('/login');
       return;
     }
-    if (currentUser.role === 'STAFF') {
+    if (!currentUser.permissions?.canAccessAccountList) {
       navigate('/dashboard');
       return;
     }
   }, [currentUser, navigate]);
 
   useEffect(() => {
-    if (!currentUser || currentUser.role === 'STAFF') return;
+    if (!currentUser || !currentUser.permissions?.canAccessAccountList) return;
     if (location.pathname === '/accounts') fetchAccounts();
   }, [currentUser?.userId, location.pathname, location.state?.refreshList]);
 
@@ -41,10 +44,32 @@ const AccountList = () => {
   const fetchAccounts = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const response = await accountAPI.getAllAccounts({ currentUserId: currentUser.userId });
-      setAccounts(response.data);
+      setAccounts(response.data ?? []);
+      try {
+        const rolesRes = await accountAPI.getRoles();
+        setRolesList(rolesRes.data || []);
+      } catch (e) {
+        console.warn('Roles not loaded:', e);
+        setRolesList([]);
+      }
+      try {
+        const statusesRes = await accountAPI.getStatuses();
+        setStatusesList(statusesRes.data || []);
+      } catch (e) {
+        console.warn('Statuses not loaded:', e);
+        setStatusesList([]);
+      }
     } catch (error) {
       setAccounts([]);
+      const msg = error.response?.data?.message || error.response?.data || error.message;
+      const status = error.response?.status;
+      let errText = status ? `Lỗi ${status}: ${msg || 'Không lấy được dữ liệu'}` : `Lỗi: ${msg || 'Kiểm tra backend đang chạy (port 8081)'}`;
+      if (status === 404 && (msg || '').toLowerCase().includes('static resource')) {
+        errText = 'Backend chưa chạy hoặc không đúng ứng dụng. Chạy Spring Boot (gradlew bootRun) tại thư mục SEP490_G84, port 8081.';
+      }
+      setLoadError(errText);
     } finally {
       setLoading(false);
     }
@@ -83,8 +108,8 @@ const AccountList = () => {
 
   const handleToggleStatus = async (userId, currentStatus) => {
     try {
-      const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-      await accountAPI.updateAccountStatus(userId, newStatus, currentUser?.userId);
+      const nextStatus = (statusesList && statusesList.find(s => s !== currentStatus)) ?? currentStatus;
+      await accountAPI.updateAccountStatus(userId, nextStatus, currentUser?.userId);
       fetchAccounts();
     } catch (error) {
       const msg = error.response?.data?.message || error.response?.data || error.message;
@@ -129,7 +154,7 @@ const AccountList = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  if (!currentUser || currentUser.role === 'STAFF') return null;
+  if (!currentUser || !currentUser.permissions?.canAccessAccountList) return null;
 
   return (
     <div className="account-management-container">
@@ -140,13 +165,13 @@ const AccountList = () => {
             Account List
           </h1>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="d-flex gap-2 align-items-center">
           <button
             className="btn-add-account"
             onClick={() => navigate('/accounts/create')}
           >
             <i className="bi bi-person-plus-fill"></i>
-            {currentUser.role === 'MANAGER' ? 'Create Staff' : 'Create Account'}
+            {currentUser.permissions?.isManager ? 'Create Staff' : 'Create Account'}
           </button>
         </div>
       </div>
@@ -173,9 +198,9 @@ const AccountList = () => {
             onChange={(e) => setSelectedRole(e.target.value)}
           >
             <option value="">All Roles</option>
-            <option value="ADMIN">ADMIN</option>
-            <option value="MANAGER">MANAGER</option>
-            <option value="STAFF">STAFF</option>
+            {rolesList.map((r) => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
           </select>
 
           <select
@@ -195,8 +220,9 @@ const AccountList = () => {
             onChange={(e) => setSelectedStatus(e.target.value)}
           >
             <option value="">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
+            {statusesList.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
           </select>
 
           {/* Action buttons */}
@@ -210,6 +236,13 @@ const AccountList = () => {
 
       {/* Table */}
       <div className="account-table-container card">
+        {loadError && (
+          <div className="alert alert-danger mb-3">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            {loadError}
+            <button type="button" className="btn btn-sm btn-outline-danger ms-2" onClick={() => { setLoadError(null); fetchAccounts(); }}>Thử lại</button>
+          </div>
+        )}
         {loading ? (
           <div className="text-center py-5">
             <div className="spinner-border text-primary" role="status">
@@ -256,10 +289,10 @@ const AccountList = () => {
                           />
                         </td>
                         <td>
-                          <div className="fw-semibold">{account.fullName}</div>
+                          <div className="fw-semibold">{account.username}</div>
                         </td>
                         <td>{account.email}</td>
-                        <td>{account.role}</td>
+                        <td>{account.role || '—'}</td>
                         <td>
                           <span className="badge-branch">{account.mainBranch || 'N/A'}</span>
                         </td>
@@ -280,9 +313,9 @@ const AccountList = () => {
                           <button
                             className={`status-toggle-btn ${account.status.toLowerCase()}`}
                             onClick={() => handleToggleStatus(account.userId, account.status)}
-                            title={`Click to ${account.status === 'Active' ? 'deactivate' : 'activate'}`}
+                            title={`Click to ${account.status === statusesList?.[0] ? 'deactivate' : 'activate'}`}
                           >
-                            <i className={`bi ${account.status === 'Active' ? 'bi-toggle-on' : 'bi-toggle-off'}`}></i>
+                            <i className={`bi ${account.status === statusesList?.[0] ? 'bi-toggle-on' : 'bi-toggle-off'}`}></i>
                             <span>{account.status}</span>
                           </button>
                         </td>
@@ -319,7 +352,8 @@ const AccountList = () => {
                   ) : (
                     <tr>
                       <td colSpan="9" className="text-center py-4 text-muted">
-                        No accounts found
+                        {loadError ? 'Không tải được dữ liệu.' : 'No accounts found'}
+                        {!loadError && currentUser?.permissions?.isManager && ' (Manager chỉ xem được tài khoản Staff.)'}
                       </td>
                     </tr>
                   )}
