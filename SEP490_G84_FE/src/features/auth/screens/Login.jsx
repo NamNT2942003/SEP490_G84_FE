@@ -9,9 +9,9 @@ import { GoogleLogin } from '@react-oauth/google';
 const Login = () => {
   // State form
   const [credentials, setCredentials] = useState({ email: '', password: '', rememberMe: false });
-  
+
   const navigate = useNavigate();
-  const dispatch = useDispatch(); 
+  const dispatch = useDispatch();
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -45,7 +45,7 @@ const Login = () => {
 
     // Gọi Redux Action
     dispatch(loginUser(loginPayload));
-    
+
     // khi token thay đổi từ null -> có giá trị.
   };
 
@@ -60,10 +60,10 @@ const handleGoogleSuccess = async (credentialResponse) => {
 
         // 3. Backend trả về accessToken -> Lưu vào Redux/LocalStorage
         const { accessToken } = res.data;
-        
+
         // Lưu token
         localStorage.setItem('accessToken', accessToken);
-        
+
         // Chuyển trang (Reload nhẹ để cập nhật state)
         window.location.href = '/dashboard';
 
@@ -78,7 +78,7 @@ const handleGoogleSuccess = async (credentialResponse) => {
   return (
     <div className="container-fluid vh-100 p-0 overflow-hidden">
       <div className="row g-0 h-100">
-        
+
         {/* CỘT TRÁI (Giữ nguyên code của bạn) */}
         <div className="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center position-relative text-white">
           <div className="position-absolute w-100 h-100" style={{ backgroundColor: COLORS.PRIMARY, zIndex: 1 }}></div>
@@ -93,7 +93,7 @@ const handleGoogleSuccess = async (credentialResponse) => {
         {/* CỘT PHẢI */}
         <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white">
           <div className="w-100 p-5" style={{ maxWidth: '500px' }}>
-            
+
             <div className="d-lg-none text-center mb-4">
                <h4 className="fw-bold mt-2 text-brand">AN NGUYEN</h4>
             </div>
@@ -101,7 +101,7 @@ const handleGoogleSuccess = async (credentialResponse) => {
             <div className="mb-4">
               <h3 className="fw-bold text-dark">Welcome Back</h3>
               <p className="text-muted">Please sign in to your staff account.</p>
-              
+
               {/* Hiển thị lỗi nếu có (VD: Sai mật khẩu) */}
               {error && (
                   <div className="alert alert-danger py-2" role="alert">
@@ -112,33 +112,33 @@ const handleGoogleSuccess = async (credentialResponse) => {
 
             <form onSubmit={handleSubmit}>
               <div className="form-floating mb-3">
-             <input 
-                    type="text" 
-                    className="form-control" 
-                    id="floatingInput" 
-                    name="email" 
-                    placeholder="name@example.com" 
-                    value={credentials.email} 
-                    onChange={handleChange} 
-                    required 
+             <input
+                    type="text"
+                    className="form-control"
+                    id="floatingInput"
+                    name="email"
+                    placeholder="name@example.com"
+                    value={credentials.email}
+                    onChange={handleChange}
+                    required
                 />
                 <label htmlFor="floatingInput" className="text-muted">Username or Email</label>
               </div>
 
              <div className="form-floating mb-3 position-relative">
-                <input 
-                    type={showPassword ? "text" : "password"} 
-                    className="form-control" 
-                    id="floatingPassword" 
-                    name="password" 
-                    placeholder="Password" 
-                    value={credentials.password} 
-                    onChange={handleChange} 
-                    required 
-                    style={{ paddingRight: '40px' }} 
+                <input
+                    type={showPassword ? "text" : "password"}
+                    className="form-control"
+                    id="floatingPassword"
+                    name="password"
+                    placeholder="Password"
+                    value={credentials.password}
+                    onChange={handleChange}
+                    required
+                    style={{ paddingRight: '40px' }}
                 />
                 <label htmlFor="floatingPassword">Password</label>
-                
+
                 {/* Nút con mắt */}
                 <span
                   className="position-absolute top-50 end-0 translate-middle-y me-3"
@@ -161,8 +161,8 @@ const handleGoogleSuccess = async (credentialResponse) => {
               </div>
 
               {/* Nút Login có hiệu ứng Loading */}
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="btn btn-brand btn-lg w-100 py-3 shadow-sm mb-3"
                 disabled={isLoading} // Disable nút khi đang load
               >

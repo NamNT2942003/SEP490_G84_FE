@@ -1,5 +1,5 @@
-import React, { useState } from 'react'; 
-import { jwtDecode } from "jwt-decode"; 
+import React, { useState } from 'react';
+import { jwtDecode } from "jwt-decode";
 import { COLORS } from '@/constants';
 
 const Dashboard = () => {
@@ -14,7 +14,7 @@ const Dashboard = () => {
         const roleList = (decoded.role || "").split(",");
         let mainRole = roleList.find(r => r.includes("ROLE_")) || roleList[0] || "User";
         let roleDisplay = mainRole.replace("ROLE_", "").toLowerCase();
-        roleDisplay = roleDisplay.charAt(0).toUpperCase() + roleDisplay.slice(1); 
+        roleDisplay = roleDisplay.charAt(0).toUpperCase() + roleDisplay.slice(1);
         initialUser = {
           fullName: decoded.fullName || "User",
           role: roleDisplay,
@@ -52,7 +52,7 @@ const Dashboard = () => {
         </div>
 
         {/* Example Card 2 */}
-        
+
       </div>
     </div>
   );

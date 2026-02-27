@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Buttons from '@/components/ui/Buttons.jsx'; 
+import Buttons from '@/components/ui/Buttons.jsx';
 import { APP_STRINGS, COLORS } from '@/constants';
 import { forgotPass } from '../api/forgotPass';
 
@@ -8,7 +8,7 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null); 
+  const [error, setError] = useState(null);
 
   const navigate = useNavigate();
 
@@ -19,7 +19,7 @@ const ForgotPassword = () => {
     setIsLoading(true);
     try {
       // --- 3. Gọi API ---
-      await forgotPass.forgotPassword(email); 
+      await forgotPass.forgotPassword(email);
       // Nếu thành công -> Chuyển sang màn hình thông báo
       setIsSubmitted(true);
     } catch (err) {
@@ -35,7 +35,7 @@ const ForgotPassword = () => {
   return (
     <div className="container-fluid vh-100 p-0 overflow-hidden">
       <div className="row g-0 h-100">
-        
+
         {/* CỘT TRÁI (Giữ nguyên) */}
         <div className="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center position-relative text-white">
           <div className="position-absolute w-100 h-100" style={{ backgroundColor: COLORS.PRIMARY, zIndex: 1 }}></div>
@@ -49,11 +49,11 @@ const ForgotPassword = () => {
         {/* CỘT PHẢI */}
         <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white">
           <div className="w-100 p-5" style={{ maxWidth: '500px' }}>
-            
+
             <div className="mb-4 text-start">
-              <Buttons 
-                variant="text" 
-                className="p-0" 
+              <Buttons
+                variant="text"
+                className="p-0"
                 onClick={() => navigate('/login')}
                 icon={<i className="bi bi-arrow-left"></i>}
               >
@@ -66,7 +66,7 @@ const ForgotPassword = () => {
                 <div className="mb-4">
                   <h3 className="fw-bold text-dark">Forgot Password?</h3>
                   <p className="text-muted">Enter your email to receive reset instructions.</p>
-                  
+
                   {/* --- 4. HIỂN THỊ LỖI NẾU CÓ --- */}
                   {error && (
                     <div className="alert alert-danger p-2 small text-center" role="alert">
@@ -93,8 +93,8 @@ const ForgotPassword = () => {
                     <label htmlFor="resetEmail" className="text-muted">Enter your email</label>
                   </div>
 
-                  <Buttons 
-                    type="submit" 
+                  <Buttons
+                    type="submit"
                     className="w-100 py-3 shadow-sm mb-3"
                     disabled={isLoading} // Khóa nút khi đang gửi
                   >
@@ -118,8 +118,8 @@ const ForgotPassword = () => {
                 <h3 className="fw-bold text-dark">Check your inbox</h3>
                 <p className="text-muted mb-4">Email sent to: <strong>{email}</strong></p>
                 <p className="small text-muted">Please check your email and click on the provided link to reset your password.</p>
-                
-                <Buttons 
+
+                <Buttons
                   className="w-100 py-2"
                   onClick={() => navigate('/login')}
                 >
@@ -127,7 +127,7 @@ const ForgotPassword = () => {
                 </Buttons>
               </div>
             )}
-            
+
             <div className="mt-5 text-center text-muted" style={{ fontSize: '11px' }}>
               {APP_STRINGS.FOOTER}
             </div>

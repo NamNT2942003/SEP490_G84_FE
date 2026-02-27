@@ -1,11 +1,15 @@
-import { configureStore } from '@reduxjs/toolkit';
-import authReducer from '@/features/auth/authSlice';
+import { configureStore, createSlice } from "@reduxjs/toolkit";
+
+const appSlice = createSlice({
+  name: "app",
+  initialState: {
+    loading: false,
+  },
+  reducers: {},
+});
 
 export const store = configureStore({
   reducer: {
-    auth: authReducer,
-    // sau này thêm booking: bookingReducer...
+    app: appSlice.reducer,
   },
 });
-
-export default store;

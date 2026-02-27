@@ -1,8 +1,27 @@
-/* src/index.css */
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
   --brand-color: #465c47;
   --brand-hover: #384a39;
+  --primary-color: #5c6f4e;
+  --primary-dark: #4a5a3e;
+  --primary-light: #7a8f6c;
+  --secondary-color: #f5f5f0;
+  --text-color: #333333;
+  --text-light: #666666;
+  --border-color: #e0e0e0;
+  --bg-light: #fafaf8;
+  --hotel-gold: #c1a67a;
+  --hotel-gold-dark: #af9160;
+  --bs-light-rgb: 248, 249, 250;
+  --bs-font-sans-serif: 'Plus Jakarta Sans', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 /* Nút đặc (Solid) - Dùng cho hành động chính (Login, Save) */
@@ -41,10 +60,6 @@
   border: none;
   padding: 0;
 }
-.btn-text-brand:hover {
-  color: var(--brand-hover) !important;
-  text-decoration: underline;
-}
 
 /* Link màu thương hiệu - Cập nhật hiệu ứng */
 .link-brand {
@@ -67,4 +82,190 @@
 .link-brand:active {
   transform: scale(0.95); /* 3. Nhún nhỏ lại một chút */
   color: #2c3e2d !important; /* Màu tối hơn nữa */
+}
+
+.btn-text-brand:hover {
+  color: var(--brand-hover) !important;
+  text-decoration: underline;
+}
+
+.bg-olive { background-color: var(--brand-color) !important; color: white; }
+.text-olive { color: var(--brand-color) !important; }
+.btn-gold {
+  background-color: var(--hotel-gold);
+  color: white;
+  border: none;
+  transition: all 0.3s;
+}
+
+.btn-gold:hover { background-color: var(--hotel-gold-dark); color: white; }
+.card-custom { border-radius: 15px; border: 1px solid #eee; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+
+.img-container {
+  width: 100%;
+  height: 200px; /* Hoặc độ cao bạn muốn */
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.form-control {
+  border-left: 0;
+}
+
+.form-control:focus {
+  border-color: #ced4da; /* Keep default border color */
+  box-shadow: 0 0 0 0.25rem rgba(90, 110, 75, 0.25); /* Olive focus ring */
+  border-left: 1px solid #ced4da;
+}
+
+.input-group .form-control:focus {
+  border-left: 0;
+}
+
+.form-check-input:checked {
+  background-color: var(--brand-color);
+  border-color: var(--brand-color);
+}
+
+.form-check-input {
+  width: 2.5em;
+  height: 1.25em;
+  cursor: pointer;
+}
+
+sticky-summary {
+  position: sticky;
+  top: 85px; /* Chiều cao header (~60px) + khoảng cách đệm (25px) */
+  z-index: 10;
+}
+
+body {
+  margin: 0;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Roboto",
+    "Oxygen",
+    "Ubuntu",
+    "Cantarell",
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-light);
+  color: var(--text-color);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.btn-primary {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark) !important;
+  border-color: var(--primary-dark) !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.25rem rgba(92, 111, 78, 0.25);
+}
+
+.form-check-input:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.hover-card {
+  transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.object-fit-cover {
+  object-fit: cover;
+}
+
+.search-form-container {
+  border: 1px solid var(--border-color);
+}
+
+.filter-sidebar {
+  position: sticky;
+  top: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  content: "›";
+}
+
+.breadcrumb-item.active {
+  color: var(--text-light);
+}
+
+@media (max-width: 768px) {
+  .search-form-container .row {
+    flex-direction: column;
+  }
+
+  .filter-sidebar {
+    position: relative;
+    top: 0;
+    margin-bottom: 20px;
+  }
+
+  .btn-gold {
+    background-color: var(--hotel-gold);
+    color: white;
+    border: none;
+    transition: all 0.3s;
+  }
+
+  .btn-gold:hover { background-color: var(--hotel-gold-dark); color: white; }
+  .card-custom { border-radius: 15px; border: 1px solid #eee; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+
+  .img-container {
+    width: 100%;
+    height: 200px; /* Hoặc độ cao bạn muốn */
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  .form-control {
+    border-left: 0;
+  }
+
+  .form-control:focus {
+    border-color: #ced4da; /* Keep default border color */
+    box-shadow: 0 0 0 0.25rem rgba(90, 110, 75, 0.25); /* Olive focus ring */
+    border-left: 1px solid #ced4da;
+  }
+
+  .input-group .form-control:focus {
+    border-left: 0;
+  }
+
+  .form-check-input:checked {
+    background-color: var(--brand-color);
+    border-color: var(--brand-color);
+  }
+
+  .form-check-input {
+    width: 2.5em;
+    height: 1.25em;
+    cursor: pointer;
+  }
 }
