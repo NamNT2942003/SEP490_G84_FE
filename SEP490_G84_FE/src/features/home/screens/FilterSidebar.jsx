@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { branchService } from "../../booking/api/branchService.js";
-import { roomTypeService } from "../../booking/api/roomTypeService.js";
+import { branchService } from "../api/branchService.js";
+import { roomTypeService } from "../api/roomTypeService.js";
 
 const FilterSidebar = ({
   onFilterChange,

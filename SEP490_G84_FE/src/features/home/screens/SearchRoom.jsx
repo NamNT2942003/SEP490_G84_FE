@@ -5,7 +5,7 @@ import RoomCard from "./RoomCard.jsx";
 import FilterSidebar from "./FilterSidebar.jsx";
 import RoomDetailModal from "./RoomDetailModal.jsx";
 import Pagination from "../../../components/layout/Pagination.jsx";
-import {roomService} from "../../booking/api/roomService.js";
+import { roomService } from "../api/roomService.js"; // Corrected import path
 
 const SearchRoom = () => {
     const navigate = useNavigate();
@@ -101,7 +101,7 @@ const SearchRoom = () => {
         const qty = Number(selectedQuantity) || 1;
         const price = Number(room.basePrice) || 0;
         
-        navigate("/guest-information", {
+        navigate("/GuestInformation", {
             state: {
                 selectedRooms: [{
                     roomTypeId: room.roomTypeId,
@@ -164,11 +164,12 @@ const SearchRoom = () => {
         });
     }, []);
 
+    // This effect now correctly depends on the entire filters object.
     useEffect(() => {
         if (searchParams) {
             refetchRooms();
         }
-    }, [filters.branchId, filters.roomTypeIds, filters.sortPrice, filters.page]);
+    }, [filters]);
 
     return (
         <div className="search-room-page">
@@ -265,10 +266,11 @@ const SearchRoom = () => {
 
                         {!loading && !error && rooms.length > 0 && (
                             <div>
-                                {rooms.map((roomType) => (
+                                {rooms.map((roomItem) => (
                                     <RoomCard
-                                        key={roomType.roomTypeId}
-                                        room={roomType}
+                                        // Force React to re-render completely when data changes
+                                        key={`${roomItem.roomTypeId}-${roomItem.availableCount}`} 
+                                        room={roomItem} 
                                         onBooking={handleBooking}
                                         onViewDetail={handleViewDetail}
                                     />
