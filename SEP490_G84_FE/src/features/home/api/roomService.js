@@ -1,6 +1,6 @@
-import apiClient from "../../../services/api";
-import { API_ENDPOINTS } from "../../../constants/apiConfig";
-import { cleanSearchResults, cleanRoomTypeDetail } from "./searchResults";
+import apiClient from "../../../services/api.js";
+import { API_ENDPOINTS } from "../../../constants/apiConfig.js";
+import { cleanSearchResults, cleanRoomTypeDetail } from "./searchResults.js";
 
 export const roomService = {
   searchRooms: async (params) => {

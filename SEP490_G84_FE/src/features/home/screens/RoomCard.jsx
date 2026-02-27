@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const RoomCard = ({ room, onBooking, onViewDetail }) => {
-  // Safely convert the value from Props
-  const maxAvailable = room.availableCount ? parseInt(room.availableCount) : 0;
-  const [quantity, setQuantity] = useState(1);
+  // Đảm bảo lấy được availableCount dù API trả về bất cứ định dạng nào
+  const maxAvailable = Number(room?.availableCount ?? 0);
+  const [quantity, setQuantity] = useState(0);
 
-  // Safely increase the quantity
+  // Đồng bộ quantity khi dữ liệu room thay đổi hoặc đổ về từ API
+  useEffect(() => {
+    setQuantity(maxAvailable > 1 ? 1 : maxAvailable);
+  }, [maxAvailable]);
+
   const handleIncrease = () => {
-    setQuantity(prev => {
-      const nextValue = prev + 1;
-      return nextValue <= maxAvailable ? nextValue : prev;
-    });
+    if (quantity < maxAvailable) setQuantity(prev => prev + 1);
   };
 
-  // Safely decrease the quantity
   const handleDecrease = () => {
-    setQuantity(prev => (prev > 1 ? prev - 1 : 1));
+    if (quantity > 1) setQuantity(prev => prev - 1);
   };
 
   const formatPrice = (price) => {
@@ -26,15 +26,15 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
   };
 
   const getPlaceholderImage = (roomName) => {
-    const roomNameLower = roomName?.toLowerCase() || "";
-    if (roomNameLower.includes("suite")) return "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop";
-    if (roomNameLower.includes("deluxe")) return "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&h=300&fit=crop";
-    if (roomNameLower.includes("family")) return "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=400&h=300&fit=crop";
+    const name = roomName?.toLowerCase() || "";
+    if (name.includes("suite")) return "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop";
+    if (name.includes("deluxe")) return "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&h=300&fit=crop";
+    if (name.includes("family")) return "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=400&h=300&fit=crop";
     return "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=400&h=300&fit=crop";
   };
 
-  const imageSrc = room.image && !room.image.includes(".jpg")
-      ? `/images/${room.image}`
+  const imageSrc = room.image && room.image.trim() !== ""
+      ? (room.image.startsWith("http") ? room.image : `/images/${room.image}`)
       : getPlaceholderImage(room.name);
 
   return (
@@ -65,12 +65,19 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                 {room.description?.length > 150 ? room.description.substring(0, 150) + "..." : room.description}
               </p>
 
-              {maxAvailable > 0 && (
+              {maxAvailable > 0 ? (
                   <div className="mt-auto">
-                    <span className="badge rounded-pill bg-light text-success border border-success px-3 py-2">
-                      <i className="bi bi-info-circle me-1"></i>
-                      Only {maxAvailable} rooms left!
-                    </span>
+                <span className="badge rounded-pill bg-light text-success border border-success px-3 py-2">
+                  <i className="bi bi-info-circle me-1"></i>
+                  Only {maxAvailable} rooms left!
+                </span>
+                  </div>
+              ) : (
+                  <div className="mt-auto">
+                <span className="badge rounded-pill bg-light text-danger border border-danger px-3 py-2">
+                  <i className="bi bi-exclamation-triangle me-1"></i>
+                  Sold Out for these dates
+                </span>
                   </div>
               )}
             </div>
@@ -89,30 +96,29 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                 <label className="form-label small fw-bold text-uppercase">Quantity</label>
                 <div className="input-group input-group-sm mb-3">
                   <button
-                    className="btn btn-outline-secondary"
-                    type="button"
-                    onClick={handleDecrease}
-                    disabled={maxAvailable <= 0}
+                      className="btn btn-outline-secondary"
+                      type="button"
+                      onClick={handleDecrease}
+                      disabled={quantity <= 1}
                   > - </button>
                   <input
-                    type="text"
-                    className="form-control text-center bg-white"
-                    // Use || 1 to prevent quantity from being null/undefined/NaN
-                    value={quantity || 1}
-                    readOnly
+                      type="text"
+                      className="form-control text-center bg-white"
+                      value={quantity}
+                      readOnly
                   />
                   <button
-                    className="btn btn-outline-secondary"
-                    type="button"
-                    onClick={handleIncrease}
-                    disabled={quantity >= maxAvailable}
+                      className="btn btn-outline-secondary"
+                      type="button"
+                      onClick={handleIncrease}
+                      disabled={quantity >= maxAvailable}
                   > + </button>
                 </div>
 
                 <div className="d-flex flex-column gap-2">
                   <button
                       className="btn btn-primary w-100 py-2 fw-bold"
-                      onClick={() => onBooking(room, quantity)} // Send quantity along
+                      onClick={() => onBooking(room, quantity)}
                       style={{ backgroundColor: "#5C6F4E", borderColor: "#5C6F4E" }}
                       disabled={maxAvailable <= 0}
                   >

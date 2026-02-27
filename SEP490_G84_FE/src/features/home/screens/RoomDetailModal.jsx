@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { roomService } from "../../booking/api/roomService.js";
+import { roomService } from "../api/roomService.js";
 
 const RoomDetailModal = ({ room, show, onClose }) => {
   const [roomDetail, setRoomDetail] = useState(null);
