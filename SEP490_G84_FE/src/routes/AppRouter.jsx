@@ -12,6 +12,8 @@ import Dashboard from '@/features/dashboard/screens/Dashboard';
 import ResetPassword from '@/features/auth/screens/ResetPassword';
 import PaymentSelection from '@/features/payment/screens/PaymentSelection';
 import PaymentResult from '@/features/payment/screens/PaymentResult';
+import BookingSummary from '@/features/booking/components/BookingSummary';
+import GuestInformation from '@/features/booking/screens/GuestInformation';
 
 // Component giả cho các trang chưa làm
 const RoomList = () => <h1>Danh sách phòng (Đang phát triển)</h1>;
@@ -27,6 +29,8 @@ const AppRouter = () => {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/payment" element={<PaymentSelection />} />
             <Route path="/payment/result" element={<PaymentResult />} />
+            <Route path="/BookingSummary" element={<BookingSummary />}/>
+            <Route path="/GuestInformation" element={<GuestInformation />} />
 
             {/* --- NHÓM 2: CÁC TRANG PRIVATE (CÓ FULL LAYOUT) --- */}
             <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
