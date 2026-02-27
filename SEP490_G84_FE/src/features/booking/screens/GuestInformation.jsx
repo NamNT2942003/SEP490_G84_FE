@@ -168,7 +168,7 @@ const GuestInformation = () => {
                                 </div>
                             </div>
                         )}
-                        
+
                         {/* Special Requests */}
                         <div className="bg-white p-4 rounded-3 custom-shadow">
                             <h5 className="fw-bold mb-3">Special Requests</h5>

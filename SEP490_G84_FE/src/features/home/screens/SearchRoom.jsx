@@ -1,4 +1,5 @@
 import {useState, useEffect} from "react";
+import { useNavigate } from "react-router-dom";
 import SearchForm from "./SearchForm.jsx";
 import RoomCard from "./RoomCard.jsx";
 import FilterSidebar from "./FilterSidebar.jsx";
@@ -7,6 +8,7 @@ import Pagination from "../../../components/layout/Pagination.jsx";
 import {roomService} from "../../booking/api/roomService.js";
 
 const SearchRoom = () => {
+    const navigate = useNavigate();
     const [rooms, setRooms] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -15,21 +17,35 @@ const SearchRoom = () => {
     const [showModal, setShowModal] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [filters, setFilters] = useState({
-        branchId: 1,
+        branchId: undefined, // Default to "All Locations"
         roomTypeIds: undefined,
         sortPrice: "priceAsc",
         page: 0,
         size: 5,
+        checkIn: "", // Add checkIn/checkOut to filters state
+        checkOut: ""
     });
 
     const [searchParams, setSearchParams] = useState(null);
+
+    // Helper function to calculate nights
+    const calculateNights = (checkIn, checkOut) => {
+        if (!checkIn || !checkOut) return 1;
+        const checkInDate = new Date(checkIn);
+        const checkOutDate = new Date(checkOut);
+        const timeDiff = checkOutDate.getTime() - checkInDate.getTime();
+        const nights = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        return nights > 0 ? nights : 1;
+    };
 
     const searchRooms = async (searchFormParams) => {
         setLoading(true);
         setError(null);
         setSearchParams(searchFormParams);
+        // Also update filters state with new dates
+        setFilters(prev => ({ ...prev, checkIn: searchFormParams.checkIn, checkOut: searchFormParams.checkOut, page: 0 }));
+
         try {
-            // Validate date range before sending request
             if (searchFormParams.checkIn && searchFormParams.checkOut) {
                 const checkInDate = new Date(searchFormParams.checkIn);
                 const checkOutDate = new Date(searchFormParams.checkOut);
@@ -40,13 +56,7 @@ const SearchRoom = () => {
                 }
             }
 
-            // always include a branchId when building query parameters
-            const params = {
-                branchId: filters.branchId ?? 1,
-                ...filters,
-                ...searchFormParams,
-            };
-
+            const params = { ...filters, ...searchFormParams };
             const response = await roomService.searchRooms(params);
             setRooms(response.content || []);
             setTotalElements(response.totalElements || 0);
@@ -61,11 +71,9 @@ const SearchRoom = () => {
 
     const refetchRooms = async () => {
         if (!searchParams) return;
-
         setLoading(true);
         setError(null);
         try {
-            // Validate date range before sending request
             if (searchParams.checkIn && searchParams.checkOut) {
                 const checkInDate = new Date(searchParams.checkIn);
                 const checkOutDate = new Date(searchParams.checkOut);
@@ -75,13 +83,7 @@ const SearchRoom = () => {
                     return;
                 }
             }
-
-            const params = {
-                branchId: filters.branchId ?? 1,
-                ...filters,
-                ...searchParams,
-            };
-
+            const params = { ...filters, ...searchParams };
             const response = await roomService.searchRooms(params);
             setRooms(response.content || []);
             setTotalElements(response.totalElements || 0);
@@ -92,6 +94,28 @@ const SearchRoom = () => {
         } finally {
             setLoading(false);
         }
+    };
+    
+    const handleBooking = (room, selectedQuantity) => {
+        // Ensure quantity is a number
+        const qty = Number(selectedQuantity) || 1;
+        const price = Number(room.basePrice) || 0;
+        
+        navigate("/guest-information", {
+            state: {
+                selectedRooms: [{
+                    roomTypeId: room.roomTypeId,
+                    name: room.name,
+                    basePrice: price,
+                    quantity: qty,
+                    image: room.image
+                }],
+                checkIn: filters.checkIn,
+                checkOut: filters.checkOut,
+                branchId: room.branchId, // Get directly from your new DTO
+                totalPrice: price * qty * calculateNights(filters.checkIn, filters.checkOut)
+            }
+        });
     };
 
     const handleFilterChange = (newFilters) => {
@@ -105,10 +129,6 @@ const SearchRoom = () => {
 
     const handlePageChange = (page) => {
         setFilters((prev) => ({...prev, page}));
-    };
-
-    const handleBooking = (room) => {
-        alert(`Booking ${room.name} - Feature coming soon!`);
     };
 
     const handleViewDetail = (room) => {
@@ -238,14 +258,14 @@ const SearchRoom = () => {
                                 </p>
                                 <p className="text-muted small">
                                     <i className="bi bi-lightbulb me-1"></i>
-                                    Try changing your check-in/check-out dates, location, or filters.
+                                    Try clicking the 'Search' button again or try different dates.
                                 </p>
                             </div>
                         )}
 
                         {!loading && !error && rooms.length > 0 && (
                             <div>
-                                {rooms.map((roomType) => ( // Đổi tên từ room thành roomType để rõ nghĩa
+                                {rooms.map((roomType) => (
                                     <RoomCard
                                         key={roomType.roomTypeId}
                                         room={roomType}
