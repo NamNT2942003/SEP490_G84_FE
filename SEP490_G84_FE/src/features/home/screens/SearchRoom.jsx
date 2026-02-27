@@ -29,7 +29,20 @@ const SearchRoom = () => {
         setError(null);
         setSearchParams(searchFormParams);
         try {
+            // Validate date range before sending request
+            if (searchFormParams.checkIn && searchFormParams.checkOut) {
+                const checkInDate = new Date(searchFormParams.checkIn);
+                const checkOutDate = new Date(searchFormParams.checkOut);
+                if (checkOutDate < checkInDate) {
+                    setError("\u26a0\ufe0f Check-out date must be after check-in date. Please select valid dates.");
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // always include a branchId when building query parameters
             const params = {
+                branchId: filters.branchId ?? 1,
                 ...filters,
                 ...searchFormParams,
             };
@@ -52,7 +65,19 @@ const SearchRoom = () => {
         setLoading(true);
         setError(null);
         try {
+            // Validate date range before sending request
+            if (searchParams.checkIn && searchParams.checkOut) {
+                const checkInDate = new Date(searchParams.checkIn);
+                const checkOutDate = new Date(searchParams.checkOut);
+                if (checkOutDate < checkInDate) {
+                    setError("\u26a0\ufe0f Check-out date must be after check-in date. Please select valid dates.");
+                    setLoading(false);
+                    return;
+                }
+            }
+
             const params = {
+                branchId: filters.branchId ?? 1,
                 ...filters,
                 ...searchParams,
             };
@@ -189,23 +214,31 @@ const SearchRoom = () => {
                         )}
 
                         {error && !loading && (
-                            <div className="alert alert-danger" role="alert">
-                                <i className="bi bi-exclamation-triangle me-2"></i>
-                                {error}
+                            <div className="alert alert-danger border-0 shadow-sm" role="alert" style={{ backgroundColor: "#fff5f5", borderLeft: "4px solid #dc3545" }}>
+                                <div className="d-flex align-items-start">
+                                    <i className="bi bi-info-circle me-3" style={{ fontSize: "1.25rem", color: "#dc3545", marginTop: "0.2rem" }}></i>
+                                    <div>
+                                        <h6 className="mb-1" style={{ color: "#721c24" }}>Unable to load rooms</h6>
+                                        <p className="mb-0" style={{ color: "#856404", fontSize: "0.95rem" }}>{error}</p>
+                                        <p className="mb-0 small mt-2" style={{ color: "#999" }}>Please try adjusting your search criteria or try again.</p>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
                         {!loading && !error && rooms.length === 0 && (
-                            <div className="text-center py-5">
+                            <div className="text-center py-5" style={{ backgroundColor: "#fafafa", borderRadius: "8px", border: "1px dashed #ddd" }}>
                                 <i
                                     className="bi bi-inbox"
-                                    style={{fontSize: "3rem", color: "#ccc"}}
+                                    style={{fontSize: "3.5rem", color: "#ccc"}}
                                 ></i>
-                                <p className="mt-3 text-muted">
-                                    No rooms available for your search criteria.
+                                <h5 className="mt-4 mb-2" style={{ color: "#333" }}>No rooms found</h5>
+                                <p className="text-muted mb-3">
+                                    We couldn't find any rooms matching your criteria.
                                 </p>
                                 <p className="text-muted small">
-                                    Try adjusting your dates or filters.
+                                    <i className="bi bi-lightbulb me-1"></i>
+                                    Try changing your check-in/check-out dates, location, or filters.
                                 </p>
                             </div>
                         )}
