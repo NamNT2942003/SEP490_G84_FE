@@ -1,13 +1,8 @@
 import apiClient from '../../../services/apiClient';
 
 export const paymentApi = {
-    // Gọi API Stripe để lấy URL Checkout
-    createStripePayment: (orderData) => {
-        return apiClient.post('/api/payment/create', orderData);
-    },
-
-    // Gọi API xử lý thanh toán COD (nếu có)
-    createCodPayment: (orderData) => {
-        return apiClient.post('/api/payment/cod', orderData);
+    // Đã xóa chữ /api ở đầu đi
+    createPayment: (invoiceId, method) => {
+        return apiClient.post(`/payment/create?invoiceId=${invoiceId}&method=${method}`);
     }
 };

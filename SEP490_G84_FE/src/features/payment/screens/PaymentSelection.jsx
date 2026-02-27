@@ -21,31 +21,47 @@ const PaymentSelection = () => {
         setIsLoading(true);
 
         try {
-            // TODO: Truyền dữ liệu đơn hàng thực tế của bạn vào đây (ví dụ: bookingId, amount...)
-            const orderPayload = {
-                amount: 500000,
-                orderInfo: "Thanh toán phòng khách sạn"
-            };
+            // TODO: Truyền invoiceId (Mã hóa đơn) thực tế vào đây
+            // Hiện tại gán tạm = 1 để test luồng gọi API
+            const invoiceId = 15; // Lấy theo ID đang test trong ảnh của bạn hoặc đổi thành 1
+
+            // Gọi API Spring Boot (truyền theo dạng params: ?invoiceId=...&method=...)
+            const response = await paymentApi.createPayment(invoiceId, selectedMethod);
 
             if (selectedMethod === 'STRIPE') {
-                // 1. Gọi API Spring Boot để lấy link Stripe
-                const response = await paymentApi.createStripePayment(orderPayload);
+                // 1. Lấy đúng biến payUrl từ response như trong tab Preview/Response của bạn
+                const checkoutUrl = response.data.payUrl;
 
-                // 2. Lấy URL từ response (Giả sử backend trả về { stripeUrl: "https://checkout.stripe.com/..." })
-                const checkoutUrl = response.data.stripeUrl || response.data;
+                if (checkoutUrl) {
+                    // 2. Cấu hình kích thước và vị trí để mở Popup ở giữa màn hình
+                    const width = 500;
+                    const height = 600;
+                    const left = (window.innerWidth - width) / 2;
+                    const top = (window.innerHeight - height) / 2;
 
-                // 3. Chuyển hướng người dùng sang trang của Stripe
-                window.location.href = checkoutUrl;
+                    // Mở cửa sổ nhỏ popup
+                    window.open(
+                        checkoutUrl,
+                        'StripeCheckout',
+                        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
+                    );
+                } else {
+                    setError("Lỗi: Không lấy được đường link thanh toán từ hệ thống.");
+                }
 
             } else if (selectedMethod === 'COD') {
-                // 1. Gọi API xử lý COD
-                await paymentApi.createCodPayment(orderPayload);
-
-                // 2. Chuyển sang màn hình thành công của nội bộ React
-                navigate('/payment/success');
+                // Chuyển sang màn hình thông báo thành công
+                navigate('/payment/result?status=success');
             }
         } catch (err) {
-            const msg = err.response?.data || "Đã xảy ra lỗi trong quá trình thanh toán. Vui lòng thử lại.";
+            console.error("Lỗi khi thanh toán:", err);
+
+            // Lấy nội dung lỗi an toàn từ backend trả về
+            let msg = err.response?.data?.message || err.response?.data || "Đã xảy ra lỗi trong quá trình thanh toán. Vui lòng thử lại.";
+            if (typeof msg === 'object') {
+                msg = JSON.stringify(msg);
+            }
+
             setError(msg);
         } finally {
             setIsLoading(false);
