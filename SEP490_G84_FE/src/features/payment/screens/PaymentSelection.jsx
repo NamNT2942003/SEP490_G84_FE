@@ -63,7 +63,7 @@ const PaymentSelection = () => {
                 <h4 className="fw-bold mb-4 text-center" style={{ color: '#5C6F4E' }}>Chọn phương thức thanh toán</h4>
 
                 <div className="bg-light p-3 rounded-3 mb-4 text-center">
-                    <p className="text-muted mb-1">Tổng tiền thanh toán</p>
+                    <p className="text-muted mb-1">Total Payment</p>
                     <h3 className="fw-bold m-0" style={{ color: '#D4AF37' }}>{formatCurrency(totalAmount)}</h3>
                 </div>
 
@@ -82,7 +82,7 @@ const PaymentSelection = () => {
                             onChange={() => setSelectedMethod('STRIPE')}
                         />
                         <div>
-                            <h6 className="mb-0 fw-bold">Thanh toán bằng thẻ quốc tế</h6>
+                            <h6 className="mb-0 fw-bold">Pay with VISA CARD</h6>
                             <small className="text-muted">Visa, Mastercard, Amex (qua Stripe)</small>
                         </div>
                         <i className="fa-brands fa-stripe ms-auto fs-2" style={{ color: '#635bff' }}></i>
@@ -101,8 +101,8 @@ const PaymentSelection = () => {
                             onChange={() => setSelectedMethod('SEPAY')}
                         />
                         <div>
-                            <h6 className="mb-0 fw-bold">Chuyển khoản ngân hàng (QR)</h6>
-                            <small className="text-muted">Quét mã QR qua ứng dụng ngân hàng</small>
+                            <h6 className="mb-0 fw-bold">Pay through banking(QR)</h6>
+                            <small className="text-muted">do QR through banking</small>
                         </div>
                         <i className="fa-solid fa-qrcode ms-auto fs-3 text-secondary"></i>
                     </div>
