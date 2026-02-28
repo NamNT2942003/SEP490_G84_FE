@@ -1,7 +1,7 @@
 import React from 'react';
 import Sidebar from './Sidebar';
-import Header from './Header';
-import Footer from './Footer';
+import AdminHeader from './AdminHeader';
+import AdminFooter from './AdminFooter';
 
 const layoutMain = {
   display: 'grid',
@@ -27,11 +27,11 @@ const MainLayout = ({ children }) => {
     <div style={layoutMain}>
       <Sidebar />
       <div style={layoutRight}>
-        <Header />
+        <AdminHeader />
         <main style={layoutContent}>
           {children}
         </main>
-        <Footer />
+        <AdminFooter />
       </div>
     </div>
   );

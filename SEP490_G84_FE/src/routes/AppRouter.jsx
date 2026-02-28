@@ -34,9 +34,9 @@ const AppRouter = () => {
       <Route path="/contact" element={<ClientLayout><ContactPage /></ClientLayout>} />
 
       {/* --- NHÓM 2: CÁC TRANG XÁC THỰC TÀI KHOẢN --- */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/login" element={<ClientLayout><Login /></ClientLayout>} />
+      <Route path="/forgot-password" element={<ClientLayout><ForgotPassword /></ClientLayout>} />
+      <Route path="/reset-password" element={<ClientLayout><ResetPassword /></ClientLayout>} />
       
       {/* --- NHÓM 3: CÁC TRANG QUẢN TRỊ CÓ LAYOUT (DONGPH) --- */}
       <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />

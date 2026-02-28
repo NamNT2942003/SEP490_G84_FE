@@ -1,5 +1,5 @@
 import React from 'react';
-import Header from './Header'; // Header Public vừa sửa nãy
+import Header from './Header'; 
  import Footer from './Footer'; 
 
 const ClientLayout = ({ children }) => {
