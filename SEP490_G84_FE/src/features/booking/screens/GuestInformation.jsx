@@ -54,7 +54,8 @@ const GuestInformation = () => {
             departure_date: checkOut,
             rooms: selectedRooms.map(room => ({
                 room_type_id: String(room.roomTypeId),
-                price: room.basePrice || room.price  // Lấy giá phòng
+                price: room.basePrice || room.price,
+                quantity: room.quantity || room.quantity// Lấy giá phòng
             })),
             // Tạm thời ẩn phần customer đi nếu Backend DTO chưa có trường hứng dữ liệu này,
             // nếu Backend đã có class Customer tương ứng thì bạn bật lại nhé.
