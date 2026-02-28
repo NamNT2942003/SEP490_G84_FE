@@ -47,16 +47,17 @@ const GuestInformation = () => {
             return;
         }
 
+        // 1. SỬA LẠI TÊN BIẾN CHO KHỚP 100% VỚI BACKEND DTO (camelCase)
         const bookingPayload = {
-            ota_reservation_id: "WEB-" + Date.now(),
+            otaReservationId: "WEB-" + Date.now(),
             arrival_date: checkIn,
             departure_date: checkOut,
-            status: "NEW",
             rooms: selectedRooms.map(room => ({
                 room_type_id: String(room.roomTypeId),
-                price: room.basePrice,
-                quantity: room.quantity || 1
+                price: room.basePrice || room.price  // Lấy giá phòng
             })),
+            // Tạm thời ẩn phần customer đi nếu Backend DTO chưa có trường hứng dữ liệu này,
+            // nếu Backend đã có class Customer tương ứng thì bạn bật lại nhé.
             customer: {
                 name: isBookingForSomeone ? formData.guestFullName : formData.fullName,
                 email: isBookingForSomeone ? formData.guestEmail : formData.email,
@@ -67,14 +68,44 @@ const GuestInformation = () => {
 
         try {
             console.log("Sending Payload to Backend:", bookingPayload);
-            // Link API: /api/bookings/create-from-frontend?branchId={branchId}
-            // const response = await bookingService.createBooking(bookingPayload, branchId);
 
-            alert("Booking submitted! Redirecting to Stripe...");
-            // navigate("/payment", { state: { bookingId: response.id } });
+            // 2. GỌI API THẬT ĐẾN CONTROLLER BACKEND
+            // Sử dụng branchId lấy từ location.state (mặc định là 1 nếu null)
+            const currentBranchId = branchId || 1;
+
+            const response = await fetch(`http://localhost:8081/api/bookings/create-from-frontend?branchId=${currentBranchId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bookingPayload)
+            });
+
+            // Nếu Backend trả về lỗi (mã 400, 500...)
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
+            }
+
+            // 3. ĐỌC DỮ LIỆU JSON BACKEND TRẢ VỀ
+            const data = await response.json();
+            console.log("Backend response:", data);
+
+            if (data.bookingId) {
+
+                navigate('/payment-selection', {
+                    state: {
+                        bookingId: data.bookingId,
+                        totalAmount: totalPrice // Biến totalPrice này bạn đã có sẵn ở đầu file
+                    }
+                });
+            } else {
+                throw new Error("Không nhận được mã đặt phòng từ Backend.");
+            }
+
         } catch (error) {
             console.error("Booking Error:", error);
-            alert("Lỗi: " + error.message);
+            alert("Lỗi đặt phòng: " + error.message);
         }
     };
 

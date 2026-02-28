@@ -27,7 +27,7 @@ const AppRouter = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/payment" element={<PaymentSelection />} />
+            <Route path="/payment-selection" element={<PaymentSelection />} />
             <Route path="/payment/result" element={<PaymentResult />} />
             <Route path="/BookingSummary" element={<BookingSummary />}/>
             <Route path="/GuestInformation" element={<GuestInformation />} />

@@ -1,138 +1,124 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { paymentApi } from '../api/paymentApi';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const PaymentSelection = () => {
-    const [selectedMethod, setSelectedMethod] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
-
+    const location = useLocation();
     const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    // Hứng dữ liệu từ GuestInformation
+    const { bookingId, totalAmount } = location.state || { bookingId: null, totalAmount: 0 };
 
-        if (!selectedMethod) {
-            setError('Vui lòng chọn một phương thức thanh toán!');
-            return;
-        }
+    // State lưu phương thức khách chọn (Mặc định chọn Stripe)
+    const [selectedMethod, setSelectedMethod] = useState('STRIPE');
+    const [isLoading, setIsLoading] = useState(false);
 
-        setError(null);
+    if (!bookingId) {
+        return (
+            <div className="text-center mt-5">
+                <h3>Không tìm thấy thông tin đơn hàng!</h3>
+                <button className="btn btn-secondary mt-3" onClick={() => navigate('/')}>Về trang chủ</button>
+            </div>
+        );
+    }
+
+    const handleProcessPayment = async () => {
         setIsLoading(true);
-
         try {
-            // TODO: Truyền invoiceId (Mã hóa đơn) thực tế vào đây
-            // Hiện tại gán tạm = 1 để test luồng gọi API
-            const invoiceId = 15; // Lấy theo ID đang test trong ảnh của bạn hoặc đổi thành 1
+            // Chú ý: Đổi port 8080 thành 8081 nếu Backend của bạn đang chạy ở 8081 nhé!
+            const response = await fetch(`http://localhost:8081/api/payment/create?bookingId=${bookingId}&amount=${totalAmount}&method=${selectedMethod}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
 
-            // Gọi API Spring Boot (truyền theo dạng params: ?invoiceId=...&method=...)
-            const response = await paymentApi.createPayment(invoiceId, selectedMethod);
+            const data = await response.json();
 
-            if (selectedMethod === 'STRIPE') {
-                // 1. Lấy đúng biến payUrl từ response như trong tab Preview/Response của bạn
-                const checkoutUrl = response.data.payUrl;
-
-                if (checkoutUrl) {
-                    // 2. Cấu hình kích thước và vị trí để mở Popup ở giữa màn hình
-                    const width = 500;
-                    const height = 600;
-                    const left = (window.innerWidth - width) / 2;
-                    const top = (window.innerHeight - height) / 2;
-
-                    // Mở cửa sổ nhỏ popup
-                    window.open(
-                        checkoutUrl,
-                        'StripeCheckout',
-                        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
-                    );
-                } else {
-                    setError("Lỗi: Không lấy được đường link thanh toán từ hệ thống.");
+            if (response.ok) {
+                if (selectedMethod === 'STRIPE' && data.payUrl) {
+                    // Chuyển hướng trình duyệt sang cổng quẹt thẻ của Stripe
+                    window.location.href = data.payUrl;
+                } else if (selectedMethod === 'SEPAY') {
+                    // Logic xử lý Sepay (ví dụ: chuyển sang màn hiện mã QR của bạn)
+                    // navigate('/payment/sepay-qr', { state: { ...data } });
+                    alert('Tính năng chuyển khoản Sepay đang được tích hợp!');
+                    setIsLoading(false);
                 }
-
-            } else if (selectedMethod === 'COD') {
-                // Chuyển sang màn hình thông báo thành công
-                navigate('/payment/result?status=success');
+            } else {
+                alert('Lỗi tạo thanh toán: ' + (data.message || 'Vui lòng thử lại.'));
+                setIsLoading(false);
             }
-        } catch (err) {
-            console.error("Lỗi khi thanh toán:", err);
-
-            // Lấy nội dung lỗi an toàn từ backend trả về
-            let msg = err.response?.data?.message || err.response?.data || "Đã xảy ra lỗi trong quá trình thanh toán. Vui lòng thử lại.";
-            if (typeof msg === 'object') {
-                msg = JSON.stringify(msg);
-            }
-
-            setError(msg);
-        } finally {
+        } catch (error) {
+            console.error('Lỗi kết nối:', error);
+            alert('Lỗi kết nối đến server!');
             setIsLoading(false);
         }
     };
 
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    };
+
     return (
-        <div className="container d-flex justify-content-center align-items-center vh-100 bg-light">
-            <div className="card shadow-sm p-4" style={{ width: '100%', maxWidth: '500px', borderRadius: '12px' }}>
-                <h3 className="text-center mb-4">Phương thức thanh toán</h3>
+        <div className="bg-light vh-100 d-flex justify-content-center pt-5">
+            <div className="bg-white p-4 rounded-3 shadow-sm" style={{ maxWidth: '600px', width: '100%', height: 'fit-content' }}>
+                <h4 className="fw-bold mb-4 text-center" style={{ color: '#5C6F4E' }}>Chọn phương thức thanh toán</h4>
 
-                {error && <div className="alert alert-danger">{error}</div>}
+                <div className="bg-light p-3 rounded-3 mb-4 text-center">
+                    <p className="text-muted mb-1">Tổng tiền thanh toán</p>
+                    <h3 className="fw-bold m-0" style={{ color: '#D4AF37' }}>{formatCurrency(totalAmount)}</h3>
+                </div>
 
-                <form onSubmit={handleSubmit}>
-                    {/* Lựa chọn Stripe */}
+                {/* Khung chọn phương thức */}
+                <div className="mb-4">
+                    {/* Lựa chọn 1: Stripe */}
                     <div
-                        className={`card mb-3 cursor-pointer ${selectedMethod === 'STRIPE' ? 'border-primary bg-primary bg-opacity-10' : ''}`}
+                        className={`p-3 mb-3 border rounded-3 cursor-pointer d-flex align-items-center ${selectedMethod === 'STRIPE' ? 'border-2 shadow-sm' : ''}`}
+                        style={{ borderColor: selectedMethod === 'STRIPE' ? '#5C6F4E' : '#dee2e6', cursor: 'pointer' }}
                         onClick={() => setSelectedMethod('STRIPE')}
-                        style={{ cursor: 'pointer', transition: '0.2s' }}
                     >
-                        <div className="card-body d-flex align-items-center">
-                            <div className="fs-2 me-3">💳</div>
-                            <div>
-                                <h6 className="mb-1 fw-bold">Thẻ tín dụng / Ghi nợ</h6>
-                                <small className="text-muted">Thanh toán an toàn qua Stripe</small>
-                            </div>
-                            <div className="ms-auto">
-                                <input
-                                    type="radio"
-                                    className="form-check-input"
-                                    checked={selectedMethod === 'STRIPE'}
-                                    readOnly
-                                />
-                            </div>
+                        <input
+                            type="radio"
+                            className="form-check-input me-3 mt-0"
+                            checked={selectedMethod === 'STRIPE'}
+                            onChange={() => setSelectedMethod('STRIPE')}
+                        />
+                        <div>
+                            <h6 className="mb-0 fw-bold">Thanh toán bằng thẻ quốc tế</h6>
+                            <small className="text-muted">Visa, Mastercard, Amex (qua Stripe)</small>
                         </div>
+                        <i className="fa-brands fa-stripe ms-auto fs-2" style={{ color: '#635bff' }}></i>
                     </div>
 
-                    {/* Lựa chọn COD */}
+                    {/* Lựa chọn 2: Sepay */}
                     <div
-                        className={`card mb-4 cursor-pointer ${selectedMethod === 'COD' ? 'border-primary bg-primary bg-opacity-10' : ''}`}
-                        onClick={() => setSelectedMethod('COD')}
-                        style={{ cursor: 'pointer', transition: '0.2s' }}
+                        className={`p-3 border rounded-3 cursor-pointer d-flex align-items-center ${selectedMethod === 'SEPAY' ? 'border-2 shadow-sm' : ''}`}
+                        style={{ borderColor: selectedMethod === 'SEPAY' ? '#5C6F4E' : '#dee2e6', cursor: 'pointer' }}
+                        onClick={() => setSelectedMethod('SEPAY')}
                     >
-                        <div className="card-body d-flex align-items-center">
-                            <div className="fs-2 me-3">💵</div>
-                            <div>
-                                <h6 className="mb-1 fw-bold">Thanh toán khi nhận phòng (COD)</h6>
-                                <small className="text-muted">Trả tiền mặt khi đến nơi</small>
-                            </div>
-                            <div className="ms-auto">
-                                <input
-                                    type="radio"
-                                    className="form-check-input"
-                                    checked={selectedMethod === 'COD'}
-                                    readOnly
-                                />
-                            </div>
+                        <input
+                            type="radio"
+                            className="form-check-input me-3 mt-0"
+                            checked={selectedMethod === 'SEPAY'}
+                            onChange={() => setSelectedMethod('SEPAY')}
+                        />
+                        <div>
+                            <h6 className="mb-0 fw-bold">Chuyển khoản ngân hàng (QR)</h6>
+                            <small className="text-muted">Quét mã QR qua ứng dụng ngân hàng</small>
                         </div>
+                        <i className="fa-solid fa-qrcode ms-auto fs-3 text-secondary"></i>
                     </div>
+                </div>
 
-                    <button
-                        type="submit"
-                        className="btn btn-primary w-100 py-2 fw-bold"
-                        disabled={isLoading}
-                    >
-                        {isLoading ? (
-                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        ) : null}
-                        {isLoading ? 'Đang xử lý...' : 'Tiếp tục thanh toán'}
-                    </button>
-                </form>
+                <button
+                    className="btn w-100 py-3 fw-bold rounded-3 text-white fs-5"
+                    style={{ backgroundColor: '#D4AF37' }}
+                    onClick={handleProcessPayment}
+                    disabled={isLoading}
+                >
+                    {isLoading ? 'Đang xử lý...' : 'Thanh Toán Ngay'}
+                </button>
+                <button className="btn btn-link text-muted w-100 mt-2 text-decoration-none" onClick={() => navigate(-1)}>
+                    Quay lại
+                </button>
             </div>
         </div>
     );
