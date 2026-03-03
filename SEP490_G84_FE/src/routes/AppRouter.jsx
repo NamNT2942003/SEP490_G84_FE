@@ -1,5 +1,4 @@
-
-import { Routes, Route } from "react-router-dom";
+import {Routes, Route} from "react-router-dom";
 
 import HomePage from "../features/home/screens/HomePage.jsx";
 import SearchRoom from "../features/home/screens/SearchRoom.jsx";
@@ -24,25 +23,25 @@ const AppRouter = () => {
 
         <Routes>
             {/* --- NHÓM 1: CÁC TRANG PUBLIC (KHÔNG CÓ HEADER/SIDEBAR) --- */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/payment-selection" element={<PaymentSelection />} />
-            <Route path="/payment/result" element={<PaymentResult />} />
-            <Route path="/BookingSummary" element={<BookingSummary />}/>
-            <Route path="/GuestInformation" element={<GuestInformation />} />
+            <Route path="/login" element={<Login/>}/>
+            <Route path="/forgot-password" element={<ForgotPassword/>}/>
+            <Route path="/reset-password" element={<ResetPassword/>}/>
+            <Route path="/payment-selection" element={<PaymentSelection/>}/>
+            <Route path="/payment/result" element={<PaymentResult/>}/>
+            <Route path="/BookingSummary" element={<BookingSummary/>}/>
+            <Route path="/GuestInformation" element={<GuestInformation/>}/>
+            <Route path="/" element={<HomePage/>}/>
+            <Route path="/search" element={<SearchRoom/>}/>
+            <Route path="/about" element={<AboutPage/>}/>
+            <Route path="/contact" element={<ContactPage/>}/>
+            <Route path="/rooms" element={<RoomList/>}/>
 
             {/* --- NHÓM 2: CÁC TRANG PRIVATE (CÓ FULL LAYOUT) --- */}
-            <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
-            <Route path="/search" element={<MainLayout><SearchRoom /></MainLayout>} />
-            <Route path="/about" element={<MainLayout><AboutPage /></MainLayout>} />
-            <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
-            <Route path="/rooms" element={<MainLayout><RoomList /></MainLayout>} />
-            <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
+            <Route path="/dashboard" element={<MainLayout><Dashboard/></MainLayout>}/>
 
 
             {/* Redirect mặc định về login */}
-            <Route path="*" element={<Login />} />
+            <Route path="*" element={<Login/>}/>
         </Routes>
     );
 };
