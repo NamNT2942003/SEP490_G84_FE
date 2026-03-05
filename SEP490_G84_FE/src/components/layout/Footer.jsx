@@ -99,15 +99,15 @@ const Footer = () => {
             <ul className="list-unstyled">
               <li className="mb-2">
                 <i className="bi bi-geo-alt me-2"></i>
-                <span>123 Hoan Kiem District, Hanoi</span>
+                <span>10 Hang Giay Street, Hoan Kiem, Hanoi</span>
               </li>
               <li className="mb-2">
                 <i className="bi bi-telephone me-2"></i>
-                <span>+84 24-3826-1234</span>
+                <span>024 3266 9969</span>
               </li>
               <li className="mb-2">
                 <i className="bi bi-envelope me-2"></i>
-                <span>info@annguyen-hotel.com</span>
+                <span>annguyenhanoi.com@gmail.com</span>
               </li>
               <li className="mb-2">
                 <i className="bi bi-clock me-2"></i>
