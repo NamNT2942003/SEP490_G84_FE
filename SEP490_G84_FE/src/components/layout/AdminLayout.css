@@ -1,0 +1,125 @@
+/* ── Admin Layout Shell ──────────────────────────────────────────────── */
+.admin-wrapper {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #f5f6fa;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+.admin-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background-color: #5c6f4e;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.2s ease;
+  scrollbar-width: none;
+}
+.admin-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-sidebar--collapsed {
+  width: 60px;
+}
+
+.admin-sidebar-brand {
+  padding: 18px 14px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+
+.admin-sidebar-section-label {
+  margin: 16px 12px 6px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.admin-sidebar-nav {
+  flex: 1;
+  padding: 0 8px;
+}
+
+.admin-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin-bottom: 2px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.875rem;
+  font-weight: 400;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.admin-sidebar-link:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.admin-sidebar-link--active {
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-weight: 600;
+}
+.admin-sidebar-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.admin-sidebar-footer {
+  padding: 12px 8px;
+  flex-shrink: 0;
+}
+
+/* ── Main Area ───────────────────────────────────────────────────────── */
+.admin-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-topbar {
+  height: 58px;
+  flex-shrink: 0;
+  background-color: #fff;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  gap: 12px;
+}
+
+.admin-content-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #f5f6fa;
+}
+.admin-content-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.admin-content-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-content-scroll::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+.admin-content-scroll::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}

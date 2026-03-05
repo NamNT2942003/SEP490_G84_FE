@@ -3,8 +3,9 @@ import SearchForm from "./SearchForm.jsx";
 import RoomCard from "./RoomCard.jsx";
 import FilterSidebar from "./FilterSidebar.jsx";
 import RoomDetailModal from "./RoomDetailModal.jsx";
-import Pagination from "../../../components/layout/Pagination.jsx";
+import SmartPagination from "./SmartPagination.jsx";
 import {roomService} from "../../booking/api/roomService.js";
+import {branchService} from "../../booking/api/branchService.js";
 
 const SearchRoom = () => {
     const [rooms, setRooms] = useState([]);
@@ -14,6 +15,7 @@ const SearchRoom = () => {
     const [totalPages, setTotalPages] = useState(0);
     const [showModal, setShowModal] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState(null);
+    const [branches, setBranches] = useState([]);
     const [filters, setFilters] = useState({
         branchId: 1,
         roomTypeIds: undefined,
@@ -21,240 +23,172 @@ const SearchRoom = () => {
         page: 0,
         size: 5,
     });
-
     const [searchParams, setSearchParams] = useState(null);
 
-    const searchRooms = async (searchFormParams) => {
-        setLoading(true);
-        setError(null);
-        setSearchParams(searchFormParams);
+    // fetch branches once
+    useEffect(() => {
+        (async () => {
+            try {
+                const data = await branchService.getAllBranches();
+                setBranches(data);
+                if (data.length > 0 && !filters.branchId) setFilters(p => ({ ...p, branchId: data[0].branchId }));
+            } catch (e) { console.error("Branches:", e); }
+        })();
+    }, []);
+
+    const searchRooms = async (sp) => {
+        setLoading(true); setError(null); setSearchParams(sp);
         try {
-            // Validate date range before sending request
-            if (searchFormParams.checkIn && searchFormParams.checkOut) {
-                const checkInDate = new Date(searchFormParams.checkIn);
-                const checkOutDate = new Date(searchFormParams.checkOut);
-                if (checkOutDate < checkInDate) {
-                    setError("\u26a0\ufe0f Check-out date must be after check-in date. Please select valid dates.");
-                    setLoading(false);
-                    return;
+            if (sp.checkIn && sp.checkOut) {
+                if (new Date(sp.checkOut) < new Date(sp.checkIn)) {
+                    setError("Check-out date must be after check-in date.");
+                    setLoading(false); return;
                 }
             }
-
-            // always include a branchId when building query parameters
-            const params = {
-                branchId: filters.branchId ?? 1,
-                ...filters,
-                ...searchFormParams,
-            };
-
-            const response = await roomService.searchRooms(params);
-            setRooms(response.content || []);
-            setTotalElements(response.totalElements || 0);
-            setTotalPages(response.totalPages || 0);
+            const params = { branchId: filters.branchId ?? 1, ...filters, ...sp };
+            const res = await roomService.searchRooms(params);
+            setRooms(res.content || []);
+            setTotalElements(res.totalElements || 0);
+            setTotalPages(res.totalPages || 0);
         } catch (err) {
             setError(err.message || "Failed to search rooms");
-            console.error("Search error:", err);
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     };
 
     const refetchRooms = async () => {
         if (!searchParams) return;
-
-        setLoading(true);
-        setError(null);
+        setLoading(true); setError(null);
         try {
-            // Validate date range before sending request
-            if (searchParams.checkIn && searchParams.checkOut) {
-                const checkInDate = new Date(searchParams.checkIn);
-                const checkOutDate = new Date(searchParams.checkOut);
-                if (checkOutDate < checkInDate) {
-                    setError("\u26a0\ufe0f Check-out date must be after check-in date. Please select valid dates.");
-                    setLoading(false);
-                    return;
-                }
+            if (searchParams.checkIn && searchParams.checkOut && new Date(searchParams.checkOut) < new Date(searchParams.checkIn)) {
+                setError("Check-out date must be after check-in date.");
+                setLoading(false); return;
             }
-
-            const params = {
-                branchId: filters.branchId ?? 1,
-                ...filters,
-                ...searchParams,
-            };
-
-            const response = await roomService.searchRooms(params);
-            setRooms(response.content || []);
-            setTotalElements(response.totalElements || 0);
-            setTotalPages(response.totalPages || 0);
+            const params = { branchId: filters.branchId ?? 1, ...filters, ...searchParams };
+            const res = await roomService.searchRooms(params);
+            setRooms(res.content || []);
+            setTotalElements(res.totalElements || 0);
+            setTotalPages(res.totalPages || 0);
         } catch (err) {
             setError(err.message || "Failed to search rooms");
-            console.error("Search error:", err);
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     };
 
-    const handleFilterChange = (newFilters) => {
-        setFilters((prev) => ({...prev, ...newFilters, page: 0}));
-    };
-
-    const handleSortChange = (e) => {
-        const sortValue = e.target.value;
-        setFilters((prev) => ({...prev, sortPrice: sortValue, page: 0}));
-    };
-
-    const handlePageChange = (page) => {
-        setFilters((prev) => ({...prev, page}));
-    };
-
-    const handleBooking = (room) => {
-        alert(`Booking ${room.name} - Feature coming soon!`);
-    };
-
-    const handleViewDetail = (room) => {
-        setSelectedRoom(room);
-        setShowModal(true);
-    };
-
-    const handleCloseModal = () => {
-        setShowModal(false);
-        setSelectedRoom(null);
-    };
+    const handleFilterChange = (nf) => setFilters(p => ({ ...p, ...nf, page: 0 }));
+    const handleSortChange = (e) => setFilters(p => ({ ...p, sortPrice: e.target.value, page: 0 }));
+    const handlePageChange = (page) => setFilters(p => ({ ...p, page }));
+    const handleBooking = (room) => alert(`Booking ${room.name} — Feature coming soon!`);
+    const handleViewDetail = (room) => { setSelectedRoom(room); setShowModal(true); };
+    const handleCloseModal = () => { setShowModal(false); setSelectedRoom(null); };
 
     useEffect(() => {
-        const formatYmdLocal = (date) => {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, "0");
-            const day = String(date.getDate()).padStart(2, "0");
-            return `${year}-${month}-${day}`;
-        };
-
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        const today = formatYmdLocal(now);
-        const tomorrowDate = new Date(now);
-        tomorrowDate.setDate(now.getDate() + 1);
-        const tomorrow = formatYmdLocal(tomorrowDate);
-
-        searchRooms({
-            checkIn: today,
-            checkOut: tomorrow,
-            adults: 1,
-            children: 0,
-        });
+        const fmtYmd = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+        const now = new Date(); now.setHours(0,0,0,0);
+        const tom = new Date(now); tom.setDate(now.getDate()+1);
+        searchRooms({ checkIn: fmtYmd(now), checkOut: fmtYmd(tom), adults: 1, children: 0 });
     }, []);
 
-    useEffect(() => {
-        if (searchParams) {
-            refetchRooms();
-        }
-    }, [filters.branchId, filters.roomTypeIds, filters.sortPrice, filters.page]);
+    useEffect(() => { if (searchParams) refetchRooms(); }, [filters.branchId, filters.roomTypeIds, filters.sortPrice, filters.page]);
 
     return (
-        <div className="search-room-page">
-            <div className="container mt-4">
-                <SearchForm onSearch={searchRooms} loading={loading}/>
+        <div style={{ background: '#f5f6f8', minHeight: '100vh' }}>
+            <style>{`
+                .hero{background:linear-gradient(135deg,#5C6F4E 0%,#3d4a33 100%);padding:36px 0 48px;margin-bottom:-22px;position:relative;z-index:10;overflow:visible}
+                .hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:36px;background:#f5f6f8;border-radius:20px 20px 0 0;z-index:-1;pointer-events:none}
+                .hero-txt{text-align:center;margin-bottom:20px;color:#fff}
+                .hero-txt h2{font-weight:800;font-size:1.5rem;margin-bottom:4px}
+                .hero-txt p{color:rgba(255,255,255,.7);font-size:.9rem;margin:0}
+                .res-hdr{background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,.04);border:1px solid #eee;margin-bottom:16px}
+                .res-cnt{font-size:1rem;font-weight:700;color:#333}
+                .res-cnt span{color:#5C6F4E}
+                .sort-sel{border:1px solid #dee2e6;border-radius:10px;padding:7px 12px;font-size:.84rem;color:#555;background:#fafafa;cursor:pointer}
+                .sort-sel:focus{border-color:#5C6F4E;box-shadow:0 0 0 3px rgba(92,111,78,.1)}
+                .empty-st{background:#fff;border-radius:16px;padding:50px 30px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+                .empty-st i{font-size:3.5rem;color:#ddd;margin-bottom:12px}
+                .load-st{background:#fff;border-radius:16px;padding:50px 30px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+                .err-c{background:#fff;border-radius:14px;border-left:4px solid #dc3545;padding:18px 22px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+                .bc-bar{padding:12px 0 0}
+                .bc-bar .breadcrumb{margin-bottom:0;font-size:.85rem}
+                .bc-bar .breadcrumb a{color:#5C6F4E;text-decoration:none;font-weight:500}
+                .bc-bar .breadcrumb a:hover{text-decoration:underline}
+            `}</style>
+
+            <div className="hero">
+                <div className="container position-relative" style={{ zIndex: 2 }}>
+                    <div className="hero-txt">
+                        <h2><i className="bi bi-stars me-2" style={{ fontSize: '1.2rem' }}></i>Find Your Perfect Room</h2>
+                        <p>Book quickly — enjoy an exceptional experience</p>
+                    </div>
+                    <SearchForm
+                        onSearch={searchRooms}
+                        loading={loading}
+                        branches={branches}
+                        branchId={filters.branchId}
+                        onBranchChange={(id) => handleFilterChange({ branchId: id || undefined })}
+                    />
+                </div>
             </div>
 
-            <div className="container mt-3">
+            <div className="container bc-bar" style={{ position: 'relative', zIndex: 1 }}>
                 <nav aria-label="breadcrumb">
                     <ol className="breadcrumb">
-                        <li className="breadcrumb-item">
-                            <a href="/public" style={{color: "#5C6F4E"}}>
-                                Home
-                            </a>
-                        </li>
-                        <li className="breadcrumb-item active" aria-current="page">
-                            Search Results
-                        </li>
+                        <li className="breadcrumb-item"><a href="/public"><i className="bi bi-house-door me-1"></i>Home</a></li>
+                        <li className="breadcrumb-item active">Search Results</li>
                     </ol>
                 </nav>
             </div>
 
-            <div className="container mb-5">
-                <div className="row">
-                    <div className="col-md-3">
-                        <FilterSidebar
-                            onFilterChange={handleFilterChange}
-                            selectedRoomTypes={filters.roomTypeIds}
-                            selectedBranchId={filters.branchId}
-                        />
+            <div className="container pb-5">
+                <div className="row g-4">
+                    <div className="col-lg-3 col-md-4">
+                        <FilterSidebar onFilterChange={handleFilterChange} selectedRoomTypes={filters.roomTypeIds} selectedBranchId={filters.branchId} />
                     </div>
-
-                    <div className="col-md-9">
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                            <h5 className="mb-0">Available Rooms ({totalElements})</h5>
+                    <div className="col-lg-9 col-md-8" style={{ position: 'relative', zIndex: 0 }}>
+                        <div className="res-hdr d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div className="res-cnt"><i className="bi bi-building me-2" style={{ color: '#5C6F4E' }}></i>Available Rooms: <span>{totalElements}</span></div>
                             <div className="d-flex align-items-center gap-2">
-                                <label className="mb-0 small text-muted">Sort by</label>
-                                <select
-                                    className="form-select form-select-sm"
-                                    style={{width: "auto"}}
-                                    value={filters.sortPrice}
-                                    onChange={handleSortChange}
-                                >
-                                    <option value="priceAsc">Price: Low to High</option>
-                                    <option value="priceDesc">Price: High to Low</option>
+                                <span className="text-muted" style={{ fontSize: '.82rem' }}><i className="bi bi-sort-down me-1"></i>Sort by:</span>
+                                <select className="sort-sel" value={filters.sortPrice} onChange={handleSortChange}>
+                                    <option value="priceAsc">Price: Low → High</option>
+                                    <option value="priceDesc">Price: High → Low</option>
                                 </select>
                             </div>
                         </div>
 
                         {loading && (
-                            <div className="text-center py-5">
-                                <div
-                                    className="spinner-border"
-                                    role="status"
-                                    style={{color: "#5C6F4E"}}
-                                >
-                                    <span className="visually-hidden">Loading...</span>
-                                </div>
-                                <p className="mt-2 text-muted">
-                                    Searching for available rooms...
-                                </p>
+                            <div className="load-st">
+                                <div className="spinner-border mb-3" role="status" style={{ color: '#5C6F4E', width: '2.5rem', height: '2.5rem' }}><span className="visually-hidden">Loading...</span></div>
+                                <p className="text-muted mb-0">Searching for available rooms...</p>
                             </div>
                         )}
 
                         {error && !loading && (
-                            <div className="alert alert-danger border-0 shadow-sm" role="alert" style={{ backgroundColor: "#fff5f5", borderLeft: "4px solid #dc3545" }}>
-                                <div className="d-flex align-items-start">
-                                    <i className="bi bi-info-circle me-3" style={{ fontSize: "1.25rem", color: "#dc3545", marginTop: "0.2rem" }}></i>
+                            <div className="err-c">
+                                <div className="d-flex align-items-start gap-3">
+                                    <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '1.3rem', color: '#dc3545' }}></i>
                                     <div>
-                                        <h6 className="mb-1" style={{ color: "#721c24" }}>Unable to load rooms</h6>
-                                        <p className="mb-0" style={{ color: "#856404", fontSize: "0.95rem" }}>{error}</p>
-                                        <p className="mb-0 small mt-2" style={{ color: "#999" }}>Please try adjusting your search criteria or try again.</p>
+                                        <h6 className="mb-1 fw-bold" style={{ color: '#dc3545' }}>Unable to load rooms</h6>
+                                        <p className="mb-1 text-muted" style={{ fontSize: '.9rem' }}>{error}</p>
+                                        <p className="mb-0 text-muted" style={{ fontSize: '.8rem' }}>Please try again or adjust your search criteria.</p>
                                     </div>
                                 </div>
                             </div>
                         )}
 
                         {!loading && !error && rooms.length === 0 && (
-                            <div className="text-center py-5" style={{ backgroundColor: "#fafafa", borderRadius: "8px", border: "1px dashed #ddd" }}>
-                                <i
-                                    className="bi bi-inbox"
-                                    style={{fontSize: "3.5rem", color: "#ccc"}}
-                                ></i>
-                                <h5 className="mt-4 mb-2" style={{ color: "#333" }}>No rooms found</h5>
-                                <p className="text-muted mb-3">
-                                    We couldn't find any rooms matching your criteria.
-                                </p>
-                                <p className="text-muted small">
-                                    <i className="bi bi-lightbulb me-1"></i>
-                                    Try changing your check-in/check-out dates, location, or filters.
-                                </p>
+                            <div className="empty-st">
+                                <i className="bi bi-inbox d-block"></i>
+                                <h5 className="fw-bold mb-2" style={{ color: '#333' }}>No rooms found</h5>
+                                <p className="text-muted mb-3">No rooms match your search criteria.</p>
+                                <p className="text-muted small mb-0"><i className="bi bi-lightbulb me-1"></i>Try changing dates, branch, or filters.</p>
                             </div>
                         )}
 
                         {!loading && !error && rooms.length > 0 && (
                             <div>
-                                {rooms.map((roomType) => ( // Đổi tên từ room thành roomType để rõ nghĩa
-                                    <RoomCard
-                                        key={roomType.roomTypeId}
-                                        room={roomType}
-                                        onBooking={handleBooking}
-                                        onViewDetail={handleViewDetail}
-                                    />
+                                {rooms.map((rt) => (
+                                    <RoomCard key={rt.roomTypeId} room={rt} onBooking={handleBooking} onViewDetail={handleViewDetail} />
                                 ))}
-
-                                <Pagination
+                                <SmartPagination
                                     currentPage={filters.page}
                                     totalPages={totalPages}
                                     totalElements={totalElements}
@@ -267,11 +201,7 @@ const SearchRoom = () => {
                 </div>
             </div>
 
-            <RoomDetailModal
-                room={selectedRoom}
-                show={showModal}
-                onClose={handleCloseModal}
-            />
+            <RoomDetailModal room={selectedRoom} show={showModal} onClose={handleCloseModal} />
         </div>
     );
 };
