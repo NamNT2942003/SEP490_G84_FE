@@ -4,8 +4,8 @@ import RoomCard from "./RoomCard.jsx";
 import FilterSidebar from "./FilterSidebar.jsx";
 import RoomDetailModal from "./RoomDetailModal.jsx";
 import SmartPagination from "./SmartPagination.jsx";
-import {roomService} from "../../booking/api/roomService.js";
-import {branchService} from "../../booking/api/branchService.js";
+import {roomService} from "../api/roomService.js";
+import {branchService} from "../api/branchService.js";
 
 const SearchRoom = () => {
     const [rooms, setRooms] = useState([]);
