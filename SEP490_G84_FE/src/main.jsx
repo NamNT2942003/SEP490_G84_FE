@@ -9,12 +9,18 @@ import { store } from "./store";
 import App from "./App";
 import "./index.css";
 
+// 1. Import GoogleOAuthProvider vào đây
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <Provider store={store}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </Provider>
-  </React.StrictMode>,
+    <React.StrictMode>
+        {/* 2. Bọc GoogleOAuthProvider bên ngoài Provider của Redux */}
+        <GoogleOAuthProvider clientId="nhap-tam-client-id-bua-vao-day-de-test">
+            <Provider store={store}>
+                <BrowserRouter>
+                    <App />
+                </BrowserRouter>
+            </Provider>
+        </GoogleOAuthProvider>
+    </React.StrictMode>,
 );
