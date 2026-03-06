@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { roomTypeService } from "../../booking/api/roomTypeService.js";
+import { roomTypeService } from "../api/roomTypeService.js";
 
 const FilterSidebar = ({ onFilterChange, selectedRoomTypes, selectedBranchId }) => {
   const [roomTypes, setRoomTypes] = useState([]);

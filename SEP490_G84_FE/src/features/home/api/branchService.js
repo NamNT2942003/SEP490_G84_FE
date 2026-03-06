@@ -1,5 +1,5 @@
-import apiClient from "../../../services/api";
-import { API_ENDPOINTS } from "../../../constants/apiConfig";
+import apiClient from "../../../services/api.js";
+import { API_ENDPOINTS } from "../../../constants/apiConfig.js";
 export const branchService = {
 
   getAllBranches: async () => {
