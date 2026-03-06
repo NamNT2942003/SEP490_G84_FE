@@ -1,4 +1,5 @@
-import {useState, useEffect} from "react";
+import {useState, useEffect, useCallback} from "react";
+import { useNavigate } from "react-router-dom";
 import SearchForm from "./SearchForm.jsx";
 import RoomCard from "./RoomCard.jsx";
 import FilterSidebar from "./FilterSidebar.jsx";
@@ -24,6 +25,15 @@ const SearchRoom = () => {
         size: 5,
     });
     const [searchParams, setSearchParams] = useState(null);
+    const navigate = useNavigate();
+
+    const calculateNights = (checkIn, checkOut) => {
+        if (!checkIn || !checkOut) return 1;
+        const d1 = new Date(checkIn);
+        const d2 = new Date(checkOut);
+        const diffTime = Math.abs(d2 - d1);
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
 
     // fetch branches once
     useEffect(() => {
@@ -34,9 +44,9 @@ const SearchRoom = () => {
                 if (data.length > 0 && !filters.branchId) setFilters(p => ({ ...p, branchId: data[0].branchId }));
             } catch (e) { console.error("Branches:", e); }
         })();
-    }, []);
+    }, [filters.branchId]);
 
-    const searchRooms = async (sp) => {
+    const searchRooms = useCallback(async (sp) => {
         setLoading(true); setError(null); setSearchParams(sp);
         try {
             if (sp.checkIn && sp.checkOut) {
@@ -53,9 +63,9 @@ const SearchRoom = () => {
         } catch (err) {
             setError(err.message || "Failed to search rooms");
         } finally { setLoading(false); }
-    };
+    }, [filters]);
 
-    const refetchRooms = async () => {
+    const refetchRooms = useCallback(async () => {
         if (!searchParams) return;
         setLoading(true); setError(null);
         try {
@@ -71,12 +81,24 @@ const SearchRoom = () => {
         } catch (err) {
             setError(err.message || "Failed to search rooms");
         } finally { setLoading(false); }
-    };
+    }, [searchParams, filters]);
 
     const handleFilterChange = (nf) => setFilters(p => ({ ...p, ...nf, page: 0 }));
     const handleSortChange = (e) => setFilters(p => ({ ...p, sortPrice: e.target.value, page: 0 }));
     const handlePageChange = (page) => setFilters(p => ({ ...p, page }));
-    const handleBooking = (room) => alert(`Booking ${room.name} — Feature coming soon!`);
+    const handleBooking = (room) => {
+        const nights = calculateNights(searchParams.checkIn, searchParams.checkOut);
+        const totalPrice = room.basePrice * nights;
+        navigate('/GuestInformation', {
+            state: {
+                selectedRooms: [{ ...room, quantity: 1 }],
+                checkIn: searchParams.checkIn,
+                checkOut: searchParams.checkOut,
+                branchId: filters.branchId,
+                totalPrice
+            }
+        });
+    };
     const handleViewDetail = (room) => { setSelectedRoom(room); setShowModal(true); };
     const handleCloseModal = () => { setShowModal(false); setSelectedRoom(null); };
 
@@ -87,7 +109,7 @@ const SearchRoom = () => {
         searchRooms({ checkIn: fmtYmd(now), checkOut: fmtYmd(tom), adults: 1, children: 0 });
     }, []);
 
-    useEffect(() => { if (searchParams) refetchRooms(); }, [filters.branchId, filters.roomTypeIds, filters.sortPrice, filters.page]);
+    useEffect(() => { if (searchParams) refetchRooms(); }, [filters.branchId, filters.roomTypeIds, filters.sortPrice, filters.page, searchParams]);
 
     return (
         <div style={{ background: '#f5f6f8', minHeight: '100vh' }}>
