@@ -14,6 +14,7 @@ import GuestInformation from "@/features/booking/screens/GuestInformation";
 import RoomManagement from "@/features/admin/screens/RoomManagement";
 import FurnitureManagement from "@/features/admin/screens/FurnitureManagement";
 import PaymentSelection from "@/features/payment/screens/PaymentSelection.jsx";
+import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
 
 
 const AppRouter = () => {
@@ -26,6 +27,8 @@ const AppRouter = () => {
       <Route path="/BookingSummary" element={<BookingSummary />} />
       <Route path="/GuestInformation" element={<GuestInformation />} />
         <Route path="/payment-selection" element={<PaymentSelection />} />
+        <Route path="/payment/result" element={<PaymentResult />} />
+
 
       {/* Main pages - With Header/Footer/Sidebar */}
       <Route
