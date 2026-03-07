@@ -317,56 +317,6 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Action Icons */
-.action-icons {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.action-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #6c757d;
-  font-size: 16px;
-}
-
-.action-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.action-btn.view {
-  color: #0d6efd;
-}
-
-.action-btn.view:hover {
-  background-color: #e7f1ff;
-}
-
-.action-btn.edit {
-  color: #ffc107;
-}
-
-.action-btn.edit:hover {
-  background-color: #fff8e1;
-}
-
-.action-btn.delete {
-  color: #dc3545;
-}
-
-.action-btn.delete:hover {
-  background-color: #ffe6e6;
-}
-
 /* Pagination */
 .pagination-container {
   display: flex;

@@ -4,7 +4,7 @@ import { accountAPI, branchAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import './CreateAccount.css';
 
-const CreateAccount = () => {
+const CreateAccount = ({ onClose, onSuccess, isModal }) => {
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
 
@@ -29,10 +29,10 @@ const CreateAccount = () => {
       return;
     }
     if (!currentUser.permissions?.canAccessAccountList) {
-      navigate('/dashboard');
+      if (!isModal) navigate('/dashboard');
       return;
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, isModal]);
 
   useEffect(() => {
     if (currentUser?.permissions?.canAccessAccountList) {
@@ -132,7 +132,9 @@ const CreateAccount = () => {
       await accountAPI.createAccount(requestData, currentUser.userId);
 
       alert('Account created successfully!');
-      navigate('/accounts');
+      if (isModal && onSuccess) onSuccess();
+      if (isModal && onClose) onClose();
+      else navigate('/accounts');
     } catch (err) {
       console.error('Error creating account:', err);
       const errorMessage = err.response?.data?.message || err.response?.data || 'Unable to create account';
@@ -143,7 +145,8 @@ const CreateAccount = () => {
   };
 
   const handleCancel = () => {
-    navigate('/accounts');
+    if (isModal && onClose) onClose();
+    else navigate('/accounts');
   };
 
   // Get available roles based on current user's role (from API)

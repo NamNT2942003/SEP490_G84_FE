@@ -73,7 +73,7 @@ const handleGoogleSuccess = async (credentialResponse) => {
         <div className="col-lg-6 d-flex flex-column justify-content-center align-items-center bg-white">
           <div className="w-100 p-5" style={{ maxWidth: '500px' }}>
             <div className="d-lg-none text-center mb-4">
-              <h4 className="fw-bold mt-2 text-brand">AN NGUYEN</h4>
+              <h4 className="fw-bold mt-2 text-brand">{APP_STRINGS.APP_NAME}</h4>
             </div>
 
             <div className="mb-4">

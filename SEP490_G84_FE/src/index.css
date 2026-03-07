@@ -21,13 +21,18 @@
 .sidebar-wrap {
   width: 260px;
   min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  position: sticky;
+  top: 0;
   background: #465c47;
   color: white;
   display: flex;
   flex-direction: column;
   padding: 1rem;
+  overflow: hidden;
 }
-.sidebar-wrap nav { flex: 1; overflow-y: auto; }
+.sidebar-wrap nav { flex: 1; overflow-y: auto; min-height: 0; }
 .sidebar-wrap .sidebar-dropdown { display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 4px; width: 12rem; padding: 4px 0; background: #1f2937; border-radius: 8px; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); font-size: 0.875rem; z-index: 50; border: 1px solid #374151; }
 .sidebar-wrap .sidebar-user-group:hover .sidebar-dropdown { display: block; }
 .sidebar-wrap .sidebar-dropdown a,
@@ -140,4 +145,116 @@
 .link-brand:active {
   transform: scale(0.95);
   color: #2c3e2d !important;
+}
+
+/* Nút thao tác (Xem / Sửa / Xóa) – đồng bộ màu giữa các màn danh sách */
+.action-icons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.action-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  font-size: 1rem;
+  color: #6c757d;
+}
+.action-btn:hover {
+  background-color: #f1f3f4;
+}
+.action-btn.view {
+  color: #0d6efd;
+}
+.action-btn.view:hover {
+  background-color: #e7f1ff;
+  color: #0b5ed7;
+}
+.action-btn.edit {
+  color: #d97706;
+}
+.action-btn.edit:hover {
+  background-color: #fff7ed;
+  color: #b45309;
+}
+.action-btn.delete {
+  color: #dc3545;
+}
+.action-btn.delete:hover {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Modal overlay: blur + tối 50% — chỉ modal box cuộn, overlay không cuộn */
+.service-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow: hidden;
+}
+.service-modal-box {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 520px;
+  width: 100%;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  position: relative;
+}
+.service-modal-box .service-detail-page,
+.service-modal-box .edit-service-page {
+  padding: 1.25rem 1.5rem;
+  padding-right: 2.75rem;
+}
+/* Account modals: rộng hơn cho form User Detail / Create / Edit */
+.account-modal-box {
+  max-width: 720px;
+}
+/* User Details modal: rộng hơn nữa, chỉ 1 thanh cuộn trong box */
+.account-modal-box:has(.user-detail-container) {
+  max-width: 960px;
+}
+.account-modal-box .user-detail-container,
+.account-modal-box .create-account-container,
+.account-modal-box .edit-staff-container {
+  padding: 1rem 1.25rem;
+  padding-right: 2.75rem;
+  max-height: none;
+  overflow: visible;
+}
+.service-modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+.service-modal-close:hover {
+  background: #f3f4f6;
+  color: #111827;
 }

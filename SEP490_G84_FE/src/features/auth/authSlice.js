@@ -15,9 +15,9 @@ export const loginUser = createAsyncThunk(
       const status = error.response?.status;
       let message = 'Login failed';
       if (typeof data === 'object' && data?.message) message = data.message;
-      else if (status === 401) message = 'Sai tên đăng nhập hoặc mật khẩu.';
-      else if (status === 403) message = 'Tài khoản bị khóa hoặc không có quyền truy cập.';
-      else if (status === 500 && data) message = typeof data === 'string' ? data : (data.message || 'Lỗi server.');
+      else if (status === 403) message = 'Your account has been deactivated. Please contact the administrator.';
+      else if (status === 401) message = 'Invalid username or password.';
+      else if (status === 500 && data) message = typeof data === 'string' ? data : (data.message || 'Server error.');
       else if (data && typeof data === 'string') message = data;
       return rejectWithValue(message);
     }

@@ -2,7 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { accountAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import UserDetail from './UserDetail';
+import CreateAccount from './CreateAccount';
+import EditStaff from './EditStaff';
 import './AccountList.css';
+
+/** Fallback khi API /accounts/roles lỗi hoặc rỗng — giống các trang khác */
+const DEFAULT_ROLES = [
+  { value: 'ADMIN', label: 'Admin' },
+  { value: 'MANAGER', label: 'Manager' },
+  { value: 'STAFF', label: 'Staff' },
+];
+const DEFAULT_STATUSES = ['Active', 'Deactive'];
 
 const AccountList = () => {
   const navigate = useNavigate();
@@ -19,6 +30,9 @@ const AccountList = () => {
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewModalId, setViewModalId] = useState(null);
+  const [editModalId, setEditModalId] = useState(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const accountsPerPage = 5;
 
   useEffect(() => {
@@ -45,29 +59,30 @@ const AccountList = () => {
     try {
       setLoading(true);
       setLoadError(null);
+      // Luôn gọi roles và statuses trước (để dropdown có đủ option kể cả khi danh sách account lỗi)
+      try {
+        const [rolesRes, statusesRes] = await Promise.all([
+          accountAPI.getRoles(),
+          accountAPI.getStatuses(),
+        ]);
+        const roles = rolesRes.data || [];
+        const statuses = statusesRes.data || [];
+        setRolesList(roles.length > 0 ? roles : DEFAULT_ROLES);
+        setStatusesList(Array.isArray(statuses) && statuses.length > 0 ? statuses : DEFAULT_STATUSES);
+      } catch (e) {
+        console.warn('Roles/Statuses not loaded, using defaults:', e);
+        setRolesList(DEFAULT_ROLES);
+        setStatusesList(DEFAULT_STATUSES);
+      }
       const response = await accountAPI.getAllAccounts({ currentUserId: currentUser.userId });
       setAccounts(response.data ?? []);
-      try {
-        const rolesRes = await accountAPI.getRoles();
-        setRolesList(rolesRes.data || []);
-      } catch (e) {
-        console.warn('Roles not loaded:', e);
-        setRolesList([]);
-      }
-      try {
-        const statusesRes = await accountAPI.getStatuses();
-        setStatusesList(statusesRes.data || []);
-      } catch (e) {
-        console.warn('Statuses not loaded:', e);
-        setStatusesList([]);
-      }
     } catch (error) {
       setAccounts([]);
       const msg = error.response?.data?.message || error.response?.data || error.message;
       const status = error.response?.status;
-      let errText = status ? `Lỗi ${status}: ${msg || 'Không lấy được dữ liệu'}` : `Lỗi: ${msg || 'Kiểm tra backend đang chạy (port 8081)'}`;
+      let errText = status ? `Error ${status}: ${msg || 'Failed to load data'}` : `Error: ${msg || 'Check that backend is running.'}`;
       if (status === 404 && (msg || '').toLowerCase().includes('static resource')) {
-        errText = 'Backend chưa chạy hoặc không đúng ứng dụng. Chạy Spring Boot (gradlew bootRun) tại thư mục SEP490_G84, port 8081.';
+        errText = 'Backend is not running or wrong application. Run Spring Boot (gradlew bootRun) in SEP490_G84 folder.';
       }
       setLoadError(errText);
     } finally {
@@ -158,6 +173,18 @@ const AccountList = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+  const closeViewModal = () => setViewModalId(null);
+  const closeEditModal = () => setEditModalId(null);
+  const closeCreateModal = () => setCreateModalOpen(false);
+  const onEditSuccess = () => {
+    fetchAccounts();
+    setEditModalId(null);
+  };
+  const onCreateSuccess = () => {
+    fetchAccounts();
+    setCreateModalOpen(false);
+  };
+
   if (!currentUser || !currentUser.permissions?.canAccessAccountList) return null;
 
   return (
@@ -172,7 +199,7 @@ const AccountList = () => {
         <div className="d-flex gap-2 align-items-center">
           <button
             className="btn-add-account"
-            onClick={() => navigate('/accounts/create')}
+            onClick={() => setCreateModalOpen(true)}
           >
             <i className="bi bi-person-plus-fill"></i>
             {currentUser.permissions?.isManager ? 'Create Staff' : 'Create Account'}
@@ -244,7 +271,7 @@ const AccountList = () => {
           <div className="alert alert-danger mb-3">
             <i className="bi bi-exclamation-triangle me-2"></i>
             {loadError}
-            <button type="button" className="btn btn-sm btn-outline-danger ms-2" onClick={() => { setLoadError(null); fetchAccounts(); }}>Thử lại</button>
+            <button type="button" className="btn btn-sm btn-outline-danger ms-2" onClick={() => { setLoadError(null); fetchAccounts(); }}>Retry</button>
           </div>
         )}
         {loading ? (
@@ -329,7 +356,7 @@ const AccountList = () => {
                             <button
                               className="action-btn view"
                               title="View"
-                              onClick={() => navigate(`/accounts/${account.userId}`)}
+                              onClick={() => setViewModalId(account.userId)}
                             >
                               <i className="bi bi-eye"></i>
                             </button>
@@ -338,7 +365,7 @@ const AccountList = () => {
                             <button
                               className="action-btn edit"
                               title="Edit"
-                              onClick={() => navigate(`/accounts/${account.userId}/edit`)}
+                              onClick={() => setEditModalId(account.userId)}
                             >
                               <i className="bi bi-pencil"></i>
                             </button>
@@ -356,8 +383,8 @@ const AccountList = () => {
                   ) : (
                     <tr>
                       <td colSpan="9" className="text-center py-4 text-muted">
-                        {loadError ? 'Không tải được dữ liệu.' : 'No accounts found'}
-                        {!loadError && currentUser?.permissions?.isManager && ' (Manager chỉ xem được tài khoản Staff.)'}
+                        {loadError ? 'Failed to load data.' : 'No accounts found'}
+                        {!loadError && currentUser?.permissions?.isManager && ' (Manager can only view Staff accounts.)'}
                       </td>
                     </tr>
                   )}
@@ -401,6 +428,60 @@ const AccountList = () => {
           </>
         )}
       </div>
+
+      {/* Modal: View User Details */}
+      {viewModalId != null && (
+        <div
+          className="service-modal-overlay"
+          onClick={closeViewModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="user-detail-title"
+        >
+          <div className="service-modal-box account-modal-box" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="service-modal-close" onClick={closeViewModal} aria-label="Close">
+              <i className="bi bi-x-lg" />
+            </button>
+            <UserDetail userId={viewModalId} onClose={closeViewModal} isModal />
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit User */}
+      {editModalId != null && (
+        <div
+          className="service-modal-overlay"
+          onClick={closeEditModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-user-title"
+        >
+          <div className="service-modal-box account-modal-box" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="service-modal-close" onClick={closeEditModal} aria-label="Close">
+              <i className="bi bi-x-lg" />
+            </button>
+            <EditStaff id={String(editModalId)} onClose={closeEditModal} onSuccess={onEditSuccess} isModal />
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Create Account */}
+      {createModalOpen && (
+        <div
+          className="service-modal-overlay"
+          onClick={closeCreateModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-account-title"
+        >
+          <div className="service-modal-box account-modal-box" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="service-modal-close" onClick={closeCreateModal} aria-label="Close">
+              <i className="bi bi-x-lg" />
+            </button>
+            <CreateAccount onClose={closeCreateModal} onSuccess={onCreateSuccess} isModal />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

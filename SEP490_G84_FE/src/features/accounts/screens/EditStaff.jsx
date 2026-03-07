@@ -4,9 +4,10 @@ import { accountAPI, branchAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import './EditStaff.css';
 
-const EditStaff = () => {
+const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: idFromRoute } = useParams();
+  const id = idProp ?? idFromRoute;
   const currentUser = useCurrentUser();
 
   const [formData, setFormData] = useState({
@@ -28,17 +29,17 @@ const EditStaff = () => {
 
   useEffect(() => {
     if (!currentUser) {
-      navigate('/login');
+      if (!isModal) navigate('/login');
       return;
     }
     if (!currentUser.permissions?.canAccessAccountList) {
-      navigate('/dashboard');
+      if (!isModal) navigate('/dashboard');
       return;
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, isModal]);
 
   useEffect(() => {
-    if (currentUser?.permissions?.canAccessAccountList) fetchData();
+    if (currentUser?.permissions?.canAccessAccountList && id) fetchData();
   }, [id, currentUser]);
 
   const fetchData = async () => {
@@ -83,9 +84,11 @@ const EditStaff = () => {
       console.error('Error fetching data:', error);
       if (error.response?.status === 403) {
         alert('Manager can only edit staff accounts.');
-        navigate('/accounts');
+        if (isModal && onClose) onClose();
+        else navigate('/accounts');
       } else {
         alert('Could not load user. Check that the user exists.');
+        if (isModal && onClose) onClose();
       }
     } finally {
       setLoading(false);
@@ -147,7 +150,9 @@ const EditStaff = () => {
       await accountAPI.updateAccount(id, updateData, currentUser?.userId);
 
       alert('Updated successfully.');
-      navigate('/accounts', { state: { refreshList: true } });
+      if (isModal && onSuccess) onSuccess();
+      if (isModal && onClose) onClose();
+      else navigate('/accounts', { state: { refreshList: true } });
     } catch (error) {
       console.error('Error updating user:', error);
       const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response?.data : JSON.stringify(error.response?.data));
@@ -164,7 +169,8 @@ const EditStaff = () => {
   };
 
   const handleCancel = () => {
-    navigate('/accounts');
+    if (isModal && onClose) onClose();
+    else navigate('/accounts');
   };
 
   // Role options from API (assignable roles for current user)

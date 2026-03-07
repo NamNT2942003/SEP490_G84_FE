@@ -4,9 +4,10 @@ import { accountAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import './UserDetail.css';
 
-const UserDetail = () => {
-  const { id } = useParams();
+const UserDetail = ({ userId: userIdProp, onClose, isModal }) => {
+  const { id: idFromRoute } = useParams();
   const navigate = useNavigate();
+  const id = userIdProp ?? idFromRoute;
   const currentUser = useCurrentUser();
   const [showPassword, setShowPassword] = useState(false);
   const [user, setUser] = useState(null);
@@ -75,7 +76,7 @@ const UserDetail = () => {
       }
     };
 
-    if (currentUser !== undefined) fetchUserDetail();
+    if (currentUser !== undefined && id) fetchUserDetail();
   }, [id, currentUser?.userId]);
 
   useEffect(() => {
@@ -94,7 +95,8 @@ const UserDetail = () => {
   }, [currentUser?.userId, id]);
 
   const handleBack = () => {
-    navigate('/accounts');
+    if (isModal && onClose) onClose();
+    else navigate('/accounts');
   };
 
   if (loading) {
