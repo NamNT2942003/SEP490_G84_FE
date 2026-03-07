@@ -15,7 +15,10 @@ import RoomManagement from "@/features/admin/screens/RoomManagement";
 import FurnitureManagement from "@/features/admin/screens/FurnitureManagement";
 import PaymentSelection from "@/features/payment/screens/PaymentSelection.jsx";
 import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
-
+import AccountList from '@/features/accounts/screens/AccountList';
+import UserDetail from '@/features/accounts/screens/UserDetail';
+import EditStaff from '@/features/accounts/screens/EditStaff';
+import CreateAccount from '@/features/accounts/screens/CreateAccount';
 
 const AppRouter = () => {
   return (
