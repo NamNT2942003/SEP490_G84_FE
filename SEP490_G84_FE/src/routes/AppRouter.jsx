@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import {Routes, Route, Navigate} from "react-router-dom";
 
 import HomePage from "../features/home/screens/HomePage.jsx";
 import SearchRoom from "../features/home/screens/SearchRoom.jsx";
@@ -19,6 +19,24 @@ import AccountList from '@/features/accounts/screens/AccountList';
 import UserDetail from '@/features/accounts/screens/UserDetail';
 import EditStaff from '@/features/accounts/screens/EditStaff';
 import CreateAccount from '@/features/accounts/screens/CreateAccount';
+import {useCurrentUser} from "@/hooks/useCurrentUser.js";
+/** Staff không được vào trang Account List → redirect về /dashboard */
+const BlockStaffFromAccounts = ({ children }) => {
+    const currentUser = useCurrentUser();
+    if (currentUser?.permissions?.isStaff) {
+        return <Navigate to="/dashboard" replace />;
+    }
+    return children;
+};
+
+// /** Staff không được vào trang Service Management → redirect về /dashboard */
+// const BlockStaffFromServices = ({ children }) => {
+//     const currentUser = useCurrentUser();
+//     if (currentUser?.permissions?.isStaff) {
+//         return <Navigate to="/dashboard" replace />;
+//     }
+//     return children;
+// };
 
 const AppRouter = () => {
   return (
