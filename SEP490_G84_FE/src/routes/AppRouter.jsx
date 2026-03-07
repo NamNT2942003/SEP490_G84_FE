@@ -20,7 +20,6 @@ import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
 const AppRouter = () => {
   return (
     <Routes>
-      {/* Public pages - No layout */}
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -61,6 +60,80 @@ const AppRouter = () => {
 
       {/* Catch all - redirect to login */}
       <Route path="*" element={<Login />} />
+      {/* --- NHÓM 2: CÁC TRANG PRIVATE (CÓ FULL LAYOUT) --- */}
+      {/* Cách dùng: Bọc Component con vào trong MainLayout */}
+
+      <Route path="/dashboard" element={
+        <MainLayout>
+          <Dashboard />
+        </MainLayout>
+      } />
+
+      <Route path="/rooms" element={
+        <MainLayout>
+          <RoomList />
+        </MainLayout>
+      } />
+
+      <Route path="/services" element={
+        <MainLayout>
+          <BlockStaffFromServices>
+            <ServiceList />
+          </BlockStaffFromServices>
+        </MainLayout>
+      } />
+
+      <Route path="/services/:id/edit" element={
+        <MainLayout>
+          <BlockStaffFromServices>
+            <EditService />
+          </BlockStaffFromServices>
+        </MainLayout>
+      } />
+
+      <Route path="/services/:id" element={
+        <MainLayout>
+          <BlockStaffFromServices>
+            <ServiceDetail />
+          </BlockStaffFromServices>
+        </MainLayout>
+      } />
+
+      <Route path="/accounts" element={
+        <MainLayout>
+          <BlockStaffFromAccounts>
+            <AccountList />
+          </BlockStaffFromAccounts>
+        </MainLayout>
+      } />
+
+      <Route path="/accounts/create" element={
+        <MainLayout>
+          <BlockStaffFromAccounts>
+            <CreateAccount />
+          </BlockStaffFromAccounts>
+        </MainLayout>
+      } />
+
+      <Route path="/accounts/:id" element={
+        <MainLayout>
+          <BlockStaffFromAccounts>
+            <UserDetail />
+          </BlockStaffFromAccounts>
+        </MainLayout>
+      } />
+
+      <Route path="/accounts/:id/edit" element={
+        <MainLayout>
+          <BlockStaffFromAccounts>
+            <EditStaff />
+          </BlockStaffFromAccounts>
+        </MainLayout>
+      } />
+
+      {/* Redirect mặc định về login */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 };
