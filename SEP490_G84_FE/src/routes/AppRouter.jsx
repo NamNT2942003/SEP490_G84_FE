@@ -72,35 +72,35 @@ const AppRouter = () => {
         </MainLayout>
       } />
 
-      <Route path="/rooms" element={
-        <MainLayout>
-          <RoomList />
-        </MainLayout>
-      } />
+      {/*<Route path="/rooms" element={*/}
+      {/*  <MainLayout>*/}
+      {/*    <RoomList />*/}
+      {/*  </MainLayout>*/}
+      {/*} />*/}
 
-      <Route path="/services" element={
-        <MainLayout>
-          <BlockStaffFromServices>
-            <ServiceList />
-          </BlockStaffFromServices>
-        </MainLayout>
-      } />
+      {/*<Route path="/services" element={*/}
+      {/*  <MainLayout>*/}
+      {/*    <BlockStaffFromServices>*/}
+      {/*      <ServiceList />*/}
+      {/*    </BlockStaffFromServices>*/}
+      {/*  </MainLayout>*/}
+      {/*} />*/}
 
-      <Route path="/services/:id/edit" element={
-        <MainLayout>
-          <BlockStaffFromServices>
-            <EditService />
-          </BlockStaffFromServices>
-        </MainLayout>
-      } />
+      {/*<Route path="/services/:id/edit" element={*/}
+      {/*  <MainLayout>*/}
+      {/*    <BlockStaffFromServices>*/}
+      {/*      <EditService />*/}
+      {/*    </BlockStaffFromServices>*/}
+      {/*  </MainLayout>*/}
+      {/*} />*/}
 
-      <Route path="/services/:id" element={
-        <MainLayout>
-          <BlockStaffFromServices>
-            <ServiceDetail />
-          </BlockStaffFromServices>
-        </MainLayout>
-      } />
+      {/*<Route path="/services/:id" element={*/}
+      {/*  <MainLayout>*/}
+      {/*    <BlockStaffFromServices>*/}
+      {/*      <ServiceDetail />*/}
+      {/*    </BlockStaffFromServices>*/}
+      {/*  </MainLayout>*/}
+      {/*} />*/}
 
       <Route path="/accounts" element={
         <MainLayout>

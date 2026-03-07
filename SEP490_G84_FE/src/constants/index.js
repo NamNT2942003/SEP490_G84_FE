@@ -32,3 +32,5 @@ export const APP_STRINGS = {
   FOOTER: 'Protected by enterprise-grade security.',
   COPYRIGHT: '© 2026 An Nguyen Hotel & Serviced Apartment.'
 };
+
+export const STORAGE_ACCESS_TOKEN = 'accessToken';
