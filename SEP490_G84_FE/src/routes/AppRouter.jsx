@@ -49,25 +49,14 @@ const AppRouter = () => {
         <Route path="/payment-selection" element={<PaymentSelection />} />
         <Route path="/payment/result" element={<PaymentResult />} />
 
-
-      {/* Main pages - With Header/Footer/Sidebar */}
-      <Route
-        path="/dashboard"
-        element={
-          <MainLayout>
-            <Dashboard />
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/rooms"
-        element={
-          <MainLayout>
-            <div>Room List (Coming Soon)</div>
-          </MainLayout>
-        }
-      />
+      {/*<Route*/}
+      {/*  path="/rooms"*/}
+      {/*  element={*/}
+      {/*    <MainLayout>*/}
+      {/*      <div>Room List (Coming Soon)</div>*/}
+      {/*    </MainLayout>*/}
+      {/*  }*/}
+      {/*/>*/}
 
       {/* Admin pages - With Sidebar only (no Header/Footer) */}
       <Route path="/admin/rooms" element={<RoomManagement />} />
@@ -79,7 +68,7 @@ const AppRouter = () => {
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
 
-      {/* Catch all - redirect to login */}
+       Catch all - redirect to login
       <Route path="*" element={<Login />} />
       {/* --- NHÓM 2: CÁC TRANG PRIVATE (CÓ FULL LAYOUT) --- */}
       {/* Cách dùng: Bọc Component con vào trong MainLayout */}
