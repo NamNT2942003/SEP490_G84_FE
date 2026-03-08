@@ -4,6 +4,11 @@ const cleanRoomType = (room) => {
   if (!room) return room;
   return {
     ...room, // Giữ lại tất cả các trường (bao gồm availableCount, branchId, branchName...)
+    // ⚠️ TEMPORARY FIX: Nếu backend chưa có availableCount, set default
+    // TODO: Backend cần thêm field availableCount vào RoomSearchResult DTO
+    availableCount: room.availableCount !== undefined && room.availableCount !== null
+      ? room.availableCount
+      : 999, // Default: không giới hạn (chờ backend implement)
     branch: room.branch
         ? {
           branchId: room.branch.branchId,

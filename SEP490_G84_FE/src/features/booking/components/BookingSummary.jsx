@@ -75,9 +75,15 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                     <span className="fw-bold text-dark">Subtotal</span>
                     <span className="fw-bold text-olive">
                 {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                    selectedRooms.reduce((sum, room) => sum + (room.basePrice * (room.quantity || 1)), 0) * nights
+                    selectedRooms.reduce((sum, room) => sum + ((room.basePrice || room.price) * (room.quantity || 1) * nights), 0)
                 )}
             </span>
+                </div>
+                <div className="mt-2">
+                    <p className="text-muted small mb-1">
+                        <i className="fa-solid fa-info-circle me-1"></i>
+                        {nights} {nights > 1 ? 'nights' : 'night'} × {selectedRooms.reduce((sum, r) => sum + (r.quantity || 1), 0)} {selectedRooms.reduce((sum, r) => sum + (r.quantity || 1), 0) > 1 ? 'rooms' : 'room'}
+                    </p>
                 </div>
                 <small className="text-muted" style={{ fontSize: '11px' }}>*Taxes and fees included</small>
             </div>
