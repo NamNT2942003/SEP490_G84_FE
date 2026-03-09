@@ -3,24 +3,24 @@ import { Link } from "react-router-dom";
 import {
   useScrollAnimation,
   useStaggerAnimation,
-} from "../../../hooks/useScrollAnimation";
+} from "../../../hooks/useScrollAnimation.js";
 import "./css/HomePage.css";
 const HERO_SLIDES = [
   {
     image:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1920&q=80",
+      "https://scontent.fhan7-1.fna.fbcdn.net/v/t39.30808-6/641447135_1357900659693199_1668576787501991307_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=7b2446&_nc_ohc=KrSKZ-eHrXMQ7kNvwFzkG3T&_nc_oc=AdlBd8H4zQr6YNifcAQWpV9C-qzw3CoJUVCdgNYGGYBpeUBtyOFK2wK0m0Zv42vjlQs&_nc_zt=23&_nc_ht=scontent.fhan7-1.fna&_nc_gid=ETQeIxmxImE_iNhr5V7Ypw&_nc_ss=8&oh=00_AfsDAbJu2prg3aQj-RPg0JhZvTe3ou8k6AeR80EuCHGEfg&oe=69A89CD8",
     title: "Experience Elegance",
     subtitle: "Where luxury meets the warmth of home",
   },
   {
     image:
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1920&q=80",
+      "https://scontent.fhan7-1.fna.fbcdn.net/v/t39.30808-6/641205524_1360500162766582_2740954552604800354_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=7b2446&_nc_ohc=eUK2zhBAZnMQ7kNvwE4XAIO&_nc_oc=AdkUR0OOuX66ikaRD7JNgf6vwzsSHWYR77ysrHTmMQ_9NEIbfLYSqcS6HQsyJwhlQSQ&_nc_zt=23&_nc_ht=scontent.fhan7-1.fna&_nc_gid=mevxhX8tMDF6tOHod1MEeA&_nc_ss=8&oh=00_AfuPv2DhkvYbt6mVc8WWFSIw5abBJ6EY3VYfb_rOa0XQkQ&oe=69A893D6",
     title: "Exquisite Accommodations",
     subtitle: "Private retreats with world-class modern amenities",
   },
   {
     image:
-      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1920&q=80",
+      "https://scontent.fhan7-1.fna.fbcdn.net/v/t39.30808-6/643521088_1361414576008474_5933161240845747647_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=7b2446&_nc_ohc=W_uiJ4HdAt4Q7kNvwHx03Yt&_nc_oc=AdlOynCK693024hHFnbEjTzBYWETH4TxOM7xiC3D01WJtl4_WART_dS6lH-nMu2ZsOc&_nc_zt=23&_nc_ht=scontent.fhan7-1.fna&_nc_gid=8Y8dDaj3UrpNWBFtXaFZiA&_nc_ss=8&oh=00_AfvNVuevleg9vyhtk8JTEfdCorluTaoX1cL-hQCOaorwUg&oe=69A8AC20",
     title: "Impeccable Service",
     subtitle: "Dedicated professionals at your service around the clock",
   },
@@ -29,15 +29,15 @@ const HERO_SLIDES = [
 const BRANCHES = [
   {
     id: 1,
-    name: "AN NGUYEN Hanoi Hotel",
+    name: "AN NGUYEN Boutique",
     type: "Luxury Hotel",
     typeIcon: "bi-building",
-    address: "123 Hoan Kiem District, Hanoi",
+    address: "10 Hang Giay Street, Hoan Kiem, Hanoi",
     phone: "024-3826-1234",
     image:
-      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80",
+      "https://pix8.agoda.net/hotelImages/42087654/-1/ddb056b1f8acce677cc78b4c7edb16a2.jpg?ce=0&s=600x",
     secondaryImage:
-      "https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=400&q=80",
+      "https://pix8.agoda.net/hotelImages/42087654/-1/e56c0aa2a90d79671cfe06ee39f7ec29.jpg?ce=0&s=600x",
     description:
       "Our flagship 5-star hotel in the heart of Hanoi, offering world-class amenities, impeccable service, and stunning views of Hoan Kiem Lake. The perfect blend of modern luxury and Vietnamese heritage.",
     experience: "10+",
@@ -80,56 +80,77 @@ const BRANCHES = [
   },
   {
     id: 2,
-    name: "AN NGUYEN Sapa Retreat",
-    type: "Mountain Homestay",
+    name: "AN NGUYEN Buiding",
+    type: " Homestay",
     typeIcon: "bi-house-heart",
-    address: "456 Muong Hoa Valley, Sapa, Lao Cai",
-    phone: "021-4872-5678",
+    address: "59 Nguyen Khac Hieu Street",
+    phone: "024 3266 9969",
     image:
-      "https://images.unsplash.com/photo-1587381420270-3e1a5b9e6904?auto=format&fit=crop&w=800&q=80",
+      "https://cf.bstatic.com/xdata/images/hotel/max1024x768/102911438.jpg?k=bce39595f42fc74fe3239419f7c8038373da283fa4e5651c3e5f3a7f34ddfa7e&o=",
     secondaryImage:
-      "https://images.unsplash.com/photo-1602002418816-5c0aeef426aa?auto=format&fit=crop&w=400&q=80",
+      "https://cf.bstatic.com/xdata/images/hotel/max1024x768/102911228.jpg?k=44fb2c343c41a241eb53eb5536ebdf9016958b83dbb7097f11301124446537b3&o=",
     description:
       "Escape to the misty mountains of Sapa. Our charming homestay offers authentic local experiences, breathtaking terraced rice field views, and warm hospitality in the heart of nature.",
     experience: "5+",
     experienceText: "Years of Hospitality",
     roomTypes: [
       {
-        name: "Mountain View Bungalow",
+        name: "Studio Superior",
         maxGuests: "2 Adults",
         price: "$45/night",
       },
       {
-        name: "Valley Suite",
+        name: "One Bedroom Apartment",
         maxGuests: "2 Adults, 2 Children",
         price: "$65/night",
       },
       {
-        name: "Traditional Wooden House",
+        name: "Two Bedroom Apartment",
+        maxGuests: "3 Adults",
+        price: "$85/night",
+      },
+       {
+        name: "Standard Studio Apartment",
         maxGuests: "4 Adults",
         price: "$85/night",
       },
+      {
+        name: "Honeymoon Suite ",
+        maxGuests: "2 Adults",
+        price: "$100/night",
+      },
+      {
+        name: "Family Room Overlooking the lake",
+        maxGuests: "4 Adults, 2 Children",
+        price: "$120/night",
+      }
+
     ],
     amenities: [
-      "Organic Farm",
-      "Trekking Tours",
-      "Cultural Experiences",
-      "Local Cuisine",
-      "Fireplace Lounge",
-      "Garden Terrace",
+      "Free WiFi",
+      "Airport shuttle service (free)",
+      "Family room",
+      "Non-smoking room",
+      "24-hour reception",
+      "Rooftop / patio",
+      "Garden",
+      "Room service",
+      "Elevator",
+      "Laundry",
+
     ],
   },
   {
     id: 3,
-    name: "AN NGUYEN Phu Quoc Villa",
-    type: "Beachfront Homestay",
+    name: "AN NGUYEN Lakeside residence",
+    type: "Truc Bach Homestay",
     typeIcon: "bi-sun",
-    address: "789 Long Beach Road, Phu Quoc Island",
-    phone: "029-7391-9012",
+    address: "45 Truc Bach Street, Ba Dinh District, Hanoi",
+    phone: "024 3266 9969",
     image:
-      "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=800&q=80",
+      "https://scontent.fhan7-1.fna.fbcdn.net/v/t39.30808-6/643521088_1361414576008474_5933161240845747647_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=7b2446&_nc_ohc=W_uiJ4HdAt4Q7kNvwHx03Yt&_nc_oc=AdlOynCK693024hHFnbEjTzBYWETH4TxOM7xiC3D01WJtl4_WART_dS6lH-nMu2ZsOc&_nc_zt=23&_nc_ht=scontent.fhan7-1.fna&_nc_gid=QJF8yrG-jRPGsjHVgVbiow&_nc_ss=8&oh=00_Afsa5UKvyk723BXOcOxo4IZwK-peEuUOJI18tIDvbjVC1w&oe=69A8AC20",
     secondaryImage:
-      "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=400&q=80",
+      "https://scontent.fhan7-1.fna.fbcdn.net/v/t39.30808-6/641670957_1361414609341804_535800936866752484_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_ohc=brfbbU0cNu4Q7kNvwFOdFM9&_nc_oc=AdmJuXLJtHwvNPI-X8cLFd7U0RWKqD7OIdxfMS3WLs_yDz3_1ODacQ4p_xN48Ak5VRM&_nc_zt=23&_nc_ht=scontent.fhan7-1.fna&_nc_gid=VZBKo0h6IKl5Co8-oRd96A&_nc_ss=8&oh=00_AfuAzJmNQ-iLBcx918s6YfBYTLktzfCAhWYc_XVMgbs4wQ&oe=69A896A4",
     description:
       "Wake up to pristine beaches and crystal-clear waters. Our beachfront villa offers a tropical paradise with private access to the beach, stunning sunsets, and island adventures.",
     experience: "3+",
@@ -148,12 +169,12 @@ const BRANCHES = [
       },
     ],
     amenities: [
-      "Private Beach Access",
-      "Snorkeling & Diving",
+      "Laundry service",
+      "Daily room cleaning",
       "Sunset Bar",
-      "Seafood Restaurant",
-      "Kayaking",
-      "Island Tours",
+      "Luggage storage",
+      "Air conditioner in the common area",
+      "Customer service staff",
     ],
   },
 ];
@@ -229,17 +250,17 @@ const AMENITIES = [
 
 const GALLERY_IMAGES = [
   {
-    src: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=600&q=80",
+    src: "https://scontent.fhan7-1.fna.fbcdn.net/v/t39.30808-6/642277844_1361414689341796_7514751098715205149_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=7b2446&_nc_ohc=n_8RWGZFXEsQ7kNvwFITOsw&_nc_oc=AdkZ-aPhOTnfVux0zfBQZ-nxjdDABvbh1zNOZQrthHmNnT81nrgNJQRPp9X8zjAQoC0&_nc_zt=23&_nc_ht=scontent.fhan7-1.fna&_nc_gid=xY5g_vIvJYTNH_csX28BUA&_nc_ss=8&oh=00_AfsMKaZI7vD3fQw5-tvk-IDbD4jVX82bW0Qkj5v7ZnGw9g&oe=69A9ACAE",
     alt: "Hotel Lobby",
     span: "tall",
   },
   {
-    src: "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=600&q=80",
+    src: "https://scontent.fhan7-1.fna.fbcdn.net/v/t39.30808-6/643521088_1361414576008474_5933161240845747647_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=7b2446&_nc_ohc=W_uiJ4HdAt4Q7kNvwHx03Yt&_nc_oc=AdlOynCK693024hHFnbEjTzBYWETH4TxOM7xiC3D01WJtl4_WART_dS6lH-nMu2ZsOc&_nc_zt=23&_nc_ht=scontent.fhan7-1.fna&_nc_gid=0eLq7Niicq0k3qwFw6Uu4g&_nc_ss=8&oh=00_Aft1ny1jou2_mSWX1xw6ax3hpZIuLTtJDlrT1rTzEBg9QA&oe=69A98D20",
     alt: "Swimming Pool",
     span: "wide",
   },
   {
-    src: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=600&q=80",
+    src: "https://scontent.fhan7-1.fna.fbcdn.net/v/t39.30808-6/642277844_1361414689341796_7514751098715205149_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=7b2446&_nc_ohc=n_8RWGZFXEsQ7kNvwFITOsw&_nc_oc=AdkZ-aPhOTnfVux0zfBQZ-nxjdDABvbh1zNOZQrthHmNnT81nrgNJQRPp9X8zjAQoC0&_nc_zt=23&_nc_ht=scontent.fhan7-1.fna&_nc_gid=0I1V0a7m608PJo1T3rhUew&_nc_ss=8&oh=00_Afvw2DB4nWQ_7pbotmUD5Tfbv0zlETsY7pvpNd-Ymz4Gsg&oe=69A9ACAE",
     alt: "Restaurant",
     span: "normal",
   },
@@ -353,7 +374,7 @@ const HeroSection = () => {
         <div
           className={`hero-text-container ${isTransitioning ? "fade-out" : "fade-in"}`}
         >
-          <div className="hero-badge">★ LUXURY HOTEL & APARTMENT ★</div>
+          <div className="hero-badge">An Nguyen - Hotel & Serviced Apartment</div>
           <h1 className="hero-title">{slide.title}</h1>
           <p className="hero-subtitle">{slide.subtitle}</p>
           <div className="hero-actions">

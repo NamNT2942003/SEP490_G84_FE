@@ -3,24 +3,20 @@
 const cleanRoomType = (room) => {
   if (!room) return room;
   return {
-    roomTypeId: room.roomTypeId,
-    name: room.name,
-    maxAdult: room.maxAdult,
-    maxChildren: room.maxChildren,
-    basePrice: room.basePrice,
-    image: room.image,
-    description: room.description,
-    area: room.area,
-    bedType: room.bedType,
-    bedCount: room.bedCount,
+    ...room, // Giữ lại tất cả các trường (bao gồm availableCount, branchId, branchName...)
+    // ⚠️ TEMPORARY FIX: Nếu backend chưa có availableCount, set default
+    // TODO: Backend cần thêm field availableCount vào RoomSearchResult DTO
+    availableCount: room.availableCount !== undefined && room.availableCount !== null
+      ? room.availableCount
+      : 999, // Default: không giới hạn (chờ backend implement)
     branch: room.branch
-      ? {
+        ? {
           branchId: room.branch.branchId,
           branchName: room.branch.branchName,
           address: room.branch.address,
           contactNumber: room.branch.contactNumber,
         }
-      : null,
+        : null,
   };
 };
 
@@ -50,7 +46,8 @@ export const cleanRoomTypeDetail = (data) => {
     paymentType: ratePlan.paymentType,
   }));
 
+  // Clean the main roomType object while keeping its extended properties
   const roomType = cleanRoomType(data.roomType);
 
-  return { roomType, amenities, ratePlans };
+  return { ...data, roomType, amenities, ratePlans };
 };
