@@ -147,7 +147,7 @@ const SearchRoom = () => {
             sum + ((room.basePrice || room.price) * (room.quantity || 1) * nights), 0
         );
 
-        navigate('/GuestInformation', {
+        navigate('/guest-infomation', {
             state: {
                 selectedRooms: selectedCart,
                 checkIn: searchParams?.checkIn,
