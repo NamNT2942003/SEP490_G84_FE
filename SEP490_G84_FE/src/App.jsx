@@ -1,15 +1,12 @@
-import Header from "./components/layout/Header";
-import Footer from "./components/layout/Footer";
-import AppRouter from "./routes/AppRouter";
+
+import AppRouter from './routes/AppRouter';
 
 function App() {
-  return (
-    <div className="d-flex flex-column min-vh-100">
-      <main className="flex-fill">
-        <AppRouter />
-      </main>
-    </div>
-  );
+    return (
+        <div className="app">
+            <AppRouter />
+        </div>
+    );
 }
 
 export default App;
