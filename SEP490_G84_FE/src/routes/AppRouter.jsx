@@ -15,6 +15,8 @@ import SearchRoom from "../features/booking/screens/SearchRoom";
 import AboutPage from "../features/booking/screens/AboutPage";
 import ContactPage from "../features/booking/screens/ContactPage";
 import GuestInformation from "@/features/booking/screens/GuestInformation.jsx";
+import PaymentSelection from "@/features/booking/screens/PaymentSelection.jsx";
+import PaymentResult from "@/features/booking/screens/PaymentResult.jsx";
 
 // --- IMPORTS TỪ NHÁNH DONGPH (ADMIN PAGES) ---
 import Dashboard from '@/features/dashboard/screens/Dashboard';
@@ -34,6 +36,8 @@ const AppRouter = () => {
             <Route path="/about" element={<ClientLayout><AboutPage/></ClientLayout>}/>
             <Route path="/contact" element={<ClientLayout><ContactPage/></ClientLayout>}/>
             <Route path="/guest-information" element={<ClientLayout><GuestInformation/></ClientLayout>}/>
+            <Route path="/payment-selection" element={<PaymentSelection/>}/>
+            <Route path="/payment/result" element={<PaymentResult/>}/>
 
             {/* --- NHÓM 2: CÁC TRANG XÁC THỰC TÀI KHOẢN --- */}
             <Route path="/login" element={<ClientLayout><Login/></ClientLayout>}/>
