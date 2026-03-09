@@ -1,8 +1,47 @@
 /* Account List Styles - Clean Modern Design */
-.account-management-container {
-  padding: 24px;
-  background-color: #f8f9fa;
-  min-height: 100vh;
+
+
+/* --- CSS CHO MODAL POPUP --- */
+.service-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 20px; /* Thêm khoảng không xung quanh để popup không chạm viền màn hình */
+  box-sizing: border-box;
+}
+
+.service-modal-box {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 950px;
+  max-height: 90vh !important; /* ÉP khung chỉ được cao tối đa 90% màn hình */
+  overflow-y: auto !important; /* ÉP HIỆN THANH CUỘN DỌC TẠI ĐÂY */
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.service-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: #6c757d;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.service-modal-close:hover {
+  color: #dc3545;
 }
 
 /* Header */
@@ -169,6 +208,8 @@
 
 .table-responsive {
   overflow-x: auto;
+  overflow-y: auto; /* Thêm thanh cuộn dọc */
+  max-height: 55vh; /* Giới hạn chiều cao bảng khoảng 55% màn hình */
 }
 
 .account-table {

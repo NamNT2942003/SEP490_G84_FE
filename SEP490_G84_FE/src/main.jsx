@@ -15,7 +15,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
         {/* 2. Bọc GoogleOAuthProvider bên ngoài Provider của Redux */}
-        <GoogleOAuthProvider clientId="nhap-tam-client-id-bua-vao-day-de-test">
+        <GoogleOAuthProvider clientId="797386412355-9p28298hvgjg8ccrf800t2laaq44ltk9.apps.googleusercontent.com">
             <Provider store={store}>
                 <BrowserRouter>
                     <App />

@@ -78,8 +78,8 @@ const CreateAccount = ({ onClose, onSuccess, isModal }) => {
       return {
         ...prev,
         additionalBranches: isSelected
-          ? prev.additionalBranches.filter(b => b !== branchName)
-          : [...prev.additionalBranches, branchName]
+            ? prev.additionalBranches.filter(b => b !== branchName)
+            : [...prev.additionalBranches, branchName]
       };
     });
   };
@@ -115,8 +115,8 @@ const CreateAccount = ({ onClose, onSuccess, isModal }) => {
 
       // Convert branch names to IDs
       const additionalBranchIds = branches
-        .filter(b => formData.additionalBranches.includes(b.branchName))
-        .map(b => b.branchId);
+          .filter(b => formData.additionalBranches.includes(b.branchName))
+          .map(b => b.branchId);
 
       // Prepare data for API
       const requestData = {
@@ -155,174 +155,176 @@ const CreateAccount = ({ onClose, onSuccess, isModal }) => {
   if (!currentUser || !currentUser.permissions?.canAccessAccountList) return null;
 
   return (
-    <div className="create-account-container">
-      {/* Breadcrumb */}
-      <div className="breadcrumb-nav">
-        <span onClick={handleCancel} className="breadcrumb-link">Users</span>
-        <i className="bi bi-chevron-right"></i>
-        <span className="breadcrumb-current">Create New Account</span>
-      </div>
-
-      {/* Title */}
-      <h1 className="create-account-title">Create New Account</h1>
-
-      {error && (
-        <div className="alert alert-danger">
-          <i className="bi bi-exclamation-circle"></i>
-          {error}
-        </div>
-      )}
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="create-account-form">
-        <div className="form-card">
-          {/* Username & Full Name */}
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="username">Username</label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                value={formData.username}
-                onChange={handleInputChange}
-                className="form-control"
-                placeholder="Enter username"
-                required
-              />
+      <div className="create-account-container">
+        {/* Ẩn Breadcrumb nếu đang hiển thị trong Modal (chức năng duy nhất được đổi) */}
+        {!isModal && (
+            <div className="breadcrumb-nav">
+              <span onClick={handleCancel} className="breadcrumb-link">Users</span>
+              <i className="bi bi-chevron-right"></i>
+              <span className="breadcrumb-current">Create New Account</span>
             </div>
+        )}
 
-            <div className="form-group">
-              <label htmlFor="fullName">Full Name</label>
-              <input
-                type="text"
-                id="fullName"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleInputChange}
-                className="form-control"
-                placeholder="Enter full name"
-                required
-              />
+        {/* Title */}
+        <h1 className="create-account-title">Create New Account</h1>
+
+        {error && (
+            <div className="alert alert-danger">
+              <i className="bi bi-exclamation-circle"></i>
+              {error}
             </div>
-          </div>
+        )}
 
-          {/* Email & Password */}
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="email">Gmail</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="form-control"
-                placeholder="example@gmail.com"
-                required
-              />
-            </div>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="create-account-form">
+          <div className="form-card">
+            {/* Username & Full Name */}
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="username">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                    className="form-control"
+                    placeholder="Enter username"
+                    required
+                />
+              </div>
 
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                className="form-control"
-                placeholder="Enter password"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Role & Primary Branch */}
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="role">Role</label>
-              <div className="select-arrow-wrapper">
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  className="form-control select-with-arrow"
-                  required
-                >
-                  {roleOptions.map(role => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
-                </select>
-                <i className="bi bi-chevron-down select-arrow-icon" aria-hidden="true" />
+              <div className="form-group">
+                <label htmlFor="fullName">Full Name</label>
+                <input
+                    type="text"
+                    id="fullName"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    className="form-control"
+                    placeholder="Enter full name"
+                    required
+                />
               </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="primaryBranch">Primary Branch</label>
-              <div className="select-arrow-wrapper">
-                <select
-                  id="primaryBranch"
-                  name="primaryBranch"
-                  value={formData.primaryBranch}
-                  onChange={handlePrimaryBranchChange}
-                  className="form-control select-with-arrow"
-                  required
-                >
-                  <option value="">Select primary branch...</option>
-                  {branches.map(branch => (
-                    <option key={branch.branchId} value={branch.branchId}>
-                      {branch.branchName}
-                    </option>
-                  ))}
-                </select>
-                <i className="bi bi-chevron-down select-arrow-icon" aria-hidden="true" />
+            {/* Email & Password */}
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="email">Gmail</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="form-control"
+                    placeholder="example@gmail.com"
+                    required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="form-control"
+                    placeholder="Enter password"
+                    required
+                />
               </div>
             </div>
-          </div>
 
-          {/* Additional Branch Access */}
-          <div className="form-group full-width">
-            <label>Additional Branch Access</label>
-            <div className="branch-checkboxes">
-              {branches.map(branch => (
-                <div key={branch.branchId} className="checkbox-item">
-                  <input
-                    type="checkbox"
-                    id={`branch-${branch.branchId}`}
-                    checked={formData.additionalBranches.includes(branch.branchName)}
-                    onChange={() => handleBranchToggle(branch.branchName)}
-                  />
-                  <label htmlFor={`branch-${branch.branchId}`}>{branch.branchName}</label>
+            {/* Role & Primary Branch */}
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="role">Role</label>
+                <div className="select-arrow-wrapper">
+                  <select
+                      id="role"
+                      name="role"
+                      value={formData.role}
+                      onChange={handleInputChange}
+                      className="form-control select-with-arrow"
+                      required
+                  >
+                    {roleOptions.map(role => (
+                        <option key={role.value} value={role.value}>
+                          {role.label}
+                        </option>
+                    ))}
+                  </select>
+                  <i className="bi bi-chevron-down select-arrow-icon" aria-hidden="true" />
                 </div>
-              ))}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="primaryBranch">Primary Branch</label>
+                <div className="select-arrow-wrapper">
+                  <select
+                      id="primaryBranch"
+                      name="primaryBranch"
+                      value={formData.primaryBranch}
+                      onChange={handlePrimaryBranchChange}
+                      className="form-control select-with-arrow"
+                      required
+                  >
+                    <option value="">Select primary branch...</option>
+                    {branches.map(branch => (
+                        <option key={branch.branchId} value={branch.branchId}>
+                          {branch.branchName}
+                        </option>
+                    ))}
+                  </select>
+                  <i className="bi bi-chevron-down select-arrow-icon" aria-hidden="true" />
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Branch Access */}
+            <div className="form-group full-width">
+              <label>Additional Branch Access</label>
+              <div className="branch-checkboxes">
+                {branches.map(branch => (
+                    <div key={branch.branchId} className="checkbox-item">
+                      <input
+                          type="checkbox"
+                          id={`branch-${branch.branchId}`}
+                          checked={formData.additionalBranches.includes(branch.branchName)}
+                          onChange={() => handleBranchToggle(branch.branchName)}
+                      />
+                      <label htmlFor={`branch-${branch.branchId}`}>{branch.branchName}</label>
+                    </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="form-actions">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="btn btn-cancel"
-          >
-            Cancel
-          </button>
+          {/* Action Buttons */}
+          <div className="form-actions">
+            <button
+                type="button"
+                onClick={handleCancel}
+                className="btn btn-cancel"
+            >
+              Cancel
+            </button>
 
-          <button
-            type="submit"
-            className="btn btn-submit"
-            disabled={loading}
-          >
-            {loading ? 'Creating...' : 'Create Account'}
-          </button>
-        </div>
-      </form>
-    </div>
+            <button
+                type="submit"
+                className="btn btn-submit"
+                disabled={loading}
+            >
+              {loading ? 'Creating...' : 'Create Account'}
+            </button>
+          </div>
+        </form>
+      </div>
   );
 };
 
