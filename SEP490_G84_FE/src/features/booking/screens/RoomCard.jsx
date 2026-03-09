@@ -1,6 +1,6 @@
 const RoomCard = ({ room, onBooking, onViewDetail }) => {
   const formatPrice = (price) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "VND", minimumFractionDigits: 0 }).format(price);
+      new Intl.NumberFormat("en-US", { style: "currency", currency: "VND", minimumFractionDigits: 0 }).format(price);
 
   const getPlaceholderImage = (roomName) => {
     const n = roomName?.toLowerCase() || "";
@@ -14,8 +14,8 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
   const sold = room.availableCount <= 0;
 
   return (
-    <>
-      <style>{`
+      <>
+        <style>{`
         .rc{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.04);border:1px solid #eee;margin-bottom:16px;transition:box-shadow .25s,transform .25s}
         .rc:hover{box-shadow:0 8px 28px rgba(0,0,0,.08);transform:translateY(-2px)}
         .rc-row{display:flex}
@@ -44,45 +44,45 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
         .rc-detail:hover{border-color:#5C6F4E;color:#5C6F4E}
         @media(max-width:768px){.rc-row{flex-direction:column}.rc-img{flex:none;height:200px}.rc-price{flex:none;border-left:none;border-top:1px solid #f0f0f0;flex-direction:row;align-items:center;gap:12px;text-align:left}.rc-btns{flex-direction:row}.rc-book,.rc-detail{flex:1}}
       `}</style>
-      <div className="rc">
-        <div className="rc-row">
-          <div className="rc-img">
-            <img src={imageSrc} alt={room.name} onError={(e) => { e.target.src = getPlaceholderImage(room.name); }} />
-            {room.availableCount > 0 && room.availableCount <= 3 && (
-              <div className="rc-badge"><i className="bi bi-fire me-1"></i>Only {room.availableCount} left</div>
-            )}
-          </div>
-          <div className="rc-info">
-            <div className="rc-name">{room.name}</div>
-            <div className="rc-tags">
-              <span className="rc-tag"><i className="bi bi-people-fill"></i>Max {room.maxAdult + (room.maxChildren || 0)} guests</span>
-              <span className="rc-tag"><i className="bi bi-arrows-fullscreen"></i>{room.area} m²</span>
-              <span className="rc-tag"><i className="bi bi-person-fill"></i>{room.maxAdult} adults</span>
-              {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile"></i>{room.maxChildren} children</span>}
+        <div className="rc">
+          <div className="rc-row">
+            <div className="rc-img">
+              <img src={imageSrc} alt={room.name} onError={(e) => { e.target.src = getPlaceholderImage(room.name); }} />
+              {room.availableCount > 0 && room.availableCount <= 3 && (
+                  <div className="rc-badge"><i className="bi bi-fire me-1"></i>Only {room.availableCount} left</div>
+              )}
             </div>
-            <div className="rc-desc">{room.description}</div>
-            {room.availableCount > 0 && (
-              <div className="rc-left"><span><i className="bi bi-clock-history"></i>Only {room.availableCount} rooms left!</span></div>
-            )}
-          </div>
-          <div className="rc-price">
-            <div>
-              <div className="rc-from">Start from</div>
-              <div className="rc-amt">{formatPrice(room.basePrice)}</div>
-              <div className="rc-per">/ night</div>
+            <div className="rc-info">
+              <div className="rc-name">{room.name}</div>
+              <div className="rc-tags">
+                <span className="rc-tag"><i className="bi bi-people-fill"></i>Max {room.maxAdult + (room.maxChildren || 0)} guests</span>
+                <span className="rc-tag"><i className="bi bi-arrows-fullscreen"></i>{room.area} m²</span>
+                <span className="rc-tag"><i className="bi bi-person-fill"></i>{room.maxAdult} adults</span>
+                {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile"></i>{room.maxChildren} children</span>}
+              </div>
+              <div className="rc-desc">{room.description}</div>
+              {room.availableCount > 0 && (
+                  <div className="rc-left"><span><i className="bi bi-clock-history"></i>Only {room.availableCount} rooms left!</span></div>
+              )}
             </div>
-            <div className="rc-btns">
-              <button className="rc-book" onClick={() => onBooking(room)} disabled={sold}>
-                {sold ? <><i className="bi bi-x-circle me-1"></i>Fully Booked</> : <><i className="bi bi-lightning-charge-fill me-1"></i>Book Now</>}
-              </button>
-              <button className="rc-detail" onClick={() => onViewDetail(room)}>
-                <i className="bi bi-eye me-1"></i>View Detail
-              </button>
+            <div className="rc-price">
+              <div>
+                <div className="rc-from">Start from</div>
+                <div className="rc-amt">{formatPrice(room.basePrice)}</div>
+                <div className="rc-per">/ night</div>
+              </div>
+              <div className="rc-btns">
+                <button className="rc-book" onClick={() => onBooking(room)} disabled={sold}>
+                  {sold ? <><i className="bi bi-x-circle me-1"></i>Fully Booked</> : <><i className="bi bi-lightning-charge-fill me-1"></i>Book Now</>}
+                </button>
+                <button className="rc-detail" onClick={() => onViewDetail(room)}>
+                  <i className="bi bi-eye me-1"></i>View Detail
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </>
+      </>
   );
 };
 
