@@ -1,149 +1,53 @@
-import {Routes, Route, Navigate} from "react-router-dom";
+import { Routes, Route, Navigate } from 'react-router-dom';
 
-import HomePage from "../features/home/screens/HomePage.jsx";
-import SearchRoom from "../features/home/screens/SearchRoom.jsx";
-import AboutPage from "../features/home/screens/AboutPage.jsx";
-import ContactPage from "../features/home/screens/ContactPage.jsx";
-import Login from "@/features/auth/screens/Login";
-import ForgotPassword from "@/features/auth/screens/ForgotPassword";
-import MainLayout from "@/components/layout/MainLayout";
-import Dashboard from "@/features/dashboard/screens/Dashboard";
-import ResetPassword from "@/features/auth/screens/ResetPassword";
-import BookingSummary from "@/features/booking/components/BookingSummary";
-import GuestInformation from "@/features/booking/screens/GuestInformation";
-import RoomManagement from "@/features/admin/screens/RoomManagement";
-import FurnitureManagement from "@/features/admin/screens/FurnitureManagement";
-import PaymentSelection from "@/features/payment/screens/PaymentSelection.jsx";
-import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
+import MainLayout from '@/components/layout/MainLayout'; 
+import ClientLayout from '@/components/layout/ClientLayout';
+
+// --- IMPORTS TỪ NHÁNH XÁC THỰC & LAYOUT ---
+import Login from '@/features/auth/screens/Login';
+import ForgotPassword from '@/features/auth/screens/ForgotPassword';
+import ResetPassword from '@/features/auth/screens/ResetPassword';
+
+
+// --- IMPORTS TỪ NHÁNH DIEPANH (PUBLIC PAGES) ---
+import HomePage from "../features/booking/screens/HomePage";
+import SearchRoom from "../features/booking/screens/SearchRoom";
+import AboutPage from "../features/booking/screens/AboutPage";
+import ContactPage from "../features/booking/screens/ContactPage";
+
+// --- IMPORTS TỪ NHÁNH DONGPH (ADMIN PAGES) ---
+import Dashboard from '@/features/dashboard/screens/Dashboard';
 import AccountList from '@/features/accounts/screens/AccountList';
 import UserDetail from '@/features/accounts/screens/UserDetail';
 import EditStaff from '@/features/accounts/screens/EditStaff';
 import CreateAccount from '@/features/accounts/screens/CreateAccount';
-import {useCurrentUser} from "@/hooks/useCurrentUser.js";
-/** Staff không được vào trang Account List → redirect về /dashboard */
-const BlockStaffFromAccounts = ({ children }) => {
-    const currentUser = useCurrentUser();
-    if (currentUser?.permissions?.isStaff) {
-        return <Navigate to="/dashboard" replace />;
-    }
-    return children;
-};
-
-// /** Staff không được vào trang Service Management → redirect về /dashboard */
-// const BlockStaffFromServices = ({ children }) => {
-//     const currentUser = useCurrentUser();
-//     if (currentUser?.permissions?.isStaff) {
-//         return <Navigate to="/dashboard" replace />;
-//     }
-//     return children;
-// };
+import RoomList from '@/features/rooms/screens/RoomList';
+import NotFound from '@/features/common/screens/NotFound';
 
 const AppRouter = () => {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/BookingSummary" element={<BookingSummary />} />
-      <Route path="/GuestInformation" element={<GuestInformation />} />
-        <Route path="/payment-selection" element={<PaymentSelection />} />
-        <Route path="/payment/result" element={<PaymentResult />} />
+      {/* --- NHÓM 1: CÁC TRANG PUBLIC BỌC BẰNG CLIENT LAYOUT --- */}
+      <Route path="/" element={<ClientLayout><HomePage /></ClientLayout>} />
+      <Route path="/search" element={<ClientLayout><SearchRoom /></ClientLayout>} />
+      <Route path="/about" element={<ClientLayout><AboutPage /></ClientLayout>} />
+      <Route path="/contact" element={<ClientLayout><ContactPage /></ClientLayout>} />
 
-      {/*<Route*/}
-      {/*  path="/rooms"*/}
-      {/*  element={*/}
-      {/*    <MainLayout>*/}
-      {/*      <div>Room List (Coming Soon)</div>*/}
-      {/*    </MainLayout>*/}
-      {/*  }*/}
-      {/*/>*/}
+      {/* --- NHÓM 2: CÁC TRANG XÁC THỰC TÀI KHOẢN --- */}
+      <Route path="/login" element={<ClientLayout><Login /></ClientLayout>} />
+      <Route path="/forgot-password" element={<ClientLayout><ForgotPassword /></ClientLayout>} />
+      <Route path="/reset-password" element={<ClientLayout><ResetPassword /></ClientLayout>} />
+      
+      {/* --- NHÓM 3: CÁC TRANG QUẢN TRỊ CÓ LAYOUT (DONGPH) --- */}
+      <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
+      <Route path="/rooms" element={<MainLayout><RoomList /></MainLayout>} />
+      <Route path="/accounts" element={<MainLayout><AccountList /></MainLayout>} />
+      <Route path="/accounts/create" element={<MainLayout><CreateAccount /></MainLayout>} />
+      <Route path="/accounts/:id" element={<MainLayout><UserDetail /></MainLayout>} />
+      <Route path="/accounts/:id/edit" element={<MainLayout><EditStaff /></MainLayout>} />
 
-      {/* Admin pages - With Sidebar only (no Header/Footer) */}
-      <Route path="/admin/rooms" element={<RoomManagement />} />
-      <Route path="/admin/furniture" element={<FurnitureManagement />} />
-
-      {/* Public pages */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/search" element={<SearchRoom />} />
-      <Route path="/about" element={<AboutPage />} />
-      <Route path="/contact" element={<ContactPage />} />
-
-       Catch all - redirect to login
-      <Route path="*" element={<Login />} />
-      {/* --- NHÓM 2: CÁC TRANG PRIVATE (CÓ FULL LAYOUT) --- */}
-      {/* Cách dùng: Bọc Component con vào trong MainLayout */}
-
-      <Route path="/dashboard" element={
-        <MainLayout>
-          <Dashboard />
-        </MainLayout>
-      } />
-
-      {/*<Route path="/rooms" element={*/}
-      {/*  <MainLayout>*/}
-      {/*    <RoomList />*/}
-      {/*  </MainLayout>*/}
-      {/*} />*/}
-
-      {/*<Route path="/services" element={*/}
-      {/*  <MainLayout>*/}
-      {/*    <BlockStaffFromServices>*/}
-      {/*      <ServiceList />*/}
-      {/*    </BlockStaffFromServices>*/}
-      {/*  </MainLayout>*/}
-      {/*} />*/}
-
-      {/*<Route path="/services/:id/edit" element={*/}
-      {/*  <MainLayout>*/}
-      {/*    <BlockStaffFromServices>*/}
-      {/*      <EditService />*/}
-      {/*    </BlockStaffFromServices>*/}
-      {/*  </MainLayout>*/}
-      {/*} />*/}
-
-      {/*<Route path="/services/:id" element={*/}
-      {/*  <MainLayout>*/}
-      {/*    <BlockStaffFromServices>*/}
-      {/*      <ServiceDetail />*/}
-      {/*    </BlockStaffFromServices>*/}
-      {/*  </MainLayout>*/}
-      {/*} />*/}
-
-      <Route path="/accounts" element={
-        <MainLayout>
-          <BlockStaffFromAccounts>
-            <AccountList />
-          </BlockStaffFromAccounts>
-        </MainLayout>
-      } />
-
-      <Route path="/accounts/create" element={
-        <MainLayout>
-          <BlockStaffFromAccounts>
-            <CreateAccount />
-          </BlockStaffFromAccounts>
-        </MainLayout>
-      } />
-
-      <Route path="/accounts/:id" element={
-        <MainLayout>
-          <BlockStaffFromAccounts>
-            <UserDetail />
-          </BlockStaffFromAccounts>
-        </MainLayout>
-      } />
-
-      <Route path="/accounts/:id/edit" element={
-        <MainLayout>
-          <BlockStaffFromAccounts>
-            <EditStaff />
-          </BlockStaffFromAccounts>
-        </MainLayout>
-      } />
-
-      {/* Redirect mặc định về login */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      {/* Redirect mặc định nếu người dùng nhập sai link (Trang 404) */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
