@@ -43,6 +43,23 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated }) =
       } catch {
         setIssuesList([]);
       }
+
+      // Auto-update room status: Maintenance → Available when all equipment is fixed
+      if (room.status === "MAINTENANCE" && detail?.equipment) {
+        const brokenCount = detail.equipment.filter(e => {
+          const s = (e.status || e.condition || "").toLowerCase();
+          return s.includes("broken") || s.includes("failed") || s.includes("need") || s.includes("repair") || s.includes("maintenance") || s.includes("bảo trì");
+        }).length;
+
+        if (brokenCount === 0) {
+          try {
+            await roomManagementApi.updateRoomStatus(roomId, "AVAILABLE");
+            if (onRoomUpdated) onRoomUpdated();
+          } catch (err) {
+            console.warn("Auto-update room status failed:", err);
+          }
+        }
+      }
       
     } catch (error) {
       console.warn("Room details APIs error:", error);

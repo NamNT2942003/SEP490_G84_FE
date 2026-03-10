@@ -13,10 +13,10 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess }) => {
     // Validation
     const newErrors = {};
     if (!description.trim()) {
-      newErrors.description = "Mô tả sự cố là bắt buộc";
+      newErrors.description = "Issue description is required";
     }
     if (!reason.trim()) {
-      newErrors.reason = "Lý do là bắt buộc";
+      newErrors.reason = "Reason is required";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -30,13 +30,13 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess }) => {
       // ✅ Get correct room ID - handle both roomId and id properties
       const roomId = room.roomId || room.id;
       if (!roomId) {
-        setErrors({ submit: "Không tìm thấy thông tin phòng" });
+        setErrors({ submit: "Room information not found" });
         return;
       }
       
       // Call API to report issue with detailed payload
       const result = await roomManagementApi.reportIssue(roomId, {
-        title: `Sự cố - ${room.roomName || room.roomNumber}`,
+        title: `Issue - ${room.roomName || room.roomNumber}`,
         description: description.trim(),
         reason: reason.trim(),
         reportedAt: new Date().toISOString(),
@@ -58,8 +58,8 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess }) => {
       console.error("Error reporting issue:", error);
       setErrors({
         submit: error.response?.status === 404 
-          ? "API chưa sẵn sàng. Tính năng đang được phát triển."
-          : (error.message || "Không thể báo cáo sự cố. Vui lòng thử lại."),
+          ? "API not ready. Feature is being developed."
+          : (error.message || "Unable to report issue. Please try again."),
       });
     } finally {
       setLoading(false);
@@ -101,12 +101,12 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess }) => {
                   <i className="bi bi-bell-fill text-danger"></i>
                 </div>
                 <h5 className="fw-bold mb-0" style={{ color: "#1a1a2e" }}>
-                  Báo cáo sự cố
+                  Report Issue
                 </h5>
               </div>
               
               <div className="text-muted" style={{ fontSize: "0.9rem" }}>
-                {room.roomName} · Tầng {room.floor || 1} · {room.roomTypeName || "Phòng tiêu chuẩn"}
+                {room.roomName} · Floor {room.floor || 1} · {room.roomTypeName || "Standard Room"}
               </div>
             </div>
           </div>
@@ -117,12 +117,12 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess }) => {
               {/* Issue Description */}
               <div className="mb-4">
                 <label className="form-label fw-semibold text-uppercase text-muted" style={{ fontSize: "0.8rem", letterSpacing: "0.5px" }}>
-                  MÔ TẢ SỰ CỐ *
+                  ISSUE DESCRIPTION *
                 </label>
                 <textarea
                   className={`form-control ${errors.description ? 'is-invalid' : ''}`}
                   rows="4"
-                  placeholder="Ví dụ: Điều hòa không chạy, cửa phòng bị kẹt, có mùi ẩm mốc ở góc phòng tắm..."
+                  placeholder="Example: Air conditioning not working, door is stuck, moldy smell in bathroom corner..."
                   value={description}
                   onChange={(e) => {
                     setDescription(e.target.value);
@@ -146,12 +146,12 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess }) => {
               {/* Reason */}
               <div className="mb-4">
                 <label className="form-label fw-semibold text-uppercase text-muted" style={{ fontSize: "0.8rem", letterSpacing: "0.5px" }}>
-                  LÍ DO *
+                  REASON *
                 </label>
                 <input
                   type="text"
                   className={`form-control ${errors.reason ? 'is-invalid' : ''}`}
-                  placeholder="Lý do ngắn gọn cho sự cố"
+                  placeholder="Brief reason for the issue"
                   value={reason}
                   onChange={(e) => {
                     setReason(e.target.value);
@@ -191,7 +191,7 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess }) => {
               >
                 <i className="bi bi-exclamation-triangle-fill text-warning mt-1"></i>
                 <div>
-                  <strong>Cảnh báo:</strong> Sau khi gửi, <strong>{room.roomName}</strong> sẽ tự động chuyển sang trạng thái <strong>Bảo trì</strong>.
+                  <strong>Warning:</strong> After submission, <strong>{room.roomName}</strong> will automatically change to <strong>Maintenance</strong> status.
                 </div>
               </div>
             </form>
@@ -207,7 +207,7 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess }) => {
                 disabled={loading}
                 style={{ borderRadius: 8 }}
               >
-                Hủy
+                Cancel
               </button>
               <button
                 type="submit"
@@ -221,12 +221,12 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess }) => {
                     <div className="spinner-border spinner-border-sm" role="status">
                       <span className="visually-hidden">Loading...</span>
                     </div>
-                    Đang gửi...
+                    Sending...
                   </>
                 ) : (
                   <>
                     <i className="bi bi-bell-fill"></i>
-                    Gửi báo cáo
+                    Submit Report
                   </>
                 )}
               </button>

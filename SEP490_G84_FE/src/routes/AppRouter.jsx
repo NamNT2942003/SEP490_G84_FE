@@ -11,8 +11,8 @@ import Dashboard from "@/features/dashboard/screens/Dashboard";
 import ResetPassword from "@/features/auth/screens/ResetPassword";
 import BookingSummary from "@/features/booking/components/BookingSummary";
 import GuestInformation from "@/features/booking/screens/GuestInformation";
-import RoomManagement from "@/features/admin/screens/RoomManagement";
-import FurnitureManagement from "@/features/admin/screens/FurnitureManagement";
+import RoomManagement from "@/features/roomManagement/screens/RoomManagement";
+import FurnitureManagement from "@/features/roomManagement/screens/FurnitureManagement";
 import PaymentSelection from "@/features/payment/screens/PaymentSelection.jsx";
 import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
 
@@ -50,8 +50,8 @@ const AppRouter = () => {
       />
 
       {/* Admin pages - With Sidebar only (no Header/Footer) */}
-      <Route path="/admin/rooms" element={<RoomManagement />} />
-      <Route path="/admin/furniture" element={<FurnitureManagement />} />
+      <Route path="/roomManagement/rooms" element={<RoomManagement />} />
+      <Route path="/roomManagement/furniture" element={<FurnitureManagement />} />
 
       {/* Public pages */}
       <Route path="/" element={<HomePage />} />
