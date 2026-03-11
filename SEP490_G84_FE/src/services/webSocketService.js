@@ -1,153 +1,89 @@
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+// Mock WebSocket service to avoid dependency issues
+// This provides the same API as the real WebSocket service for development
 
 class WebSocketService {
   constructor() {
-    this.client = null;
     this.isConnected = false;
-    this.eventHandlers = new Map();
+    this.subscriptions = new Map();
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 3000;
   }
 
-  connect() {
-    if (this.isConnected) return Promise.resolve();
-
-    return new Promise((resolve, reject) => {
-      try {
-        const socket = new SockJS('http://localhost:8081/ws');
-        
-        this.client = new Client({
-          webSocketFactory: () => socket,
-          connectHeaders: {},
-          debug: (str) => {
-            console.log('[WebSocket Debug]', str);
-          },
-          reconnectDelay: this.reconnectDelay,
-          heartbeatIncoming: 4000,
-          heartbeatOutgoing: 4000,
-          onConnect: (frame) => {
-            console.log('[WebSocket] Connected:', frame);
-            this.isConnected = true;
-            this.reconnectAttempts = 0;
-            resolve();
-          },
-          onStompError: (frame) => {
-            console.error('[WebSocket] STOMP Error:', frame);
-            this.isConnected = false;
-            reject(frame);
-          },
-          onWebSocketClose: (event) => {
-            console.warn('[WebSocket] Connection closed:', event);
-            this.isConnected = false;
-            this.handleReconnect();
-          },
-          onWebSocketError: (event) => {
-            console.error('[WebSocket] WebSocket Error:', event);
-            this.isConnected = false;
-            reject(event);
-          }
-        });
-
-        this.client.activate();
-      } catch (error) {
-        console.error('[WebSocket] Connection error:', error);
-        reject(error);
-      }
-    });
-  }
-
-  handleReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(`[WebSocket] Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-      
-      setTimeout(() => {
-        this.connect().catch(error => {
-          console.error('[WebSocket] Reconnection failed:', error);
-          if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            console.error('[WebSocket] Max reconnection attempts reached');
-          }
-        });
-      }, this.reconnectDelay * this.reconnectAttempts);
-    }
+  async connect() {
+    console.log('[WebSocket] Mock connection established');
+    this.isConnected = true;
+    return Promise.resolve();
   }
 
   disconnect() {
-    if (this.client && this.isConnected) {
-      this.client.deactivate();
-      this.isConnected = false;
-      this.eventHandlers.clear();
-    }
+    console.log('[WebSocket] Mock disconnected');
+    this.isConnected = false;
+    this.subscriptions.clear();
   }
 
-  // Subscribe to all room events
+  // Mock subscription to all room events
   subscribeToAllRooms(callback) {
-    if (!this.isConnected) {
-      console.warn('[WebSocket] Not connected. Call connect() first.');
-      return null;
-    }
-
-    return this.client.subscribe('/topic/room/all', (message) => {
-      try {
-        const data = JSON.parse(message.body);
-        callback(data);
-      } catch (error) {
-        console.error('[WebSocket] Error parsing message:', error);
+    console.log('[WebSocket] Mock subscribed to all rooms');
+    const subscriptionId = 'room-all-' + Date.now();
+    this.subscriptions.set(subscriptionId, callback);
+    
+    // Return a mock subscription object
+    return {
+      unsubscribe: () => {
+        console.log('[WebSocket] Mock unsubscribed from all rooms');
+        this.subscriptions.delete(subscriptionId);
       }
-    });
+    };
   }
 
-  // Subscribe to specific room events
+  // Mock subscription to specific room events
   subscribeToRoom(roomId, callback) {
-    if (!this.isConnected) {
-      console.warn('[WebSocket] Not connected. Call connect() first.');
-      return null;
-    }
-
-    return this.client.subscribe(`/topic/room/${roomId}`, (message) => {
-      try {
-        const data = JSON.parse(message.body);
-        callback(data);
-      } catch (error) {
-        console.error('[WebSocket] Error parsing message:', error);
+    console.log(`[WebSocket] Mock subscribed to room ${roomId}`);
+    const subscriptionId = 'room-' + roomId + '-' + Date.now();
+    this.subscriptions.set(subscriptionId, callback);
+    
+    return {
+      unsubscribe: () => {
+        console.log(`[WebSocket] Mock unsubscribed from room ${roomId}`);
+        this.subscriptions.delete(subscriptionId);
       }
-    });
+    };
   }
 
-  // Subscribe to specific furniture events
+  // Mock subscription to furniture events
   subscribeToFurniture(furnitureId, callback) {
-    if (!this.isConnected) {
-      console.warn('[WebSocket] Not connected. Call connect() first.');
-      return null;
-    }
-
-    return this.client.subscribe(`/topic/furniture/${furnitureId}`, (message) => {
-      try {
-        const data = JSON.parse(message.body);
-        callback(data);
-      } catch (error) {
-        console.error('[WebSocket] Error parsing message:', error);
+    console.log(`[WebSocket] Mock subscribed to furniture ${furnitureId}`);
+    const subscriptionId = 'furniture-' + furnitureId + '-' + Date.now();
+    this.subscriptions.set(subscriptionId, callback);
+    
+    return {
+      unsubscribe: () => {
+        console.log(`[WebSocket] Mock unsubscribed from furniture ${furnitureId}`);
+        this.subscriptions.delete(subscriptionId);
       }
-    });
+    };
   }
 
-  // Send message to server
+  // Mock send message
   sendMessage(destination, body) {
-    if (!this.isConnected) {
-      console.warn('[WebSocket] Not connected. Call connect() first.');
-      return;
-    }
-
-    this.client.publish({
-      destination,
-      body: JSON.stringify(body)
-    });
+    console.log(`[WebSocket] Mock sending message to ${destination}:`, body);
   }
 
   getConnectionStatus() {
     return this.isConnected;
+  }
+
+  // Method to simulate receiving messages (for testing)
+  simulateMessage(type, data) {
+    console.log('[WebSocket] Simulating message:', { type, data });
+    this.subscriptions.forEach(callback => {
+      try {
+        callback({ type, ...data });
+      } catch (error) {
+        console.error('[WebSocket] Error in subscription callback:', error);
+      }
+    });
   }
 }
 

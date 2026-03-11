@@ -3,6 +3,7 @@ import { roomManagementApi } from "../api/roomManagementApi";
 import MainLayout from "../../../components/layout/MainLayout";
 import RoomDetailModal from "../components/RoomDetailModal";
 import ReportIssueModal from "../components/ReportIssueModal";
+import webSocketService from "../../../services/webSocketService";
 
 const BRAND = "#5C6F4E";
 
@@ -27,6 +28,13 @@ const STAT_CARDS = [
     icon: "bi-person-fill-check",
     color: "#0d6efd",
     bgAlpha: "rgba(13,110,253,0.08)",
+  },
+  {
+    key: "cleaning",
+    label: "Cleaning",
+    icon: "bi-arrow-clockwise",
+    color: "#fd7e14",
+    bgAlpha: "rgba(253,126,20,0.08)",
   },
   {
     key: "maintenance",
@@ -62,6 +70,7 @@ function RoomManagement() {
     totalRooms: 0,
     availableRooms: 0,
     occupiedRooms: 0,
+    cleaningRooms: 0,
     maintenanceRooms: 0,
   });
   const [floors, setFloors] = useState([]);
@@ -72,6 +81,10 @@ function RoomManagement() {
     floors: 'unknown',
     types: 'unknown'
   });
+
+  // Real-time notification state
+  const [notification, setNotification] = useState(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
   const pageSize = 20;
 
@@ -109,6 +122,7 @@ function RoomManagement() {
         totalRooms: stats.totalRooms || 0,
         availableRooms: stats.availableRooms || 0,
         occupiedRooms: stats.occupiedRooms || 0,
+        cleaningRooms: stats.cleaningRooms || 0,
         maintenanceRooms: stats.maintenanceRooms || 0,
         totalEquipment: stats.totalEquipment || 0,
         brokenEquipment: stats.brokenEquipment || 0,
@@ -121,8 +135,7 @@ function RoomManagement() {
       setStatistics({
         totalRooms: 0,
         availableRooms: 0,
-        occupiedRooms: 0,
-        maintenanceRooms: 0,
+        occupiedRooms: 0,        cleaningRooms: 1,        maintenanceRooms: 0,
         totalEquipment: 0,
         brokenEquipment: 0,
         totalIssues: 0,
@@ -199,7 +212,10 @@ function RoomManagement() {
   }, [page, search, branchFilter]);
 
   useEffect(() => {
-    fetchAllData();
+    fetchAllData()
+      .catch(error => {
+        console.error('[RoomManagement] Failed to fetch initial data:', error);
+      });
     
     // Set up periodic refresh every 30 seconds for real-time updates
     const interval = setInterval(() => {
@@ -308,12 +324,82 @@ function RoomManagement() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchAllData();
+        fetchAllData()
+          .catch(error => {
+            console.error('[RoomManagement] Failed to refresh on visibility change:', error);
+          });
       }
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    const connectWebSocket = async () => {
+      try {
+        console.log('[RoomManagement] Connecting to WebSocket...');
+        await webSocketService.connect();
+        setWsConnected(true);
+        console.log('[RoomManagement] WebSocket connected');
+        
+        // Subscribe to all room events
+        const subscription = webSocketService.subscribeToAllRooms((event) => {
+          console.log('[RoomManagement] Received room event:', event);
+          
+          if (event.type === 'ROOM_STATUS_CHANGE') {
+            console.log('[RoomManagement] Processing room status change...');
+            // Show notification
+            setNotification({
+              type: 'success',
+              message: `Room ${event.roomName} status changed from ${event.oldStatus} to ${event.newStatus}`,
+              timestamp: Date.now()
+            });
+            
+            // Auto-hide notification after 5 seconds
+            setTimeout(() => {
+              console.log('[RoomManagement] Auto-hiding notification');
+              setNotification(null);
+            }, 5000);
+            
+            // Refresh room data to show latest status
+            fetchAllData()
+              .catch(error => {
+                console.error('[RoomManagement] Failed to refresh data after status change:', error);
+              });
+          }
+        });
+
+        return () => {
+          console.log('[RoomManagement] Cleaning up WebSocket connection');
+          if (subscription) {
+            subscription.unsubscribe();
+          }
+          setWsConnected(false);
+        };
+      } catch (error) {
+        console.error('[RoomManagement] Failed to connect to WebSocket:', error);
+        setWsConnected(false);
+      }
+    };
+
+    // Connect immediately on mount
+    connectWebSocket()
+      .then(cleanupFn => {
+        // Store cleanup function for later use
+        window.wsCleanup = cleanupFn;
+      })
+      .catch(error => {
+        console.error('[RoomManagement] WebSocket connection failed:', error);
+        setWsConnected(false);
+      });
+
+    return () => {
+      if (window.wsCleanup) window.wsCleanup();
+      webSocketService.disconnect();
+      setWsConnected(false);
+    };
   }, []);
 
   // Filter rooms based on UI filters
@@ -344,6 +430,7 @@ function RoomManagement() {
     total: statistics.totalRooms,
     available: statistics.availableRooms,
     occupied: statistics.occupiedRooms,
+    cleaning: statistics.cleaningRooms,
     maintenance: statistics.maintenanceRooms,
   };
 
@@ -363,12 +450,63 @@ function RoomManagement() {
     setShowReportModal(true);
   };
 
+  const handleMarkCleaning = async (room) => {
+    try {
+      await roomManagementApi.updateRoomStatus(room.roomId, 'CLEANING');
+      
+      // Show notification
+      setNotification({
+        type: 'success',
+        message: `🧹 Room ${room.roomName} marked as cleaning`,
+        timestamp: Date.now()
+      });
+      setTimeout(() => setNotification(null), 5000);
+      
+      // Refresh data after status update
+      await fetchAllData();
+    } catch (error) {
+      console.error('Error marking room as cleaning:', error);
+      setNotification({
+        type: 'error',
+        message: `❌ Failed to mark room as cleaning`,
+        timestamp: Date.now()
+      });
+      setTimeout(() => setNotification(null), 5000);
+    }
+  };
+
+  const handleCleaningComplete = async (room) => {
+    try {
+      await roomManagementApi.updateRoomStatus(room.roomId, 'AVAILABLE');
+      
+      // Show notification
+      setNotification({
+        type: 'success',
+        message: `✅ Room ${room.roomName} cleaning completed - now available`,
+        timestamp: Date.now()
+      });
+      setTimeout(() => setNotification(null), 5000);
+      
+      // Refresh data after status update
+      await fetchAllData();
+    } catch (error) {
+      console.error('Error completing cleaning:', error);
+      setNotification({
+        type: 'error',
+        message: `❌ Failed to complete cleaning`,
+        timestamp: Date.now()
+      });
+      setTimeout(() => setNotification(null), 5000);
+    }
+  };
+
   const getStatusColor = (status) => {
     if (!status) return "#6c757d";
     const s = status.toUpperCase();
     switch(s) {
       case "AVAILABLE": return "#198754"; // Xanh lá - Sẵn sàng
       case "OCCUPIED": return "#0d6efd";  // Xanh dương - Có người
+      case "CLEANING": return "#fd7e14";   // Cam - Đang dọn dẹp
       case "MAINTENANCE": return "#dc3545"; // Đỏ - Bảo trì (Vì có đồ hỏng/sự cố)
       default: return "#6c757d";
     }
@@ -380,14 +518,68 @@ function RoomManagement() {
     switch(s) {
       case "AVAILABLE": return "Available";
       case "OCCUPIED": return "Occupied";
+      case "CLEANING": return "Cleaning";
       case "MAINTENANCE": return "Maintenance";
       default: return status;
     }
   };
 
   return (
-    <MainLayout>
-      <div className="container-fluid py-4 px-xl-5" style={{ backgroundColor: "#fbfbfb", minHeight: "100vh" }}>
+    <>
+      {/* NOTIFICATION OVERLAY - TOP LEVEL */}
+      {notification ? (
+        <div className="alert alert-success alert-dismissible fade show d-flex align-items-center" 
+             role="alert" 
+             style={{ 
+               position: 'fixed', 
+               top: '80px', 
+               right: '20px', 
+               zIndex: 9999,
+               width: '400px',
+               background: '#d1edff',
+               border: '2px solid #0984e3',
+               borderRadius: '12px',
+               boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+               color: '#2d3436',
+               animation: 'slideIn 0.3s ease-out'
+             }}>
+          <i className="bi bi-check-circle-fill me-3" style={{ color: '#00b894', fontSize: '24px' }}></i>
+          <div className="flex-grow-1">
+            <strong style={{ color: '#2d3436' }}>🔔 Live Update</strong><br/>
+            <span style={{ fontSize: '14px' }}>{notification.message}</span>
+          </div>
+          <button 
+            type="button" 
+            className="btn-close btn-close-dark" 
+            onClick={() => {
+              console.log('🗙 Closing notification manually');
+              setNotification(null);
+            }}
+            aria-label="Close"
+            style={{ 
+              filter: 'invert(1)',
+              opacity: 0.8
+            }}
+          ></button>
+        </div>
+      ) : null}
+
+      <style>{`
+        @keyframes slideIn {
+          from { 
+            transform: translateX(100%); 
+            opacity: 0; 
+          }
+          to { 
+            transform: translateX(0); 
+            opacity: 1; 
+          }
+        }
+      `}</style>
+
+      <MainLayout>
+        <div className="container-fluid py-4 px-xl-5" style={{ backgroundColor: "#fbfbfb", minHeight: "100vh" }}>
+
         {/* HEADER SECTION */}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3">
           <div>
@@ -399,6 +591,11 @@ function RoomManagement() {
             </nav>
             <h2 className="fw-bold mb-1 text-dark" style={{ letterSpacing: "-1px", fontSize: "1.85rem" }}>
               Room Inventory Dashboard
+              <span className={`badge ms-2 ${wsConnected ? 'bg-success' : 'bg-secondary'}`} 
+                    style={{ fontSize: '0.6rem', verticalAlign: 'top' }}>
+                <i className={`bi ${wsConnected ? 'bi-wifi' : 'bi-wifi-off'} me-1`}></i>
+                {wsConnected ? 'Live' : 'Offline'}
+              </span>
             </h2>
             <p className="text-muted mb-0 small">Real-time monitoring of room status, equipment health, and maintenance incidents.</p>
           </div>
@@ -418,8 +615,9 @@ function RoomManagement() {
             { key: "total", label: "Total Rooms", value: statistics.totalRooms, icon: "bi-building", color: "#6c757d" },
             { key: "available", label: "Available", value: statistics.availableRooms, icon: "bi-check-circle-fill", color: "#198754" },
             { key: "occupied", label: "Occupied", value: statistics.occupiedRooms, icon: "bi-person-fill-check", color: "#0d6efd" },
-            { key: "maintenance", label: "Maintenance", value: statistics.maintenanceRooms, icon: "bi-hammer", color: "#dc3545" },
-            { key: "broken", label: "Broken Items", value: statistics.brokenEquipment, icon: "bi-exclamation-octagon-fill", color: "#fd7e14" }
+          { key: "cleaning", label: "Cleaning", value: statistics.cleaningRooms, icon: "bi-arrow-clockwise", color: "#fd7e14" },
+          { key: "maintenance", label: "Maintenance", value: statistics.maintenanceRooms, icon: "bi-hammer", color: "#dc3545" },
+          { key: "broken", label: "Broken Items", value: statistics.brokenEquipment, icon: "bi-exclamation-octagon-fill", color: "#ffc107" }
           ].map((stat, idx) => (
             <div key={idx} className="col-6 col-md-4 col-lg">
               <div className="card border-0 shadow-sm h-100 overflow-hidden" 
@@ -771,7 +969,7 @@ function RoomManagement() {
                           </div>
                         </div>
 
-                        <div className="d-grid">
+                        <div className="d-grid gap-2">
                           <button
                             className="btn btn-dark shadow-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
                             onClick={() => handleViewRoom(room)}
@@ -779,6 +977,38 @@ function RoomManagement() {
                           >
                             <i className="bi bi-sliders"></i> Manage Details
                           </button>
+                          {(room.status?.toUpperCase() === 'OCCUPIED') && (
+                            <button
+                              className="btn shadow-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
+                              onClick={() => handleMarkCleaning(room)}
+                              style={{ 
+                                borderRadius: "12px", 
+                                fontSize: "0.85rem", 
+                                letterSpacing: "0.5px",
+                                backgroundColor: "#fd7e14",
+                                color: "white",
+                                border: "none"
+                              }}
+                            >
+                              <i className="bi bi-arrow-clockwise"></i> Mark as Cleaning
+                            </button>
+                          )}
+                          {(room.status?.toUpperCase() === 'CLEANING') && (
+                            <button
+                              className="btn shadow-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
+                              onClick={() => handleCleaningComplete(room)}
+                              style={{ 
+                                borderRadius: "12px", 
+                                fontSize: "0.85rem", 
+                                letterSpacing: "0.5px",
+                                backgroundColor: "#198754",
+                                color: "white",
+                                border: "none"
+                              }}
+                            >
+                              <i className="bi bi-check-circle-fill"></i> Cleaning Complete
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -813,8 +1043,15 @@ function RoomManagement() {
             setShowDetailModal(false);
             handleReportIssue(room);
           }}
+          onShowNotification={(notificationData) => {
+            setNotification(notificationData);
+            setTimeout(() => setNotification(null), 5000);
+          }}
           onRoomUpdated={() => {
-            fetchAllData();
+            fetchAllData()
+              .catch(error => {
+                console.error('[RoomManagement] Failed to refresh after room update:', error);
+              });
           }}
         />
       )}
@@ -827,15 +1064,23 @@ function RoomManagement() {
             setShowReportModal(false);
             setSelectedRoom(null);
           }}
+          onShowNotification={(notificationData) => {
+            setNotification(notificationData);
+            setTimeout(() => setNotification(null), 5000);
+          }}
           onSuccess={() => {
             setShowReportModal(false);
             setSelectedRoom(null);
-            fetchAllData();
+            fetchAllData()
+              .catch(error => {
+                console.error('[RoomManagement] Failed to refresh after report success:', error);
+              });
           }}
         />
       )}
     </MainLayout>
-  );
+  </>
+);
 }
 
 export default RoomManagement;

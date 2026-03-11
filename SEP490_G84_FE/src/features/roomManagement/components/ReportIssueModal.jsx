@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { roomManagementApi } from "../api/roomManagementApi";
 
-const ReportIssueModal = ({ show, room, onHide, onSuccess }) => {
+const ReportIssueModal = ({ show, room, onHide, onSuccess, onShowNotification }) => {
   const [description, setDescription] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,6 +46,15 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess }) => {
         category: 'EQUIPMENT', // Determine based on description
       });
 
+      // Show success notification
+      if (onShowNotification) {
+        onShowNotification({
+          type: 'warning',
+          message: `⚠️ Issue reported for room ${room.roomName || room.roomNumber}`,
+          timestamp: Date.now()
+        });
+      }
+      
       // Reset form
       setDescription("");
       setReason("");

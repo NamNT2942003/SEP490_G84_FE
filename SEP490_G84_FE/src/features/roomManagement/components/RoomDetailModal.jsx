@@ -3,7 +3,7 @@ import { roomManagementApi } from "../api/roomManagementApi";
 
 const BRAND = "#5C6F4E";
 
-const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated }) => {
+const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onShowNotification }) => {
   const [activeTab, setActiveTab] = useState("equipment");
   const [equipmentList, setEquipmentList] = useState([]);
   const [issuesList, setIssuesList] = useState([]);
@@ -78,10 +78,27 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated }) =
       if (!roomId) return;
 
       await roomManagementApi.updateRoomFurniture(roomId, equipmentId, { status: "BROKEN" });
+      
+      // Show success notification
+      if (onShowNotification) {
+        onShowNotification({
+          type: 'warning',
+          message: `🔧 Equipment marked as broken in room ${room.roomName}`,
+          timestamp: Date.now()
+        });
+      }
+      
       await fetchRoomDetails();
       if (onRoomUpdated) onRoomUpdated();
     } catch (error) {
       console.error("Error marking equipment as broken:", error);
+      if (onShowNotification) {
+        onShowNotification({
+          type: 'error',
+          message: `❌ Failed to mark equipment as broken`,
+          timestamp: Date.now()
+        });
+      }
       alert("Không thể chuyển trạng thái thiết bị. Vui lòng thử lại.");
     } finally {
       setActionLoading(null);
@@ -129,12 +146,28 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated }) =
         quantity: selectedBrokenEquipment?.quantity || 1,
       });
 
+      // Show success notification
+      if (onShowNotification) {
+        onShowNotification({
+          type: 'success',
+          message: `✅ Equipment replaced successfully in room ${room.roomName}`,
+          timestamp: Date.now()
+        });
+      }
+
       setShowInventoryModal(false);
       setSelectedBrokenEquipment(null);
       await fetchRoomDetails();
       if (onRoomUpdated) onRoomUpdated();
     } catch (error) {
       console.error("Error replacing equipment:", error);
+      if (onShowNotification) {
+        onShowNotification({
+          type: 'error',
+          message: `❌ Failed to replace equipment from inventory`,
+          timestamp: Date.now()
+        });
+      }
       alert("Không thể thay thế thiết bị từ kho. Vui lòng thử lại.");
     } finally {
       setActionLoading(null);
