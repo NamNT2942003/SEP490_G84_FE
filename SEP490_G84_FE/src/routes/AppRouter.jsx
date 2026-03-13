@@ -68,7 +68,7 @@ const AppRouter = () => {
             <Route path="/admin/rooms" element={<MainLayout><RoomManagement /></MainLayout>} />
             <Route path="/admin/furniture" element={<MainLayout><FurnitureManagement /></MainLayout>} />
 
-            <Route path="/admin/bookings" element={<MainLayout><BookingManagement /></MainLayout>} />
+            <Route path="/bookings" element={<MainLayout><BookingManagement /></MainLayout>} />
 
             {/* 5. PRIVATE PAGES (With MainLayout) */}
             <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />

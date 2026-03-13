@@ -1,0 +1,136 @@
+/* ── Modal overlay ── */
+.bm-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.bm-modal {
+    background: white;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 680px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+}
+
+/* ── Modal Header ── */
+.bm-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafbf8;
+}
+.bm-modal-header .booking-code {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 2px;
+}
+
+/* ── Modal Body ── */
+.bm-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+}
+
+/* ── Info Section ── */
+.info-section {
+    border: 1px solid #f0f2ef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+.info-section-header {
+    background: #f8f9fb;
+    padding: 10px 16px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #5C6F4E;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.info-section-body {
+    padding: 14px 16px;
+}
+
+/* ── Info Row ── */
+.info-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+.info-row.single {
+    grid-template-columns: 1fr;
+}
+.info-item label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #adb5bd;
+    margin-bottom: 3px;
+}
+.info-item span {
+    font-size: 0.9rem;
+    color: #212529;
+}
+
+/* ── Room details table ── */
+.room-detail-table {
+    width: 100%;
+    font-size: 0.82rem;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+.room-detail-table thead th {
+    background: #f8f9fb;
+    padding: 7px 10px;
+    font-weight: 600;
+    color: #6c757d;
+    border-bottom: 1px solid #e9ecef;
+}
+.room-detail-table tbody td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f2f4f7;
+    color: #212529;
+}
+.room-detail-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ── Status change panel ── */
+.status-change-panel {
+    background: #f8f9fb;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+/* ── Modal Footer ── */
+.bm-modal-footer {
+    padding: 14px 24px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    background: #fafbf8;
+}
+
