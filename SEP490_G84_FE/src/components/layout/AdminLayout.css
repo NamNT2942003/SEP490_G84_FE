@@ -2,6 +2,7 @@
 .admin-wrapper {
   display: flex;
   height: 100vh;
+  max-height: 100vh;
   overflow: hidden;
   background-color: #f5f6fa;
 }
@@ -87,9 +88,11 @@
 /* ── Main Area ───────────────────────────────────────────────────────── */
 .admin-main-area {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100vh;
 }
 
 .admin-topbar {
@@ -106,9 +109,11 @@
 
 .admin-content-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   background-color: #f5f6fa;
+  -webkit-overflow-scrolling: touch;
 }
 .admin-content-scroll::-webkit-scrollbar {
   width: 6px;

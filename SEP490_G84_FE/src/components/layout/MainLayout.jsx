@@ -5,9 +5,8 @@ import AdminFooter from './AdminFooter';
 
 const layoutMain = {
     display: 'grid',
-    gridTemplateColumns: '260px 1fr', // Cột trái 260px (Sidebar), cột phải là phần còn lại (1fr)
-    height: '100vh',                  // BẮT BUỘC: Khóa cứng chiều cao vừa đúng 1 màn hình
-    overflow: 'hidden',               // Không cho phép cuộn toàn trang
+    gridTemplateColumns: '260px 1fr',
+    minHeight: '100vh',
     background: '#f3f4f6',
 };
 
@@ -22,14 +21,17 @@ const sidebarWrapper = {
 const layoutRight = {
     display: 'flex',
     flexDirection: 'column',
-    height: '100%', // Kế thừa 100vh từ cha
-    minWidth: 0,    // Chống lỗi tràn chiều ngang (overflow blowout) của Grid
+    minWidth: 0,
+    minHeight: 0,
 };
 
 const layoutContent = {
-    flex: 1,           // Tự động đẩy Header lên trên và Footer xuống dưới đáy
-    overflowY: 'auto', // BẮT BUỘC: Chỉ xuất hiện thanh cuộn ở khu vực nội dung
-    padding: '24px',   // Cách lề cho đẹp
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    WebkitOverflowScrolling: 'touch',
+    padding: '24px',
     background: '#f4f6f9',
 };
 

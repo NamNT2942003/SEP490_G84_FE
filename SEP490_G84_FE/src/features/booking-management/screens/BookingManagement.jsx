@@ -44,9 +44,9 @@ const StatusBadge = ({ status }) => {
 };
 
 const StatCard = ({ card, value, loading }) => (
-    <div className="col-6 col-lg-3">
+    <div className="col-6 col-md-3">
         <div className="card stat-card h-100">
-            <div className="card-body d-flex align-items-center gap-3 py-3 px-4">
+            <div className="card-body d-flex align-items-center gap-3 py-3 px-3 px-md-4">
                 <div className="stat-icon" style={{ backgroundColor: card.bg }}>
                     <i className={`bi ${card.icon}`} style={{ color: card.color }} />
                 </div>
@@ -141,9 +141,9 @@ export default function BookingManagement() {
     };
 
     return (
-        <div className="container-fluid py-4 px-4">
+        <div className="bm-page">
             {/* Breadcrumb + title */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="bm-title-row">
                 <div>
                     <p className="text-muted small mb-1">
                         <i className="bi bi-house me-1" />
@@ -174,8 +174,8 @@ export default function BookingManagement() {
             {/* Table Card */}
             <div className="booking-table-card card">
                 {/* Toolbar */}
-                <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between gap-3 flex-wrap">
-                    <form className="d-flex gap-2 flex-grow-1" style={{ maxWidth: 580 }} onSubmit={handleSearch}>
+                <div className="bm-toolbar">
+                    <form className="bm-toolbar-form" onSubmit={handleSearch}>
                         <div className="input-group search-input-group">
                             <span className="input-group-text">
                                 <i className="bi bi-search" />
@@ -190,7 +190,6 @@ export default function BookingManagement() {
                         </div>
                         <select
                             className="form-select"
-                            style={{ minWidth: 150 }}
                             value={statusFilter}
                             onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
                         >
@@ -200,14 +199,17 @@ export default function BookingManagement() {
                             <option value="COMPLETED">Completed</option>
                             <option value="CANCELLED">Cancelled</option>
                         </select>
-                        <button type="submit" className="btn btn-sm" style={{ backgroundColor: BRAND, color: "white", whiteSpace: "nowrap" }}>
-                            Search
-                        </button>
-                        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={clearFilters}>
-                            Clear
-                        </button>
+                        <div className="bm-btn-group">
+                            <button type="submit" className="btn btn-sm" style={{ backgroundColor: BRAND, color: "white" }}>
+                                <i className="bi bi-search me-1 d-none d-sm-inline" />
+                                Search
+                            </button>
+                            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={clearFilters}>
+                                Clear
+                            </button>
+                        </div>
                     </form>
-                    <span className="text-muted small">
+                    <span className="text-muted small flex-shrink-0">
                         {loading ? "Loading..." : `${totalElements} booking(s)`}
                     </span>
                 </div>
@@ -299,7 +301,7 @@ export default function BookingManagement() {
                 </div>
 
                 {/* Pagination */}
-                <div className="card-footer bg-white d-flex justify-content-between align-items-center py-3 px-4">
+                <div className="bm-footer border-top">
                     <span className="text-muted small">
                         Page {totalPages > 0 ? page + 1 : 0} of {totalPages}
                         {totalElements > 0 && ` · ${totalElements} total`}
