@@ -27,6 +27,7 @@ import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
 import Dashboard from "@/features/dashboard/screens/Dashboard";
 import RoomManagement from "@/features/admin/screens/RoomManagement";
 import FurnitureManagement from "@/features/admin/screens/FurnitureManagement";
+import BookingManagement from "@/features/admin/screens/BookingManagement";
 
 // --- ACCOUNT MANAGEMENT PAGES ---
 import AccountList from '@/features/accounts/screens/AccountList';
@@ -66,6 +67,7 @@ const AppRouter = () => {
             {/* 4. ADMIN MANAGEMENT  */}
             <Route path="/admin/rooms" element={<MainLayout><RoomManagement /></MainLayout>} />
             <Route path="/admin/furniture" element={<MainLayout><FurnitureManagement /></MainLayout>} />
+            <Route path="/admin/bookings" element={<MainLayout><BookingManagement /></MainLayout>} />
 
             {/* 5. PRIVATE PAGES (With MainLayout) */}
             <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
