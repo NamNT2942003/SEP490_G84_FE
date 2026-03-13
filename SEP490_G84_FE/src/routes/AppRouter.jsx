@@ -33,6 +33,7 @@ import AccountList from '@/features/accounts/screens/AccountList';
 import UserDetail from '@/features/accounts/screens/UserDetail';
 import EditStaff from '@/features/accounts/screens/EditStaff';
 import CreateAccount from '@/features/accounts/screens/CreateAccount';
+import BookingManagement from "@/features/booking-management/screens/BookingManagement.jsx";
 
 /** Helper: Staff không được vào trang Account → redirect về /dashboard */
 const BlockStaffFromAccounts = ({ children }) => {
@@ -66,6 +67,8 @@ const AppRouter = () => {
             {/* 4. ADMIN MANAGEMENT  */}
             <Route path="/admin/rooms" element={<MainLayout><RoomManagement /></MainLayout>} />
             <Route path="/admin/furniture" element={<MainLayout><FurnitureManagement /></MainLayout>} />
+
+            <Route path="/admin/bookings" element={<MainLayout><BookingManagement /></MainLayout>} />
 
             {/* 5. PRIVATE PAGES (With MainLayout) */}
             <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
