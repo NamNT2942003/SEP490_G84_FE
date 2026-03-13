@@ -15,6 +15,7 @@ import RoomManagement from "@/features/roomManagement/screens/RoomManagement";
 import FurnitureManagement from "@/features/roomManagement/screens/FurnitureManagement";
 import PaymentSelection from "@/features/payment/screens/PaymentSelection.jsx";
 import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
+import InventoryManagement from "@/features/inventory/screens/InventoryManagement";
 
 
 const AppRouter = () => {
@@ -52,6 +53,10 @@ const AppRouter = () => {
       {/* Admin pages - With Sidebar only (no Header/Footer) */}
       <Route path="/roomManagement/rooms" element={<RoomManagement />} />
       <Route path="/roomManagement/furniture" element={<FurnitureManagement />} />
+        <Route
+            path="/inventory"
+            element={<InventoryManagement />}
+        />
 
       {/* Public pages */}
       <Route path="/" element={<HomePage />} />

@@ -1,0 +1,142 @@
+/* Lớp phủ làm tối nền */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Khung Popup */
+.modal-container {
+    background-color: white;
+    width: 100%;
+    max-width: 450px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box !important;
+}
+
+/* Tiêu đề xanh rêu */
+.modal-header {
+    background-color: #4A5A4A !important;
+    color: white !important;
+    padding: 16px 24px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* Nội dung form */
+.modal-body {
+    padding: 24px !important;
+    box-sizing: border-box !important;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-row {
+    display: flex;
+    gap: 16px;
+}
+
+.form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    color: #4b5563;
+    margin-bottom: 6px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+    outline: none;
+    color: #111827;
+}
+
+.form-control:focus {
+    border-color: #4A5A4A;
+}
+
+/* --- PHẦN ÉP KIỂU FOOTER CHỐNG VỠ GIAO DIỆN --- */
+.inventory-modal-footer {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin-top: 24px !important;
+    padding-top: 16px !important;
+    border-top: 1px solid #e5e7eb !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.inventory-btn-cancel {
+    background-color: white !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db !important;
+    padding: 8px 16px !important;
+    border-radius: 4px !important;
+    font-size: 14px !important;
+    font-weight: normal !important;
+    cursor: pointer !important;
+    width: auto !important;
+    margin: 0 !important;
+    display: block !important;
+}
+
+.inventory-btn-cancel:hover {
+    background-color: #f9fafb !important;
+}
+
+.inventory-btn-submit {
+    background-color: #4A5A4A !important;
+    color: white !important;
+    border: none !important;
+    padding: 8px 16px !important;
+    border-radius: 4px !important;
+    font-size: 14px !important;
+    font-weight: normal !important;
+    cursor: pointer !important;
+    width: auto !important;
+    margin: 0 !important;
+    display: block !important;
+}
+
+.inventory-btn-submit:hover {
+    background-color: #3b483b !important;
+}

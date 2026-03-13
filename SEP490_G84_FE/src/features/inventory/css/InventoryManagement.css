@@ -1,0 +1,193 @@
+/* Container chính */
+.inventory-wrapper {
+    padding: 30px;
+    background-color: #f9fafb;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+}
+
+.inventory-container {
+    background-color: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Header & Nút bấm */
+.inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.inventory-header h1 {
+    font-size: 24px;
+    color: #4A5A4A;
+    margin: 0;
+}
+
+.btn-add, .btn-search {
+    background-color: #4A5A4A;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-add:hover, .btn-search:hover {
+    background-color: #3b483b;
+}
+
+/* Thanh tìm kiếm */
+.inventory-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    background-color: #f9fafb;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 24px;
+}
+
+.search-input {
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    width: 300px;
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: #4A5A4A;
+    box-shadow: 0 0 0 2px rgba(74, 90, 74, 0.2);
+}
+
+.filter-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #374151;
+    cursor: pointer;
+}
+
+/* Bảng dữ liệu */
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.inventory-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+}
+
+.inventory-table thead {
+    background-color: #4A5A4A;
+    color: white;
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+.inventory-table th, .inventory-table td {
+    padding: 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.inventory-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+/* Các class tiện ích căn chỉnh */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.font-semibold { font-weight: 600; color: #111827; }
+.date-text { color: #4b5563; }
+
+/* Nút chi tiết */
+.btn-detail {
+    background-color: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-detail:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+    background-color: #fef2f2;
+}
+
+/* Badge Trạng thái tồn kho */
+.badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 12px;
+    display: inline-block;
+    min-width: 30px;
+}
+.badge-green { background-color: #d1fae5; color: #065f46; }
+.badge-yellow { background-color: #fef3c7; color: #92400e; }
+.badge-red { background-color: #fee2e2; color: #991b1b; }
+
+/* --- PHẦN PHÂN TRANG --- */
+.pagination-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-page {
+    background-color: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-page:hover:not(:disabled) {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.btn-page:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f9fafb;
+}
+
+.page-info {
+    font-size: 14px;
+    color: #4b5563;
+    font-weight: 600;
+}
