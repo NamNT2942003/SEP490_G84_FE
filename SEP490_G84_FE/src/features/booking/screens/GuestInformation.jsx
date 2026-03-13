@@ -102,7 +102,7 @@ const GuestInformation = () => {
                 quantity: room.quantity || 1
             })),
             customer: {
-                name: formData.fullName,
+                full_name: formData.fullName,
                 email: formData.email,
                 phone: formData.phone
             },
