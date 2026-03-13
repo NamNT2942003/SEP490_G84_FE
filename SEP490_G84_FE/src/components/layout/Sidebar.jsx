@@ -17,8 +17,8 @@ const Sidebar = () => {
     { path: "/accounts", label: "Account Management", icon: "bi-people" },
 
     // --- CÁC TRANG CHƯA CÓ TRONG APPROUTER ---
-    // Booking đã có route; Services/Reports sẽ bổ sung route sau
-    { path: "/admin/bookings", label: "Booking Management", icon: "bi-calendar-check" },
+    // (Bấm vào sẽ bị chuyển hướng về /login do dính catch-all Route "*")
+    { path: "/bookings", label: "Booking Management", icon: "bi-calendar-check" },
     { path: "/services", label: "Services", icon: "bi-cup-hot" },
     { path: "/reports", label: "Reports", icon: "bi-bar-chart-line" },
   ];
