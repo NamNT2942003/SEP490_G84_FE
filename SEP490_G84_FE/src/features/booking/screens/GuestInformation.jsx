@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import BookingSummary from '@/features/booking/components/BookingSummary';
 import Input from '@/components/ui/Input';
 import {useLocation, useNavigate} from "react-router-dom";
+import { API_BASE_URL } from "@/constants/apiConfig";
 
 const GuestInformation = () => {
     const location = useLocation();
@@ -19,37 +20,24 @@ const GuestInformation = () => {
         fullName: "",
         email: "",
         phone: "",
-        guestFullName: "",
-        guestEmail: "",
-        guestPhone: "",
-        specialRequests: "",
-        breakfast: false,
-        earlyCheckIn: false
+        specialRequests: ""
     });
 
-    const [isBookingForSomeone, setIsBookingForSomeone] = useState(false);
     const [rooms, setRooms] = useState(selectedRooms || []);
 
     // Hàm cập nhật số lượng phòng
     const handleQuantityChange = (roomTypeId, newQuantity) => {
-        console.log('🔍 handleQuantityChange called:', {roomTypeId, newQuantity});
-
         if (newQuantity <= 0) {
             handleRemoveRoom(roomTypeId);
             return;
         }
 
-        // Tìm phòng để lấy availableCount
         const room = rooms.find(r => r.roomTypeId === roomTypeId);
-        console.log('🏠 Found room:', room);
 
         if (room) {
             const maxAvailable = room.availableCount || 999;
-            console.log(`✅ Max available: ${maxAvailable}, Requested: ${newQuantity}`);
-
             if (newQuantity > maxAvailable) {
                 alert(`Only ${maxAvailable} room(s) available for ${room.name}`);
-                console.log('❌ Blocked: Quantity exceeds available count');
                 return;
             }
         }
@@ -57,7 +45,6 @@ const GuestInformation = () => {
         setRooms(prev => prev.map(room =>
             room.roomTypeId === roomTypeId ? { ...room, quantity: newQuantity } : room
         ));
-        console.log('✅ Quantity updated successfully');
     };
 
     // Hàm xóa phòng khỏi giỏ hàng
@@ -83,11 +70,11 @@ const GuestInformation = () => {
 
     // Hàm cập nhật dữ liệu cho Input thường và Checkbox/Switch
     const handleInputChange = (e) => {
-        const {id, name, value, type, checked} = e.target;
-        const targetId = id || name; // Đảm bảo lấy được ID
+        const {id, name, value} = e.target;
+        const targetId = id || name;
         setFormData(prev => ({
             ...prev,
-            [targetId]: type === 'checkbox' ? checked : value
+            [targetId]: value
         }));
     };
 
@@ -105,7 +92,7 @@ const GuestInformation = () => {
 
         // 1. SỬA LẠI TÊN BIẾN CHO KHỚP 100% VỚI BACKEND DTO (camelCase)
         const bookingPayload = {
-            otaReservationId: "WEB-" + Date.now(),
+            otaReservationId: `WEB-${(formData.phone || "guest").replace(/\s+/g, "")}-${checkIn}-${checkOut}`,
             arrival_date: checkIn,
             departure_date: checkOut,
             rooms: rooms.map(room => ({
@@ -115,21 +102,17 @@ const GuestInformation = () => {
                 quantity: room.quantity || 1
             })),
             customer: {
-                name: isBookingForSomeone ? formData.guestFullName : formData.fullName,
-                email: isBookingForSomeone ? formData.guestEmail : formData.email,
-                phone: isBookingForSomeone ? formData.guestPhone : formData.phone
+                name: formData.fullName,
+                email: formData.email,
+                phone: formData.phone
             },
             special_requests: formData.specialRequests
         };
 
         try {
-            console.log("Sending Payload to Backend:", bookingPayload);
-
-            // 2. GỌI API THẬT ĐẾN CONTROLLER BACKEND
-            // Sử dụng branchId lấy từ location.state (mặc định là 1 nếu null)
             const currentBranchId = branchId || 1;
 
-            const response = await fetch(`http://localhost:8081/api/bookings/create-from-frontend?branchId=${currentBranchId}`, {
+            const response = await fetch(`${API_BASE_URL}/bookings/create-from-frontend?branchId=${currentBranchId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -137,27 +120,25 @@ const GuestInformation = () => {
                 body: JSON.stringify(bookingPayload)
             });
 
-            // Nếu Backend trả về lỗi (mã 400, 500...)
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(errorText);
+                alert(`Loi dat phong: ${errorText || "Khong the tao booking"}`);
+                return;
             }
 
-            // 3. ĐỌC DỮ LIỆU JSON BACKEND TRẢ VỀ
             const data = await response.json();
-            console.log("Backend response:", data);
 
-            if (data.bookingId) {
-
-                navigate('/payment-selection', {
-                    state: {
-                        bookingId: data.bookingId,
-                        totalAmount: calculateTotalPrice() // Tính lại tổng giá chính xác
-                    }
-                });
-            } else {
-                throw new Error("Không nhận được mã đặt phòng từ Backend.");
+            if (!data.bookingId) {
+                alert("Loi dat phong: Khong nhan duoc ma dat phong tu backend.");
+                return;
             }
+
+            navigate('/payment-selection', {
+                state: {
+                    bookingId: data.bookingId,
+                    totalAmount: calculateTotalPrice()
+                }
+            });
 
         } catch (error) {
             console.error("Booking Error:", error);
@@ -191,35 +172,6 @@ const GuestInformation = () => {
                     gap: 10px;
                     margin-bottom: 18px;
                     font-weight: 700;
-                }
-                .booking-type-btn {
-                    padding: 16px;
-                    border: 2px solid #ddd;
-                    border-radius: 12px;
-                    text-align: center;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                    background: white;
-                }
-                .booking-type-btn:hover {
-                    border-color: #5C6F4E;
-                    box-shadow: 0 4px 12px rgba(92,111,78,0.1);
-                }
-                .booking-type-btn.active {
-                    border-color: #5C6F4E;
-                    border-width: 2.5px;
-                    background: #f0f4ec;
-                    box-shadow: 0 4px 16px rgba(92,111,78,0.15);
-                }
-                .booking-type-btn i {
-                    font-size: 1.8rem;
-                    display: block;
-                    margin-bottom: 8px;
-                    color: #5C6F4E;
-                }
-                .booking-type-btn .label {
-                    font-weight: 600;
-                    font-size: 0.95rem;
                 }
                 .room-item {
                     background: linear-gradient(135deg, #fafbf8 0%, #f5f7f2 100%);
@@ -346,28 +298,6 @@ const GuestInformation = () => {
             <main className="container mt-4">
                 <div className="row g-4">
                     <div className="col-lg-8">
-                        {/* Booking Type Selection */}
-                        <div className="row g-2 mb-4">
-                            <div className="col-sm-6">
-                                <div
-                                    className={`booking-type-btn ${!isBookingForSomeone ? 'active' : ''}`}
-                                    onClick={() => setIsBookingForSomeone(false)}
-                                >
-                                    <i className="bi bi-person"></i>
-                                    <div className="label">Booking for myself</div>
-                                </div>
-                            </div>
-                            <div className="col-sm-6">
-                                <div
-                                    className={`booking-type-btn ${isBookingForSomeone ? 'active' : ''}`}
-                                    onClick={() => setIsBookingForSomeone(true)}
-                                >
-                                    <i className="bi bi-people"></i>
-                                    <div className="label">Booking for someone else</div>
-                                </div>
-                            </div>
-                        </div>
-
                         {/* Selected Rooms Management */}
                         {rooms.length > 0 && (
                             <div className="guest-section">
@@ -436,7 +366,7 @@ const GuestInformation = () => {
                         <div className="guest-section">
                             <h5>
                                 <i className="bi bi-clipboard-person"></i>
-                                {isBookingForSomeone ? "Booker Details" : "Your Details"}
+                                Your Details
                             </h5>
                             <div className="row">
                                 <div className="col-12">
@@ -456,33 +386,6 @@ const GuestInformation = () => {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Someone Else Details */}
-                        {isBookingForSomeone && (
-                            <div className="bg-white p-4 rounded-3 custom-shadow mb-4">
-                                <div className="d-flex align-items-center gap-2 mb-3">
-                                    <i className="bi bi-people text-olive"></i>
-                                    <h5 className="fw-bold mb-0">Stay Guest Information</h5>
-                                </div>
-                                <div className="row">
-                                    <div className="col-12">
-                                        <Input id="guestFullName" label="Guest Full Name" icon="bi-person"
-                                               placeholder="Enter guest's full name" type="text"
-                                               value={formData.guestFullName} onChange={handleInputChange}/>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <Input id="guestEmail" label="Guest Email Address" icon="bi-envelope"
-                                               placeholder="guest@example.com" type="email"
-                                               value={formData.guestEmail} onChange={handleInputChange}/>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <Input id="guestPhone" label="Guest Phone Number" icon="bi-telephone"
-                                               placeholder="0123 456 789" type="tel"
-                                               value={formData.guestPhone} onChange={handleInputChange}/>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
 
                         {/* Special Requests */}
                         <div className="guest-section">
@@ -538,3 +441,4 @@ const GuestInformation = () => {
 };
 
 export default GuestInformation;
+
