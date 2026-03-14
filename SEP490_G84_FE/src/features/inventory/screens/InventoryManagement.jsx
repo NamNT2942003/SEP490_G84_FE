@@ -58,10 +58,6 @@ const InventoryManagement = () => {
         }
     };
 
-    const handleImportStock = (item) => {
-        setSelectedItem(item);
-        setIsImportModalOpen(true);
-    };
 
     const handleViewDetails = (item) => {
         setSelectedItem(item);
@@ -141,7 +137,6 @@ const InventoryManagement = () => {
                         <tr>
                             <th>Tên vật phẩm</th>
                             <th className="text-right">Giá</th>
-                            <th className="text-center">Số lượng nhập</th>
                             <th className="text-center">Tồn kho hiện tại</th>
                             <th className="text-center">Hành động</th>
                         </tr>
@@ -154,21 +149,12 @@ const InventoryManagement = () => {
                                     <td className="font-semibold">{item.inventoryName}</td>
                                     <td className="text-right">{item.price?.toLocaleString()} đ</td>
                                     <td className="text-center">
-                                        <span className="badge badge-yellow">{item.totalImported || 0}</span>
-                                    </td>
-                                    <td className="text-center">
                                         <span className={`badge ${item.stock > 10 ? 'badge-green' : 'badge-red'}`}>
                                             {item.stock}
                                         </span>
                                     </td>
                                     <td className="text-center" style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
-                                        <button
-                                            className="btn-add"
-                                            style={{padding: '6px 12px', fontSize: '12px'}}
-                                            onClick={() => handleImportStock(item)}
-                                        >
-                                            Nhập hàng
-                                        </button>
+
                                         <button className="btn-detail" onClick={() => handleViewDetails(item)}>
                                             Chi tiết
                                         </button>

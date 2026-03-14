@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { inventoryApi } from '../api/inventoryApi'; // Import đúng file API của bạn
-import '../css/AddInventoryModal.css'; // Dùng chung CSS với form Thêm Mới luôn cho đồng bộ
+import { inventoryApi } from '../api/inventoryApi';
+import '../css/AddInventoryModal.css';
 
-const ImportInventoryModal = ({ isOpen, onClose, onRefresh, selectedItem }) => {
-    // State lưu số lượng nhập thêm
+// Đổi onRefresh thành onSuccess để khớp với file InventoryReport.jsx
+const ImportInventoryModal = ({ isOpen, onClose, onSuccess, selectedItem }) => {
     const [importQuantity, setImportQuantity] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
 
-    // Reset form mỗi khi mở lại modal hoặc đổi sản phẩm
     useEffect(() => {
         if (isOpen) {
             setImportQuantity('');
@@ -21,25 +20,24 @@ const ImportInventoryModal = ({ isOpen, onClose, onRefresh, selectedItem }) => {
         setError('');
 
         const quantity = parseInt(importQuantity, 10);
-
         if (!quantity || quantity <= 0) {
             setError('Vui lòng nhập số lượng hợp lệ (lớn hơn 0)!');
             return;
         }
 
         setIsSubmitting(true);
-
         try {
-            // GỌI API ĐỂ CỘNG DỒN SỐ LƯỢNG (Bạn sẽ cần sửa tên hàm API cho khớp với file inventoryApi.js của bạn)
-            // Giả sử API của bạn nhận vào inventoryId và số lượng cần cộng thêm
+            // Gọi API cập nhật
             await inventoryApi.importInventory(selectedItem.inventoryId, quantity);
 
-            onRefresh(); // Load lại bảng dữ liệu bên ngoài
-            onClose();   // Đóng popup
-
+            // GỌI ĐÚNG TÊN PROP Ở ĐÂY ĐỂ FIX LỖI TYPEERROR
+            if (onSuccess) {
+                onSuccess();
+            }
+            onClose();
         } catch (err) {
             console.error("Lỗi khi nhập hàng:", err);
-            setError('Có lỗi xảy ra khi cập nhật số lượng. Vui lòng thử lại!');
+            setError('Có lỗi xảy ra khi cập nhật. Vui lòng kiểm tra lại kết nối!');
         } finally {
             setIsSubmitting(false);
         }
@@ -49,7 +47,7 @@ const ImportInventoryModal = ({ isOpen, onClose, onRefresh, selectedItem }) => {
 
     return (
         <div className="modal-overlay">
-            <div className="modal-container" style={{ maxWidth: '400px' }}> {/* Form này nhỏ hơn form Thêm Mới */}
+            <div className="modal-container" style={{ maxWidth: '400px' }}>
                 <div className="modal-header">
                     <h2>Nhập Thêm Hàng</h2>
                     <button type="button" onClick={onClose} className="close-btn">&times;</button>
@@ -58,7 +56,7 @@ const ImportInventoryModal = ({ isOpen, onClose, onRefresh, selectedItem }) => {
                 <form onSubmit={handleSubmit}>
                     <div className="modal-body">
                         {error && (
-                            <div style={{ color: 'red', marginBottom: '15px', fontSize: '14px', fontWeight: '500' }}>
+                            <div style={{ color: '#ef4444', marginBottom: '15px', fontSize: '14px' }}>
                                 ⚠️ {error}
                             </div>
                         )}
@@ -69,22 +67,21 @@ const ImportInventoryModal = ({ isOpen, onClose, onRefresh, selectedItem }) => {
                                 type="text"
                                 value={selectedItem.inventoryName || ''}
                                 className="form-control"
-                                disabled // Không cho sửa tên ở đây
-                                style={{ backgroundColor: '#f3f4f6' }}
+                                disabled
+                                style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
                             />
                         </div>
 
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Tồn kho hiện tại</label>
-                                <input
-                                    type="text"
-                                    value={selectedItem.stock || 0}
-                                    className="form-control"
-                                    disabled // Không cho sửa tồn kho hiện tại
-                                    style={{ backgroundColor: '#f3f4f6', fontWeight: 'bold', color: '#10b981' }}
-                                />
-                            </div>
+                        {/* Thêm ô hiển thị Tồn kho hiện tại để làm base */}
+                        <div className="form-group" style={{ marginTop: '12px' }}>
+                            <label>Tồn kho hiện tại</label>
+                            <input
+                                type="text"
+                                value={selectedItem.beginningStock || 0}
+                                className="form-control"
+                                disabled
+                                style={{ backgroundColor: '#f0fdf4', color: '#16a34a', fontWeight: 'bold' }}
+                            />
                         </div>
 
                         <div className="form-group" style={{ marginTop: '16px' }}>
@@ -102,11 +99,11 @@ const ImportInventoryModal = ({ isOpen, onClose, onRefresh, selectedItem }) => {
                             />
                         </div>
 
-                        <div className="inventory-modal-footer">
-                            <button type="button" onClick={onClose} className="inventory-btn-cancel" disabled={isSubmitting}>
+                        <div className="inventory-modal-footer" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                            <button type="button" onClick={onClose} className="inventory-btn-cancel" style={{ flex: 1 }} disabled={isSubmitting}>
                                 Hủy
                             </button>
-                            <button type="submit" className="inventory-btn-submit" disabled={isSubmitting}>
+                            <button type="submit" className="inventory-btn-submit" style={{ flex: 1 }} disabled={isSubmitting}>
                                 {isSubmitting ? 'Đang lưu...' : 'Xác nhận nhập'}
                             </button>
                         </div>

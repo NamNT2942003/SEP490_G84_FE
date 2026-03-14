@@ -16,6 +16,8 @@ import FurnitureManagement from "@/features/roomManagement/screens/FurnitureMana
 import PaymentSelection from "@/features/payment/screens/PaymentSelection.jsx";
 import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
 import InventoryManagement from "@/features/inventory/screens/InventoryManagement";
+import InventoryReport from "@/features/inventory/screens/InventoryReport";
+import ImportHistory from "@/features/inventory/screens/ImportHistory";
 
 
 const AppRouter = () => {
@@ -57,6 +59,17 @@ const AppRouter = () => {
             path="/inventory"
             element={<InventoryManagement />}
         />
+
+        <Route
+            path="/inventoryReport"
+            element={<InventoryReport />}
+        />
+
+        <Route
+            path="/inventoryHistory"
+            element={<ImportHistory />}
+        />
+
 
       {/* Public pages */}
       <Route path="/" element={<HomePage />} />

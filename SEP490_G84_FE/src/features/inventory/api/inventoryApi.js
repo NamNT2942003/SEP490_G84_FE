@@ -16,8 +16,19 @@ export const inventoryApi = {
         return axios.delete(`${API_URL}/${id}`);
     },
 
-    importInventory: (id, quantity) => {
-        // Gửi request PUT tới endpoint backend đã tạo
-        return axios.put(`${API_URL}/import/${id}?quantity=${quantity}`);
+
+    importInventory: (id, addedQuantity) => {
+        return axios.put(`${API_URL}/import/${id}?addedQuantity=${addedQuantity}`);
     },
+    getReport: (month, year, branchId) => {
+        return axios.get(`${API_URL}/report`, { params: { month, year, branchId } });
+    },
+
+    saveReport: (reportData) => {
+        return axios.post(`${API_URL}/report/save`, reportData);
+    },
+
+    getImportHistory: () => {
+        return axios.get(`${API_URL}/import-history`);
+    }
 };
