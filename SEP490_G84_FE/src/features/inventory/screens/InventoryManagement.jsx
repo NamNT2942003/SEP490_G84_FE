@@ -187,7 +187,7 @@ const InventoryManagement = () => {
                                     </td>
                                     <td className="text-center" style={{ padding: '12px' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                            
+
                                             <button
                                                 className="btn-detail"
                                                 style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', backgroundColor: '#f9fafb' }}

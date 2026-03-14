@@ -16,22 +16,21 @@ import ForgotPassword from "@/features/auth/screens/ForgotPassword";
 import ResetPassword from "@/features/auth/screens/ResetPassword";
 
 // --- BOOKING & PAYMENT PAGES ---
-// Đã chuyển SearchRoom từ home sang booking theo đúng cấu trúc mới
 import SearchRoom from "@/features/booking/screens/SearchRoom.jsx";
 import BookingSummary from "@/features/booking/components/BookingSummary";
 import GuestInformation from "@/features/booking/screens/GuestInformation";
-import RoomManagement from "@/features/roomManagement/screens/RoomManagement";
-import FurnitureManagement from "@/features/roomManagement/screens/FurnitureManagement";
 import PaymentSelection from "@/features/payment/screens/PaymentSelection.jsx";
 import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
+
+// --- MANAGEMENT PAGES ---
+import RoomManagement from "@/features/roomManagement/screens/RoomManagement";
+import FurnitureManagement from "@/features/roomManagement/screens/FurnitureManagement";
 import InventoryManagement from "@/features/inventory/screens/InventoryManagement";
 import InventoryReport from "@/features/inventory/screens/InventoryReport";
 import ImportHistory from "@/features/inventory/screens/ImportHistory";
 
 // --- DASHBOARD & ADMIN PAGES ---
 import Dashboard from "@/features/dashboard/screens/Dashboard";
-import RoomManagement from "@/features/admin/screens/RoomManagement";
-import FurnitureManagement from "@/features/admin/screens/FurnitureManagement";
 
 // --- ACCOUNT MANAGEMENT PAGES ---
 import AccountList from '@/features/accounts/screens/AccountList';
@@ -39,63 +38,6 @@ import UserDetail from '@/features/accounts/screens/UserDetail';
 import EditStaff from '@/features/accounts/screens/EditStaff';
 import CreateAccount from '@/features/accounts/screens/CreateAccount';
 
-
-      {/* Main pages - With Header/Footer/Sidebar */}
-      <Route
-        path="/dashboard"
-        element={
-          <MainLayout>
-            <Dashboard />
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/rooms"
-        element={
-          <MainLayout>
-            <div>Room List (Coming Soon)</div>
-          </MainLayout>
-        }
-      />
-
-      {/* Admin pages - With Sidebar only (no Header/Footer) */}
-      <Route path="/roomManagement/rooms" element={<RoomManagement />} />
-      <Route path="/roomManagement/furniture" element={<FurnitureManagement />} />
-        <Route
-            path="/inventory"
-            element={<MainLayout>
-                <InventoryManagement />
-            </MainLayout>}
-        />
-
-        <Route
-            path="/inventoryReport"
-            element={
-                <MainLayout>
-            <InventoryReport />
-                </MainLayout>}
-        />
-
-        <Route
-            path="/inventoryHistory"
-            element={
-            <MainLayout>
-            <ImportHistory />
-            </MainLayout>}
-        />
-
-
-      {/* Public pages */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/search" element={<SearchRoom />} />
-      <Route path="/about" element={<AboutPage />} />
-      <Route path="/contact" element={<ContactPage />} />
-
-      {/* Catch all - redirect to login */}
-      <Route path="*" element={<Login />} />
-    </Routes>
-  );
 /** Helper: Staff không được vào trang Account → redirect về /dashboard */
 const BlockStaffFromAccounts = ({ children }) => {
     const currentUser = useCurrentUser();
@@ -118,22 +60,27 @@ const AppRouter = () => {
             <Route path="/forgot-password" element={<ClientLayout><ForgotPassword /></ClientLayout>} />
             <Route path="/reset-password" element={<ClientLayout><ResetPassword /></ClientLayout>} />
 
-            {/* 3. BOOKING & PAYMENT */}
+            {/* --- NHÓM 3: BOOKING & PAYMENT --- */}
             <Route path="/search" element={<ClientLayout><SearchRoom /></ClientLayout>} />
             <Route path="/BookingSummary" element={<ClientLayout><BookingSummary /></ClientLayout>} />
             <Route path="/guest-information" element={<ClientLayout><GuestInformation/></ClientLayout>}/>
             <Route path="/payment-selection" element={<PaymentSelection/>}/>
             <Route path="/payment/result" element={<PaymentResult/>}/>
 
-            {/* 4. ADMIN MANAGEMENT  */}
+            {/* --- NHÓM 4: ADMIN MANAGEMENT (MainLayout có Sidebar) --- */}
             <Route path="/admin/rooms" element={<MainLayout><RoomManagement /></MainLayout>} />
             <Route path="/admin/furniture" element={<MainLayout><FurnitureManagement /></MainLayout>} />
 
-            {/* 5. PRIVATE PAGES (With MainLayout) */}
+            {/* Đã gộp các file Inventory đang bị lơ lửng vào đây và sửa path cho khớp với Sidebar */}
+            <Route path="/inventory" element={<MainLayout><InventoryManagement /></MainLayout>} />
+            <Route path="/inventory/report" element={<MainLayout><InventoryReport /></MainLayout>} />
+            <Route path="/inventory/history" element={<MainLayout><ImportHistory /></MainLayout>} />
+
+            {/* --- NHÓM 5: PRIVATE PAGES (With MainLayout) --- */}
             <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
             <Route path="/rooms" element={<MainLayout><div>Room List (Coming Soon)</div></MainLayout>} />
 
-            {/* 6. ACCOUNT PAGES (MainLayout + Block Staff) */}
+            {/* --- NHÓM 6: ACCOUNT PAGES (MainLayout + Block Staff) --- */}
             <Route
                 path="/accounts"
                 element={<MainLayout><BlockStaffFromAccounts><AccountList /></BlockStaffFromAccounts></MainLayout>}
@@ -151,7 +98,7 @@ const AppRouter = () => {
                 element={<MainLayout><BlockStaffFromAccounts><EditStaff /></BlockStaffFromAccounts></MainLayout>}
             />
 
-            {/* 7. CATCH-ALL (Redirect to Login for unknown routes) */}
+            {/* --- NHÓM 7: CATCH-ALL (Redirect to Login for unknown routes) --- */}
             <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
     );

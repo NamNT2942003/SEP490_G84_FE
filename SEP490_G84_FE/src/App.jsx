@@ -10,6 +10,7 @@ function App() {
 
   // Development mode: Auto-set a dummy token to bypass login
   useEffect(() => {
+      // eslint-disable-next-line no-undef
     const isDev = process.env.NODE_ENV === "development";
     if (isDev && !localStorage.getItem("accessToken")) {
       // Set a development token for testing
@@ -27,15 +28,8 @@ function App() {
       {!isAdmin && <Footer />}
     </div>
   );
+  }
 
-import AppRouter from './routes/AppRouter';
+  export default App;
 
-function App() {
-    return (
-        <div className="app">
-            <AppRouter />
-        </div>
-    );
-}
 
-export default App;

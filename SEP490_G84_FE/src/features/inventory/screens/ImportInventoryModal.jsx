@@ -72,17 +72,6 @@ const ImportInventoryModal = ({ isOpen, onClose, onSuccess, selectedItem }) => {
                             />
                         </div>
 
-                        {/* Thêm ô hiển thị Tồn kho hiện tại để làm base */}
-                        <div className="form-group" style={{ marginTop: '12px' }}>
-                            <label>Tồn kho hiện tại</label>
-                            <input
-                                type="text"
-                                value={selectedItem.beginningStock || 0}
-                                className="form-control"
-                                disabled
-                                style={{ backgroundColor: '#f0fdf4', color: '#16a34a', fontWeight: 'bold' }}
-                            />
-                        </div>
 
                         <div className="form-group" style={{ marginTop: '16px' }}>
                             <label style={{ color: '#dc2626', fontWeight: 'bold' }}>Số lượng nhập thêm *</label>
