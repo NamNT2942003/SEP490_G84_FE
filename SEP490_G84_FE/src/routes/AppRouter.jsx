@@ -57,17 +57,25 @@ const AppRouter = () => {
       <Route path="/roomManagement/furniture" element={<FurnitureManagement />} />
         <Route
             path="/inventory"
-            element={<InventoryManagement />}
+            element={<MainLayout>
+                <InventoryManagement />
+            </MainLayout>}
         />
 
         <Route
             path="/inventoryReport"
-            element={<InventoryReport />}
+            element={
+                <MainLayout>
+            <InventoryReport />
+                </MainLayout>}
         />
 
         <Route
             path="/inventoryHistory"
-            element={<ImportHistory />}
+            element={
+            <MainLayout>
+            <ImportHistory />
+            </MainLayout>}
         />
 
 
