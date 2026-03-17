@@ -1,167 +1,148 @@
 import React, { useState, useEffect } from 'react';
-import { inventoryApi } from '../api/inventoryApi';
+import axios from 'axios';
 
 const ImportHistory = () => {
-    const [history, setHistory] = useState([]);
-    const [loading, setLoading] = useState(false);
+    // --- STATE CHO BẢNG LỊCH SỬ ---
+    const [historyList, setHistoryList] = useState([]);
 
-    // Thêm state để quản lý việc mở/đóng Modal và lưu thông tin item được chọn
-    const [selectedItem, setSelectedItem] = useState(null);
+    // --- STATE CHO MODAL NHẬP KHO ---
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [branchIdForImport, setBranchIdForImport] = useState(1);
+    const [availableItems, setAvailableItems] = useState([]);
+    const [importList, setImportList] = useState([{ inventoryId: '', quantity: 1 }]);
 
-    useEffect(() => {
-        fetchHistory();
-    }, []);
-
+    // 1. Lấy danh sách lịch sử (Di chuyển lên trước useEffect)
     const fetchHistory = async () => {
-        setLoading(true);
         try {
-            const response = await inventoryApi.getImportHistory();
-            setHistory(response.data);
+            const res = await axios.get(`http://localhost:8081/api/inventory/history`);
+            setHistoryList(res.data);
         } catch (error) {
-            console.error("Error fetching history:", error);
-        } finally {
-            setLoading(false);
+            console.error("Lỗi lấy lịch sử:", error);
         }
     };
 
-    // Hàm format tiền tệ VNĐ nhưng hiển thị chuẩn
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('vi-VN').format(amount) + ' VND';
+    useEffect(() => {
+        // Fix cảnh báo Promise returned is ignored
+        const loadHistory = async () => {
+            await fetchHistory();
+        }
+        loadHistory().catch(console.error);
+    }, []);
+
+    // 2. Mở Modal & Tải danh sách vật phẩm theo chi nhánh
+    const openImportModal = async () => {
+        try {
+            const res = await axios.get(`http://localhost:8081/api/inventory/branch/${branchIdForImport}/items`);
+            setAvailableItems(res.data);
+            setImportList([{ inventoryId: '', quantity: 1 }]); // Reset form
+            setIsModalOpen(true);
+        } catch (error) {
+            console.error("Lỗi tải danh sách vật phẩm:", error); // Fix unused 'error'
+            alert("Lỗi tải danh sách vật phẩm!");
+        }
     };
 
-    // Hàm format ngày tháng
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleString('vi-VN', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
+    // 3. Xử lý logic Modal
+    const handleImportChange = (index, field, value) => {
+        const newList = [...importList];
+        newList[index][field] = value;
+        setImportList(newList);
     };
 
-    // Hàm xử lý khi bấm nút View Details
-    const handleViewDetail = (item) => {
-        setSelectedItem(item);
-        setIsModalOpen(true);
+    const addImportRow = () => setImportList([...importList, { inventoryId: '', quantity: 1 }]);
+
+    const submitImport = async () => {
+        const validItems = importList.filter(item => item.inventoryId !== '');
+        if (validItems.length === 0) return alert("Vui lòng chọn ít nhất 1 mặt hàng!");
+
+        try {
+            await axios.post(`http://localhost:8080/api/inventory/import`, {
+                branchId: branchIdForImport,
+                items: validItems
+            });
+            alert("Nhập kho thành công!");
+            setIsModalOpen(false);
+            await fetchHistory(); // Thêm await để fix cảnh báo "Missing await"
+        } catch (error) {
+            console.error("Lỗi nhập kho:", error); // Fix unused 'error'
+            alert("Lỗi nhập kho!");
+        }
     };
 
     return (
-        <div className="inventory-container">
+        <div style={{ padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h1>Import History</h1>
-                <button
-                    onClick={fetchHistory}
-                    className="btn"
-                    style={{ backgroundColor: '#4a5d4e', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                    Refresh History
+                <h2>Lịch Sử Nhập Kho</h2>
+                <button onClick={openImportModal} style={{ padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', cursor: 'pointer' }}>
+                    + Nhập Kho
                 </button>
             </div>
 
-            <div className="table-responsive" style={{ position: 'relative' }}>
-                {loading && (
-                    <div style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: 'rgba(255,255,255,0.6)', zIndex: 1,
-                        display: 'flex', justifyContent: 'center', alignItems: 'center'
-                    }}>
-                        <span style={{ fontWeight: 'bold' }}>⌛ Loading...</span>
-                    </div>
-                )}
-
-                <table className="inventory-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                    <tr>
-                        <th style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>Receipt ID</th>
-                        <th style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>Import Date</th>
-                        <th style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>Item Name</th>
-                        <th className="text-center" style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>Quantity</th>
-                        <th className="text-right" style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>Unit Price</th>
-                        <th className="text-right" style={{ padding: '12px', borderBottom: '1px solid #ddd', color: '#dc2626' }}>Total Amount</th>
-                        <th className="text-center" style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>Actions</th>
+            {/* Bảng Lịch Sử */}
+            <table border="1" width="100%" style={{ textAlign: 'center', borderCollapse: 'collapse' }}>
+                <thead style={{ backgroundColor: '#f4f4f4' }}>
+                <tr>
+                    <th>Ngày Nhập</th>
+                    <th>Mã Phiếu</th>
+                    <th>Tên Vật Phẩm</th>
+                    <th>Số Lượng</th>
+                    <th>Đơn Giá</th>
+                    <th>Thành Tiền</th>
+                </tr>
+                </thead>
+                <tbody>
+                {historyList.map((item, idx) => (
+                    <tr key={idx}>
+                        {/* Thêm optional chaining cho importDate để phòng hờ */}
+                        <td>{item?.importDate ? new Date(item.importDate).toLocaleString('vi-VN') : 'N/A'}</td>
+                        <td>#{item.receiptId}</td>
+                        <td>{item.inventoryName}</td>
+                        <td>{item.quantity}</td>
+                        <td>{item.unitPrice?.toLocaleString()} đ</td>
+                        <td style={{ fontWeight: 'bold' }}>{item.totalAmount?.toLocaleString()} đ</td>
                     </tr>
-                    </thead>
-                    <tbody>
-                    {history.length > 0 ? history.map((item, index) => (
-                        <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                            <td className="font-semibold text-center" style={{ padding: '12px' }}>#{item.receiptId}</td>
-                            <td style={{ padding: '12px' }}>{formatDate(item.importDate)}</td>
-                            <td className="font-semibold" style={{ padding: '12px' }}>{item.inventoryName}</td>
-                            <td className="text-center" style={{ padding: '12px', color: '#3b82f6', fontWeight: 'bold' }}>
-                                + {item.quantity}
-                            </td>
-                            <td className="text-right" style={{ padding: '12px' }}>{formatCurrency(item.price)}</td>
-                            <td className="text-right font-bold" style={{ padding: '12px', color: '#dc2626' }}>
-                                {formatCurrency(item.totalAmount)}
-                            </td>
-                            <td className="text-center" style={{ padding: '12px' }}>
-                                {/* NÚT VIEW DETAIL MỚI THÊM */}
-                                <button
-                                    className="btn-detail"
-                                    style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', backgroundColor: '#f9fafb' }}
-                                    onClick={() => handleViewDetail(item)}
-                                >
-                                    View Details
-                                </button>
-                            </td>
-                        </tr>
-                    )) : (
-                        <tr>
-                            <td colSpan="7" className="text-center" style={{ padding: '30px' }}>No import history found.</td>
-                        </tr>
-                    )}
-                    </tbody>
-                </table>
-            </div>
+                ))}
+                </tbody>
+            </table>
 
-            {/* --- MODAL HIỂN THỊ CHI TIẾT PHIẾU NHẬP --- */}
-            {isModalOpen && selectedItem && (
+            {/* MODAL NHẬP KHO */}
+            {isModalOpen && (
                 <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
-                    display: 'flex', justifyContent: 'center', alignItems: 'center'
+                    position: 'fixed', top: '10%', left: '30%', width: '40%',
+                    backgroundColor: 'white', padding: '20px', border: '2px solid #333', boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
                 }}>
-                    <div style={{
-                        backgroundColor: 'white', padding: '24px', borderRadius: '8px',
-                        width: '450px', maxWidth: '90%', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                    }}>
-                        <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '12px', marginBottom: '20px' }}>
-                            Receipt Details #{selectedItem.receiptId}
-                        </h3>
+                    <h3>Nhập Hàng Mới</h3>
+                    <div style={{ marginBottom: '15px' }}>
+                        <label>Chi nhánh: </label>
+                        <input type="number" value={branchIdForImport} onChange={(e) => setBranchIdForImport(e.target.value)} style={{ width: '50px' }} />
+                        <button onClick={openImportModal} style={{ marginLeft: '10px' }}>Tải lại mặt hàng</button>
+                    </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#6b7280' }}>Item Name:</span>
-                                <span style={{ fontWeight: '600' }}>{selectedItem.inventoryName}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#6b7280' }}>Import Date:</span>
-                                <span>{formatDate(selectedItem.importDate)}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#6b7280' }}>Quantity:</span>
-                                <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>+ {selectedItem.quantity}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#6b7280' }}>Unit Price:</span>
-                                <span>{formatCurrency(selectedItem.price)}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #ccc', paddingTop: '12px' }}>
-                                <span style={{ color: '#111827', fontWeight: 'bold' }}>Total Amount:</span>
-                                <span style={{ color: '#dc2626', fontWeight: 'bold', fontSize: '1.1em' }}>
-                                    {formatCurrency(selectedItem.totalAmount)}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                style={{ padding: '8px 20px', backgroundColor: '#4b5563', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    {importList.map((row, index) => (
+                        <div key={index} style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
+                            <select
+                                value={row.inventoryId}
+                                onChange={(e) => handleImportChange(index, 'inventoryId', parseInt(e.target.value))}
+                                style={{ flex: 1, padding: '5px' }}
                             >
-                                Close
-                            </button>
+                                <option value="">-- Chọn vật phẩm --</option>
+                                {availableItems.map(i => (
+                                    <option key={i.inventoryId} value={i.inventoryId}>{i.inventoryName} (Tồn: {i.stock})</option>
+                                ))}
+                            </select>
+                            <input
+                                type="number" min="1" value={row.quantity}
+                                onChange={(e) => handleImportChange(index, 'quantity', parseInt(e.target.value))}
+                                style={{ width: '80px', padding: '5px' }}
+                            />
                         </div>
+                    ))}
+
+                    <button onClick={addImportRow} style={{ marginBottom: '20px' }}>+ Thêm dòng khác</button>
+
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                        <button onClick={() => setIsModalOpen(false)} style={{ padding: '8px 15px' }}>Hủy</button>
+                        <button onClick={submitImport} style={{ padding: '8px 15px', backgroundColor: '#28a745', color: 'white', border: 'none' }}>Xác nhận Nhập</button>
                     </div>
                 </div>
             )}

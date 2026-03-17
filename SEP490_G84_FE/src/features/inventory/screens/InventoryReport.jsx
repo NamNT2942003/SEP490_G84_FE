@@ -1,254 +1,307 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { inventoryApi } from '../api/inventoryApi';
-import ImportInventoryModal from './ImportInventoryModal';
+import React, { useState } from 'react';
+import axios from 'axios';
+import '../css/InventoryReport.css';
 
 const InventoryReport = () => {
-    const currentDate = new Date();
-    const [month, setMonth] = useState(currentDate.getMonth() + 1);
-    const [year, setYear] = useState(currentDate.getFullYear());
-    const [branchId, setBranchId] = useState('');
+    // --- STATE CHO BÁO CÁO ---
+    const [branches] = useState([
+        { id: 1, name: "Cơ sở 1" },
+        { id: 2, name: "Cơ sở 2" },
+        { id: 3, name: "Cơ sở 3" }
+    ]);
+
+    const [selectedBranch, setSelectedBranch] = useState('');
+    const [month, setMonth] = useState(new Date().getMonth() + 1);
+    const [year, setYear] = useState(new Date().getFullYear());
     const [reportData, setReportData] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [isReportLoaded, setIsReportLoaded] = useState(false);
 
-    // --- State for Pagination ---
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5; // Limit 5 items per page
+    // --- STATE CHO MODALS ---
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [historyList, setHistoryList] = useState([]);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [availableItems, setAvailableItems] = useState([]);
+    const [importList, setImportList] = useState([{ inventoryId: '', quantity: 1 }]);
 
-    // --- State for Import Modal ---
-    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-    const [selectedItem, setSelectedItem] = useState(null);
+    // --- STATE CHI TIẾT SẢN PHẨM ---
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [productDetail, setProductDetail] = useState(null);
 
-    const branches = [
-        { id: '', name: 'All Branches' },
-        { id: 1, name: 'Hanoi Branch' },
-        { id: 2, name: 'HCMC Branch' }
-    ];
-
-    const fetchReport = async () => {
-        setLoading(true);
+    // ================= LOGIC BÁO CÁO =================
+    const handleFetchReport = async () => {
+        if (!selectedBranch) {
+            alert("Vui lòng chọn Cơ sở trước khi xem báo cáo!");
+            return;
+        }
         try {
-            const response = await inventoryApi.getReport(month, year, branchId || null);
-            setReportData(response.data);
-            setCurrentPage(1); // Reset to page 1 when new data is loaded
+            const res = await axios.get(`http://localhost:8081/api/inventory/report`, {
+                params: {
+                    month: parseInt(month),
+                    year: parseInt(year),
+                    branchId: parseInt(selectedBranch)
+                }
+            });
+            setReportData(res.data);
+            setIsReportLoaded(true);
         } catch (error) {
-            console.error("Error fetching report:", error);
-        } finally {
-            setLoading(false);
+            console.error("Lỗi lấy báo cáo:", error.response?.data || error.message);
+            alert("Lỗi khi tải dữ liệu báo cáo!");
         }
     };
 
-    useEffect(() => {
-        fetchReport();
-    }, [month, year, branchId]);
-
-    // Open import modal
-    const handleImportStock = (item) => {
-        setSelectedItem({
-            inventoryId: item.inventoryId,
-            inventoryName: item.inventoryName
-        });
-        setIsImportModalOpen(true);
+    const handleClosingStockChange = (index, value) => {
+        const newValue = parseInt(value) || 0;
+        const newData = [...reportData];
+        newData[index].closingStock = newValue;
+        const used = (newData[index].openingStock + newData[index].importQuantity) - newValue;
+        newData[index].usedQuantity = used > 0 ? used : 0;
+        setReportData(newData);
     };
 
-    // Handle successful import from Modal
-    const handleImportSuccess = () => {
-        setIsImportModalOpen(false);
-        fetchReport(); // Reload report to update "Imported Qty"
-    };
-
-    const handleValueChange = (inventoryId, field, newValue) => {
-        const val = parseInt(newValue) || 0;
-        setReportData(prevData => prevData.map(item => {
-            if (item.inventoryId === inventoryId) {
-                const updatedItem = { ...item, [field]: val };
-                let newEnding = updatedItem.beginningStock + updatedItem.importedQty - updatedItem.usedQty;
-                return { ...updatedItem, endingStock: newEnding < 0 ? 0 : newEnding };
-            }
-            return item;
-        }));
-    };
-
-    const handleSaveReport = async () => {
+    const saveReport = async () => {
         try {
-            setLoading(true);
-            await inventoryApi.saveReport(reportData);
-            alert(`Successfully closed and saved report for Month ${month}/${year}!`);
-            fetchReport();
+            await axios.post(`http://localhost:8081/api/inventory/report/save`, reportData);
+            alert(`Đã lưu báo cáo tháng ${month}/${year} thành công!`);
         } catch (error) {
-            alert("Error saving report!");
-        } finally {
-            setLoading(false);
+            console.error("Lỗi lưu báo cáo:", error.response?.data || error.message);
+            alert("Lỗi khi lưu báo cáo!");
         }
     };
 
-    // --- Pagination Logic ---
-    const totalPages = Math.ceil(reportData.length / itemsPerPage);
+    // ================= LOGIC LỊCH SỬ & CHI TIẾT =================
+    const handleViewDetail = async (id) => {
+        try {
+            const res = await axios.get(`http://localhost:8081/api/inventory/${id}`);
+            setProductDetail(res.data);
+            setShowDetailModal(true);
+        } catch (error) {
+            console.error("Lỗi lấy chi tiết sản phẩm:", error);
+            alert("Không thể tải thông tin chi tiết sản phẩm!");
+        }
+    };
 
-    // Get 5 elements corresponding to the current page
-    const currentData = useMemo(() => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        return reportData.slice(startIndex, endIndex);
-    }, [reportData, currentPage, itemsPerPage]);
+    const openHistoryModal = async () => {
+        // 1. Kiểm tra nếu chưa chọn cơ sở thì yêu cầu chọn
+        if (!selectedBranch) {
+            alert("Vui lòng chọn Cơ sở để xem lịch sử nhập kho tương ứng!");
+            return;
+        }
 
-    // Handle page change
-    const handlePageChange = (page) => {
-        if (page >= 1 && page <= totalPages) {
-            setCurrentPage(page);
+        try {
+            // 2. Gửi params branchId lên backend
+            const res = await axios.get(`http://localhost:8081/api/inventory/history`, {
+                params: { branchId: parseInt(selectedBranch) }
+            });
+            setHistoryList(res.data);
+            setShowHistoryModal(true);
+        } catch (error) {
+            console.error("Lỗi tải lịch sử nhập kho:", error.response?.data || error.message);
+            alert("Lỗi tải lịch sử nhập kho!");
+        }
+    };
+
+    const openImportModal = async () => {
+        if (!selectedBranch) {
+            alert("Vui lòng chọn Cơ sở trước!");
+            return;
+        }
+        try {
+            const res = await axios.get(`http://localhost:8081/api/inventory/branch/${selectedBranch}/items`);
+            setAvailableItems(res.data);
+            setImportList([{ inventoryId: '', quantity: 1 }]);
+            setShowImportModal(true);
+        } catch (error) {
+            console.error("Lỗi tải danh mục vật phẩm:", error);
+            alert("Không thể tải danh sách vật phẩm của cơ sở này.");
+        }
+    };
+
+    const handleImportChange = (index, field, value) => {
+        const newList = [...importList];
+        newList[index][field] = value;
+        setImportList(newList);
+    };
+
+    const submitImport = async () => {
+        const validItems = importList
+            .filter(item => item.inventoryId !== '')
+            .map(item => ({
+                receiptId: parseInt(item.inventoryId),
+                quantity: parseInt(item.quantity),
+                inventoryName: "",
+                unitPrice: 0
+            }));
+
+        if (validItems.length === 0) return alert("Vui lòng chọn ít nhất 1 mặt hàng!");
+
+        try {
+            await axios.post(`http://localhost:8081/api/inventory/import`, {
+                branchId: parseInt(selectedBranch),
+                items: validItems
+            });
+            alert("Nhập kho thành công!");
+            setShowImportModal(false);
+            openHistoryModal();
+            if (isReportLoaded) handleFetchReport();
+        } catch (error) {
+            console.error("Lỗi nhập kho:", error.response?.data || error.message);
+            alert("Lỗi khi nhập kho!");
         }
     };
 
     return (
         <div className="inventory-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h1>Inventory & Import Report</h1>
-            </div>
-
-            {/* NEW FILTER SECTION */}
-            <div
-                className="inventory-toolbar p-3 mb-4 rounded d-flex flex-wrap align-items-center gap-3"
-                style={{ border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}
-            >
-                {/* Time Selection */}
-                <div className="d-flex align-items-center gap-2">
-                    <span style={{ fontWeight: '600', color: '#4a5568', whiteSpace: 'nowrap' }}>Report Period:</span>
-                    <select
-                        value={month}
-                        onChange={(e) => setMonth(e.target.value)}
-                        className="form-control"
-                        style={{ width: '110px', cursor: 'pointer' }}
-                    >
-                        {[...Array(12).keys()].map(m => (
-                            <option key={m + 1} value={m + 1}>Month {m + 1}</option>
-                        ))}
-                    </select>
-                    <span style={{ fontWeight: 'bold', color: '#a0aec0' }}>/</span>
-                    <input
-                        type="number"
-                        value={year}
-                        onChange={(e) => setYear(e.target.value)}
-                        className="form-control"
-                        style={{ width: '90px' }}
-                    />
+            <div className="report-card">
+                <div className="report-header">
+                    <h2>Báo cáo kiểm kê kho</h2>
+                    <button className="btn btn-primary" onClick={openHistoryModal}>Lịch sử nhập kho</button>
                 </div>
 
-                {/* Branch Selection (Pushed to right) */}
-                <div className="d-flex align-items-center gap-2" style={{ marginLeft: 'auto' }}>
-                    <select
-                        value={branchId}
-                        onChange={(e) => setBranchId(e.target.value)}
-                        className="form-control"
-                        style={{ minWidth: '220px', cursor: 'pointer' }}
-                    >
-                        {branches.map(b => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
-                        ))}
-                    </select>
-
-                    <button
-                        onClick={fetchReport}
-                        className="btn"
-                        style={{
-                            backgroundColor: '#4a5d4e',
-                            color: 'white',
-                            padding: '6px 20px',
-                            fontWeight: '500',
-                            whiteSpace: 'nowrap',
-                            border: 'none',
-                            borderRadius: '4px'
-                        }}
-                    >
-                        Refresh
-                    </button>
+                <div className="filter-group">
+                    <div className="filter-item">
+                        <select value={selectedBranch} onChange={(e) => { setSelectedBranch(e.target.value); setIsReportLoaded(false); }}>
+                            <option value="">-- Chọn Cơ sở --</option>
+                            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                    </div>
+                    <div className="filter-item">
+                        <input type="number" value={month} onChange={e => setMonth(e.target.value)} style={{ width: '80px' }} />
+                        <span> / </span>
+                        <input type="number" value={year} onChange={e => setYear(e.target.value)} style={{ width: '100px' }} />
+                    </div>
+                    <button className="btn btn-success" onClick={handleFetchReport}>Xem Báo Cáo</button>
                 </div>
-            </div>
 
-            <div className="table-responsive">
-                {loading ? <p>Loading data...</p> : (
+                {isReportLoaded && (
                     <>
-                        <table className="inventory-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <table className="custom-table">
                             <thead>
                             <tr>
-                                <th style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>Item Name</th>
-                                <th className="text-center" style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>Beginning Stock</th>
-                                <th className="text-center" style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>Imported Qty</th>
-                                <th className="text-center" style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>Used Qty</th>
-                                <th className="text-center" style={{ color: '#10b981', padding: '10px', borderBottom: '1px solid #ddd' }}>Ending Stock</th>
-                                <th className="text-center" style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>Actions</th>
+                                <th>ID</th>
+                                <th>Tên vật phẩm</th>
+                                <th>Tồn đầu</th>
+                                <th>Nhập kho</th>
+                                <th>Tồn cuối</th>
+                                <th>Sử dụng</th>
+                                <th>Hành động</th>
                             </tr>
                             </thead>
                             <tbody>
-                            {currentData.map(item => (
-                                <tr key={item.inventoryId} style={{ borderBottom: '1px solid #eee' }}>
-                                    <td className="font-semibold" style={{ padding: '10px' }}>{item.inventoryName}</td>
-                                    <td className="text-center" style={{ padding: '10px' }}>{item.beginningStock}</td>
-                                    <td className="text-center" style={{ color: '#3b82f6', fontWeight: 'bold', padding: '10px' }}>
-                                        {item.importedQty}
+                            {reportData.length > 0 ? reportData.map((row, index) => (
+                                <tr key={row.inventoryId}>
+                                    <td>{row.inventoryId}</td>
+                                    <td>{row.inventoryName}</td>
+                                    <td>{row.openingStock}</td>
+                                    <td>{row.importQuantity}</td>
+                                    <td>
+                                        <input type="number" min="0" className="stock-input" value={row.closingStock}
+                                               onChange={(e) => handleClosingStockChange(index, e.target.value)} />
                                     </td>
-                                    <td className="text-center" style={{ padding: '10px' }}>
-                                        <input
-                                            type="number" min="0" value={item.usedQty}
-                                            onChange={(e) => handleValueChange(item.inventoryId, 'usedQty', e.target.value)}
-                                            style={{ width: '70px', textAlign: 'center', borderRadius: '4px', border: '1px solid #ddd' }}
-                                        />
-                                    </td>
-                                    <td className="text-center font-bold" style={{ padding: '10px' }}>{item.endingStock}</td>
-                                    <td className="text-center" style={{ padding: '10px' }}>
-                                        <button
-                                            className="btn-add"
-                                            style={{ padding: '5px 10px', fontSize: '12px' }}
-                                            onClick={() => handleImportStock(item)}
-                                        >
-                                            + Import Stock
+                                    <td style={{ color: 'red', fontWeight: 'bold' }}>{row.usedQuantity}</td>
+                                    <td>
+                                        <button className="btn btn-info btn-sm" onClick={() => handleViewDetail(row.inventoryId)}>
+                                            Chi tiết
                                         </button>
                                     </td>
                                 </tr>
-                            ))}
+                            )) : (
+                                <tr><td colSpan="7">Không có dữ liệu.</td></tr>
+                            )}
                             </tbody>
                         </table>
-
-                        {/* Pagination UI */}
-                        {reportData.length > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '15px', gap: '10px' }}>
-                                <button
-                                    onClick={() => handlePageChange(currentPage - 1)}
-                                    disabled={currentPage === 1}
-                                    style={{ padding: '5px 15px', border: '1px solid #ccc', borderRadius: '4px', background: currentPage === 1 ? '#f5f5f5' : '#fff', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
-                                >
-                                    Previous
-                                </button>
-
-                                <span>Page {currentPage} of {totalPages > 0 ? totalPages : 1}</span>
-
-                                <button
-                                    onClick={() => handlePageChange(currentPage + 1)}
-                                    disabled={currentPage === totalPages || totalPages === 0}
-                                    style={{ padding: '5px 15px', border: '1px solid #ccc', borderRadius: '4px', background: currentPage === totalPages || totalPages === 0 ? '#f5f5f5' : '#fff', cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer' }}
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        )}
+                        <div style={{ marginTop: '20px', textAlign: 'right' }}>
+                            <button className="btn btn-primary" onClick={saveReport}>Lưu Báo Cáo</button>
+                        </div>
                     </>
                 )}
             </div>
 
-            {reportData.length > 0 && (
-                <div style={{ marginTop: '20px', textAlign: 'right' }}>
-                    <button className="btn-add" style={{ padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }} onClick={handleSaveReport}>
-                        💾 CLOSE & SAVE REPORT
-                    </button>
+            {/* MODAL LỊCH SỬ */}
+            {showHistoryModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h3>Lịch sử nhập kho</h3>
+                            <div>
+                                <button className="btn btn-success" onClick={openImportModal} style={{ marginRight: '10px' }}>+ Nhập mới</button>
+                                <button className="close-btn" onClick={() => setShowHistoryModal(false)}>✖</button>
+                            </div>
+                        </div>
+                        <table className="custom-table">
+                            <thead>
+                            <tr>
+                                <th>Mã phiếu</th>
+                                <th>Ngày nhập</th>
+                                <th>Tên vật phẩm</th>
+                                <th>Số lượng</th>
+                                <th>Tổng tiền</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {historyList.map((item, idx) => (
+                                <tr key={idx}>
+                                    <td>#{item.receiptId}</td>
+                                    <td>{item.importDate ? new Date(item.importDate).toLocaleString('vi-VN') : '---'}</td>
+                                    <td>{item.inventoryName}</td>
+                                    <td>{item.quantity}</td>
+                                    <td>{item.totalAmount?.toLocaleString()} đ</td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
-            {/* Import Modal */}
-            {isImportModalOpen && (
-                <ImportInventoryModal
-                    isOpen={isImportModalOpen}
-                    onClose={() => setIsImportModalOpen(false)}
-                    onSuccess={handleImportSuccess}
-                    selectedItem={selectedItem}
-                />
+            {/* MODAL NHẬP KHO */}
+            {showImportModal && (
+                <div className="modal-overlay" style={{ zIndex: 1100 }}>
+                    <div className="modal-content small">
+                        <div className="modal-header">
+                            <h3>Tạo phiếu nhập mới</h3>
+                            <button className="close-btn" onClick={() => setShowImportModal(false)}>✖</button>
+                        </div>
+                        {importList.map((row, index) => (
+                            <div key={index} style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                                <select className="stock-input" style={{ flex: 2 }} value={row.inventoryId}
+                                        onChange={(e) => handleImportChange(index, 'inventoryId', e.target.value)}>
+                                    <option value="">-- Chọn mặt hàng --</option>
+                                    {availableItems.map(i => <option key={i.inventoryId} value={i.inventoryId}>{i.inventoryName}</option>)}
+                                </select>
+                                <input type="number" min="1" className="stock-input" style={{ flex: 1 }} value={row.quantity}
+                                       onChange={(e) => handleImportChange(index, 'quantity', e.target.value)} />
+                            </div>
+                        ))}
+                        <button className="btn btn-secondary btn-sm" onClick={() => setImportList([...importList, { inventoryId: '', quantity: 1 }])}>+ Thêm dòng</button>
+                        <div style={{ marginTop: '20px', textAlign: 'right' }}>
+                            <button className="btn btn-secondary" onClick={() => setShowImportModal(false)} style={{ marginRight: '10px' }}>Hủy</button>
+                            <button className="btn btn-success" onClick={submitImport}>Xác nhận nhập</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL CHI TIẾT SẢN PHẨM (Mới thêm) */}
+            {showDetailModal && productDetail && (
+                <div className="modal-overlay" style={{ zIndex: 1200 }}>
+                    <div className="modal-content small">
+                        <div className="modal-header">
+                            <h3>Thông tin chi tiết</h3>
+                            <button className="close-btn" onClick={() => setShowDetailModal(false)}>✖</button>
+                        </div>
+                        <div style={{ textAlign: 'left', lineHeight: '2' }}>
+                            <p><strong>Mã sản phẩm:</strong> {productDetail.inventoryId}</p>
+                            <p><strong>Tên vật phẩm:</strong> {productDetail.inventoryName}</p>
+                            <p><strong>Đơn vị tính:</strong> {productDetail.unit || '---'}</p>
+                            <p><strong>Giá nhập hiện tại:</strong> {productDetail.price?.toLocaleString()} đ</p>
+                            <p><strong>Tồn kho hệ thống:</strong> {productDetail.stock}</p>
+                            <p><strong>Ngày cập nhật:</strong> {productDetail.date ? new Date(productDetail.date).toLocaleDateString('vi-VN') : '---'}</p>
+                        </div>
+                        <div style={{ marginTop: '20px', textAlign: 'right' }}>
+                            <button className="btn btn-secondary" onClick={() => setShowDetailModal(false)}>Đóng</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
