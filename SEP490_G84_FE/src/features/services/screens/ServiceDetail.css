@@ -1,0 +1,55 @@
+.service-detail-page {
+  padding: 0 0 1rem 0;
+}
+
+.service-detail-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #465c47;
+  margin-bottom: 1rem;
+}
+
+.service-detail-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+}
+
+.service-detail-error {
+  margin-bottom: 1rem;
+}
+
+.service-detail-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.service-detail-dl {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1.5rem 0;
+}
+
+.service-detail-dl dt {
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0;
+}
+
+.service-detail-dl dd {
+  margin: 0;
+}
+
+.service-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
