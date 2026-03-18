@@ -27,6 +27,7 @@ import RoomManagement from "@/features/roomManagement/screens/RoomManagement";
 import FurnitureManagement from "@/features/roomManagement/screens/FurnitureManagement";
 import InventoryManagement from "@/features/inventory/screens/InventoryManagement";
 import InventoryReport from "@/features/inventory/screens/InventoryReport";
+import FurnitureInventory from "@/features/inventory/screens/FurnitureInventory";
 import ImportHistory from "@/features/inventory/screens/ImportHistory";
 
 // --- DASHBOARD & ADMIN PAGES ---
@@ -71,10 +72,11 @@ const AppRouter = () => {
             <Route path="/admin/rooms" element={<MainLayout><RoomManagement /></MainLayout>} />
             <Route path="/admin/furniture" element={<MainLayout><FurnitureManagement /></MainLayout>} />
 
-            {/* Đã gộp các file Inventory đang bị lơ lửng vào đây và sửa path cho khớp với Sidebar */}
+            {/* Inventory & Warehouse */}
             <Route path="/inventory" element={<MainLayout><InventoryManagement /></MainLayout>} />
             <Route path="/inventory/report" element={<MainLayout><InventoryReport /></MainLayout>} />
             <Route path="/inventory/history" element={<MainLayout><ImportHistory /></MainLayout>} />
+            <Route path="/inventory/furniture" element={<MainLayout><FurnitureInventory /></MainLayout>} />
 
             {/* --- NHÓM 5: PRIVATE PAGES (With MainLayout) --- */}
             <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />

@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import axios from 'axios';
 import '../css/InventoryReport.css';
 
 const InventoryReport = () => {
     // --- STATE CHO BÁO CÁO ---
     const [branches] = useState([
-        { id: 1, name: "Cơ sở 1" },
-        { id: 2, name: "Cơ sở 2" },
-        { id: 3, name: "Cơ sở 3" }
+        { id: 1, name: "Branch 1" },
+        { id: 2, name: "Branch 2" },
+        { id: 3, name: "Branch 3" }
     ]);
 
     const [selectedBranch, setSelectedBranch] = useState('');
@@ -15,6 +15,8 @@ const InventoryReport = () => {
     const [year, setYear] = useState(new Date().getFullYear());
     const [reportData, setReportData] = useState([]);
     const [isReportLoaded, setIsReportLoaded] = useState(false);
+    const [page, setPage] = useState(1);
+    const pageSize = 5;
 
     // --- STATE CHO MODAL LỊCH SỬ & CHI TIẾT PHIẾU NHẬP ---
     const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -38,7 +40,7 @@ const InventoryReport = () => {
     // ================= LOGIC BÁO CÁO =================
     const handleFetchReport = async () => {
         if (!selectedBranch) {
-            alert("Vui lòng chọn Cơ sở trước khi xem báo cáo!");
+            alert("Please select a Branch before viewing the report!");
             return;
         }
         try {
@@ -51,9 +53,10 @@ const InventoryReport = () => {
             });
             setReportData(res.data);
             setIsReportLoaded(true);
+            setPage(1);
         } catch (error) {
-            console.error("Lỗi lấy báo cáo:", error);
-            alert("Lỗi khi tải dữ liệu báo cáo!");
+            console.error("Error loading report:", error);
+            alert("Failed to load inventory report!");
         }
     };
 
@@ -66,20 +69,30 @@ const InventoryReport = () => {
         setReportData(newData);
     };
 
+    const totalPages = useMemo(() => {
+        const total = reportData.length || 0;
+        return Math.max(1, Math.ceil(total / pageSize));
+    }, [reportData.length]);
+
+    const pagedReportData = useMemo(() => {
+        const start = (page - 1) * pageSize;
+        return reportData.slice(start, start + pageSize);
+    }, [reportData, page]);
+
     const saveReport = async () => {
         try {
             await axios.post(`http://localhost:8081/api/inventory/report/save`, reportData);
-            alert(`Đã lưu báo cáo tháng ${month}/${year} thành công!`);
+            alert(`Saved inventory report for ${month}/${year} successfully!`);
         } catch (error) {
-            console.error("Lỗi lưu báo cáo:", error);
-            alert("Lỗi khi lưu báo cáo!");
+            console.error("Error saving report:", error);
+            alert("Failed to save report!");
         }
     };
 
     // ================= LOGIC LỊCH SỬ NHẬP KHO =================
     const openHistoryModal = async () => {
         if (!selectedBranch) {
-            alert("Vui lòng chọn Cơ sở để xem lịch sử nhập kho tương ứng!");
+            alert("Please select a Branch to view import history!");
             return;
         }
         try {
@@ -89,8 +102,8 @@ const InventoryReport = () => {
             setHistoryList(res.data);
             setShowHistoryModal(true);
         } catch (error) {
-            console.error("Lỗi tải lịch sử nhập kho:", error);
-            alert("Lỗi tải lịch sử nhập kho!");
+            console.error("Error loading import history:", error);
+            alert("Failed to load import history!");
         }
     };
 
@@ -122,7 +135,7 @@ const InventoryReport = () => {
     // ================= LOGIC TẠO PHIẾU NHẬP =================
     const openImportModal = async () => {
         if (!selectedBranch) {
-            alert("Vui lòng chọn Cơ sở trước!");
+            alert("Please select a Branch first!");
             return;
         }
         try {
@@ -131,8 +144,8 @@ const InventoryReport = () => {
             setImportList([{ isNew: false, inventoryId: '', inventoryName: '', price: '', quantity: 1 }]);
             setShowImportModal(true);
         } catch (error) {
-            console.error("Lỗi tải danh mục vật phẩm:", error);
-            alert("Không thể tải danh sách vật phẩm của cơ sở này.");
+            console.error("Error loading inventory items:", error);
+            alert("Failed to load inventory items for this branch.");
         }
     };
 
@@ -154,7 +167,7 @@ const InventoryReport = () => {
             (!item.isNew && item.inventoryId !== '')
         );
 
-        if (validItems.length === 0) return alert("Vui lòng nhập đầy đủ thông tin cho ít nhất 1 mặt hàng!");
+        if (validItems.length === 0) return alert("Please fill in information for at least one item!");
 
         for (let item of validItems) {
             if (item.isNew) {
@@ -162,7 +175,7 @@ const InventoryReport = () => {
                     available => available.inventoryName.toLowerCase() === item.inventoryName.trim().toLowerCase()
                 );
                 if (isDuplicate) {
-                    alert(`Sản phẩm "${item.inventoryName}" đã tồn tại trong kho. Vui lòng chọn "Chọn hàng có sẵn"!`);
+                    alert(`Item "${item.inventoryName}" already exists in this inventory. Please choose "Existing item".`);
                     return;
                 }
             }
@@ -190,13 +203,13 @@ const InventoryReport = () => {
                 branchId: parseInt(selectedBranch),
                 items: payloadItems
             });
-            alert("Nhập kho thành công!");
+            alert("Import successfully!");
             setShowImportModal(false);
             openHistoryModal();
             if (isReportLoaded) handleFetchReport();
         } catch (error) {
-            console.error("Lỗi nhập kho:", error);
-            alert("Lỗi khi nhập kho!");
+            console.error("Import error:", error);
+            alert("Error while importing items!");
         }
     };
 
@@ -207,8 +220,8 @@ const InventoryReport = () => {
             setProductDetail(res.data);
             setShowDetailModal(true);
         } catch (error) {
-            console.error("Lỗi lấy chi tiết sản phẩm:", error);
-            alert("Không thể tải thông tin chi tiết sản phẩm!");
+            console.error("Error loading item detail:", error);
+            alert("Failed to load item detail!");
         }
     };
 
@@ -216,23 +229,23 @@ const InventoryReport = () => {
         <div className="inventory-container">
             <div className="report-card">
                 <div className="report-header">
-                    <h2>Báo cáo kiểm kê kho</h2>
-                    <button className="btn btn-primary" onClick={openHistoryModal}>Lịch sử nhập kho</button>
+                    <h2>Inventory Stocktake Report</h2>
+                    <button className="btn btn-primary" onClick={openHistoryModal}>Import History</button>
                 </div>
 
                 <div className="filter-group">
                     <div className="filter-item">
-                        <select value={selectedBranch} onChange={(e) => { setSelectedBranch(e.target.value); setIsReportLoaded(false); }}>
-                            <option value="">-- Chọn Cơ sở --</option>
+                        <select value={selectedBranch} onChange={(e) => { setSelectedBranch(e.target.value); setIsReportLoaded(false); setReportData([]); setPage(1); }}>
+                            <option value="">-- Select Branch --</option>
                             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                         </select>
                     </div>
                     <div className="filter-item">
-                        <input type="number" value={month} onChange={e => setMonth(e.target.value)} style={{ width: '80px' }} />
+                        <input type="number" value={month} onChange={e => { setMonth(e.target.value); setIsReportLoaded(false); setReportData([]); setPage(1); }} style={{ width: '80px' }} />
                         <span> / </span>
-                        <input type="number" value={year} onChange={e => setYear(e.target.value)} style={{ width: '100px' }} />
+                        <input type="number" value={year} onChange={e => { setYear(e.target.value); setIsReportLoaded(false); setReportData([]); setPage(1); }} style={{ width: '100px' }} />
                     </div>
-                    <button className="btn btn-success" onClick={handleFetchReport}>Xem Báo Cáo</button>
+                    <button className="btn btn-success" onClick={handleFetchReport}>View Report</button>
                 </div>
 
                 {isReportLoaded && (
@@ -241,39 +254,66 @@ const InventoryReport = () => {
                             <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Tên vật phẩm</th>
-                                <th>Tồn đầu</th>
-                                <th>Nhập kho</th>
-                                <th>Tồn cuối</th>
-                                <th>Sử dụng</th>
-                                <th>Hành động</th>
+                                <th>Item name</th>
+                                <th>Opening stock</th>
+                                <th>Imported</th>
+                                <th>Closing stock</th>
+                                <th>Used</th>
+                                <th>Action</th>
                             </tr>
                             </thead>
                             <tbody>
-                            {reportData.length > 0 ? reportData.map((row, index) => (
-                                <tr key={row.inventoryId}>
-                                    <td>{row.inventoryId}</td>
-                                    <td>{row.inventoryName}</td>
-                                    <td>{row.openingStock}</td>
-                                    <td>{row.importQuantity}</td>
-                                    <td>
-                                        <input type="number" min="0" className="stock-input" value={row.closingStock}
-                                               onChange={(e) => handleClosingStockChange(index, e.target.value)} />
-                                    </td>
-                                    <td style={{ color: 'red', fontWeight: 'bold' }}>{row.usedQuantity}</td>
-                                    <td>
-                                        <button className="btn btn-info btn-sm" onClick={() => handleViewDetail(row.inventoryId)}>
-                                            Chi tiết
-                                        </button>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr><td colSpan="7">Không có dữ liệu.</td></tr>
+                            {reportData.length > 0 ? pagedReportData.map((row, localIndex) => {
+                                const index = (page - 1) * pageSize + localIndex;
+                                return (
+                                    <tr key={row.inventoryId}>
+                                        <td>{row.inventoryId}</td>
+                                        <td>{row.inventoryName}</td>
+                                        <td>{row.openingStock}</td>
+                                        <td>{row.importQuantity}</td>
+                                        <td>
+                                            <input type="number" min="0" className="stock-input" value={row.closingStock}
+                                                   onChange={(e) => handleClosingStockChange(index, e.target.value)} />
+                                        </td>
+                                        <td style={{ color: 'red', fontWeight: 'bold' }}>{row.usedQuantity}</td>
+                                        <td>
+                                            <button className="btn btn-info btn-sm" onClick={() => handleViewDetail(row.inventoryId)}>
+                                                Chi tiết
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            }) : (
+                                <tr><td colSpan="7">No data. This month only appears after the previous month\'s report is saved or this month has been saved.</td></tr>
                             )}
                             </tbody>
                         </table>
-                        <div style={{ marginTop: '20px', textAlign: 'right' }}>
-                            <button className="btn btn-primary" onClick={saveReport}>Lưu Báo Cáo</button>
+                        <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <button
+                                    className="btn btn-secondary btn-sm"
+                                    disabled={page <= 1}
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                >
+                                    Trang trước
+                                </button>
+                                <span style={{ color: '#666' }}>Trang {page}/{totalPages}</span>
+                                <button
+                                    className="btn btn-secondary btn-sm"
+                                    disabled={page >= totalPages}
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                >
+                                    Trang sau
+                                </button>
+                            </div>
+
+                            <button
+                                className="btn btn-primary"
+                                onClick={saveReport}
+                                disabled={reportData.length === 0}
+                            >
+                                Save Report
+                            </button>
                         </div>
                     </>
                 )}
@@ -284,9 +324,9 @@ const InventoryReport = () => {
                 <div className="modal-overlay" style={{ zIndex: 1000 }}>
                     <div className="modal-content" style={{ maxWidth: '800px', width: '90%' }}>
                         <div className="modal-header">
-                            <h3>Lịch sử nhập kho - {branches.find(b => b.id === parseInt(selectedBranch))?.name}</h3>
+                            <h3>Import History - {branches.find(b => b.id === parseInt(selectedBranch))?.name}</h3>
                             <div>
-                                <button className="btn btn-success" onClick={openImportModal} style={{ marginRight: '10px' }}>+ Nhập mới</button>
+                                <button className="btn btn-success" onClick={openImportModal} style={{ marginRight: '10px' }}>+ New Import</button>
                                 <button className="close-btn" onClick={() => setShowHistoryModal(false)}>✖</button>
                             </div>
                         </div>
@@ -294,10 +334,10 @@ const InventoryReport = () => {
                             <table border="1" width="100%" style={{ textAlign: 'center', borderCollapse: 'collapse', marginTop: '10px' }}>
                                 <thead style={{ backgroundColor: '#f4f4f4', position: 'sticky', top: 0 }}>
                                 <tr>
-                                    <th style={{ padding: '12px' }}>Mã Phiếu</th>
-                                    <th style={{ padding: '12px' }}>Ngày Nhập</th>
-                                    <th style={{ padding: '12px' }}>Tổng Tiền Đơn Hàng</th>
-                                    <th style={{ padding: '12px' }}>Hành Động</th>
+                                    <th style={{ padding: '12px' }}>Receipt No.</th>
+                                    <th style={{ padding: '12px' }}>Imported At</th>
+                                    <th style={{ padding: '12px' }}>Order Total</th>
+                                    <th style={{ padding: '12px' }}>Action</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -314,14 +354,14 @@ const InventoryReport = () => {
                                                     onClick={() => openReceiptDetail(receipt)}
                                                     style={{ padding: '6px 15px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                                                 >
-                                                    Xem Chi Tiết
+                                                    View Details
                                                 </button>
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="4" style={{ padding: '20px', color: '#666' }}>Không có dữ liệu phiếu nhập.</td>
+                                        <td colSpan="4" style={{ padding: '20px', color: '#666' }}>No import receipts.</td>
                                     </tr>
                                 )}
                                 </tbody>
@@ -336,9 +376,9 @@ const InventoryReport = () => {
                 <div className="modal-overlay" style={{ zIndex: 1050 }}>
                     <div className="modal-content" style={{ maxWidth: '700px', width: '90%' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ddd', paddingBottom: '10px', marginBottom: '20px' }}>
-                            <h3 style={{ margin: 0 }}>Chi Tiết Phiếu Nhập #{selectedReceipt.receiptId}</h3>
+                            <h3 style={{ margin: 0 }}>Import Receipt #{selectedReceipt.receiptId}</h3>
                             <span style={{ color: '#666' }}>
-                                Ngày: {new Date(selectedReceipt.importDate).toLocaleString('vi-VN')}
+                                Date: {new Date(selectedReceipt.importDate).toLocaleString('vi-VN')}
                             </span>
                         </div>
 
@@ -346,11 +386,11 @@ const InventoryReport = () => {
                             <table border="1" width="100%" style={{ textAlign: 'center', borderCollapse: 'collapse' }}>
                                 <thead style={{ backgroundColor: '#f8f9fa', position: 'sticky', top: 0 }}>
                                 <tr>
-                                    <th style={{ padding: '10px' }}>STT</th>
-                                    <th style={{ padding: '10px' }}>Tên Sản Phẩm</th>
-                                    <th style={{ padding: '10px' }}>Số Lượng</th>
-                                    <th style={{ padding: '10px' }}>Đơn Giá</th>
-                                    <th style={{ padding: '10px' }}>Thành Tiền</th>
+                                    <th style={{ padding: '10px' }}>#</th>
+                                    <th style={{ padding: '10px' }}>Item</th>
+                                    <th style={{ padding: '10px' }}>Quantity</th>
+                                    <th style={{ padding: '10px' }}>Unit Price</th>
+                                    <th style={{ padding: '10px' }}>Subtotal</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -364,7 +404,7 @@ const InventoryReport = () => {
                                     </tr>
                                 ))}
                                 <tr style={{ backgroundColor: '#fff3cd', fontWeight: 'bold' }}>
-                                    <td colSpan="4" style={{ padding: '10px', textAlign: 'right' }}>Tổng cộng:</td>
+                                    <td colSpan="4" style={{ padding: '10px', textAlign: 'right' }}>Total:</td>
                                     <td style={{ color: '#d9534f' }}>{selectedReceipt.totalReceiptAmount.toLocaleString()} đ</td>
                                 </tr>
                                 </tbody>
@@ -376,7 +416,7 @@ const InventoryReport = () => {
                                 onClick={() => setShowReceiptDetailModal(false)}
                                 className="btn btn-secondary"
                             >
-                                Đóng
+                                Close
                             </button>
                         </div>
                     </div>
@@ -388,7 +428,7 @@ const InventoryReport = () => {
                 <div className="modal-overlay" style={{ zIndex: 1100 }}>
                     <div className="modal-content" style={{ maxWidth: '600px', width: '100%' }}>
                         <div className="modal-header">
-                            <h3>Tạo Phiếu Nhập - {branches.find(b => b.id === parseInt(selectedBranch))?.name}</h3>
+                            <h3>Create Import Receipt - {branches.find(b => b.id === parseInt(selectedBranch))?.name}</h3>
                             <button className="close-btn" onClick={() => setShowImportModal(false)}>✖</button>
                         </div>
 
@@ -401,13 +441,13 @@ const InventoryReport = () => {
                                                 <input
                                                     type="radio" name={`type-report-${index}`} checked={!row.isNew}
                                                     onChange={() => handleImportChange(index, 'isNew', false)}
-                                                /> Có sẵn
+                                                /> Existing
                                             </label>
                                             <label style={{ cursor: 'pointer', fontWeight: row.isNew ? 'bold' : 'normal', color: '#007bff' }}>
                                                 <input
                                                     type="radio" name={`type-report-${index}`} checked={row.isNew}
                                                     onChange={() => handleImportChange(index, 'isNew', true)}
-                                                /> + Hàng mới
+                                                /> + New item
                                             </label>
                                         </div>
                                         <button
@@ -426,23 +466,23 @@ const InventoryReport = () => {
                                                 onChange={(e) => handleImportChange(index, 'inventoryId', e.target.value)}
                                                 style={{ flex: 1, padding: '8px' }}
                                             >
-                                                <option value="">-- Chọn mặt hàng --</option>
+                                                <option value="">-- Select item --</option>
                                                 {availableItems.map(i => (
                                                     <option key={i.inventoryId} value={i.inventoryId}>
-                                                        {i.inventoryName} (Tồn: {i.stock})
+                                                        {i.inventoryName} (Stock: {i.stock})
                                                     </option>
                                                 ))}
                                             </select>
                                         ) : (
                                             <div style={{ display: 'flex', gap: '10px', flex: 1 }}>
                                                 <input
-                                                    type="text" className="stock-input" placeholder="Tên sản phẩm..."
+                                                    type="text" className="stock-input" placeholder="Item name..."
                                                     value={row.inventoryName || ''}
                                                     onChange={(e) => handleImportChange(index, 'inventoryName', e.target.value)}
                                                     style={{ flex: 1, padding: '8px', border: '1px solid #007bff' }}
                                                 />
                                                 <input
-                                                    type="number" className="stock-input" min="0" placeholder="Giá nhập (đ)"
+                                                    type="number" className="stock-input" min="0" placeholder="Unit price"
                                                     value={row.price || ''}
                                                     onChange={(e) => handleImportChange(index, 'price', e.target.value)}
                                                     style={{ width: '110px', padding: '8px', border: '1px solid #007bff' }}
@@ -451,7 +491,7 @@ const InventoryReport = () => {
                                         )}
 
                                         <input
-                                            type="number" min="1" className="stock-input" placeholder="SL"
+                                            type="number" min="1" className="stock-input" placeholder="Qty"
                                             value={row.quantity || ''}
                                             onChange={(e) => handleImportChange(index, 'quantity', e.target.value)}
                                             style={{ width: '70px', padding: '8px' }}
@@ -466,12 +506,12 @@ const InventoryReport = () => {
                             style={{ width: '100%', marginTop: '10px', borderStyle: 'dashed' }}
                             onClick={() => setImportList([...importList, { isNew: false, inventoryId: '', inventoryName: '', price: '', quantity: 1 }])}
                         >
-                            + Thêm một dòng sản phẩm nữa
+                            + Add another item row
                         </button>
 
                         <div style={{ marginTop: '20px', textAlign: 'right', borderTop: '1px solid #ddd', paddingTop: '15px' }}>
-                            <button className="btn btn-secondary" onClick={() => setShowImportModal(false)} style={{ marginRight: '10px' }}>Hủy</button>
-                            <button className="btn btn-success" onClick={submitImport}>Xác nhận Nhập</button>
+                            <button className="btn btn-secondary" onClick={() => setShowImportModal(false)} style={{ marginRight: '10px' }}>Cancel</button>
+                            <button className="btn btn-success" onClick={submitImport}>Confirm Import</button>
                         </div>
                     </div>
                 </div>
@@ -482,19 +522,19 @@ const InventoryReport = () => {
                 <div className="modal-overlay" style={{ zIndex: 1200 }}>
                     <div className="modal-content small">
                         <div className="modal-header">
-                            <h3>Thông tin chi tiết</h3>
+                            <h3>Item Detail</h3>
                             <button className="close-btn" onClick={() => setShowDetailModal(false)}>✖</button>
                         </div>
                         <div style={{ textAlign: 'left', lineHeight: '2' }}>
-                            <p><strong>Mã sản phẩm:</strong> {productDetail.inventoryId}</p>
-                            <p><strong>Tên vật phẩm:</strong> {productDetail.inventoryName}</p>
-                            <p><strong>Đơn vị tính:</strong> {productDetail.unit || '---'}</p>
-                            <p><strong>Giá nhập hiện tại:</strong> {productDetail.price?.toLocaleString()} đ</p>
-                            <p><strong>Tồn kho hệ thống:</strong> {productDetail.stock}</p>
-                            <p><strong>Ngày cập nhật:</strong> {productDetail.date ? new Date(productDetail.date).toLocaleDateString('vi-VN') : '---'}</p>
+                            <p><strong>Item ID:</strong> {productDetail.inventoryId}</p>
+                            <p><strong>Item name:</strong> {productDetail.inventoryName}</p>
+                            <p><strong>Unit:</strong> {productDetail.unit || '---'}</p>
+                            <p><strong>Current import price:</strong> {productDetail.price?.toLocaleString()} đ</p>
+                            <p><strong>System stock:</strong> {productDetail.stock}</p>
+                            <p><strong>Last updated:</strong> {productDetail.date ? new Date(productDetail.date).toLocaleDateString('vi-VN') : '---'}</p>
                         </div>
                         <div style={{ marginTop: '20px', textAlign: 'right' }}>
-                            <button className="btn btn-secondary" onClick={() => setShowDetailModal(false)}>Đóng</button>
+                            <button className="btn btn-secondary" onClick={() => setShowDetailModal(false)}>Close</button>
                         </div>
                     </div>
                 </div>

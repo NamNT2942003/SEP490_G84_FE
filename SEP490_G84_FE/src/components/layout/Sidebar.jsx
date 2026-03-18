@@ -21,7 +21,7 @@ const Sidebar = () => {
             icon: "bi-box",
             // Khai báo menu con ở đây (Đã sửa đường dẫn cho khớp AppRouter)
             subItems: [
-                { path: "/inventory", label: "Inventory List" },
+                { path: "/inventory/furniture", label: "Furniture Inventory" },
                 { path: "/inventory/history", label: "Import History" },
                 { path: "/inventory/report", label: "Inventory Report" }
             ]
