@@ -7,10 +7,10 @@ const RoomDetailModal = ({ room, show, onClose }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (show && room?.roomId) {
-            fetchRoomDetail(room.roomId);
+        if (show && room?.roomTypeId) {
+            fetchRoomDetail(room.roomTypeId);
         }
-    }, [show, room?.roomId]);
+    }, [show, room?.roomTypeId]);
 
     const fetchRoomDetail = async (roomId) => {
         setLoading(true);
@@ -38,19 +38,24 @@ const RoomDetailModal = ({ room, show, onClose }) => {
     };
 
     const getCancellationText = (ratePlan) => {
-        if (ratePlan.cancellationType === "NonRefundable") {
+        if (ratePlan.cancellationType === "NON_REFUNDABLE" || ratePlan.cancellationType === "NonRefundable") {
             return "Non-refundable";
         }
-        if (ratePlan.freeCancelBeforeDays) {
+        if (ratePlan.cancellationType === "REFUNDABLE" && ratePlan.freeCancelBeforeDays) {
             return `Free cancellation up to ${ratePlan.freeCancelBeforeDays} days before check-in`;
         }
-        return "Free cancellation available";
+        if (ratePlan.cancellationType === "REFUNDABLE") {
+            return "Free cancellation available";
+        }
+        return "Cancellation policy depends on plan";
     };
 
     const getPaymentText = (paymentType) => {
         switch (paymentType) {
+            case "PREPAID":
             case "PayNow":
                 return "Pay now";
+            case "PAY_AT_HOTEL":
             case "PayLater":
                 return "Pay at hotel";
             default:

@@ -16,14 +16,29 @@ const calculateNights = (start, end) => {
 const formatVND = (amount) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
+const getCancellationText = (cancellationType, freeCancelBeforeDays) => {
+    if (cancellationType === 'NON_REFUNDABLE') return 'Khong hoan tien';
+    if (cancellationType === 'REFUNDABLE' && freeCancelBeforeDays > 0) {
+        return `Mien phi huy truoc ${freeCancelBeforeDays} ngay`;
+    }
+    if (cancellationType === 'REFUNDABLE') return 'Mien phi huy';
+    return 'Chinh sach huy theo goi gia';
+};
+
+const getPaymentText = (paymentType) => {
+    if (paymentType === 'PREPAID') return 'Thanh toan truoc';
+    if (paymentType === 'PAY_AT_HOTEL') return 'Thanh toan tai khach san';
+    return 'Hinh thuc thanh toan theo goi';
+};
+
 const buildBookingPayload = (formData, rooms, checkIn, checkOut) => ({
     otaReservationId: `WEB-${formData.phone.replace(/\s+/g, '')}-${checkIn}-${checkOut}`,
-    arrival_date: checkIn,
-    departure_date: checkOut,
+    arrivalDate: checkIn,
+    departureDate: checkOut,
     rooms: rooms.map((room) => ({
-        room_type_id: String(room.roomTypeId),
-        price: room.basePrice || room.price,
-        rate_plan_id: '1',
+        roomTypeId: room.roomTypeId,
+        ratePlanId: room.selectedRatePlanId,
+        price: room.selectedPrice || room.appliedPrice || room.basePrice || room.price,
         quantity: room.quantity || 1,
     })),
     customer: {
@@ -31,14 +46,14 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut) => ({
         email: formData.email,
         phone: formData.phone,
     },
-    special_requests: formData.specialRequests,
+    specialRequests: formData.specialRequests,
 });
 
 // ─── RoomItem ──────────────────────────────────────────────────────────────
 
 const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove }) => {
     const nights = calculateNights(checkIn, checkOut);
-    const unitPrice = room.basePrice || room.price;
+    const unitPrice = room.selectedPrice || room.appliedPrice || room.basePrice || room.price;
     const qty = room.quantity || 1;
     const maxQty = room.availableCount || 999;
 
@@ -49,6 +64,20 @@ const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove }) => {
                     <div className="room-name">{room.name}</div>
                     <div className="room-price">
                         💰 {new Intl.NumberFormat('vi-VN').format(unitPrice)}₫/night
+                    </div>
+                    {room.selectedRatePlanName && (
+                        <div className="small text-muted mt-1">
+                            <i className="bi bi-tag me-1" />
+                            {room.selectedRatePlanName}
+                        </div>
+                    )}
+                    <div className="small text-muted">
+                        <i className="bi bi-shield-check me-1" />
+                        {getCancellationText(room.cancellationType, room.freeCancelBeforeDays)}
+                    </div>
+                    <div className="small text-muted">
+                        <i className="bi bi-credit-card me-1" />
+                        {getPaymentText(room.paymentType)}
                     </div>
                 </div>
                 <button
@@ -143,7 +172,7 @@ const GuestInformation = () => {
     const calculateTotalPrice = () => {
         const nights = calculateNights(checkIn, checkOut);
         return rooms.reduce(
-            (sum, room) => sum + (room.basePrice || room.price) * (room.quantity || 1) * nights,
+            (sum, room) => sum + (room.selectedPrice || room.appliedPrice || room.basePrice || room.price) * (room.quantity || 1) * nights,
             0
         );
     };
@@ -155,6 +184,17 @@ const GuestInformation = () => {
         }
         if (rooms.length === 0) {
             alert('Vui lòng chọn ít nhất một phòng.');
+            return;
+        }
+
+        if (!checkIn || !checkOut || new Date(checkOut) <= new Date(checkIn)) {
+            alert('Ngay khong hop le. Vui long chon check-out sau check-in (yyyy-MM-dd).');
+            return;
+        }
+
+        const roomWithoutRatePlan = rooms.find((room) => !room.selectedRatePlanId);
+        if (roomWithoutRatePlan) {
+            alert(`Phong ${roomWithoutRatePlan.name} chua co rate plan hop le.`);
             return;
         }
 

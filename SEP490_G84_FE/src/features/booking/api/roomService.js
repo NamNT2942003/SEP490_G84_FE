@@ -32,11 +32,45 @@ export const roomService = {
         return cleanSearchResults(response.data);
     },
 
-    getRoomDetail: async (roomId) => {
+    getRoomDetail: async (roomTypeId) => {
+        const detailPath = API_ENDPOINTS.ROOM_TYPES.DETAIL_EXTENDED.replace(":id", roomTypeId);
         const response = await apiClient.get(
-            `${API_ENDPOINTS.ROOMS.DETAIL}/${roomId}`,
+            detailPath,
         );
         // Clean circular references before returning
         return cleanRoomTypeDetail(response.data);
+    },
+
+    getAvailableRatePlans: async ({ roomTypeId, checkInDate, checkOutDate, guestCount }) => {
+        const response = await apiClient.get(API_ENDPOINTS.RATE_PLAN_CONDITIONS.AVAILABLE, {
+            params: {
+                roomTypeId,
+                checkInDate,
+                checkOutDate,
+                guestCount,
+            },
+        });
+
+        const data = response.data || {};
+        const ratePlans = (data.ratePlans || []).map((plan) => ({
+            ratePlanId: plan.ratePlanId,
+            name: plan.name,
+            price: plan.price,
+            cancellationType: plan.cancellationType,
+            freeCancelBeforeDays: plan.freeCancelBeforeDays,
+            paymentType: plan.paymentType,
+            priorityOrder: plan.priorityOrder,
+            conditionCount: plan.conditionCount,
+        }));
+
+        return {
+            success: Boolean(data.success),
+            roomTypeId: data.roomTypeId,
+            checkInDate: data.checkInDate,
+            checkOutDate: data.checkOutDate,
+            guestCount: data.guestCount,
+            ratePlans,
+            count: data.count ?? ratePlans.length,
+        };
     },
 };

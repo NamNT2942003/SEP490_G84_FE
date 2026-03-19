@@ -27,6 +27,91 @@ const SearchRoom = () => {
     const [selectedCart, setSelectedCart] = useState([]); // Giỏ hàng chọn phòng
     const [isInitialized, setIsInitialized] = useState(false);
 
+    const resolveGuestCount = (sp) => {
+        const adults = Number(sp?.adults || 0);
+        const children = Number(sp?.children || 0);
+        return Math.max(1, adults + children);
+    };
+
+    const applyRatePlanSelection = (room, selectedRatePlanId) => {
+        const selectedPlan = (room.availableRatePlans || []).find((plan) => plan.ratePlanId === selectedRatePlanId);
+        if (!selectedPlan) {
+            return {
+                ...room,
+                selectedRatePlanId: null,
+                selectedRatePlanName: null,
+                selectedPrice: null,
+                cancellationType: null,
+                paymentType: null,
+                freeCancelBeforeDays: null,
+            };
+        }
+
+        return {
+            ...room,
+            selectedRatePlanId: selectedPlan.ratePlanId,
+            selectedRatePlanName: selectedPlan.name,
+            selectedPrice: selectedPlan.price,
+            cancellationType: selectedPlan.cancellationType,
+            paymentType: selectedPlan.paymentType,
+            freeCancelBeforeDays: selectedPlan.freeCancelBeforeDays,
+        };
+    };
+
+    const enrichRoomsWithRatePlans = useCallback(async (rawRooms, sp) => {
+        if (!rawRooms?.length) return [];
+
+        const guestCount = resolveGuestCount(sp);
+        return Promise.all(
+            rawRooms.map(async (room) => {
+                try {
+                    const available = await roomService.getAvailableRatePlans({
+                        roomTypeId: room.roomTypeId,
+                        checkInDate: sp?.checkIn,
+                        checkOutDate: sp?.checkOut,
+                        guestCount,
+                    });
+
+                    const availableRatePlans = available.ratePlans || [];
+                    const defaultRatePlanId =
+                        availableRatePlans.find((plan) => plan.ratePlanId === room.appliedRatePlanId)?.ratePlanId ||
+                        room.appliedRatePlanId ||
+                        availableRatePlans[0]?.ratePlanId ||
+                        null;
+
+                    const roomWithPlans = {
+                        ...room,
+                        availableRatePlans,
+                        ratePlanLoading: false,
+                        ratePlanError: null,
+                        selectedRatePlanId: null,
+                        selectedRatePlanName: null,
+                        selectedPrice: null,
+                        cancellationType: room.cancellationType || null,
+                        paymentType: room.paymentType || null,
+                        freeCancelBeforeDays: room.freeCancelBeforeDays || null,
+                    };
+
+                    return applyRatePlanSelection(roomWithPlans, defaultRatePlanId);
+                } catch (err) {
+                    const message = err?.response?.data?.error || err?.message || "Khong tai duoc goi gia";
+                    return {
+                        ...room,
+                        availableRatePlans: [],
+                        ratePlanLoading: false,
+                        ratePlanError: message,
+                        selectedRatePlanId: room.appliedRatePlanId || null,
+                        selectedRatePlanName: room.appliedRatePlanName || null,
+                        selectedPrice: room.appliedPrice || room.basePrice,
+                        cancellationType: room.cancellationType || null,
+                        paymentType: room.paymentType || null,
+                        freeCancelBeforeDays: room.freeCancelBeforeDays || null,
+                    };
+                }
+            }),
+        );
+    }, []);
+
     const calculateNights = (checkIn, checkOut) => {
         if (!checkIn || !checkOut) return 1;
         const d1 = new Date(checkIn);
@@ -51,43 +136,58 @@ const SearchRoom = () => {
         setLoading(true); setError(null); setSearchParams(sp);
         try {
             if (sp.checkIn && sp.checkOut) {
-                if (new Date(sp.checkOut) < new Date(sp.checkIn)) {
+                if (new Date(sp.checkOut) <= new Date(sp.checkIn)) {
                     setError("Check-out date must be after check-in date.");
                     setLoading(false); return;
                 }
             }
             const params = { branchId: filters.branchId ?? 1, ...filters, ...sp };
             const res = await roomService.searchRooms(params);
-            setRooms(res.content || []);
+            const enrichedRooms = await enrichRoomsWithRatePlans(res.content || [], sp);
+            setRooms(enrichedRooms);
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
-            setError(err.message || "Failed to search rooms");
+            const apiError = err?.response?.data?.error;
+            const message = apiError && String(apiError).includes("yyyy-MM-dd")
+                ? "Ngay khong dung dinh dang yyyy-MM-dd"
+                : (apiError || err.message || "Failed to search rooms");
+            setError(message);
         } finally { setLoading(false); }
-    }, [filters]);
+    }, [filters, enrichRoomsWithRatePlans]);
 
     const refetchRooms = useCallback(async () => {
         if (!searchParams) return;
         setLoading(true); setError(null);
         try {
-            if (searchParams.checkIn && searchParams.checkOut && new Date(searchParams.checkOut) < new Date(searchParams.checkIn)) {
+            if (searchParams.checkIn && searchParams.checkOut && new Date(searchParams.checkOut) <= new Date(searchParams.checkIn)) {
                 setError("Check-out date must be after check-in date.");
                 setLoading(false); return;
             }
             const params = { branchId: filters.branchId ?? 1, ...filters, ...searchParams };
             const res = await roomService.searchRooms(params);
-            setRooms(res.content || []);
+            const enrichedRooms = await enrichRoomsWithRatePlans(res.content || [], searchParams);
+            setRooms(enrichedRooms);
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
-            setError(err.message || "Failed to search rooms");
+            const apiError = err?.response?.data?.error;
+            const message = apiError && String(apiError).includes("yyyy-MM-dd")
+                ? "Ngay khong dung dinh dang yyyy-MM-dd"
+                : (apiError || err.message || "Failed to search rooms");
+            setError(message);
         } finally { setLoading(false); }
-    }, [searchParams, filters]);
+    }, [searchParams, filters, enrichRoomsWithRatePlans]);
 
     const handleFilterChange = (nf) => setFilters(p => ({ ...p, ...nf, page: 0 }));
     const handleSortChange = (e) => setFilters(p => ({ ...p, sortPrice: e.target.value, page: 0 }));
     const handlePageChange = (page) => setFilters(p => ({ ...p, page }));
     const handleBooking = (room) => {
+        if (!room.selectedRatePlanId) {
+            alert("Vui long chon goi gia hop le truoc khi dat phong.");
+            return;
+        }
+
         // Kiểm tra xem phòng này đã có trong cart chưa
         const existingIndex = selectedCart.findIndex(r => r.roomTypeId === room.roomTypeId);
 
@@ -99,7 +199,18 @@ const SearchRoom = () => {
                 return;
             }
             setSelectedCart(prev => prev.map((r, idx) =>
-                idx === existingIndex ? { ...r, quantity: Math.min((r.quantity || 1) + 1, room.availableCount) } : r
+                idx === existingIndex
+                    ? {
+                        ...r,
+                        quantity: Math.min((r.quantity || 1) + 1, room.availableCount),
+                        selectedRatePlanId: room.selectedRatePlanId,
+                        selectedRatePlanName: room.selectedRatePlanName,
+                        selectedPrice: room.selectedPrice,
+                        cancellationType: room.cancellationType,
+                        paymentType: room.paymentType,
+                        freeCancelBeforeDays: room.freeCancelBeforeDays,
+                    }
+                    : r
             ));
         } else {
             // Nếu chưa → thêm vào cart với quantity = 1
@@ -109,6 +220,18 @@ const SearchRoom = () => {
             }
             setSelectedCart(prev => [...prev, { ...room, quantity: 1 }]);
         }
+    };
+
+    const handleSelectRatePlan = (roomTypeId, ratePlanId) => {
+        setRooms(prev => prev.map((room) => {
+            if (room.roomTypeId !== roomTypeId) return room;
+            return applyRatePlanSelection(room, ratePlanId);
+        }));
+
+        setSelectedCart(prev => prev.map((room) => {
+            if (room.roomTypeId !== roomTypeId) return room;
+            return applyRatePlanSelection(room, ratePlanId);
+        }));
     };
 
     const handleRemoveFromCart = (roomTypeId) => {
@@ -142,9 +265,20 @@ const SearchRoom = () => {
             return;
         }
 
+        if (searchParams?.checkIn && searchParams?.checkOut && new Date(searchParams.checkOut) <= new Date(searchParams.checkIn)) {
+            alert("Check-out date must be after check-in date");
+            return;
+        }
+
+        const invalidRoom = selectedCart.find((room) => !room.selectedRatePlanId);
+        if (invalidRoom) {
+            alert(`Room ${invalidRoom.name} has no valid rate plan. Please choose another plan.`);
+            return;
+        }
+
         const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
         const totalPrice = selectedCart.reduce((sum, room) =>
-            sum + ((room.basePrice || room.price) * (room.quantity || 1) * nights), 0
+            sum + ((room.selectedPrice || room.appliedPrice || room.basePrice || room.price) * (room.quantity || 1) * nights), 0
         );
 
         navigate('/guest-information', {
@@ -171,7 +305,7 @@ const SearchRoom = () => {
             searchRooms({ checkIn: fmtYmd(now), checkOut: fmtYmd(tom), adults: 1, children: 0 });
             setIsInitialized(true);
         }
-    }, []);
+    }, [isInitialized, searchRooms]);
 
     useEffect(() => {
         if (searchParams && isInitialized) {
@@ -431,7 +565,8 @@ const SearchRoom = () => {
                                 {selectedCart.length > 0 ? (
                                     selectedCart.map((room, idx) => {
                                         const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
-                                        const roomTotal = (room.basePrice || room.price) * (room.quantity || 1) * nights;
+                                        const roomUnitPrice = room.selectedPrice || room.appliedPrice || room.basePrice || room.price;
+                                        const roomTotal = roomUnitPrice * (room.quantity || 1) * nights;
                                         return (
                                             <div key={idx} className="cart-room-item">
                                                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
@@ -441,8 +576,9 @@ const SearchRoom = () => {
                                                             {room.name}
                                                         </div>
                                                         <div className="cart-room-price">
-                                                            💰 {new Intl.NumberFormat('vi-VN').format(room.basePrice || room.price)}₫/night
+                                                            💰 {new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/night
                                                         </div>
+                                                        {room.selectedRatePlanName && <div className="small text-muted">{room.selectedRatePlanName}</div>}
                                                     </div>
                                                     <button
                                                         className="cart-delete-btn"
@@ -510,7 +646,8 @@ const SearchRoom = () => {
                                             {new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(
                                                 selectedCart.reduce((sum, r) => {
                                                     const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
-                                                    return sum + ((r.basePrice || r.price) * (r.quantity || 1) * nights);
+                                                    const unitPrice = r.selectedPrice || r.appliedPrice || r.basePrice || r.price;
+                                                    return sum + (unitPrice * (r.quantity || 1) * nights);
                                                 }, 0)
                                             )}
                                         </span>
@@ -570,7 +707,13 @@ const SearchRoom = () => {
                         {!loading && !error && rooms.length > 0 && (
                             <div>
                                 {rooms.map((rt) => (
-                                    <RoomCard key={rt.roomTypeId} room={rt} onBooking={handleBooking} onViewDetail={handleViewDetail} />
+                                    <RoomCard
+                                        key={rt.roomTypeId}
+                                        room={rt}
+                                        onBooking={handleBooking}
+                                        onViewDetail={handleViewDetail}
+                                        onSelectRatePlan={handleSelectRatePlan}
+                                    />
                                 ))}
                                 <SmartPagination
                                     currentPage={filters.page}

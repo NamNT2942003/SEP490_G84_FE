@@ -13,6 +13,21 @@ const Sidebar = () => {
     // Thêm mục Furniture Management có trong AppRouter
     { path: "/admin/furniture", label: "Furniture Management", icon: "bi-lamp" },
 
+    // Thêm mục Branch Management có trong AppRouter
+    { path: "/admin/branches", label: "Branch Management", icon: "bi-building" },
+
+    // Thêm mục Room Type Management
+    { path: "/admin/room-types", label: "Room Type Management", icon: "bi-grid-1x2" },
+
+    // Thêm mục Rate Plan Management
+    { path: "/admin/rate-plans", label: "Rate Plan Management", icon: "bi-tags" },
+
+    // Thêm mục Rate Plan Condition Management
+    { path: "/admin/rate-plan-conditions", label: "Rate Plan Conditions", icon: "bi-sliders" },
+
+    // Thêm mục Inventory Management
+    { path: "/admin/room-inventories", label: "Inventory Management", icon: "bi-calendar3-range" },
+
     // Đã đổi từ /staff thành /accounts cho khớp với Route
     { path: "/accounts", label: "Account Management", icon: "bi-people" },
 
