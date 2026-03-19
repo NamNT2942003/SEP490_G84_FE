@@ -1,0 +1,172 @@
+/* src/features/payment/screens/PaymentResult.css */
+
+.payment-result-wrapper {
+  background-color: #f0f2f0; 
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Smooth entrance animation */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.payment-ticket {
+  background: #ffffff;
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.06);
+  max-width: 480px;
+  width: 100%;
+  padding: 40px;
+  text-align: center;
+  animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Elegant Top Accent */
+.payment-ticket::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+}
+
+.payment-ticket.status-success::before { background-color: #465c47; }
+.payment-ticket.status-error::before { background-color: #dc3545; }
+
+.hotel-brand {
+  color: #465c47;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.hotel-subtitle {
+  color: #888;
+  font-size: 0.75rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 30px;
+}
+
+/* Icon Animation */
+@keyframes popIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  80% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.status-icon-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s both;
+}
+
+.status-icon-circle.success { background-color: rgba(70, 92, 71, 0.08); color: #465c47; }
+.status-icon-circle.error { background-color: rgba(220, 53, 69, 0.08); color: #dc3545; }
+
+.status-title {
+  color: #222;
+  font-weight: 600;
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.status-message {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+/* The Receipt Details Box */
+.receipt-box {
+  background-color: #fafafa;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.receipt-row:last-child {
+  margin-bottom: 0;
+  padding-top: 12px;
+  border-top: 1px dashed #ddd;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.receipt-label { color: #888; }
+.receipt-value { color: #333; font-weight: 500; }
+.receipt-value.total { color: #465c47; }
+
+/* Buttons */
+.btn-luxury {
+  background-color: #465c47;
+  color: #ffffff;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.btn-luxury:hover {
+  background-color: #384a39;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(70, 92, 71, 0.25);
+}
+
+.btn-outline-luxury {
+  background-color: transparent;
+  color: #465c47;
+  border: 1px solid #465c47;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  margin-top: 12px;
+}
+
+.btn-outline-luxury:hover {
+  background-color: rgba(70, 92, 71, 0.05);
+  color: #465c47;
+}
+
+.footer-info {
+  margin-top: 32px;
+  font-size: 0.8rem;
+  color: #aaa;
+}

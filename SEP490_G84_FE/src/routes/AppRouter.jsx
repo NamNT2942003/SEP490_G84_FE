@@ -34,6 +34,20 @@ import UserDetail from '@/features/accounts/screens/UserDetail';
 import EditStaff from '@/features/accounts/screens/EditStaff';
 import CreateAccount from '@/features/accounts/screens/CreateAccount';
 
+import ImportInventoryBootstrap from "@/features/test/ImportInventoryBootstrap.jsx";
+import MonthlyReportBootstrap from "@/features/test/MonthlyReportBootstrap.jsx";
+import ExcelToWebReport from "@/features/test/ExcelToWebReport.jsx";
+import ImportReceiptUI from "@/features/test/ImportReceiptUI.jsx";
+
+
+
+
+
+
+import FrontDeskDashboard from "../features/manager_booking/screens/FrontDeskDashboard";
+import StayScreen from "../features/stay/screens/StayScreen";
+import InventoryReportPage from "../features/test/InventoryReportPage";
+
 /** Helper: Staff không được vào trang Account → redirect về /dashboard */
 const BlockStaffFromAccounts = ({ children }) => {
     const currentUser = useCurrentUser();
@@ -50,7 +64,13 @@ const AppRouter = () => {
             <Route path="/" element={<ClientLayout><HomePage /></ClientLayout>} />
             <Route path="/about" element={<ClientLayout><AboutPage /></ClientLayout>} />
             <Route path="/contact" element={<ClientLayout><ContactPage /></ClientLayout>} />
-
+            <Route path="/test" element={<ImportInventoryBootstrap></ImportInventoryBootstrap>} />
+            <Route path="/test2" element={<MonthlyReportBootstrap></MonthlyReportBootstrap>} />
+            <Route path="/test3" element={<ExcelToWebReport></ExcelToWebReport>} />
+            <Route path="/import-receipt" element={<ImportReceiptUI></ImportReceiptUI>} />
+            <Route path="/inventory-report" element={<InventoryReportPage></InventoryReportPage>} />
+            
+          
             {/* --- NHÓM 2: CÁC TRANG XÁC THỰC TÀI KHOẢN --- */}
             <Route path="/login" element={<ClientLayout><Login /></ClientLayout>} />
             <Route path="/forgot-password" element={<ClientLayout><ForgotPassword /></ClientLayout>} />
@@ -70,6 +90,12 @@ const AppRouter = () => {
             {/* 5. PRIVATE PAGES (With MainLayout) */}
             <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
             <Route path="/rooms" element={<MainLayout><div>Room List (Coming Soon)</div></MainLayout>} />
+
+
+             {/* 5. Check-in(With MainLayout) */}
+              <Route path="/manager-booking" element={<MainLayout><FrontDeskDashboard /></MainLayout>} />
+              <Route path="/stay" element={<MainLayout><StayScreen /></MainLayout>} />
+
 
             {/* 6. ACCOUNT PAGES (MainLayout + Block Staff) */}
             <Route

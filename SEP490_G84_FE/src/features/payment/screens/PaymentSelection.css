@@ -1,0 +1,205 @@
+/* src/features/payment/screens/PaymentSelection.css */
+
+.payment-selection-wrapper {
+  background-color: #f0f2f0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.payment-selection-card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.06);
+  max-width: 480px;
+  width: 100%;
+  padding: 40px;
+  animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+}
+
+.hotel-brand {
+  color: #465c47;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.hotel-subtitle {
+  color: #888;
+  font-size: 0.75rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* Amount Display Box */
+.amount-display {
+  background-color: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.amount-label {
+  color: #888;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.amount-value {
+  color: #D4AF37; /* Luxury Gold */
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Payment Method Cards */
+.payment-method-card {
+  border: 2px solid #eee;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+}
+
+.payment-method-card:hover {
+  border-color: #b5c4b6;
+  background-color: #fcfdfc;
+}
+
+.payment-method-card.selected {
+  border-color: #465c47;
+  background-color: rgba(70, 92, 71, 0.04);
+}
+
+/* Custom Radio Button */
+.custom-radio {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  margin-right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.payment-method-card.selected .custom-radio {
+  border-color: #465c47;
+}
+
+.payment-method-card.selected .custom-radio::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background-color: #465c47;
+  border-radius: 50%;
+}
+
+.method-details h6 {
+  margin: 0 0 4px 0;
+  font-weight: 600;
+  color: #333;
+}
+
+.method-details small {
+  color: #888;
+}
+
+.method-icon {
+  margin-left: auto;
+  font-size: 1.8rem;
+}
+
+/* QR Code Section */
+.qr-container {
+  text-align: center;
+}
+
+.qr-frame {
+  background: #fff;
+  padding: 12px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  display: inline-block;
+  margin-bottom: 20px;
+  position: relative;
+  border: 1px solid #eee;
+}
+
+.qr-frame img {
+  border-radius: 8px;
+  max-width: 240px;
+  display: block;
+}
+
+.qr-instruction {
+  background-color: #f8f9fa;
+  border-left: 4px solid #D4AF37;
+  padding: 16px;
+  border-radius: 0 8px 8px 0;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+/* Pulsing Loader for Polling */
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(70, 92, 71, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(70, 92, 71, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(70, 92, 71, 0); }
+}
+
+.polling-indicator {
+  width: 12px;
+  height: 12px;
+  background-color: #465c47;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  animation: pulseGlow 1.5s infinite;
+}
+
+/* Buttons */
+.btn-gold {
+  background-color: #D4AF37;
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+}
+
+.btn-gold:hover:not(:disabled) {
+  background-color: #c19e31;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(212, 175, 55, 0.3);
+}
+
+.btn-gold:disabled {
+  background-color: #e5d28e;
+  cursor: not-allowed;
+}
