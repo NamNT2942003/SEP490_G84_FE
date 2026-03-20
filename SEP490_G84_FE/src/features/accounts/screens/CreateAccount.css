@@ -189,8 +189,9 @@
 /* Form Actions */
 .form-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
+  gap: 12px;
   padding: 20px 32px;
   background: #f8f9fa;
   border-top: 1px solid #e9ecef;
@@ -198,7 +199,7 @@
 
 /* Buttons */
 .btn {
-  padding: 12px 24px;
+  padding: 10px 20px;
   border: none;
   border-radius: 6px;
   font-size: 14px;
@@ -208,6 +209,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  width: auto;
+  flex: 0 0 auto;
 }
 
 .btn:disabled {
@@ -229,7 +232,8 @@
 .btn-submit {
   background: #56785e;
   color: #fff;
-  padding: 12px 32px;
+  padding: 10px 24px;
+  white-space: nowrap;
 }
 
 .btn-submit:hover:not(:disabled) {

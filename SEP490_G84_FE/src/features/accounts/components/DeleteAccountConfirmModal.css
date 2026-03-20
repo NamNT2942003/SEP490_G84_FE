@@ -1,0 +1,108 @@
+/* Delete confirmation — same overlay/card family as SuccessNoticeModal */
+
+.delete-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.delete-confirm-card {
+  background: #ffffff;
+  border-radius: 16px;
+  max-width: 420px;
+  width: 100%;
+  padding: 32px 28px 28px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.delete-confirm-icon-wrap {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: #fff3e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-confirm-icon {
+  font-size: 2rem;
+  color: #e65100;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.delete-confirm-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #212529;
+  margin: 0 0 12px;
+  line-height: 1.3;
+}
+
+.delete-confirm-message {
+  font-size: 0.95rem;
+  color: #333;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.delete-confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.delete-confirm-btn-cancel {
+  min-width: 120px;
+  padding: 10px 22px;
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+  background: #fff;
+  color: #495057;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.delete-confirm-btn-cancel:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #ced4da;
+}
+
+.delete-confirm-btn-delete {
+  min-width: 120px;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  background: #dc3545;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.delete-confirm-btn-delete:hover:not(:disabled) {
+  background: #bb2d3b;
+}
+
+.delete-confirm-btn-delete:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.delete-confirm-btn-cancel:disabled,
+.delete-confirm-btn-delete:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
