@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import axios from 'axios';
 import '../css/InventoryReport.css';
+import * as XLSX from 'xlsx';
 
 const InventoryReport = () => {
     // --- STATE CHO BÁO CÁO ---
@@ -16,6 +17,9 @@ const InventoryReport = () => {
     const [reportData, setReportData] = useState([]);
     const [isReportLoaded, setIsReportLoaded] = useState(false);
     const [page, setPage] = useState(1);
+    const [pageInput, setPageInput] = useState('1');
+    const [nameQuery, setNameQuery] = useState('');
+    const [nameApplied, setNameApplied] = useState('');
     const pageSize = 5;
 
     // --- STATE CHO MODAL LỊCH SỬ & CHI TIẾT PHIẾU NHẬP ---
@@ -37,16 +41,22 @@ const InventoryReport = () => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [productDetail, setProductDetail] = useState(null);
 
+    const reportTitle = isReportLoaded
+        ? `Inventory Stocktake Report - Month ${month} / ${year}`
+        : 'Inventory Stocktake Report';
+
     // ================= LOGIC BÁO CÁO =================
-    const handleFetchReport = async () => {
+    const handleFetchReport = async (monthToFetchOverride = null) => {
         if (!selectedBranch) {
             alert("Please select a Branch before viewing the report!");
             return;
         }
+
+        const monthToFetch = monthToFetchOverride ?? month;
         try {
-            const res = await axios.get(`http://localhost:8081/api/inventory/report`, {
+            const res = await axios.get(`http://[::1]:8081/api/inventory/report`, {
                 params: {
-                    month: parseInt(month),
+                    month: parseInt(monthToFetch),
                     year: parseInt(year),
                     branchId: parseInt(selectedBranch)
                 }
@@ -54,10 +64,34 @@ const InventoryReport = () => {
             setReportData(res.data);
             setIsReportLoaded(true);
             setPage(1);
+            setPageInput('1');
+            setNameQuery('');
+            setNameApplied('');
         } catch (error) {
             console.error("Error loading report:", error);
             alert("Failed to load inventory report!");
         }
+    };
+
+    const handleFetchReportForMonth = async (monthToFetch) => {
+        setIsReportLoaded(false);
+        setReportData([]);
+        setPage(1);
+        setPageInput('1');
+        setNameQuery('');
+        setNameApplied('');
+        setMonth(monthToFetch);
+        await handleFetchReport(monthToFetch);
+    };
+
+    const handleBackToMonthSelector = () => {
+        setIsReportLoaded(false);
+        setReportData([]);
+        setPage(1);
+        setPageInput('1');
+        setNameQuery('');
+        setNameApplied('');
+        // Keep selectedBranch/year/month so user can quickly switch again.
     };
 
     const handleClosingStockChange = (index, value) => {
@@ -69,24 +103,109 @@ const InventoryReport = () => {
         setReportData(newData);
     };
 
+    const handleNoteChange = (index, value) => {
+        const newData = [...reportData];
+        newData[index].note = value;
+        setReportData(newData);
+    };
+
+    const changePage = (nextPage) => {
+        const target = Math.max(1, Math.min(totalPages, nextPage));
+        setPage(target);
+        setPageInput(String(target));
+    };
+
+    const commitPageInput = () => {
+        const raw = pageInput?.trim?.() ?? '';
+        if (!raw) return setPageInput(String(page));
+        const parsed = parseInt(raw, 10);
+        if (!Number.isFinite(parsed)) return setPageInput(String(page));
+        changePage(parsed);
+    };
+
+    const applyNameSearch = () => {
+        setNameApplied(nameQuery.trim());
+        setPage(1);
+        setPageInput('1');
+    };
+
+    const clearNameSearch = () => {
+        setNameQuery('');
+        setNameApplied('');
+        setPage(1);
+        setPageInput('1');
+    };
+
+    const reportDataFiltered = useMemo(() => {
+        const q = nameApplied.trim().toLowerCase();
+        if (!q) return reportData;
+        return reportData.filter((r) => (r.inventoryName || '').toLowerCase().includes(q));
+    }, [reportData, nameApplied]);
+
     const totalPages = useMemo(() => {
-        const total = reportData.length || 0;
+        const total = reportDataFiltered.length || 0;
         return Math.max(1, Math.ceil(total / pageSize));
-    }, [reportData.length]);
+    }, [reportDataFiltered.length]);
 
     const pagedReportData = useMemo(() => {
         const start = (page - 1) * pageSize;
-        return reportData.slice(start, start + pageSize);
-    }, [reportData, page]);
+        return reportDataFiltered.slice(start, start + pageSize);
+    }, [reportDataFiltered, page]);
 
     const saveReport = async () => {
         try {
-            await axios.post(`http://localhost:8081/api/inventory/report/save`, reportData);
+            await axios.post(`http://[::1]:8081/api/inventory/report/save`, reportData);
             alert(`Saved inventory report for ${month}/${year} successfully!`);
         } catch (error) {
             console.error("Error saving report:", error);
             alert("Failed to save report!");
         }
+    };
+
+    const exportToExcel = () => {
+        if (!reportDataFiltered || reportDataFiltered.length === 0) {
+            alert('No data to export!');
+            return;
+        }
+
+        const branchName = branches.find((b) => String(b.id) === String(selectedBranch))?.name || selectedBranch;
+
+        const headers = [
+            'ID',
+            'Name',
+            'Unit',
+            'Opening Strock',
+            'Imported',
+            'Used',
+            'Closing Stock',
+            'Note'
+        ];
+
+        const title = `Report Inventory - Month ${month} / ${year}`;
+
+        const dataRows = reportDataFiltered.map((r) => ([
+            r.inventoryId,
+            r.inventoryName,
+            r.unit || '',
+            r.openingStock,
+            r.importQuantity,
+            r.usedQuantity,
+            r.closingStock,
+            r.note || ''
+        ]));
+
+        const worksheet = XLSX.utils.aoa_to_sheet([
+            [title],
+            [''],
+            headers,
+            ...dataRows
+        ]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Report Inventory');
+
+        const safeMonth = String(month).padStart(2, '0');
+        const fileName = `Report_Inventory_Month_${safeMonth}_${year}_Branch_${branchName}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
     };
 
     // ================= LOGIC LỊCH SỬ NHẬP KHO =================
@@ -96,10 +215,17 @@ const InventoryReport = () => {
             return;
         }
         try {
-            const res = await axios.get(`http://localhost:8081/api/inventory/history`, {
+            const res = await axios.get(`http://[::1]:8081/api/inventory/history`, {
                 params: { branchId: parseInt(selectedBranch) }
             });
-            setHistoryList(res.data);
+            // Only show receipts that belong to the selected month/year
+            const targetMonth = parseInt(month, 10);
+            const targetYear = parseInt(year, 10);
+            const filtered = (res.data || []).filter((item) => {
+                const d = new Date(item.importDate);
+                return (d.getMonth() + 1 === targetMonth) && d.getFullYear() === targetYear;
+            });
+            setHistoryList(filtered);
             setShowHistoryModal(true);
         } catch (error) {
             console.error("Error loading import history:", error);
@@ -139,7 +265,7 @@ const InventoryReport = () => {
             return;
         }
         try {
-            const res = await axios.get(`http://localhost:8081/api/inventory/branch/${selectedBranch}/items`);
+            const res = await axios.get(`http://[::1]:8081/api/inventory/branch/${selectedBranch}/items`);
             setAvailableItems(res.data);
             setImportList([{ isNew: false, inventoryId: '', inventoryName: '', price: '', quantity: 1 }]);
             setShowImportModal(true);
@@ -151,12 +277,25 @@ const InventoryReport = () => {
 
     const handleImportChange = (index, field, value) => {
         const newList = [...importList];
-        newList[index][field] = value;
+        const current = newList[index];
+        const updatedItem = { ...current, [field]: value };
+
+        // If choosing an existing item, also fill price from availableItems
+        if (field === 'inventoryId' && !current.isNew) {
+            const selected = availableItems.find(
+                (i) => i.inventoryId === parseInt(value)
+            );
+            if (selected) {
+                updatedItem.price = selected.price != null ? selected.price : '';
+            }
+        }
+
+        newList[index] = updatedItem;
         setImportList(newList);
     };
 
     const removeImportRow = (index) => {
-        if (importList.length === 1) return alert("Phải có ít nhất 1 mặt hàng!");
+        if (importList.length === 1) return alert("At least one item is required!");
         const newList = importList.filter((_, i) => i !== index);
         setImportList(newList);
     };
@@ -186,20 +325,22 @@ const InventoryReport = () => {
                 return {
                     isNew: true,
                     inventoryName: item.inventoryName.trim(),
-                    unitPrice: item.price,
+                    price: item.price,
                     quantity: parseInt(item.quantity)
                 };
             } else {
                 return {
                     isNew: false,
                     inventoryId: parseInt(item.inventoryId),
-                    quantity: parseInt(item.quantity)
+                    quantity: parseInt(item.quantity),
+                    // Send price so backend can update latest price/date
+                    price: item.price !== '' ? item.price : null
                 };
             }
         });
 
         try {
-            await axios.post(`http://localhost:8081/api/inventory/import`, {
+            await axios.post(`http://[::1]:8081/api/inventory/import`, {
                 branchId: parseInt(selectedBranch),
                 items: payloadItems
             });
@@ -216,7 +357,7 @@ const InventoryReport = () => {
     // ================= LOGIC XEM CHI TIẾT SẢN PHẨM =================
     const handleViewDetail = async (id) => {
         try {
-            const res = await axios.get(`http://localhost:8081/api/inventory/${id}`);
+            const res = await axios.get(`http://[::1]:8081/api/inventory/${id}`);
             setProductDetail(res.data);
             setShowDetailModal(true);
         } catch (error) {
@@ -229,24 +370,145 @@ const InventoryReport = () => {
         <div className="inventory-container">
             <div className="report-card">
                 <div className="report-header">
-                    <h2>Inventory Stocktake Report</h2>
-                    <button className="btn btn-primary" onClick={openHistoryModal}>Import History</button>
+                    <h2>{reportTitle}</h2>
                 </div>
 
-                <div className="filter-group">
-                    <div className="filter-item">
-                        <select value={selectedBranch} onChange={(e) => { setSelectedBranch(e.target.value); setIsReportLoaded(false); setReportData([]); setPage(1); }}>
-                            <option value="">-- Select Branch --</option>
-                            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                        </select>
+                <div className="inventory-toolbar">
+                    <div className="filter-group" style={{ marginBottom: 0 }}>
+                        <div className="filter-item">
+                            <select value={selectedBranch} onChange={(e) => { setSelectedBranch(e.target.value); setIsReportLoaded(false); setReportData([]); setPage(1); }}>
+                                <option value="">-- Select Branch --</option>
+                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="filter-item">
+                            <input type="number" value={year} onChange={e => { setYear(e.target.value); setIsReportLoaded(false); setReportData([]); setPage(1); }} style={{ width: '100px' }} />
+                        </div>
+
+                        {isReportLoaded && (
+                            <div className="filter-item name-search-filter-item">
+                                <div className="name-search-wrapper">
+                                    <input
+                                        type="text"
+                                        className="name-search-input"
+                                        placeholder="Search by name..."
+                                        value={nameQuery}
+                                        onChange={(e) => setNameQuery(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') applyNameSearch();
+                                        }}
+                                    />
+                                    <button
+                                        className="icon-search-btn"
+                                    onClick={applyNameSearch}
+                                    type="button"
+                                    aria-label="Search by name"
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path
+                                                d="M10.5 18C14.6421 18 18 14.6421 18 10.5C18 6.35786 14.6421 3 10.5 3C6.35786 3 3 6.35786 3 10.5C3 14.6421 6.35786 18 10.5 18Z"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                            <path
+                                                d="M21 21L16.65 16.65"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                        </svg>
+                                    </button>
+                                </div>
+                                {nameApplied && (
+                                    <button
+                                        className="icon-clear-btn"
+                                        onClick={clearNameSearch}
+                                        type="button"
+                                        aria-label="Clear search"
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path
+                                                d="M6 6L18 18"
+                                                stroke="currentColor"
+                                                strokeWidth="2.2"
+                                                strokeLinecap="round"
+                                            />
+                                            <path
+                                                d="M18 6L6 18"
+                                                stroke="currentColor"
+                                                strokeWidth="2.2"
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
-                    <div className="filter-item">
-                        <input type="number" value={month} onChange={e => { setMonth(e.target.value); setIsReportLoaded(false); setReportData([]); setPage(1); }} style={{ width: '80px' }} />
-                        <span> / </span>
-                        <input type="number" value={year} onChange={e => { setYear(e.target.value); setIsReportLoaded(false); setReportData([]); setPage(1); }} style={{ width: '100px' }} />
-                    </div>
-                    <button className="btn btn-success" onClick={handleFetchReport}>View Report</button>
+
+                    {isReportLoaded && (
+                        <div className="toolbar-actions">
+                            <button
+                                className="btn btn-secondary"
+                                onClick={handleBackToMonthSelector}
+                            >
+                                Back to month selector
+                            </button>
+
+                            <button
+                                className="btn btn-primary"
+                                onClick={openHistoryModal}
+                            >
+                                Import History
+                            </button>
+                        </div>
+                    )}
                 </div>
+
+                {/* Month selector (hide after report is loaded) */}
+                {!isReportLoaded && (
+                    <div className="month-selector">
+                        <div className="month-grid">
+                            {Array.from({ length: 12 }, (_, idx) => idx + 1).map((m) => (
+                                <button
+                                    key={m}
+                                    type="button"
+                                    className={`month-tile ${m === month ? 'active' : ''}`}
+                                    disabled={!selectedBranch}
+                                    onClick={() => handleFetchReportForMonth(m)}
+                                >
+                                    <span className="month-icon" aria-hidden="true">
+                                        {/* Folder + file icon (inline SVG) */}
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                                            <path
+                                                d="M3.5 7.5C3.5 6.39543 4.39543 5.5 5.5 5.5H9.2C9.6 5.5 9.98 5.67 10.25 5.97L11.3 7.15C11.57 7.45 11.95 7.6 12.35 7.6H18.5C19.6046 7.6 20.5 8.49543 20.5 9.6V17C20.5 18.1046 19.6046 19 18.5 19H5.5C4.39543 19 3.5 18.1046 3.5 17V7.5Z"
+                                                stroke="currentColor"
+                                                strokeWidth="1.6"
+                                                strokeLinejoin="round"
+                                            />
+                                            <path
+                                                d="M7.2 12.2H16.8"
+                                                stroke="currentColor"
+                                                strokeWidth="1.6"
+                                                strokeLinecap="round"
+                                            />
+                                            <path
+                                                d="M7.2 15H13.5"
+                                                stroke="currentColor"
+                                                strokeWidth="1.6"
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                    </span>
+                                    <span className="month-label">Month {m}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {isReportLoaded && (
                     <>
@@ -254,66 +516,107 @@ const InventoryReport = () => {
                             <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Item name</th>
-                                <th>Opening stock</th>
+                                <th>Name</th>
+                                <th>Unit</th>
+                                <th>Opening Strock</th>
                                 <th>Imported</th>
-                                <th>Closing stock</th>
                                 <th>Used</th>
-                                <th>Action</th>
+                                <th>Closing Stock</th>
+                                <th>Note</th>
                             </tr>
                             </thead>
                             <tbody>
-                            {reportData.length > 0 ? pagedReportData.map((row, localIndex) => {
-                                const index = (page - 1) * pageSize + localIndex;
+                            {reportDataFiltered.length > 0 ? pagedReportData.map((row, localIndex) => {
+                                const originalIndex = reportData.findIndex((r) => r.inventoryId === row.inventoryId);
                                 return (
                                     <tr key={row.inventoryId}>
                                         <td>{row.inventoryId}</td>
                                         <td>{row.inventoryName}</td>
-                                        <td>{row.openingStock}</td>
-                                        <td>{row.importQuantity}</td>
+                                        <td>{row.unit || '-'}</td>
                                         <td>
-                                            <input type="number" min="0" className="stock-input" value={row.closingStock}
-                                                   onChange={(e) => handleClosingStockChange(index, e.target.value)} />
+                                            {row.openingStock}
                                         </td>
+                                        <td>{row.importQuantity}</td>
                                         <td style={{ color: 'red', fontWeight: 'bold' }}>{row.usedQuantity}</td>
                                         <td>
-                                            <button className="btn btn-info btn-sm" onClick={() => handleViewDetail(row.inventoryId)}>
-                                                Chi tiết
-                                            </button>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                className="stock-input"
+                                                value={row.closingStock}
+                                                    onChange={(e) => handleClosingStockChange(originalIndex, e.target.value)}
+                                            />
+                                        </td>
+                                        <td style={{ minWidth: 180 }}>
+                                            <input
+                                                type="text"
+                                                className="note-input"
+                                                placeholder="Enter note..."
+                                                value={row.note || ''}
+                                                onChange={(e) => handleNoteChange(originalIndex, e.target.value)}
+                                            />
                                         </td>
                                     </tr>
                                 );
                             }) : (
-                                <tr><td colSpan="7">No data. This month only appears after the previous month\'s report is saved or this month has been saved.</td></tr>
+                                <tr>
+                                    <td colSpan="8">
+                                        No data. This month only appears after the previous month&apos;s report is saved or this month has been saved.
+                                    </td>
+                                </tr>
                             )}
                             </tbody>
                         </table>
                         <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div className="inventory-pagination">
                                 <button
-                                    className="btn btn-secondary btn-sm"
+                                    className="page-nav-btn"
                                     disabled={page <= 1}
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    onClick={() => changePage(page - 1)}
+                                    aria-label="Previous page"
+                                    type="button"
                                 >
-                                    Trang trước
+                                    &lt;
                                 </button>
-                                <span style={{ color: '#666' }}>Trang {page}/{totalPages}</span>
+                                <input
+                                    className="page-jump-input"
+                                    type="number"
+                                    min="1"
+                                    max={totalPages}
+                                    value={pageInput}
+                                    onChange={(e) => setPageInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') commitPageInput();
+                                    }}
+                                    onBlur={commitPageInput}
+                                />
                                 <button
-                                    className="btn btn-secondary btn-sm"
+                                    className="page-nav-btn"
                                     disabled={page >= totalPages}
-                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    onClick={() => changePage(page + 1)}
+                                    aria-label="Next page"
+                                    type="button"
                                 >
-                                    Trang sau
+                                    &gt;
                                 </button>
                             </div>
 
-                            <button
-                                className="btn btn-primary"
-                                onClick={saveReport}
-                                disabled={reportData.length === 0}
-                            >
-                                Save Report
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={exportToExcel}
+                                    disabled={reportDataFiltered.length === 0}
+                                >
+                                    Export Excel
+                                </button>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={saveReport}
+                                    disabled={reportDataFiltered.length === 0}
+                                >
+                                    Save Report
+                                </button>
+                            </div>
                         </div>
                     </>
                 )}
@@ -326,7 +629,6 @@ const InventoryReport = () => {
                         <div className="modal-header">
                             <h3>Import History - {branches.find(b => b.id === parseInt(selectedBranch))?.name}</h3>
                             <div>
-                                <button className="btn btn-success" onClick={openImportModal} style={{ marginRight: '10px' }}>+ New Import</button>
                                 <button className="close-btn" onClick={() => setShowHistoryModal(false)}>✖</button>
                             </div>
                         </div>
@@ -454,7 +756,7 @@ const InventoryReport = () => {
                                             onClick={() => removeImportRow(index)}
                                             style={{ color: '#d9534f', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
                                         >
-                                            ✖ Xóa
+                                            ✖ Remove
                                         </button>
                                     </div>
 

@@ -3,13 +3,21 @@ import axios from 'axios';
 import '../css/InventoryManagement.css';
 import '../css/InventoryReport.css';
 
-const API_BASE_URL = 'http://localhost:8081/api/inventory';
+const API_BASE_URL = 'http://[::1]:8081/api/inventory';
 
 const ImportHistory = () => {
     // ================= STATE =================
     const [branches, setBranches] = useState([]);
     const [selectedBranchId, setSelectedBranchId] = useState(1);
     const [historyList, setHistoryList] = useState([]);
+
+    const today = new Date();
+    const [draftMonth, setDraftMonth] = useState(today.getMonth() + 1);
+    const [draftYear, setDraftYear] = useState(today.getFullYear());
+    const [filterMonth, setFilterMonth] = useState(today.getMonth() + 1);
+    const [filterYear, setFilterYear] = useState(today.getFullYear());
+    const [page, setPage] = useState(1);
+    const pageSize = 5;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [availableItems, setAvailableItems] = useState([]);
@@ -19,6 +27,9 @@ const ImportHistory = () => {
 
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedReceipt, setSelectedReceipt] = useState(null);
+
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editLines, setEditLines] = useState([]);
 
     // ================= EFFECT =================
     useEffect(() => {
@@ -46,6 +57,13 @@ const ImportHistory = () => {
             fetchImportHistory(selectedBranchId);
         }
     }, [selectedBranchId]);
+
+    const applyFilter = () => {
+        setFilterMonth(draftMonth);
+        setFilterYear(draftYear);
+        setPage(1);
+    };
+
 
     // ================= LOGIC API =================
     const submitImport = async () => {
@@ -123,6 +141,48 @@ const ImportHistory = () => {
         setImportList(importList.filter((_, i) => i !== index));
     };
 
+    // ================= EDIT IMPORT =================
+    const handleEditLineChange = (index, field, value) => {
+        const newLines = [...editLines];
+        newLines[index] = { ...newLines[index], [field]: value };
+        setEditLines(newLines);
+    };
+
+    const submitEditImport = async () => {
+        if (!selectedReceipt) return;
+        const receiptId = selectedReceipt.receiptId;
+
+        const d = selectedReceipt.importDate ? new Date(selectedReceipt.importDate) : null;
+        const receiptMonth = d ? d.getMonth() + 1 : filterMonth;
+        const receiptYear = d ? d.getFullYear() : filterYear;
+
+        const items = editLines
+            .filter((l) => l && l.inventoryId != null)
+            .map((l) => ({
+                inventoryId: parseInt(l.inventoryId),
+                quantity: parseInt(l.quantity),
+                unitPrice: l.unitPrice != null && l.unitPrice !== '' ? l.unitPrice : 0
+            }));
+
+        if (items.length === 0) return alert('No items to edit.');
+
+        try {
+            await axios.put(`${API_BASE_URL}/import/${receiptId}/edit`, {
+                month: receiptMonth,
+                year: receiptYear,
+                items
+            });
+            alert('Import receipt updated successfully!');
+            setIsEditModalOpen(false);
+            setIsDetailModalOpen(false);
+            fetchImportHistory(selectedBranchId);
+        } catch (error) {
+            console.error('Edit import error:', error);
+            const msg = error?.response?.data?.message || 'Failed to update import receipt.';
+            alert(msg);
+        }
+    };
+
     // Group receipts for history table
     const groupedHistory = historyList.reduce((acc, current) => {
         const existingReceipt = acc.find(r => r.receiptId === current.receiptId);
@@ -142,6 +202,19 @@ const ImportHistory = () => {
     }, []);
     groupedHistory.sort((a, b) => b.receiptId - a.receiptId);
 
+    const filteredGroupedHistory = groupedHistory.filter((r) => {
+        if (!r.importDate) return false;
+        const d = new Date(r.importDate);
+        return (d.getMonth() + 1 === filterMonth) && d.getFullYear() === filterYear;
+    });
+
+    const totalPages = Math.max(1, Math.ceil(filteredGroupedHistory.length / pageSize));
+    const pagedHistory = filteredGroupedHistory.slice((page - 1) * pageSize, page * pageSize);
+
+    useEffect(() => {
+        setPage(1);
+    }, [filterMonth, filterYear, selectedBranchId]);
+
     return (
         <div className="inventory-wrapper">
             <div className="inventory-container">
@@ -156,6 +229,38 @@ const ImportHistory = () => {
                     >
                         {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
+
+                        <select
+                            value={draftMonth}
+                            onChange={(e) => setDraftMonth(parseInt(e.target.value, 10))}
+                            className="search-input"
+                            style={{ width: 'auto' }}
+                        >
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                                <option key={m} value={m}>Month {m}</option>
+                            ))}
+                        </select>
+
+                        <input
+                            type="number"
+                            value={draftYear}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                const parsed = parseInt(v, 10);
+                                setDraftYear(Number.isFinite(parsed) ? parsed : today.getFullYear());
+                            }}
+                            className="search-input"
+                            style={{ width: '120px' }}
+                        />
+
+                        <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={applyFilter}
+                            type="button"
+                            style={{ height: 34 }}
+                        >
+                            Filter
+                        </button>
                 </div>
                 <button onClick={openImportModal} className="btn-add">+ New Import Receipt</button>
             </div>
@@ -171,7 +276,13 @@ const ImportHistory = () => {
                     </tr>
                     </thead>
                     <tbody>
-                    {groupedHistory.map(receipt => (
+                    {pagedHistory.map(receipt => {
+                        const d = receipt.importDate ? new Date(receipt.importDate) : null;
+                const isEditable = d
+                    && (d.getMonth() + 1 === today.getMonth() + 1)
+                    && (d.getFullYear() === today.getFullYear());
+
+                        return (
                         <tr key={receipt.receiptId}>
                             <td className="font-semibold">#{receipt.receiptId}</td>
                             <td className="date-text text-center">
@@ -181,17 +292,62 @@ const ImportHistory = () => {
                                 {receipt.totalReceiptAmount.toLocaleString()} đ
                             </td>
                             <td className="text-center">
-                                <button
-                                    onClick={() => { setSelectedReceipt(receipt); setIsDetailModalOpen(true); }}
-                                    className="btn-detail"
-                                >
-                                    View details
-                                </button>
+                                <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                                    <button
+                                        onClick={() => { setSelectedReceipt(receipt); setIsDetailModalOpen(true); }}
+                                        className="btn-detail"
+                                    >
+                                        View details
+                                    </button>
+                                    {isEditable && (
+                                        <button
+                                            onClick={() => {
+                                                setSelectedReceipt(receipt);
+                                                setEditLines(
+                                                    (receipt.details || []).map((it) => ({
+                                                        inventoryId: it.inventoryId,
+                                                        inventoryName: it.inventoryName,
+                                                        quantity: it.quantity,
+                                                        unitPrice: it.unitPrice
+                                                    }))
+                                                );
+                                                setIsEditModalOpen(true);
+                                            }}
+                                            className="btn-detail"
+                                        >
+                                            Edit
+                                        </button>
+                                    )}
+                                </div>
                             </td>
                         </tr>
-                    ))}
+                        );
+                    })}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="pagination-container">
+                <button
+                    className="btn-page"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    type="button"
+                >
+                    Previous
+                </button>
+                <span className="page-info">
+                    Page {page} / {totalPages}
+                </span>
+                <button
+                    className="btn-page"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    type="button"
+                >
+                    Next
+                </button>
             </div>
 
             {/* MODAL NHẬP KHO */}
@@ -304,6 +460,63 @@ const ImportHistory = () => {
                         </table>
                         <div style={{ textAlign: 'right' }}>
                             <button onClick={() => setIsDetailModalOpen(false)} className="btn btn-secondary">Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL EDIT PHIẾU NHẬP */}
+            {isEditModalOpen && selectedReceipt && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '800px', width: '95%' }}>
+                        <div className="modal-header">
+                            <h3 style={{ margin: 0 }}>Edit Import Receipt #{selectedReceipt.receiptId}</h3>
+                            <button className="close-btn" onClick={() => setIsEditModalOpen(false)}>✖</button>
+                        </div>
+
+                        <div style={{ marginBottom: 14 }}>
+                            <strong>Imported at:</strong>{' '}
+                            {selectedReceipt.importDate ? new Date(selectedReceipt.importDate).toLocaleString('vi-VN') : 'N/A'}
+                        </div>
+
+                        <table border="1" width="100%" style={{ borderCollapse: 'collapse', textAlign: 'center', marginBottom: 18 }}>
+                            <thead style={{ backgroundColor: '#f4f4f4' }}>
+                            <tr>
+                                <th>Item name</th>
+                                <th>Quantity</th>
+                                <th>Unit price</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {editLines.map((line, idx) => (
+                                <tr key={line.inventoryId || idx}>
+                                    <td style={{ padding: '8px' }}>{line.inventoryName}</td>
+                                    <td style={{ padding: '8px' }}>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={line.quantity}
+                                            onChange={(e) => handleEditLineChange(idx, 'quantity', e.target.value)}
+                                            style={{ width: 90, padding: '6px', borderRadius: 6, border: '1px solid #ccc' }}
+                                        />
+                                    </td>
+                                    <td style={{ padding: '8px' }}>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={line.unitPrice}
+                                            onChange={(e) => handleEditLineChange(idx, 'unitPrice', e.target.value)}
+                                            style={{ width: 120, padding: '6px', borderRadius: 6, border: '1px solid #ccc' }}
+                                        />
+                                    </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+
+                        <div style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                            <button onClick={() => setIsEditModalOpen(false)} className="btn btn-secondary">Cancel</button>
+                            <button onClick={submitEditImport} className="btn btn-success">Save</button>
                         </div>
                     </div>
                 </div>

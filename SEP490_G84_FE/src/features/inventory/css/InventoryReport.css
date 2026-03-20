@@ -33,6 +33,28 @@
     outline: none;
 }
 
+/* Top toolbar layout for branch/year + action buttons */
+.inventory-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.name-search-filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .btn {
     padding: 8px 16px;
     border: none;
@@ -86,6 +108,164 @@
     border-radius: 4px;
 }
 
+.note-input {
+    width: 180px;
+    padding: 6px 8px;
+    border: 1px solid #d0d7e2;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+}
+
+.note-input:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+}
+
+/* Pagination (like screenshot) */
+.inventory-pagination {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.page-nav-btn {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #cfd4dc;
+    background: #f3f4f6;
+    color: #333;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-nav-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.page-number-btn {
+    width: 34px;
+    height: 34px;
+    border: none;
+    background: #6b7280;
+    color: #ffffff;
+    border-radius: 6px;
+    cursor: default;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.page-number-btn--clickable {
+    background: #ffffff;
+    color: #111827;
+    border: 1px solid #cfd4dc;
+    cursor: pointer;
+}
+
+.page-number-btn--clickable:hover:not(:disabled) {
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+.page-number-btn--clickable:disabled {
+    cursor: default;
+}
+
+.page-jump-prefix,
+.page-jump-suffix {
+    color: #666;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.page-jump-input {
+    width: 58px;
+    height: 34px;
+    border: 1px solid #cfd4dc;
+    border-radius: 6px;
+    background: #ffffff;
+    text-align: center;
+    font-size: 14px;
+    outline: none;
+}
+
+.page-jump-input:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+}
+
+.name-search-wrapper {
+    position: relative;
+    width: 220px;
+}
+
+.name-search-input {
+    width: 100%;
+    height: 34px;
+    border: 1px solid #cfd4dc;
+    border-radius: 6px;
+    padding: 0 38px 0 12px; /* leave space for icon */
+    outline: none;
+    background: #ffffff;
+}
+
+.name-search-input:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+}
+
+.icon-search-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #6b7280;
+    cursor: pointer;
+}
+
+.icon-search-btn:hover {
+    color: #0d6efd;
+}
+
+.icon-clear-btn {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: 1px solid #cfd4dc;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.icon-clear-btn:hover {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
 /* Modal Styling */
 .modal-overlay {
     position: fixed;
@@ -128,3 +308,75 @@
     color: #888;
 }
 .close-btn:hover { color: red; }
+
+/* Month selector (Inventory Stocktake Report) */
+.month-selector {
+    margin-top: 20px;
+    padding: 14px 12px;
+    border: 1px solid #e7edf5;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.month-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+}
+
+.month-tile {
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #d9dee7;
+    border-radius: 8px;
+    padding: 14px 10px;
+    cursor: pointer;
+    transition: 0.15s ease;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    min-height: 58px;
+}
+
+.month-tile:hover:not(:disabled) {
+    border-color: #0d6efd;
+}
+
+.month-tile.active {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.10);
+    color: #0d6efd;
+}
+
+.month-tile:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.month-icon {
+    color: #9aa3b2;
+}
+
+.month-tile.active .month-icon {
+    color: #0d6efd;
+}
+
+.month-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2b2f36;
+}
+
+.month-tile.active .month-label {
+    color: #0d6efd;
+}
+
+@media (max-width: 900px) {
+    .month-grid {
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+    }
+}
