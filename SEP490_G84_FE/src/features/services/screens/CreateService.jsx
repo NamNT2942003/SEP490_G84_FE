@@ -43,9 +43,11 @@ const CreateService = ({ onClose, onSuccess, isModal }) => {
         basePrice: num,
       };
       await serviceAPI.createService(payload);
-      alert('Service created successfully.');
-      if (isModal && onSuccess) onSuccess();
-      if (isModal && onClose) onClose();
+      if (onSuccess) {
+        onSuccess({ serviceName: name });
+      } else {
+        alert('Service created successfully.');
+      }
     } catch (e) {
       const data = e.response?.data;
       const msg = (data && typeof data === 'object' && data.message) || (typeof data === 'string' ? data : null) || e.message || 'Create failed.';

@@ -71,10 +71,11 @@ const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) 
         basePrice: num,
       };
       await serviceAPI.updateService(serviceId, payload);
-      alert('Service updated successfully.');
-      if (isModal && onSuccess) onSuccess();
-      if (isModal && onClose) onClose();
-      else navigate(`/services/${serviceId}`);
+      if (isModal && onSuccess) {
+        onSuccess({ serviceName: name });
+      } else {
+        navigate(`/services/${serviceId}`);
+      }
     } catch (e) {
       const data = e.response?.data;
       const msg = (data && typeof data === 'object' && data.message) || (typeof data === 'string' ? data : null) || e.message || 'Update failed.';
