@@ -22,6 +22,24 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
     }
   }, [show, room]);
 
+  // Manage body scroll when modal opens/closes
+  useEffect(() => {
+    if (show) {
+      // Prevent body scroll when modal is open
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = scrollbarWidth > 0 ? `${scrollbarWidth}px` : '0';
+      return () => {
+        document.body.style.overflow = 'unset';
+        document.body.style.paddingRight = '0';
+      };
+    } else {
+      // Ensure cleanup when modal closes
+      document.body.style.overflow = 'unset';
+      document.body.style.paddingRight = '0';
+    }
+  }, [show]);
+
   const fetchRoomDetails = async () => {
     try {
       setLoading(true);

@@ -89,6 +89,12 @@ export const roomManagementApi = {
     return response.data;
   },
 
+  // Create a new room
+  createRoom: async (payload) => {
+    const response = await apiClient.post(`${ROOM_API_BASE}`, payload);
+    return response.data;
+  },
+
   // Update room furniture status/quantity (maintenance actions)
   updateRoomFurniture: async (roomId, furnitureId, payload) => {
     const response = await apiClient.put(

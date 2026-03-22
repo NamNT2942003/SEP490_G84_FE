@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { roomManagementApi } from "../api/roomManagementApi";
 
 const ReportIssueModal = ({ show, room, onHide, onSuccess, onShowNotification }) => {
@@ -6,6 +6,24 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess, onShowNotification })
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // Manage body scroll when modal opens/closes
+  useEffect(() => {
+    if (show) {
+      // Prevent body scroll when modal is open
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = scrollbarWidth > 0 ? `${scrollbarWidth}px` : '0';
+      return () => {
+        document.body.style.overflow = 'unset';
+        document.body.style.paddingRight = '0';
+      };
+    } else {
+      // Ensure cleanup when modal closes
+      document.body.style.overflow = 'unset';
+      document.body.style.paddingRight = '0';
+    }
+  }, [show]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

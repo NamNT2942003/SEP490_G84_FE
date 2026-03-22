@@ -3,9 +3,13 @@ import { roomManagementApi } from "../api/roomManagementApi";
 import AdminLayout from "../../../components/layout/AdminLayout";
 import RoomDetailModal from "../components/RoomDetailModal";
 import ReportIssueModal from "../components/ReportIssueModal";
+<<<<<<< Updated upstream
 import { useRoomIncidents, useFurnitureStatus } from "../../../hooks/useWebSocket";
 import audioNotificationService from "../../../services/audioNotificationService";
 import AudioTestPanel from "../../../components/AudioTestPanel";
+=======
+import AddRoomModal from "../components/AddRoomModal";
+>>>>>>> Stashed changes
 
 const BRAND = "#4a5d41"; // Slightly more muted green
 
@@ -56,6 +60,7 @@ function RoomManagement() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showAddRoomModal, setShowAddRoomModal] = useState(false);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -617,6 +622,7 @@ function RoomManagement() {
   };
 
   return (
+<<<<<<< Updated upstream
     <AdminLayout>
       <style>{`
         @keyframes gentleFadeIn {
@@ -708,6 +714,32 @@ function RoomManagement() {
                   <i className="bi bi-x-lg me-1"></i> Dismiss
                 </button>
               </div>
+=======
+      <>
+        <div className="container-fluid py-4 px-xl-5" style={{ backgroundColor: "#fbfbfb" }}>
+          {/* HEADER SECTION */}
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3">
+            <div>
+              <nav aria-label="breadcrumb">
+                <ol className="breadcrumb mb-2" style={{ fontSize: "0.8rem" }}>
+                  <li className="breadcrumb-item"><a href="#" className="text-decoration-none text-muted">Admin Panel</a></li>
+                  <li className="breadcrumb-item active fw-medium" aria-current="page" style={{ color: BRAND }}>Room Management</li>
+                </ol>
+              </nav>
+              <h2 className="fw-bold mb-1 text-dark" style={{ letterSpacing: "-1px", fontSize: "1.85rem" }}>
+                Room Inventory Dashboard
+              </h2>
+              <p className="text-muted mb-0 small">Real-time monitoring of room status, equipment health, and maintenance incidents.</p>
+            </div>
+            <div className="d-flex gap-2">
+              <button
+                  className="btn btn-primary d-inline-flex align-items-center gap-2 px-4 shadow-sm border-0"
+                  style={{ backgroundColor: BRAND, borderRadius: "10px", fontWeight: "600", transition: "all 0.3s" }}
+                  onClick={() => setShowAddRoomModal(true)}
+              >
+                <i className="bi bi-plus-circle-fill"></i> Add New Room
+              </button>
+>>>>>>> Stashed changes
             </div>
           </div>
         )}
@@ -1045,11 +1077,131 @@ function RoomManagement() {
                 </p>
                 {renderPagination()}
               </div>
+<<<<<<< Updated upstream
             )}
           </>
+=======
+          )}
+
+          {/* ROOM CARDS GRID - PREMIUM DESIGN */}
+          {!loading && (
+              <>
+                {sortedRooms.length === 0 ? (
+                    <div className="text-center py-5 bg-white shadow-sm rounded-4">
+                      <i className="bi bi-inbox text-muted display-1 mb-3"></i>
+                      <h4 className="text-muted">No rooms found matching your criteria</h4>
+                      <button className="btn btn-link link-primary" onClick={() => { setSearch(''); setBranchFilter(''); setPage(0); }}>Clear All Filters</button>
+                    </div>
+                ) : (
+                    <div className="row g-4">
+                      {sortedRooms.map((room, index) => (
+                          <div key={room.roomId || room.id || `room-${index}`} className="col-12 col-md-6 col-lg-4 col-xl-3">
+                            <div className="card border-0 shadow-sm h-100 room-card position-relative"
+                                 style={{ borderRadius: "20px", overflow: "hidden", transition: "all 0.3s ease" }}>
+
+                              {/* Status Indicator Bar */}
+                              <div style={{ height: "6px", backgroundColor: getStatusColor(room.status) }}></div>
+
+                              <div className="card-body p-4">
+                                <div className="d-flex justify-content-between align-items-start mb-2">
+                                  <div>
+                            <span className="badge bg-light text-muted smallest text-uppercase mb-1" style={{ letterSpacing: "1px" }}>
+                              {room.roomTypeName || "Standard"}
+                            </span>
+                                    <h4 className="fw-bold mb-0" style={{ color: "#1a1a2e" }}>{room.roomName}</h4>
+                                  </div>
+                                  <span
+                                      className="badge px-3 py-2 rounded-pill shadow-sm"
+                                      style={{
+                                        backgroundColor: `${getStatusColor(room.status)}`,
+                                        color: "#fff",
+                                        fontSize: "0.7rem",
+                                        fontWeight: "700"
+                                      }}
+                                  >
+                            {getStatusText(room.status)}
+                          </span>
+                                </div>
+
+                                <div className="d-flex align-items-center text-muted smallest mb-4">
+                                  <i className="bi bi-layers-fill me-1"></i> Floor {room.floor}
+                                  <span className="mx-2">•</span>
+                                  <i className="bi bi-geo-alt-fill me-1"></i> Central Branch
+                                </div>
+
+                                {/* Visual Metrics */}
+                                <div className="bg-light rounded-4 p-3 mb-4">
+                                  <div className="row g-0 align-items-center">
+                                    <div className="col-4 border-end border-white text-center">
+                                      <div className="text-muted text-uppercase" style={{ fontSize: "0.65rem", fontWeight: "600", letterSpacing: "0.5px" }}>Equip</div>
+                                      <div className="fw-bold text-dark mt-1" style={{ fontSize: "1rem" }}>{room.totalEquipment || 0}</div>
+                                    </div>
+                                    <div className="col-4 border-end border-white text-center">
+                                      <div className="text-muted text-uppercase" style={{ fontSize: "0.65rem", fontWeight: "600", letterSpacing: "0.5px" }}>Broken</div>
+                                      <div className={`fw-bold mt-1 ${(room.equipmentBroken || 0) > 0 ? "text-danger" : "text-dark"}`} style={{ fontSize: "1rem" }}>
+                                        {room.equipmentBroken || 0}
+                                      </div>
+                                    </div>
+                                    <div className="col-4 text-center">
+                                      <div className="text-muted text-uppercase" style={{ fontSize: "0.65rem", fontWeight: "600", letterSpacing: "0.5px" }}>Issues</div>
+                                      <div className={`fw-bold mt-1 ${(room.totalIssues || 0) > 0 ? "text-danger" : "text-dark"}`} style={{ fontSize: "1rem" }}>
+                                        {room.totalIssues || 0}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="d-grid">
+                                  <button
+                                      className="btn btn-dark shadow-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
+                                      onClick={() => handleViewRoom(room)}
+                                      style={{ borderRadius: "12px", fontSize: "0.85rem", letterSpacing: "0.5px" }}
+                                  >
+                                    <i className="bi bi-sliders"></i> Manage Details
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                      ))}
+                    </div>
+                )}
+
+                {/* FOOTER & PAGINATION */}
+                {sortedRooms.length > 0 && (
+                    <div className="d-flex flex-column align-items-center mt-5 mb-5">
+                      <p className="text-muted small">
+                        Showing <strong>{sortedRooms.length}</strong> of <strong>{totalElements}</strong> rooms
+                      </p>
+                      {renderPagination()}
+                    </div>
+                )}
+              </>
+          )}
+        </div>
+
+        {/* MODALS */}
+        {selectedRoom && (
+            <RoomDetailModal
+                show={showDetailModal}
+                room={selectedRoom}
+                onHide={() => {
+                  setShowDetailModal(false);
+                  setSelectedRoom(null);
+                }}
+                onReportIssue={(room) => {
+                  setShowDetailModal(false);
+                  handleReportIssue(room);
+                }}
+                onRoomUpdated={() => {
+                  fetchAllData();
+                }}
+            />
+>>>>>>> Stashed changes
         )}
       </div>
 
+<<<<<<< Updated upstream
       {/* MODALS */}
       {showDetailModal && selectedRoom && (
         <RoomDetailModal
@@ -1087,6 +1239,35 @@ function RoomManagement() {
         />
       )}
     </AdminLayout>
+=======
+        {selectedRoom && (
+            <ReportIssueModal
+                show={showReportModal}
+                room={selectedRoom}
+                onHide={() => {
+                  setShowReportModal(false);
+                  setSelectedRoom(null);
+                }}
+                onSuccess={() => {
+                  setShowReportModal(false);
+                  setSelectedRoom(null);
+                  fetchAllData();
+                }}
+            />
+        )}
+
+        <AddRoomModal
+            show={showAddRoomModal}
+            onClose={() => setShowAddRoomModal(false)}
+            onSuccess={() => {
+              fetchAllData();
+              setPage(0);
+            }}
+            branches={branches}
+            roomTypes={roomTypes}
+        />
+      </>
+>>>>>>> Stashed changes
   );
 }
 
