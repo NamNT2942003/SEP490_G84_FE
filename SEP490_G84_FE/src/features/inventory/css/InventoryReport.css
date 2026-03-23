@@ -320,7 +320,7 @@
 
 .month-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 18px;
 }
 
@@ -375,8 +375,20 @@
     color: #0d6efd;
 }
 
+@media (max-width: 1200px) {
+    .month-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
 @media (max-width: 900px) {
     .month-grid {
-        grid-template-columns: repeat(2, minmax(140px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .month-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }

@@ -1,4 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import '../css/InventoryManagement.css';
 
 const initialData = [
@@ -54,11 +56,40 @@ const initialData = [
         roomsUsing: ['Room 301', 'Room 302', 'Room 303'],
         roomsBroken: ['Room 301', 'Room 303'],
     },
+    // Ví dụ: Cùng loại King Bed ở Branch 2 với số lượng khác
+    {
+        id: 5,
+        facility: 'Branch 2 - Floor 1',
+        branch: 'Branch 2',
+        name: 'King Bed',
+        quantity: 35,
+        price: 5000000,
+        inUse: 28,
+        inStock: 6,
+        broken: 1,
+        roomsUsing: ['Room 304', 'Room 305'],
+        roomsBroken: ['Room 305'],
+    },
 ];
 
 const FurnitureInventory = () => {
+    const navigate = useNavigate();
+    const currentUser = useCurrentUser();
+
+    // Permission Check
+    useEffect(() => {
+        if (!currentUser) {
+            navigate('/login');
+            return;
+        }
+        // Only ADMIN and MANAGER can access furniture inventory
+        if (!currentUser.permissions?.isAdmin && !currentUser.permissions?.isManager) {
+            navigate('/dashboard');
+        }
+    }, [currentUser, navigate]);
+
     const [rows] = useState(initialData);
-    const [selectedBranch, setSelectedBranch] = useState('all');
+    const [selectedBranch, setSelectedBranch] = useState(currentUser?.defaultBranchId ? `Branch ${currentUser.defaultBranchId}` : 'all');
     const [nameDraft, setNameDraft] = useState('');
     const [nameApplied, setNameApplied] = useState('');
     const [page, setPage] = useState(1);
@@ -182,6 +213,7 @@ const FurnitureInventory = () => {
                         <tr>
                             <th className="text-center" style={{ width: 50 }}>ID</th>
                             <th>Furniture</th>
+                            <th className="text-center">Branch</th>
                             <th className="text-center">Quantity</th>
                             <th className="text-center">Price</th>
                             <th className="text-center">In use</th>
@@ -195,6 +227,7 @@ const FurnitureInventory = () => {
                             <tr key={row.id}>
                                 <td className="text-center">{row.id}</td>
                                 <td>{row.name}</td>
+                                <td className="text-center">{row.branch}</td>
                                 <td className="text-center">{row.quantity}</td>
                                 <td className="text-center">{formatVND(row.price)}</td>
                                 <td className="text-center">{row.inUse}</td>
@@ -204,6 +237,12 @@ const FurnitureInventory = () => {
                                     <button
                                         className="btn-detail"
                                         onClick={() => setDetailItem(row)}
+                                        disabled={selectedBranch === 'all'}
+                                        title={selectedBranch === 'all' ? 'Please select a branch first' : 'View detail'}
+                                        style={{
+                                            opacity: selectedBranch === 'all' ? 0.5 : 1,
+                                            cursor: selectedBranch === 'all' ? 'not-allowed' : 'pointer'
+                                        }}
                                     >
                                         View detail
                                     </button>

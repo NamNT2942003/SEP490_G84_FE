@@ -1,16 +1,28 @@
-import React, { useMemo, useState } from 'react';
-import axios from 'axios';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '@/services/apiClient';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import '../css/InventoryReport.css';
 import * as XLSX from 'xlsx';
 
 const InventoryReport = () => {
-    // --- STATE CHO BÁO CÁO ---
-    const [branches] = useState([
-        { id: 1, name: "Branch 1" },
-        { id: 2, name: "Branch 2" },
-        { id: 3, name: "Branch 3" }
-    ]);
+    const navigate = useNavigate();
+    const currentUser = useCurrentUser();
 
+    // Permission Check
+    useEffect(() => {
+        if (!currentUser) {
+            navigate('/login');
+            return;
+        }
+        // Only ADMIN and MANAGER can access inventory reports
+        if (!currentUser.permissions?.isAdmin && !currentUser.permissions?.isManager) {
+            navigate('/dashboard');
+        }
+    }, [currentUser, navigate]);
+
+    // --- STATE CHO BÁO CÁO ---
+    const [branches, setBranches] = useState([]);
     const [selectedBranch, setSelectedBranch] = useState('');
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [year, setYear] = useState(new Date().getFullYear());
@@ -20,7 +32,49 @@ const InventoryReport = () => {
     const [pageInput, setPageInput] = useState('1');
     const [nameQuery, setNameQuery] = useState('');
     const [nameApplied, setNameApplied] = useState('');
+    const [latestSavedMonth, setLatestSavedMonth] = useState(0);
     const pageSize = 5;
+
+    // Fetch branches from API
+    useEffect(() => {
+        const fetchBranches = async () => {
+            try {
+                const res = await apiClient.get(`/branches`);
+                setBranches(res.data || []);
+            } catch (error) {
+                console.error("Error fetching branches:", error);
+                setBranches([]);
+            }
+        };
+
+        fetchBranches();
+    }, []);
+
+    // Fetch latest saved month when branch changes
+    useEffect(() => {
+        if (!selectedBranch) {
+            setLatestSavedMonth(0);
+            return;
+        }
+        
+        const fetchLatestMonth = async () => {
+            try {
+                const res = await apiClient.get(`/inventory/editable-period`, {
+                    params: { branchId: parseInt(selectedBranch) }
+                });
+                // editableMonth = latestSavedMonth + 1
+                // So if editableMonth = 1, latestSavedMonth = 0 (no saved months yet)
+                const editableMonth = res.data?.editableMonth || 1;
+                const latestMonth = editableMonth === 1 ? 0 : editableMonth - 1;
+                setLatestSavedMonth(latestMonth);
+            } catch (error) {
+                console.error("Error fetching editable period:", error);
+                setLatestSavedMonth(0);
+            }
+        };
+        
+        fetchLatestMonth();
+    }, [selectedBranch]);
 
     // --- STATE CHO MODAL LỊCH SỬ & CHI TIẾT PHIẾU NHẬP ---
     const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -54,11 +108,12 @@ const InventoryReport = () => {
 
         const monthToFetch = monthToFetchOverride ?? month;
         try {
-            const res = await axios.get(`http://[::1]:8081/api/inventory/report`, {
+            const res = await apiClient.get(`/inventory/report`, {
                 params: {
                     month: parseInt(monthToFetch),
                     year: parseInt(year),
-                    branchId: parseInt(selectedBranch)
+                    branchId: parseInt(selectedBranch),
+                    userId: currentUser?.userId
                 }
             });
             setReportData(res.data);
@@ -81,6 +136,16 @@ const InventoryReport = () => {
         setNameQuery('');
         setNameApplied('');
         setMonth(monthToFetch);
+        await handleFetchReport(monthToFetch);
+    };
+
+    // NEW: Đỏi tháng trực tiếp trong bảng report (không quay lại month selector)
+    const handleChangeMonthInReport = async (monthToFetch) => {
+        setMonth(monthToFetch);
+        setPage(1);
+        setPageInput('1');
+        setNameQuery('');
+        setNameApplied('');
         await handleFetchReport(monthToFetch);
     };
 
@@ -154,8 +219,18 @@ const InventoryReport = () => {
 
     const saveReport = async () => {
         try {
-            await axios.post(`http://[::1]:8081/api/inventory/report/save`, reportData);
+            await apiClient.post(`/inventory/report/save`, reportData, {
+                params: { userId: currentUser?.userId }
+            });
             alert(`Saved inventory report for ${month}/${year} successfully!`);
+            // Update latestSavedMonth after successful save
+            setLatestSavedMonth(month);
+            setIsReportLoaded(false);
+            setReportData([]);
+            setPage(1);
+            setPageInput('1');
+            setNameQuery('');
+            setNameApplied('');
         } catch (error) {
             console.error("Error saving report:", error);
             alert("Failed to save report!");
@@ -168,7 +243,7 @@ const InventoryReport = () => {
             return;
         }
 
-        const branchName = branches.find((b) => String(b.id) === String(selectedBranch))?.name || selectedBranch;
+        const branchName = branches.find((b) => String(b.branchId) === String(selectedBranch))?.branchName || selectedBranch;
 
         const headers = [
             'ID',
@@ -181,7 +256,7 @@ const InventoryReport = () => {
             'Note'
         ];
 
-        const title = `Report Inventory - Month ${month} / ${year}`;
+        const title = `Report Inventory - Month ${month} / ${year} - ${branchName}`;
 
         const dataRows = reportDataFiltered.map((r) => ([
             r.inventoryId,
@@ -215,8 +290,11 @@ const InventoryReport = () => {
             return;
         }
         try {
-            const res = await axios.get(`http://[::1]:8081/api/inventory/history`, {
-                params: { branchId: parseInt(selectedBranch) }
+            const res = await apiClient.get(`/inventory/history`, {
+                params: { 
+                    branchId: parseInt(selectedBranch),
+                    userId: currentUser?.userId
+                }
             });
             // Only show receipts that belong to the selected month/year
             const targetMonth = parseInt(month, 10);
@@ -265,7 +343,9 @@ const InventoryReport = () => {
             return;
         }
         try {
-            const res = await axios.get(`http://[::1]:8081/api/inventory/branch/${selectedBranch}/items`);
+            const res = await apiClient.get(`/inventory/branch/${selectedBranch}/items`, {
+                params: { userId: currentUser?.userId }
+            });
             setAvailableItems(res.data);
             setImportList([{ isNew: false, inventoryId: '', inventoryName: '', price: '', quantity: 1 }]);
             setShowImportModal(true);
@@ -340,9 +420,10 @@ const InventoryReport = () => {
         });
 
         try {
-            await axios.post(`http://[::1]:8081/api/inventory/import`, {
+            await apiClient.post(`/inventory/import`, {
                 branchId: parseInt(selectedBranch),
-                items: payloadItems
+                items: payloadItems,
+                userId: currentUser?.userId
             });
             alert("Import successfully!");
             setShowImportModal(false);
@@ -357,7 +438,9 @@ const InventoryReport = () => {
     // ================= LOGIC XEM CHI TIẾT SẢN PHẨM =================
     const handleViewDetail = async (id) => {
         try {
-            const res = await axios.get(`http://[::1]:8081/api/inventory/${id}`);
+            const res = await apiClient.get(`/inventory/${id}`, {
+                params: { userId: currentUser?.userId }
+            });
             setProductDetail(res.data);
             setShowDetailModal(true);
         } catch (error) {
@@ -378,7 +461,7 @@ const InventoryReport = () => {
                         <div className="filter-item">
                             <select value={selectedBranch} onChange={(e) => { setSelectedBranch(e.target.value); setIsReportLoaded(false); setReportData([]); setPage(1); }}>
                                 <option value="">-- Select Branch --</option>
-                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                {branches.map(b => <option key={b.branchId} value={b.branchId}>{b.branchName}</option>)}
                             </select>
                         </div>
                         <div className="filter-item">
@@ -452,13 +535,6 @@ const InventoryReport = () => {
                     {isReportLoaded && (
                         <div className="toolbar-actions">
                             <button
-                                className="btn btn-secondary"
-                                onClick={handleBackToMonthSelector}
-                            >
-                                Back to month selector
-                            </button>
-
-                            <button
                                 className="btn btn-primary"
                                 onClick={openHistoryModal}
                             >
@@ -472,46 +548,104 @@ const InventoryReport = () => {
                 {!isReportLoaded && (
                     <div className="month-selector">
                         <div className="month-grid">
-                            {Array.from({ length: 12 }, (_, idx) => idx + 1).map((m) => (
-                                <button
-                                    key={m}
-                                    type="button"
-                                    className={`month-tile ${m === month ? 'active' : ''}`}
-                                    disabled={!selectedBranch}
-                                    onClick={() => handleFetchReportForMonth(m)}
-                                >
-                                    <span className="month-icon" aria-hidden="true">
-                                        {/* Folder + file icon (inline SVG) */}
-                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                                            <path
-                                                d="M3.5 7.5C3.5 6.39543 4.39543 5.5 5.5 5.5H9.2C9.6 5.5 9.98 5.67 10.25 5.97L11.3 7.15C11.57 7.45 11.95 7.6 12.35 7.6H18.5C19.6046 7.6 20.5 8.49543 20.5 9.6V17C20.5 18.1046 19.6046 19 18.5 19H5.5C4.39543 19 3.5 18.1046 3.5 17V7.5Z"
-                                                stroke="currentColor"
-                                                strokeWidth="1.6"
-                                                strokeLinejoin="round"
-                                            />
-                                            <path
-                                                d="M7.2 12.2H16.8"
-                                                stroke="currentColor"
-                                                strokeWidth="1.6"
-                                                strokeLinecap="round"
-                                            />
-                                            <path
-                                                d="M7.2 15H13.5"
-                                                stroke="currentColor"
-                                                strokeWidth="1.6"
-                                                strokeLinecap="round"
-                                            />
-                                        </svg>
-                                    </span>
-                                    <span className="month-label">Month {m}</span>
-                                </button>
-                            ))}
+                            {Array.from({ length: 12 }, (_, idx) => idx + 1).map((m) => {
+                                const maxAllowedMonth = latestSavedMonth === 0 ? 12 : latestSavedMonth + 1;
+                                const isMonthDisabled = m > maxAllowedMonth || !selectedBranch;
+                                return (
+                                    <button
+                                        key={m}
+                                        type="button"
+                                        className={`month-tile ${m === month ? 'active' : ''} ${isMonthDisabled ? 'disabled' : ''}`}
+                                        disabled={isMonthDisabled}
+                                        onClick={() => handleFetchReportForMonth(m)}
+                                    >
+                                        <span className="month-icon" aria-hidden="true">
+                                            {/* Folder + file icon (inline SVG) */}
+                                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                                                <path
+                                                    d="M3.5 7.5C3.5 6.39543 4.39543 5.5 5.5 5.5H9.2C9.6 5.5 9.98 5.67 10.25 5.97L11.3 7.15C11.57 7.45 11.95 7.6 12.35 7.6H18.5C19.6046 7.6 20.5 8.49543 20.5 9.6V17C20.5 18.1046 19.6046 19 18.5 19H5.5C4.39543 19 3.5 18.1046 3.5 17V7.5Z"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.6"
+                                                    strokeLinejoin="round"
+                                                />
+                                                <path
+                                                    d="M7.2 12.2H16.8"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.6"
+                                                    strokeLinecap="round"
+                                                />
+                                                <path
+                                                    d="M7.2 15H13.5"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.6"
+                                                    strokeLinecap="round"
+                                                />
+                                            </svg>
+                                        </span>
+                                        <span className="month-label">Month {m}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
 
                 {isReportLoaded && (
                     <>
+                        {/* Month buttons bar - Quick month selection within report */}
+                        <div style={{ 
+                            marginBottom: '20px', 
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(12, 1fr)',
+                            gap: '0',
+                            padding: '0',
+                            backgroundColor: 'transparent',
+                            borderRadius: '0',
+                            alignItems: 'stretch'
+                        }}>
+                            {Array.from({ length: 12 }, (_, idx) => idx + 1).map((m) => {
+                                const maxAllowedMonth = latestSavedMonth === 0 ? 12 : latestSavedMonth + 1;
+                                const isMonthDisabled = m > maxAllowedMonth;
+                                return (
+                                    <button
+                                        key={m}
+                                        type="button"
+                                        disabled={isMonthDisabled}
+                                        onClick={() => handleChangeMonthInReport(m)}
+                                        style={{
+                                            padding: '8px 4px',
+                                            border: '1px solid #6b7280',
+                                            backgroundColor: m === month ? '#4A5A4A' : '#ffffff',
+                                            color: m === month ? '#ffffff' : '#374151',
+                                            borderRadius: '0',
+                                            cursor: isMonthDisabled ? 'not-allowed' : 'pointer',
+                                            fontWeight: m === month ? '600' : '500',
+                                            fontSize: '12px',
+                                            transition: 'all 0.2s',
+                                            opacity: isMonthDisabled ? 0.45 : 1,
+                                            textAlign: 'center',
+                                            minHeight: '36px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (m !== month && !isMonthDisabled) {
+                                                e.target.style.backgroundColor = '#f0f0f0';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (m !== month && !isMonthDisabled) {
+                                                e.target.style.backgroundColor = '#ffffff';
+                                            }
+                                        }}
+                                    >
+                                        M{m}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
                         <table className="custom-table">
                             <thead>
                             <tr>
@@ -627,7 +761,7 @@ const InventoryReport = () => {
                 <div className="modal-overlay" style={{ zIndex: 1000 }}>
                     <div className="modal-content" style={{ maxWidth: '800px', width: '90%' }}>
                         <div className="modal-header">
-                            <h3>Import History - {branches.find(b => b.id === parseInt(selectedBranch))?.name}</h3>
+                            <h3>Import History - {branches.find(b => b.branchId === parseInt(selectedBranch))?.branchName}</h3>
                             <div>
                                 <button className="close-btn" onClick={() => setShowHistoryModal(false)}>✖</button>
                             </div>
@@ -730,7 +864,7 @@ const InventoryReport = () => {
                 <div className="modal-overlay" style={{ zIndex: 1100 }}>
                     <div className="modal-content" style={{ maxWidth: '600px', width: '100%' }}>
                         <div className="modal-header">
-                            <h3>Create Import Receipt - {branches.find(b => b.id === parseInt(selectedBranch))?.name}</h3>
+                            <h3>Create Import Receipt - {branches.find(b => b.branchId === parseInt(selectedBranch))?.branchName}</h3>
                             <button className="close-btn" onClick={() => setShowImportModal(false)}>✖</button>
                         </div>
 

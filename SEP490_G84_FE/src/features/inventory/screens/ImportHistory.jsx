@@ -1,14 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '@/services/apiClient';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import '../css/InventoryManagement.css';
 import '../css/InventoryReport.css';
 
-const API_BASE_URL = 'http://[::1]:8081/api/inventory';
-
 const ImportHistory = () => {
+    const navigate = useNavigate();
+    const currentUser = useCurrentUser();
+
+    // Permission Check
+    useEffect(() => {
+        if (!currentUser) {
+            navigate('/login');
+            return;
+        }
+        // Only ADMIN and MANAGER can access inventory history
+        if (!currentUser.permissions?.isAdmin && !currentUser.permissions?.isManager) {
+            navigate('/dashboard');
+        }
+    }, [currentUser, navigate]);
+
     // ================= STATE =================
     const [branches, setBranches] = useState([]);
-    const [selectedBranchId, setSelectedBranchId] = useState(1);
+    const [selectedBranchId, setSelectedBranchId] = useState(currentUser?.defaultBranchId || 1);
     const [historyList, setHistoryList] = useState([]);
 
     const today = new Date();
@@ -42,8 +57,8 @@ const ImportHistory = () => {
 
     const fetchImportHistory = async (branchId) => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/history`, {
-                params: { branchId: branchId }
+            const response = await apiClient.get(`/inventory/history`, {
+                params: { branchId: branchId, userId: currentUser?.userId }
             });
             setHistoryList(response.data);
         } catch (error) {
@@ -91,9 +106,10 @@ const ImportHistory = () => {
         console.log("Dữ liệu gửi đi:", { branchId: selectedBranchId, items: payloadItems });
 
         try {
-            await axios.post(`${API_BASE_URL}/import`, {
+            await apiClient.post(`/inventory/import`, {
                 branchId: selectedBranchId,
-                items: payloadItems
+                items: payloadItems,
+                userId: currentUser?.userId
             });
             alert("Import successfully! Item prices have been updated.");
             setIsModalOpen(false);
@@ -108,7 +124,9 @@ const ImportHistory = () => {
     // ================= XỬ LÝ UI =================
     const openImportModal = async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/branch/${selectedBranchId}/items`);
+            const res = await apiClient.get(`/inventory/branch/${selectedBranchId}/items`, {
+                params: { userId: currentUser?.userId }
+            });
             setAvailableItems(res.data);
             setImportList([{ isNew: false, inventoryId: '', inventoryName: '', price: '', quantity: 1, unit: '' }]);
             setIsModalOpen(true);
@@ -167,10 +185,11 @@ const ImportHistory = () => {
         if (items.length === 0) return alert('No items to edit.');
 
         try {
-            await axios.put(`${API_BASE_URL}/import/${receiptId}/edit`, {
+            await apiClient.put(`/inventory/import/${receiptId}/edit`, {
                 month: receiptMonth,
                 year: receiptYear,
-                items
+                items,
+                userId: currentUser?.userId
             });
             alert('Import receipt updated successfully!');
             setIsEditModalOpen(false);
@@ -366,7 +385,7 @@ const ImportHistory = () => {
                                         <label style={{ cursor: 'pointer' }}><input type="radio" checked={!row.isNew} onChange={() => handleImportChange(index, 'isNew', false)} /> Existing item</label>
                                         <label style={{ color: '#007bff', cursor: 'pointer' }}><input type="radio" checked={row.isNew} onChange={() => handleImportChange(index, 'isNew', true)} /> + New item</label>
                                     </div>
-                                    <button onClick={() => removeImportRow(index)} style={{ color: '#d9534f', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Xóa dòng</button>
+                                    <button onClick={() => removeImportRow(index)} style={{ color: '#d9534f', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Delete</button>
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
