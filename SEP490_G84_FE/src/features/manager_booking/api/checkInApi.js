@@ -67,6 +67,14 @@ export const checkInApi = {
       headers: getAuthHeaders()
     });
     return response.data;
+  },
+
+  // 6. Lấy danh sách cơ sở mà user quản lý
+  getMyBranches: async () => {
+    const response = await axios.get(`${API_BASE_URL}/my-branches`, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
   }
 
 };

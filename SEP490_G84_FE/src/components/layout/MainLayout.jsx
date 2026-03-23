@@ -1,58 +1,95 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sidebar from './Sidebar';
-import AdminHeader from './AdminHeader'; // Nhớ đổi đúng tên Header bạn đang dùng
+import AdminHeader from './AdminHeader';
 import AdminFooter from './AdminFooter';
 
-const layoutMain = {
-    display: 'grid',
-    gridTemplateColumns: '260px 1fr', // Cột trái 260px (Sidebar), cột phải là phần còn lại (1fr)
-    height: '100vh',                  // BẮT BUỘC: Khóa cứng chiều cao vừa đúng 1 màn hình
-    overflow: 'hidden',               // Không cho phép cuộn toàn trang
-    background: '#f3f4f6',
-};
-
-// Bọc Sidebar lại để đảm bảo nó luôn lấp đầy 100% chiều cao cột trái
-const sidebarWrapper = {
-    height: '100%',
-    overflowY: 'auto', // Nếu menu quá nhiều mục, nó sẽ tự có thanh cuộn riêng ở Sidebar
-    display: 'flex',
-    flexDirection: 'column'
-};
-
-const layoutRight = {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%', // Kế thừa 100vh từ cha
-    minWidth: 0,    // Chống lỗi tràn chiều ngang (overflow blowout) của Grid
-};
-
-const layoutContent = {
-    flex: 1,           // Tự động đẩy Header lên trên và Footer xuống dưới đáy
-    overflowY: 'auto', // BẮT BUỘC: Chỉ xuất hiện thanh cuộn ở khu vực nội dung
-    padding: '24px',   // Cách lề cho đẹp
-    background: '#f4f6f9',
-};
+const SIDEBAR_EXPANDED = 260;
+const SIDEBAR_COLLAPSED = 64;
 
 const MainLayout = ({ children }) => {
-    return (
-        <div style={layoutMain}>
+    const [collapsed, setCollapsed] = useState(false);
 
-            {/* CỘT TRÁI: Sidebar */}
-            <aside style={sidebarWrapper}>
-                <Sidebar />
+    const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
+
+    return (
+        <div
+            style={{
+                display: 'grid',
+                gridTemplateColumns: `${sidebarWidth}px 1fr`,
+                height: '100vh',
+                overflow: 'hidden',
+                background: '#f3f4f6',
+                transition: 'grid-template-columns 0.3s ease',
+            }}
+        >
+            {/* LEFT: Sidebar */}
+            <aside
+                style={{
+                    height: '100%',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    position: 'relative',
+                }}
+            >
+                <Sidebar collapsed={collapsed} />
+
+                {/* Toggle button — pinned at the right edge of sidebar */}
+                <button
+                    onClick={() => setCollapsed(!collapsed)}
+                    title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                    style={{
+                        position: 'absolute',
+                        top: '18px',
+                        right: '-14px',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        border: '2px solid #e0e0e0',
+                        background: '#fff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        zIndex: 100,
+                        fontSize: '0.75rem',
+                        color: '#555',
+                        transition: 'all 0.2s ease',
+                    }}
+                >
+                    <i className={`bi bi-chevron-${collapsed ? 'right' : 'left'}`}></i>
+                </button>
             </aside>
 
-            {/* CỘT PHẢI: Header + Nội dung + Footer */}
-            <div style={layoutRight}>
+            {/* RIGHT: Header + Content + Footer */}
+            <div
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100%',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                }}
+            >
                 <AdminHeader />
 
-                <main style={layoutContent} className="fade-in">
+                <main
+                    className="fade-in"
+                    style={{
+                        flex: 1,
+                        overflowY: 'auto',
+                        padding: '24px',
+                        background: '#f4f6f9',
+                        minHeight: 0,
+                    }}
+                >
                     {children}
                 </main>
 
                 <AdminFooter />
             </div>
-
         </div>
     );
 };

@@ -1,110 +1,291 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { COLORS } from "@/constants";
-// 1. Import hook lấy thông tin user
 import { useCurrentUser } from "@/hooks/useCurrentUser.js";
 
-const Sidebar = () => {
-  // 2. Lấy thông tin user và permissions hiện tại
+const Sidebar = ({ collapsed }) => {
   const currentUser = useCurrentUser();
+  const location = useLocation();
+  const [openMenus, setOpenMenus] = useState({});
 
-  // 3. Định nghĩa menu kèm theo điều kiện hiển thị (thuộc tính `show`)
-  const menuItems = [
-    { 
-      path: "/dashboard", 
-      label: "Dashboard", 
-      icon: "bi-speedometer2", 
-      show: true // Ai đăng nhập vào dashboard cũng thấy
+  const toggleDropdown = (label) => {
+    if (collapsed) return;
+    setOpenMenus((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  // --- Menu groups ---
+  const menuGroups = [
+    {
+      groupLabel: "Overview",
+      items: [
+        { path: "/dashboard", label: "Dashboard", icon: "bi-speedometer2", show: true },
+      ],
     },
-    { 
-      path: "/admin/rooms", 
-      label: "Room Management", 
-      icon: "bi-door-open", 
-      // Ví dụ: Chỉ Admin hoặc Manager mới quản lý phòng
-      show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager 
+    {
+      groupLabel: "Operations",
+      items: [
+        { path: "/manager-booking", label: "Check-in", icon: "bi-key", show: true },
+        { path: "/stay", label: "In-house (Stay)", icon: "bi-house-door", show: true },
+        { path: "/bookings", label: "Bookings", icon: "bi-calendar-check", show: true },
+        { path: "/services", label: "Services", icon: "bi-cup-hot", show: true },
+      ],
     },
-    { 
-      path: "/admin/furniture", 
-      label: "Furniture Management", 
-      icon: "bi-lamp", 
-      // Ví dụ: Chỉ Admin hoặc Manager
-      show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager 
+    {
+      groupLabel: "Management",
+      items: [
+        {
+          path: "/admin/rooms",
+          label: "Rooms",
+          icon: "bi-door-open",
+          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+        },
+        {
+          path: "/admin/furniture",
+          label: "Furniture",
+          icon: "bi-lamp",
+          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+        },
+        {
+          path: "/accounts",
+          label: "Accounts",
+          icon: "bi-people",
+          show: currentUser?.permissions?.canAccessAccountList || !currentUser?.permissions?.isStaff,
+        },
+      ],
     },
-    { 
-      path: "/accounts", 
-      label: "Account Management", 
-      icon: "bi-people", 
-      // Khớp với logic ở AppRouter: Staff không được vào, hoặc check quyền canAccessAccountList
-      show: currentUser?.permissions?.canAccessAccountList || !currentUser?.permissions?.isStaff
-    },
-    { 
-      path: "/manager-booking", 
-      label: "Check-in", 
-      icon: "bi-key", 
-      show: true // Lễ tân, Quản lý hay Admin đều thao tác được
-    },
-    // ---- ĐÂY LÀ MỤC STAY VỪA THÊM ----
-    { 
-      path: "/stay", // Đảm bảo em đã map "/stay" với StayScreen trong AppRouter nhé
-      label: "In-house (Stay)", 
-      icon: "bi-house-door", // Icon ngôi nhà hợp với khách đang lưu trú
-      show: true // Hiển thị cho tất cả role (đặc biệt là lễ tân)
-    },
-    // -----------------------------------
-    { 
-      path: "/bookings", 
-      label: "Booking Management", 
-      icon: "bi-calendar-check", 
-      show: true 
-    },
-    { 
-      path: "/services", 
-      label: "Services", 
-      icon: "bi-cup-hot", 
-      show: true 
-    },
-    { 
-      path: "/reports", 
-      label: "Reports", 
-      icon: "bi-bar-chart-line", 
-      // Ví dụ: Báo cáo nhạy cảm chỉ Admin mới được xem
-      show: currentUser?.permissions?.isAdmin 
+    {
+      groupLabel: "Analytics",
+      items: [
+        {
+          label: "Reports",
+          icon: "bi-bar-chart-line",
+          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+          children: [
+            { path: "/report/revenue", label: "Room Revenue", icon: "bi-building" },
+            { path: "/report/services", label: "Service Revenue", icon: "bi-cup-hot" },
+            { path: "/report/expense", label: "Operating Expenses", icon: "bi-receipt" },
+          ],
+        },
+      ],
     },
   ];
 
-  // 4. Lọc ra những menu hợp lệ trước khi render
-  const visibleMenuItems = menuItems.filter(item => item.show !== false);
+  // Auto-open accordion if child is active
+  useEffect(() => {
+    menuGroups.forEach((group) => {
+      group.items.forEach((item) => {
+        if (item.children) {
+          const isChildActive = item.children.some((child) =>
+            location.pathname.startsWith(child.path)
+          );
+          if (isChildActive) {
+            setOpenMenus((prev) => ({ ...prev, [item.label]: true }));
+          }
+        }
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  const navLinkStyle = ({ isActive }) => ({
+    backgroundColor: isActive ? "rgba(255,255,255,0.18)" : "transparent",
+    fontWeight: isActive ? "700" : "400",
+    transition: "all 0.18s ease",
+    borderRadius: "8px",
+    color: "rgba(255,255,255,0.92)",
+  });
 
   return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        backgroundColor: COLORS.PRIMARY,
+        overflowY: "auto",
+        overflowX: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        paddingTop: "12px",
+        paddingBottom: "16px",
+        transition: "all 0.3s ease",
+      }}
+    >
+      {/* Logo / Brand */}
       <div
-          className="d-flex flex-column flex-shrink-0 p-3 text-white"
-          style={{ width: "100%", height: "100%", backgroundColor: COLORS.PRIMARY }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          padding: collapsed ? "0 14px 16px" : "0 20px 18px",
+          borderBottom: "1px solid rgba(255,255,255,0.15)",
+          marginBottom: "8px",
+          overflow: "hidden",
+          whiteSpace: "nowrap",
+        }}
       >
-        <ul className="nav nav-pills flex-column mb-auto">
-          {/* 5. Map qua mảng đã được lọc */}
-          {visibleMenuItems.map((item, index) => (
-              <li className="nav-item mb-1" key={index}>
-                <NavLink
-                    to={item.path}
-                    className={({ isActive }) =>
-                        `nav-link text-white d-flex align-items-center ${isActive ? "active-menu" : ""}`
-                    }
-                    style={({ isActive }) => ({
-                      backgroundColor: isActive
-                          ? "rgba(255,255,255,0.2)"
-                          : "transparent",
-                      fontWeight: isActive ? "bold" : "normal",
-                      transition: "background-color 0.2s ease" 
-                    })}
-                >
-                  <i className={`bi ${item.icon} me-3 fs-5`}></i>
-                  {item.label}
-                </NavLink>
-              </li>
-          ))}
-        </ul>
-        <hr />
+        <i className="bi bi-building-fill" style={{ fontSize: "1.5rem", color: "#fff", flexShrink: 0 }}></i>
+        {!collapsed && (
+          <span style={{ fontWeight: "800", fontSize: "1.1rem", color: "#fff", letterSpacing: "0.5px" }}>
+            AN-IHBMS
+          </span>
+        )}
       </div>
+
+      {/* Menu Groups */}
+      <nav style={{ flex: 1, padding: collapsed ? "0 8px" : "0 12px" }}>
+        {menuGroups.map((group, gi) => {
+          const visibleItems = group.items.filter((item) => item.show !== false);
+          if (visibleItems.length === 0) return null;
+          return (
+            <div key={gi} style={{ marginBottom: "8px" }}>
+              {/* Group label */}
+              {!collapsed && (
+                <div
+                  style={{
+                    fontSize: "0.68rem",
+                    fontWeight: "700",
+                    letterSpacing: "0.9px",
+                    textTransform: "uppercase",
+                    color: "rgba(255,255,255,0.45)",
+                    padding: "10px 10px 4px",
+                  }}
+                >
+                  {group.groupLabel}
+                </div>
+              )}
+              {collapsed && gi > 0 && (
+                <div style={{ height: "1px", background: "rgba(255,255,255,0.12)", margin: "8px 4px" }} />
+              )}
+
+              <ul className="nav flex-column" style={{ gap: "2px" }}>
+                {visibleItems.map((item, idx) => {
+                  if (item.children) {
+                    const isOpen = openMenus[item.label] && !collapsed;
+                    const isAnyChildActive = item.children.some((c) =>
+                      location.pathname.startsWith(c.path)
+                    );
+                    return (
+                      <li className="nav-item" key={idx}>
+                        <div
+                          onClick={() => toggleDropdown(item.label)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: collapsed ? "center" : "space-between",
+                            padding: collapsed ? "10px 0" : "9px 12px",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            backgroundColor: isAnyChildActive
+                              ? "rgba(255,255,255,0.18)"
+                              : "transparent",
+                            color: "rgba(255,255,255,0.92)",
+                            fontWeight: isAnyChildActive ? "700" : "400",
+                            transition: "all 0.18s ease",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <i
+                              className={`bi ${item.icon}`}
+                              style={{ fontSize: "1.1rem", flexShrink: 0, color: "#fff" }}
+                            ></i>
+                            {!collapsed && <span style={{ fontSize: "0.92rem" }}>{item.label}</span>}
+                          </div>
+                          {!collapsed && (
+                            <i
+                              className={`bi bi-chevron-${isOpen ? "up" : "down"}`}
+                              style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.6)" }}
+                            ></i>
+                          )}
+                        </div>
+
+                        {/* Dropdown children */}
+                        {!collapsed && (
+                          <div
+                            style={{
+                              maxHeight: isOpen ? "300px" : "0",
+                              overflow: "hidden",
+                              transition: "max-height 0.3s ease",
+                            }}
+                          >
+                            <ul className="nav flex-column" style={{ paddingLeft: "12px", gap: "2px", marginTop: "4px" }}>
+                              {item.children.map((child, ci) => (
+                                <li key={ci}>
+                                  <NavLink
+                                    to={child.path}
+                                    className="nav-link d-flex align-items-center gap-2"
+                                    style={navLinkStyle}
+                                  >
+                                    <i
+                                      className={`bi ${child.icon || "bi-dot"}`}
+                                      style={{ fontSize: "0.85rem", flexShrink: 0 }}
+                                    ></i>
+                                    <span style={{ fontSize: "0.88rem" }}>{child.label}</span>
+                                  </NavLink>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  }
+
+                  // Normal single item
+                  return (
+                    <li className="nav-item" key={idx}>
+                      <NavLink
+                        to={item.path}
+                        className="nav-link d-flex align-items-center gap-2"
+                        style={({ isActive }) => ({
+                          ...navLinkStyle({ isActive }),
+                          justifyContent: collapsed ? "center" : "flex-start",
+                          padding: collapsed ? "10px 0" : "9px 12px",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                        })}
+                        title={collapsed ? item.label : ""}
+                      >
+                        <i
+                          className={`bi ${item.icon}`}
+                          style={{ fontSize: "1.1rem", flexShrink: 0 }}
+                        ></i>
+                        {!collapsed && <span style={{ fontSize: "0.92rem" }}>{item.label}</span>}
+                      </NavLink>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* User info at bottom */}
+      {!collapsed && currentUser && (
+        <div
+          style={{
+            padding: "12px 20px",
+            borderTop: "1px solid rgba(255,255,255,0.15)",
+            marginTop: "8px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            color: "rgba(255,255,255,0.8)",
+            fontSize: "0.85rem",
+          }}
+        >
+          <i className="bi bi-person-circle" style={{ fontSize: "1.3rem" }}></i>
+          <div>
+            <div style={{ fontWeight: "600", lineHeight: 1.2 }}>{currentUser.username || "User"}</div>
+            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.55)" }}>
+              {currentUser?.permissions?.isAdmin ? "Admin" : currentUser?.permissions?.isManager ? "Manager" : "Staff"}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

@@ -42,11 +42,17 @@ import ImportReceiptUI from "@/features/test/ImportReceiptUI.jsx";
 
 
 
+import ServiceRevenueReportScreen from "../features/report/screens/ServiceRevenueReportScreen.jsx";
+
+import RevenueReportScreen from "@/features/report/screens/RevenueReportScreen.jsx";
+
 
 
 import FrontDeskDashboard from "../features/manager_booking/screens/FrontDeskDashboard";
 import StayScreen from "../features/stay/screens/StayScreen";
 import InventoryReportPage from "../features/test/InventoryReportPage";
+import RevenueDashboard from "../features/test/RevenueDashboard.jsx";
+import ExpenseReportScreen from "../features/report/screens/ExpenseReportScreen.jsx";
 
 /** Helper: Staff không được vào trang Account → redirect về /dashboard */
 const BlockStaffFromAccounts = ({ children }) => {
@@ -69,6 +75,10 @@ const AppRouter = () => {
             <Route path="/test3" element={<ExcelToWebReport></ExcelToWebReport>} />
             <Route path="/import-receipt" element={<ImportReceiptUI></ImportReceiptUI>} />
             <Route path="/inventory-report" element={<InventoryReportPage></InventoryReportPage>} />
+           <Route path="/report/revenue" element={<MainLayout><RevenueReportScreen /></MainLayout>} />
+            <Route path="/report/expense" element={<MainLayout><ExpenseReportScreen /></MainLayout>} />
+            <Route path="/report/services" element={<MainLayout><ServiceRevenueReportScreen /></MainLayout>} />
+
             
           
             {/* --- NHÓM 2: CÁC TRANG XÁC THỰC TÀI KHOẢN --- */}

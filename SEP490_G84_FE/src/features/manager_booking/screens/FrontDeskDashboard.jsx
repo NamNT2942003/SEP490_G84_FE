@@ -5,10 +5,12 @@ import CheckInModal from '../component/CheckInModal';
 import BookingDetailModal from '../component/BookingDetailModal';
 import CheckoutModal from '../component/CheckoutModal'; // 1. THÊM IMPORT NÀY
 import { checkInApi } from '../api/checkInApi';
+import { useSelector } from 'react-redux';
 
 export default function FrontDeskDashboard() {
   const [activeTab, setActiveTab] = useState('ALL'); 
-  const [selectedBranch, setSelectedBranch] = useState(1);
+  const [selectedBranch, setSelectedBranch] = useState(null);
+  const [branches, setBranches] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,16 +25,33 @@ export default function FrontDeskDashboard() {
   // 2. THÊM STATE CHO CHECKOUT MODAL
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
-  const currentUserRole = localStorage.getItem('userRole') || 'STAFF'; 
-  const currentBranchId = Number(localStorage.getItem('branchId')) || 1;
+  const authUser = useSelector((state) => state.auth.user);
+  const currentUserRole = authUser?.role || 'STAFF'; 
+  const currentBranchId = authUser?.branchId || Number(localStorage.getItem('branchId')) || 1;
 
+  // Tải danh sách cơ sở mà user quản lý
   useEffect(() => {
-    if (currentUserRole !== 'MANAGER' && currentUserRole !== 'ADMIN') {
-      setSelectedBranch(currentBranchId);
-    }
-  }, [currentUserRole, currentBranchId]);
+    const loadBranches = async () => {
+      try {
+        const data = await checkInApi.getMyBranches();
+        setBranches(data);
+        // Set default branch: branch đầu tiên trong list, hoặc branchId từ localStorage
+        if (data.length > 0) {
+          const defaultBranch = data.find(b => b.branchId === currentBranchId) || data[0];
+          setSelectedBranch(defaultBranch.branchId);
+        } else {
+          setSelectedBranch(currentBranchId);
+        }
+      } catch (error) {
+        console.error("Failed to load branches:", error);
+        setSelectedBranch(currentBranchId);
+      }
+    };
+    loadBranches();
+  }, [currentBranchId]);
 
   const fetchBookings = async () => {
+    if (!selectedBranch) return;
     setLoading(true);
     try {
       let statusParam = '';
@@ -49,9 +68,11 @@ export default function FrontDeskDashboard() {
   };
 
   useEffect(() => {
-    fetchBookings();
-    setSearchTerm(''); 
-    setCurrentPage(1);
+    if (selectedBranch) {
+      fetchBookings();
+      setSearchTerm(''); 
+      setCurrentPage(1);
+    }
   }, [activeTab, selectedBranch]);
 
   useEffect(() => {
@@ -116,7 +137,8 @@ export default function FrontDeskDashboard() {
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 onRefresh={fetchBookings}
-                userRole={currentUserRole} 
+                userRole={currentUserRole}
+                branches={branches}
               />
 
               {loading ? (

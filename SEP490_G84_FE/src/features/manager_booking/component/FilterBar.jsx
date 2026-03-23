@@ -1,26 +1,27 @@
 import React from 'react';
 
-export default function FilterBar({ selectedBranch, setSelectedBranch, searchTerm, setSearchTerm, onRefresh, userRole }) {
+export default function FilterBar({ selectedBranch, setSelectedBranch, searchTerm, setSearchTerm, onRefresh, userRole, branches }) {
   
   const isManager = userRole === 'MANAGER' || userRole === 'ADMIN';
 
   return (
     <div className="row g-2 mb-4 p-3 bg-white rounded shadow-sm border border-light">
       
-      {isManager && (
+      {isManager && branches && branches.length > 1 && (
         <div className="col-md-3">
           <select 
             className="form-select border-secondary-subtle fw-medium" 
-            value={selectedBranch} 
+            value={selectedBranch || ''} 
             onChange={(e) => setSelectedBranch(Number(e.target.value))}
           >
-            <option value="1">Hanoi Branch</option>
-            <option value="2">Danang Branch</option>
+            {branches.map((b) => (
+              <option key={b.branchId} value={b.branchId}>{b.branchName}</option>
+            ))}
           </select>
         </div>
       )}
 
-      <div className={isManager ? "col-md-7" : "col-md-10"}>
+      <div className={isManager && branches && branches.length > 1 ? "col-md-7" : "col-md-10"}>
         <div className="input-group">
           <span className="input-group-text bg-white border-secondary-subtle text-muted">
             <i className="bi bi-search"></i>

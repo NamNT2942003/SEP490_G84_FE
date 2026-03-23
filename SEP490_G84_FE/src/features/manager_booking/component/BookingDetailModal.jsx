@@ -81,11 +81,19 @@ export default function BookingDetailModal({ show, onClose, booking, onRefresh }
                       <p className="mb-1"><strong>Booker:</strong> {booking.guestName}</p>
                       <p className="mb-1"><strong>Source:</strong> {booking.source}</p>
                       <p className="mb-1"><strong>Total Amount:</strong> {booking.totalAmount?.toLocaleString()} VND</p>
-                      <p className="mb-0"><strong>Payment:</strong> 
+                      <p className="mb-2"><strong>Payment:</strong> 
                         <span className={`ms-2 badge ${booking.paymentStatus === 'PAID' ? 'bg-success' : 'bg-danger'}`}>
                           {booking.paymentStatus}
                         </span>
                       </p>
+                      
+                      {booking.status !== 'CONFIRMED' && (
+                        <div className="mb-0 mt-3 p-2 bg-info bg-opacity-10 rounded border border-info-subtle">
+                          <i className="bi bi-luggage text-info me-2"></i>
+                          <strong className="text-dark">Luggage Note:</strong> 
+                          <div className="text-secondary small mt-1">{booking.luggageNote || <span className="text-muted fst-italic">No luggage deposited.</span>}</div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

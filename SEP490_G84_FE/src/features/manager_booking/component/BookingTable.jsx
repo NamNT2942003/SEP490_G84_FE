@@ -59,8 +59,33 @@ export default function BookingTable({ bookings, emptyMessage, onCheckInClick, o
           </tr>
         </thead>
         <tbody>
-          {bookings.map((booking) => (
-            <tr key={booking.id}>
+          {bookings.map((booking) => {
+            let isNoShow = false;
+            let isCheckoutOverdue = false;
+            let isCheckoutToday = false;
+
+            if (booking.checkOut) {
+              const parts = booking.checkOut.split('/');
+              if (parts.length === 3) {
+                const checkoutDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                if (booking.status === 'CONFIRMED' || booking.status === 'ARRIVED') {
+                  if (checkoutDate < today) isNoShow = true;
+                } else if (booking.status === 'CHECKED_IN') {
+                  if (checkoutDate.getTime() === today.getTime()) isCheckoutToday = true;
+                  else if (checkoutDate < today) isCheckoutOverdue = true;
+                }
+              }
+            }
+
+            let rowClass = "";
+            if (isNoShow || isCheckoutOverdue) rowClass = "table-danger";
+            else if (isCheckoutToday) rowClass = "table-warning";
+
+            return (
+              <tr key={booking.id} className={rowClass}>
               
               <td>
                 <div className="fw-bold text-dark">{booking.guestName}</div>
@@ -81,6 +106,12 @@ export default function BookingTable({ bookings, emptyMessage, onCheckInClick, o
                         <span className="fw-bold">{rd.quantity}x</span> {rd.roomTypeName}
                       </div>
                     ))}
+                    {booking.status === 'ARRIVED' && booking.luggageNote && (
+                      <div className="small text-info mt-1">
+                        <i className="bi bi-luggage me-1"></i>
+                        <span className="fw-medium">Luggage:</span> {booking.luggageNote}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div>
@@ -104,7 +135,33 @@ export default function BookingTable({ bookings, emptyMessage, onCheckInClick, o
               </td>
               
               <td>
-                {(booking.status === 'CONFIRMED' || booking.status === 'ARRIVED') && (
+                {isNoShow && (
+                  <div className="mb-1">
+                    <span className="badge bg-danger">
+                      <i className="bi bi-exclamation-triangle-fill me-1"></i>Overdue / No-Show
+                    </span>
+                  </div>
+                )}
+                {isCheckoutOverdue && (
+                  <div className="mb-1">
+                    <span className="badge bg-danger shadow-sm border border-danger">
+                      <i className="bi bi-exclamation-circle-fill me-1"></i>Overstayed / Needs Checkout
+                    </span>
+                  </div>
+                )}
+                {isCheckoutToday && (
+                  <div className="mb-1">
+                    <span className="badge bg-warning text-dark border border-warning">
+                      <i className="bi bi-clock-history me-1"></i>Checkout Due Today
+                    </span>
+                  </div>
+                )}
+                {booking.status === 'ARRIVED' && (
+                  <span className="badge bg-info bg-opacity-10 text-info border border-info-subtle px-2 py-1">
+                    <i className="bi bi-luggage me-1"></i>Arrived - Luggage Stored
+                  </span>
+                )}
+                {booking.status === 'CONFIRMED' && (
                   <span className="badge bg-success bg-opacity-10 text-success border border-success-subtle px-2 py-1">Awaiting Check-in</span>
                 )}
                 {booking.status === 'CHECKED_IN' && (
@@ -166,7 +223,8 @@ export default function BookingTable({ bookings, emptyMessage, onCheckInClick, o
               </td>
 
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
