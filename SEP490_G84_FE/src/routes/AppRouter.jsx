@@ -43,8 +43,9 @@ import ImportReceiptUI from "@/features/test/ImportReceiptUI.jsx";
 
 
 import ServiceRevenueReportScreen from "../features/report/screens/ServiceRevenueReportScreen.jsx";
-
 import RevenueReportScreen from "@/features/report/screens/RevenueReportScreen.jsx";
+import AggregatedReportScreen from "../features/report/screens/AggregatedReportScreen.jsx";
+import MultiBranchReportScreen from "@/features/report/screens/MultiBranchReportScreen.jsx";
 
 
 
@@ -78,6 +79,9 @@ const AppRouter = () => {
            <Route path="/report/revenue" element={<MainLayout><RevenueReportScreen /></MainLayout>} />
             <Route path="/report/expense" element={<MainLayout><ExpenseReportScreen /></MainLayout>} />
             <Route path="/report/services" element={<MainLayout><ServiceRevenueReportScreen /></MainLayout>} />
+            <Route path="/report/aggregated" element={<MainLayout><AggregatedReportScreen /></MainLayout>} />
+            <Route path="/report/multi-branch" element={<MainLayout><MultiBranchReportScreen /></MainLayout>} />
+
 
             
           

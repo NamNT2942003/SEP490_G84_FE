@@ -13,7 +13,6 @@ export const reportApi = {
         }
     },
     
-    // API MỚI: Lấy tổng quan 12 tháng trong năm
     getYearlyRevenue: async (branchId, year) => {
         try {
             const response = await fetch(`${BASE_URL}/yearly-revenue?branchId=${branchId}&year=${year}`);
@@ -25,6 +24,41 @@ export const reportApi = {
         }
     },
 
+    // API MỚI: Lấy tổng quan Dashboard Doanh thu năm
+    getYearlyRoomDashboard: async (branchId, year) => {
+        try {
+            const response = await fetch(`${BASE_URL}/yearly-room-dashboard?branchId=${branchId}&year=${year}`);
+            if (!response.ok) throw new Error('Error fetching yearly dashboard data');
+            return await response.json();
+        } catch (error) {
+            console.error("API Error:", error);
+            throw error;
+        }
+    },
+
+    getMultiBranchDashboard: async (branchIds, month, year) => {
+        try {
+            const branchQuery = branchIds && branchIds.length > 0 ? `branchIds=${branchIds.join(',')}&` : '';
+            const response = await fetch(`${BASE_URL}/multi-branch?${branchQuery}month=${month}&year=${year}`);
+            if (!response.ok) throw new Error('Error fetching multi-branch dashboard');
+            return await response.json();
+        } catch (error) {
+            console.error("API Error:", error);
+            throw error;
+        }
+    },
+
+    getYearlyMultiBranchDashboard: async (branchIds, year) => {
+        try {
+            const branchQuery = branchIds && branchIds.length > 0 ? `branchIds=${branchIds.join(',')}&` : '';
+            const response = await fetch(`${BASE_URL}/multi-branch/yearly?${branchQuery}year=${year}`);
+            if (!response.ok) throw new Error('Error fetching yearly multi-branch dashboard');
+            return await response.json();
+        } catch (error) {
+            console.error("API Error:", error);
+            throw error;
+        }
+    },
 
 // ---- CÁC API MỚI QUẢN LÝ DOANH THU DỊCH VỤ ----
     getYearlyServiceRevenue: async (branchId, year) => {

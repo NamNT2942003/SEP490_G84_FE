@@ -39,7 +39,7 @@ const RoomRevenuePieChart = ({ data }) => {
     };
 
     return (
-        <div style={{ height: '320px', width: '100%' }}>
+        <div style={{ height: '260px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                     <Pie

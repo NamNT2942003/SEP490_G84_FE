@@ -64,7 +64,10 @@ const Sidebar = ({ collapsed }) => {
             { path: "/report/revenue", label: "Room Revenue", icon: "bi-building" },
             { path: "/report/services", label: "Service Revenue", icon: "bi-cup-hot" },
             { path: "/report/expense", label: "Operating Expenses", icon: "bi-receipt" },
+            { path: "/report/aggregated", label: "Aggregated Report", icon: "bi-clipboard-data" },
+            { path: "/report/multi-branch", label: "Multi-Branch Report", icon: "bi-diagram-3-fill" },
           ],
+
         },
       ],
     },
