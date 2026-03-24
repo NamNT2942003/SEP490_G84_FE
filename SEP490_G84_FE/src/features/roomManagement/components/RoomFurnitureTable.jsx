@@ -24,6 +24,8 @@ function getCondition(condition) {
 const CONDITION_OPTIONS = [
   { value: "GOOD", label: "Good" },
   { value: "BROKEN", label: "Broken" },
+  { value: "MAINTENANCE", label: "Maintenance" },
+  { value: "NEED_REPAIR", label: "Need Repair" },
 ];
 
 function RoomFurnitureTable({ furnitureList, roomId, branchId, onChanged }) {
@@ -88,7 +90,19 @@ function RoomFurnitureTable({ furnitureList, roomId, branchId, onChanged }) {
                 <td className="ps-4 text-muted" style={{ fontSize: "0.78rem" }}>{idx + 1}</td>
                 <td className="fw-semibold" style={{ fontSize: "0.88rem", color: "#1a1a2e" }}>{item.furnitorName}</td>
                 <td><code className="text-muted" style={{ fontSize: "0.72rem" }}>{item.furnitureCode}</code></td>
-                <td className="text-muted" style={{ fontSize: "0.82rem" }}>{item.type || "—"}</td>
+                <td>
+                  <span className={`d-inline-block ${item.type === "Premium" ? "premium" : "standard"}`} style={{
+                    fontSize: "0.82rem",
+                    fontWeight: "600",
+                    padding: "3px 10px",
+                    borderRadius: "6px",
+                    backgroundColor: item.type === "Premium" ? "rgba(224,153,0,.1)" : "rgba(108,117,125,.1)",
+                    color: item.type === "Premium" ? "#b37700" : "#495057"
+                  }}>
+                    {item.type === "Premium" && <i className="bi bi-star-fill me-1" style={{ fontSize: ".6rem" }}></i>}
+                    {item.type || "—"}
+                  </span>
+                </td>
                 <td>
                   <span className="d-inline-flex align-items-center justify-content-center fw-bold rounded-circle"
                     style={{ width: 26, height: 26, backgroundColor: "rgba(92,111,78,0.1)", color: BRAND, fontSize: "0.78rem" }}>

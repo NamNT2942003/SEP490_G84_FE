@@ -7,7 +7,7 @@ const layoutMain = {
     display: 'grid',
     gridTemplateColumns: '260px 1fr', // Cột trái 260px (Sidebar), cột phải là phần còn lại (1fr)
     height: '100vh',                  // BẮT BUỘC: Khóa cứng chiều cao vừa đúng 1 màn hình
-    overflow: 'hidden',               // Không cho phép cuộn toàn trang
+    overflowY: 'auto',               // Không cho phép cuộn toàn trang
     background: '#f3f4f6',
 };
 

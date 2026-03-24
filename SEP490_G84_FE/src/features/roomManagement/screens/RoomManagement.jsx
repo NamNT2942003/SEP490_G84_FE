@@ -580,24 +580,23 @@ function RoomManagement() {
       <MainLayout>
         <div className="container-fluid py-4 px-xl-5" style={{ backgroundColor: "#fbfbfb", minHeight: "100vh" }}>
 
-        {/* HEADER SECTION */}
+        {/* BREADCRUMB & ADD BUTTON */}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3">
           <div>
             <nav aria-label="breadcrumb">
-              <ol className="breadcrumb mb-2" style={{ fontSize: "0.8rem" }}>
+              <ol className="breadcrumb mb-3" style={{ fontSize: "0.8rem" }}>
                 <li className="breadcrumb-item"><a href="#" className="text-decoration-none text-muted">Admin Panel</a></li>
                 <li className="breadcrumb-item active fw-medium" aria-current="page" style={{ color: BRAND }}>Room Management</li>
               </ol>
             </nav>
-            <h2 className="fw-bold mb-1 text-dark" style={{ letterSpacing: "-1px", fontSize: "1.85rem" }}>
-              Room Inventory Dashboard
-              <span className={`badge ms-2 ${wsConnected ? 'bg-success' : 'bg-secondary'}`} 
-                    style={{ fontSize: '0.6rem', verticalAlign: 'top' }}>
+            <div className="d-flex align-items-center gap-2">
+              <p className="text-muted mb-0 small">Real-time monitoring of room status, equipment health, and maintenance incidents.</p>
+              <span className={`badge ${wsConnected ? 'bg-success' : 'bg-secondary'}`} 
+                    style={{ fontSize: '0.65rem', height: 'fit-content' }}>
                 <i className={`bi ${wsConnected ? 'bi-wifi' : 'bi-wifi-off'} me-1`}></i>
                 {wsConnected ? 'Live' : 'Offline'}
               </span>
-            </h2>
-            <p className="text-muted mb-0 small">Real-time monitoring of room status, equipment health, and maintenance incidents.</p>
+            </div>
           </div>
           <div className="d-flex gap-2">
             <button 

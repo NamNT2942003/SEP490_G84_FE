@@ -1,7 +1,7 @@
 import React from 'react';
-import { useDispatch } from 'react-redux'; // 1. Hook để gọi Action
-import { useNavigate } from 'react-router-dom'; // 2. Hook để chuyển trang
-import { logout } from '@/features/auth/authSlice'; // 3. Import Action Logout
+import { useDispatch } from 'react-redux';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { logout } from '@/features/auth/authSlice';
 import Buttons from '@/components/ui/Buttons';
 import { COLORS, APP_STRINGS } from '@/constants';
 import Swal from 'sweetalert2';
@@ -9,21 +9,34 @@ import Swal from 'sweetalert2';
 const Header = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // 动态页面标题映射
+    const pageTitle = (() => {
+        const path = location.pathname;
+        if (path.includes('/admin/rooms')) return 'Room Management';
+        if (path.includes('/admin/furniture')) return 'Furniture Management';
+        if (path.includes('/accounts')) return 'Account Management';
+        if (path.includes('/booking')) return 'Booking Management';
+        if (path.includes('/inventory/report')) return 'Inventory Report';
+        if (path.includes('/inventory')) return 'Item Inventory';
+        if (path.includes('/reports')) return 'Reports';
+        if (path.includes('/dashboard')) return 'Dashboard';
+        return 'Dashboard'; // 默认值
+    })();
 
     const handleLogout = () => {
-        // Thay thế window.confirm bằng Swal.fire
         Swal.fire({
             title: 'Are you sure?',
             text: "You will be logged out of the system.",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6', // Màu nút OK (Xanh hoặc màu Brand của bạn)
-            cancelButtonColor: '#d33',    // Màu nút Cancel (Đỏ)
-            confirmButtonText: 'Yes, log out!', // <--- SỬA THÀNH TIẾNG ANH Ở ĐÂY
-            cancelButtonText: 'Cancel'          // <--- SỬA THÀNH TIẾNG ANH Ở ĐÂY
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, log out!',
+            cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Nếu bấm OK thì mới thực hiện logout
                 dispatch(logout());
                 navigate('/login');
             }
@@ -35,7 +48,7 @@ const Header = () => {
 
             {/* Title / Breadcrumb */}
             <div className="d-flex align-items-center">
-                <h4 className="m-0 fw-bold" style={{ color: COLORS.PRIMARY }}>Dashboard</h4>
+                <h4 className="m-0 fw-bold" style={{ color: COLORS.PRIMARY }}>{pageTitle}</h4>
             </div>
 
             {/* Right Actions */}
@@ -49,7 +62,7 @@ const Header = () => {
                     variant="outline"
                     className="btn-sm py-1 px-3"
                     icon={<i className="bi bi-box-arrow-right"></i>}
-                    onClick={handleLogout} // <--- Gắn hàm xử lý vào đây
+                    onClick={handleLogout}
                 >
                     {APP_STRINGS.BUTTONS.LOGOUT || 'Logout'}
                 </Buttons>

@@ -185,4 +185,23 @@ export const roomManagementApi = {
     const response = await apiClient.get(`${FURNITURE_API_BASE}/search?${params.toString()}`);
     return response.data;
   },
+
+  // Furniture Inventory - List by branch with details (in-use, broken, stock, etc.)
+  listFurnitureInventoryByBranch: async (branchId, page = 0, size = 10) => {
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('size', size);
+    const response = await apiClient.get(`/rooms-detail/furniture/branch/${branchId}?${params.toString()}`);
+    return response.data;
+  },
+
+  // Furniture Inventory - Search by branch
+  searchFurnitureInventoryByBranch: async (branchId, keyword = '', page = 0, size = 10) => {
+    const params = new URLSearchParams();
+    if (keyword) params.append('keyword', keyword);
+    params.append('page', page);
+    params.append('size', size);
+    const response = await apiClient.get(`/rooms-detail/furniture/branch/${branchId}/search?${params.toString()}`);
+    return response.data;
+  },
 };
