@@ -28,6 +28,11 @@ export const API_ENDPOINTS = {
     DETAIL: "/admin/rate-plans",
   },
   RATE_PLAN_CONDITIONS: {
+    // NEW: Management APIs
+    MANAGEMENT_CONDITIONS: "/management/rate-plans/:ratePlanId/conditions",
+    // NEW: Booking APIs
+    BOOKING_APPLICABLE: "/booking/rate-plans/applicable",
+    // LEGACY: deprecated endpoints (for backward compatibility)
     AVAILABLE: "/rate-plan-conditions/available",
     BASE: "/rate-plan-conditions",
     BY_RATE_PLAN: "/rate-plan-conditions/rate-plan",

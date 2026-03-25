@@ -1,6 +1,8 @@
 import apiClient from "@/services/apiClient";
 
 const CONDITION_BASE = "/rate-plan-conditions";
+const MANAGEMENT_BASE = "/management/rate-plans";
+const BOOKING_BASE = "/booking/rate-plans";
 
 const normalizeConditionType = (value) => {
   if (value === "OCCUPANCY") return "ROOM_COUNT";
@@ -35,6 +37,18 @@ const normalizeCondition = (item = {}) => ({
   priorityOrder: item.priorityOrder ?? 0,
   createdAt: item.createdAt || "",
   updatedAt: item.updatedAt || "",
+});
+
+const normalizeRatePlan = (item = {}) => ({
+  ratePlanId: item.ratePlanId,
+  name: item.name || "",
+  price: Number(item.price ?? 0),
+  cancellationType: item.cancellationType || "",
+  freeCancelBeforeDays: Number(item.freeCancelBeforeDays ?? 0),
+  paymentType: item.paymentType || "",
+  active: Boolean(item.active),
+  priorityOrder: Number(item.priorityOrder ?? 0),
+  conditionCount: Number(item.conditionCount ?? 0),
 });
 
 const toConditionRequest = (payload = {}) => {
@@ -73,6 +87,37 @@ const toConditionRequest = (payload = {}) => {
 };
 
 const ratePlanConditionApi = {
+  // ============ MANAGEMENT APIs (quản lý điều kiện) ============
+  /**
+   * Lấy tất cả conditions của 1 rate plan (Management view)
+   * GET /api/management/rate-plans/{ratePlanId}/conditions
+   */
+  listByRatePlanManagement: async (ratePlanId) => {
+    const response = await apiClient.get(`${MANAGEMENT_BASE}/${ratePlanId}/conditions`);
+    const conditions = Array.isArray(response.data?.conditions) ? response.data.conditions : [];
+    return conditions.map(normalizeCondition);
+  },
+
+  // ============ BOOKING APIs (tìm rate plan applicable) ============
+  /**
+   * Tìm rate plans applicable theo điều kiện booking
+   * GET /api/booking/rate-plans/applicable
+   * Query params: roomTypeId, checkInDate (yyyy-MM-dd), checkOutDate (yyyy-MM-dd), guestCount?, strictMatching?
+   */
+  getApplicableRatePlans: async (queryParams = {}) => {
+    const params = new URLSearchParams();
+    if (queryParams.roomTypeId) params.append("roomTypeId", queryParams.roomTypeId);
+    if (queryParams.checkInDate) params.append("checkInDate", queryParams.checkInDate);
+    if (queryParams.checkOutDate) params.append("checkOutDate", queryParams.checkOutDate);
+    if (queryParams.guestCount !== undefined) params.append("guestCount", queryParams.guestCount);
+    if (queryParams.strictMatching !== undefined) params.append("strictMatching", queryParams.strictMatching);
+
+    const response = await apiClient.get(`${BOOKING_BASE}/applicable?${params.toString()}`);
+    const ratePlans = Array.isArray(response.data?.ratePlans) ? response.data.ratePlans : [];
+    return ratePlans.map(normalizeRatePlan);
+  },
+
+  // ============ LEGACY APIs (deprecated, keep for backward compatibility) ============
   listByRatePlan: async (ratePlanId) => {
     const response = await apiClient.get(`${CONDITION_BASE}/rate-plan/${ratePlanId}`);
     return Array.isArray(response.data) ? response.data.map(normalizeCondition) : [];
@@ -83,6 +128,7 @@ const ratePlanConditionApi = {
     return Array.isArray(response.data) ? response.data.map(normalizeCondition) : [];
   },
 
+  // ============ CRUD Operations ============
   getById: async (conditionId) => {
     const response = await apiClient.get(`${CONDITION_BASE}/${conditionId}`);
     return normalizeCondition(response.data);

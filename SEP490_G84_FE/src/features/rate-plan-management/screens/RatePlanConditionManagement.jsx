@@ -134,7 +134,7 @@ export default function RatePlanConditionManagement() {
     try {
       setLoading(true);
       setError("");
-      const data = await ratePlanConditionApi.listByRatePlan(selectedRatePlanId);
+      const data = await ratePlanConditionApi.listByRatePlanManagement(selectedRatePlanId);
       setConditions(data || []);
     } catch (err) {
       setConditions([]);

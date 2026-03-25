@@ -42,12 +42,13 @@ export const roomService = {
     },
 
     getAvailableRatePlans: async ({ roomTypeId, checkInDate, checkOutDate, guestCount }) => {
-        const response = await apiClient.get(API_ENDPOINTS.RATE_PLAN_CONDITIONS.AVAILABLE, {
+        const response = await apiClient.get(API_ENDPOINTS.RATE_PLAN_CONDITIONS.BOOKING_APPLICABLE, {
             params: {
                 roomTypeId,
                 checkInDate,
                 checkOutDate,
                 guestCount,
+                strictMatching: false, // For booking preview/management use case
             },
         });
 
