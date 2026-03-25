@@ -9,7 +9,7 @@ import { parseApiError } from "@/utils/apiError";
 import "./RatePlanConditionManagement.css";
 
 const EMPTY_FORM = {
-  conditionType: "ADVANCE_BOOKING",
+  conditionType: "",
   minValue: "",
   maxValue: "",
   startDate: "",
@@ -18,6 +18,29 @@ const EMPTY_FORM = {
   occupancyCount: "",
   active: true,
   priorityOrder: 0,
+};
+
+const normalizeConditionType = (value) => {
+  if (value === "OCCUPANCY") return "ROOM_COUNT";
+  return value || "";
+};
+
+const CONDITION_FIELD_MAP = {
+  ADVANCE_BOOKING: ["minValue", "maxValue"],
+  LENGTH_OF_STAY: ["minValue", "maxValue"],
+  ROOM_COUNT: ["occupancyCount"],
+  DATE_RANGE: ["startDate", "endDate"],
+  DAY_OF_WEEK: ["dayOfWeek"],
+  AVAILABILITY: ["minValue", "maxValue"],
+};
+
+const TYPE_FIELD_DEFAULTS = {
+  minValue: "",
+  maxValue: "",
+  startDate: "",
+  endDate: "",
+  dayOfWeek: "",
+  occupancyCount: "",
 };
 
 const toDisplayValue = (value) => {
@@ -51,6 +74,11 @@ export default function RatePlanConditionManagement() {
   const [conditionTypeOptions, setConditionTypeOptions] = useState([]);
   const [dayOfWeekOptions, setDayOfWeekOptions] = useState([]);
   const [ratePlanRules, setRatePlanRules] = useState({});
+
+  const normalizedConditionType = useMemo(
+    () => normalizeConditionType(formData.conditionType),
+    [formData.conditionType],
+  );
 
   const loadBranches = async () => {
     try {
@@ -128,12 +156,6 @@ export default function RatePlanConditionManagement() {
       setDayOfWeekOptions(dayOptions || []);
       setRatePlanRules(rules || {});
 
-      if (types.length > 0) {
-        setFormData((prev) => ({
-          ...prev,
-          conditionType: prev.conditionType || types[0].value || types[0].code,
-        }));
-      }
     } catch (err) {
       console.error("Load condition metadata failed:", err);
     }
@@ -168,10 +190,7 @@ export default function RatePlanConditionManagement() {
   }, [ratePlanId]);
 
   const resetForm = () => {
-    setFormData((prev) => ({
-      ...EMPTY_FORM,
-      conditionType: conditionTypeOptions[0]?.value || conditionTypeOptions[0]?.code || prev.conditionType || EMPTY_FORM.conditionType,
-    }));
+    setFormData(EMPTY_FORM);
     setFormError("");
     setEditingItem(null);
   };
@@ -188,7 +207,7 @@ export default function RatePlanConditionManagement() {
   const openEditModal = (item) => {
     setEditingItem(item);
     setFormData({
-      conditionType: item.conditionType || "ADVANCE_BOOKING",
+      conditionType: normalizeConditionType(item.conditionType),
       minValue: item.minValue ?? "",
       maxValue: item.maxValue ?? "",
       startDate: item.startDate || "",
@@ -210,6 +229,29 @@ export default function RatePlanConditionManagement() {
 
   const handleFormChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    if (name === "conditionType") {
+      const nextType = normalizeConditionType(value);
+      const keepFields = new Set(CONDITION_FIELD_MAP[nextType] || []);
+
+      setFormData((prev) => {
+        const nextData = {
+          ...prev,
+          conditionType: nextType,
+        };
+
+        Object.keys(TYPE_FIELD_DEFAULTS).forEach((field) => {
+          if (!keepFields.has(field)) {
+            nextData[field] = TYPE_FIELD_DEFAULTS[field];
+          }
+        });
+
+        return nextData;
+      });
+
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -217,16 +259,25 @@ export default function RatePlanConditionManagement() {
   };
 
   const validateForm = () => {
-    const conditionValues = conditionTypeOptions.map((opt) => opt.value || opt.code);
-    if (conditionValues.length > 0 && !conditionValues.includes(formData.conditionType)) {
+    const conditionValues = conditionTypeOptions.map((opt) => normalizeConditionType(opt.value || opt.code));
+    if (!normalizedConditionType) {
+      return "Please select a condition type.";
+    }
+
+    if (conditionValues.length > 0 && !conditionValues.includes(normalizedConditionType)) {
       return "Condition type is invalid.";
     }
 
-    if (formData.minValue !== "" && formData.maxValue !== "" && Number(formData.minValue) > Number(formData.maxValue)) {
-      return "Min value must be less than or equal to max value.";
+    if (["ADVANCE_BOOKING", "LENGTH_OF_STAY", "AVAILABILITY"].includes(normalizedConditionType)) {
+      if (formData.minValue === "" && formData.maxValue === "") {
+        return "Please enter at least min or max value.";
+      }
+      if (formData.minValue !== "" && formData.maxValue !== "" && Number(formData.minValue) > Number(formData.maxValue)) {
+        return "Min value must be less than or equal to max value.";
+      }
     }
 
-    if (formData.conditionType === "DATE_RANGE") {
+    if (normalizedConditionType === "DATE_RANGE") {
       if (!formData.startDate || !formData.endDate) {
         return "DATE_RANGE requires startDate and endDate.";
       }
@@ -235,22 +286,22 @@ export default function RatePlanConditionManagement() {
       }
     }
 
-    if (formData.conditionType === "DAY_OF_WEEK" && !String(formData.dayOfWeek || "").trim()) {
+    if (normalizedConditionType === "DAY_OF_WEEK" && !String(formData.dayOfWeek || "").trim()) {
       return "DAY_OF_WEEK requires dayOfWeek.";
     }
 
-    if (formData.conditionType === "DAY_OF_WEEK" && dayOfWeekOptions.length > 0) {
+    if (normalizedConditionType === "DAY_OF_WEEK" && dayOfWeekOptions.length > 0) {
       const dayValues = dayOfWeekOptions.map((opt) => opt.value || opt.code);
       if (!dayValues.includes(formData.dayOfWeek)) {
         return "Day of week is invalid.";
       }
     }
 
-    if (formData.conditionType === "OCCUPANCY") {
+    if (normalizedConditionType === "ROOM_COUNT") {
       const occupancyCount = Number(formData.occupancyCount);
       const minOccupancy = Number(ratePlanRules?.occupancyCount?.min ?? 1);
       if (!Number.isFinite(occupancyCount) || occupancyCount < minOccupancy) {
-        return "OCCUPANCY requires occupancyCount greater than 0.";
+        return "ROOM_COUNT requires occupancyCount greater than 0.";
       }
     }
 
@@ -413,67 +464,93 @@ export default function RatePlanConditionManagement() {
                       <div className="col-md-6">
                         <label className="form-label">Condition Type *</label>
                         <select className="form-select" name="conditionType" value={formData.conditionType} onChange={handleFormChange}>
-                          {conditionTypeOptions.length === 0 && <option value="">No options</option>}
+                          <option value="">Select condition type</option>
                           {conditionTypeOptions.map((opt) => (
-                            <option key={opt.code || opt.value} value={opt.value || opt.code}>{opt.label || opt.value}</option>
+                            <option key={opt.code || opt.value} value={normalizeConditionType(opt.value || opt.code)}>{opt.label || opt.value}</option>
                           ))}
                         </select>
                       </div>
 
-                      <div className="col-md-3">
-                        <label className="form-label">Min Value</label>
-                        <input type="number" className="form-control" name="minValue" value={formData.minValue} onChange={handleFormChange} />
-                      </div>
-                      <div className="col-md-3">
-                        <label className="form-label">Max Value</label>
-                        <input type="number" className="form-control" name="maxValue" value={formData.maxValue} onChange={handleFormChange} />
-                      </div>
+                      {normalizedConditionType && ["ADVANCE_BOOKING", "LENGTH_OF_STAY", "AVAILABILITY"].includes(normalizedConditionType) && (
+                        <>
+                          <div className="col-md-3">
+                            <label className="form-label">
+                              {normalizedConditionType === "LENGTH_OF_STAY" ? "Min Nights" : normalizedConditionType === "AVAILABILITY" ? "Min Available Rooms" : "Min Advance Days"}
+                            </label>
+                            <input type="number" className="form-control" name="minValue" value={formData.minValue} onChange={handleFormChange} />
+                          </div>
+                          <div className="col-md-3">
+                            <label className="form-label">
+                              {normalizedConditionType === "LENGTH_OF_STAY" ? "Max Nights" : normalizedConditionType === "AVAILABILITY" ? "Max Available Rooms" : "Max Advance Days"}
+                            </label>
+                            <input type="number" className="form-control" name="maxValue" value={formData.maxValue} onChange={handleFormChange} />
+                          </div>
+                        </>
+                      )}
 
-                      <div className="col-md-6">
-                        <label className="form-label">Start Date</label>
-                        <input type="date" className="form-control" name="startDate" value={formData.startDate} onChange={handleFormChange} />
-                        <div className="form-text">Required for DATE_RANGE.</div>
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">End Date</label>
-                        <input type="date" className="form-control" name="endDate" value={formData.endDate} onChange={handleFormChange} />
-                        <div className="form-text">Must be after or equal to Start Date.</div>
-                      </div>
+                      {normalizedConditionType === "DATE_RANGE" && (
+                        <>
+                          <div className="col-md-6">
+                            <label className="form-label">Start Date</label>
+                            <input type="date" className="form-control" name="startDate" value={formData.startDate} onChange={handleFormChange} />
+                          </div>
+                          <div className="col-md-6">
+                            <label className="form-label">End Date</label>
+                            <input type="date" className="form-control" name="endDate" value={formData.endDate} onChange={handleFormChange} />
+                          </div>
+                        </>
+                      )}
 
-                      <div className="col-md-6">
-                        <label className="form-label">Day Of Week</label>
-                        <select className="form-select" name="dayOfWeek" value={formData.dayOfWeek} onChange={handleFormChange}>
-                          <option value="">Select day</option>
-                          {dayOfWeekOptions.map((opt) => (
-                            <option key={opt.code || opt.value} value={opt.value || opt.code}>{opt.label || opt.value}</option>
-                          ))}
-                        </select>
-                        <div className="form-text">Required for DAY_OF_WEEK.</div>
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">Occupancy Count</label>
-                        <input type="number" min={ratePlanRules?.occupancyCount?.min ?? 1} className="form-control" name="occupancyCount" value={formData.occupancyCount} onChange={handleFormChange} />
-                        <div className="form-text">Required for OCCUPANCY. Min: {ratePlanRules?.occupancyCount?.min ?? 1}</div>
-                      </div>
-
-                      <div className="col-md-6">
-                        <label className="form-label">Priority Order</label>
-                        <input type="number" min="0" className="form-control" name="priorityOrder" value={formData.priorityOrder} onChange={handleFormChange} />
-                      </div>
-
-                      <div className="col-md-6 d-flex align-items-center pt-4">
-                        <div className="form-check form-switch">
-                          <input
-                            id="condition-active"
-                            className="form-check-input"
-                            type="checkbox"
-                            name="active"
-                            checked={Boolean(formData.active)}
-                            onChange={handleFormChange}
-                          />
-                          <label className="form-check-label" htmlFor="condition-active">Active</label>
+                      {normalizedConditionType === "DAY_OF_WEEK" && (
+                        <div className="col-md-6">
+                          <label className="form-label">Day Of Week</label>
+                          <select className="form-select" name="dayOfWeek" value={formData.dayOfWeek} onChange={handleFormChange}>
+                            <option value="">Select day</option>
+                            {dayOfWeekOptions.map((opt) => (
+                              <option key={opt.code || opt.value} value={opt.value || opt.code}>{opt.label || opt.value}</option>
+                            ))}
+                          </select>
                         </div>
-                      </div>
+                      )}
+
+                      {normalizedConditionType === "ROOM_COUNT" && (
+                        <div className="col-md-6">
+                          <label className="form-label">Room Count</label>
+                          <input type="number" min={ratePlanRules?.occupancyCount?.min ?? 1} className="form-control" name="occupancyCount" value={formData.occupancyCount} onChange={handleFormChange} />
+                          <div className="form-text">Min: {ratePlanRules?.occupancyCount?.min ?? 1}</div>
+                        </div>
+                      )}
+
+                      {normalizedConditionType && (
+                        <>
+                          <div className="col-md-6">
+                            <label className="form-label">Priority Order</label>
+                            <input type="number" min="0" className="form-control" name="priorityOrder" value={formData.priorityOrder} onChange={handleFormChange} />
+                          </div>
+
+                          <div className="col-md-6 d-flex align-items-center pt-4">
+                            <div className="form-check form-switch">
+                              <input
+                                id="condition-active"
+                                className="form-check-input"
+                                type="checkbox"
+                                name="active"
+                                checked={Boolean(formData.active)}
+                                onChange={handleFormChange}
+                              />
+                              <label className="form-check-label" htmlFor="condition-active">Active</label>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {!normalizedConditionType && (
+                        <div className="col-12">
+                          <div className="alert alert-info py-2 mb-0">
+                            Please select a condition type to configure activation fields.
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="modal-footer">

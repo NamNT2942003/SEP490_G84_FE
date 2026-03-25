@@ -31,13 +31,19 @@ const getPaymentText = (paymentType) => {
     return 'Hinh thuc thanh toan theo goi';
 };
 
+const normalizeRatePlanId = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
 const buildBookingPayload = (formData, rooms, checkIn, checkOut) => ({
     otaReservationId: `WEB-${formData.phone.replace(/\s+/g, '')}-${checkIn}-${checkOut}`,
     arrivalDate: checkIn,
     departureDate: checkOut,
     rooms: rooms.map((room) => ({
         roomTypeId: room.roomTypeId,
-        ratePlanId: room.selectedRatePlanId,
+        ratePlanId: normalizeRatePlanId(room.selectedRatePlanId),
         price: room.selectedPrice || room.appliedPrice || room.basePrice || room.price,
         quantity: room.quantity || 1,
     })),
@@ -192,7 +198,7 @@ const GuestInformation = () => {
             return;
         }
 
-        const roomWithoutRatePlan = rooms.find((room) => !room.selectedRatePlanId);
+        const roomWithoutRatePlan = rooms.find((room) => !normalizeRatePlanId(room.selectedRatePlanId));
         if (roomWithoutRatePlan) {
             alert(`Phong ${roomWithoutRatePlan.name} chua co rate plan hop le.`);
             return;

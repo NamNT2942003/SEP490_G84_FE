@@ -33,8 +33,41 @@ const SearchRoom = () => {
         return Math.max(1, adults + children);
     };
 
+    const normalizeRatePlanId = (value) => {
+        if (value === null || value === undefined || value === "") return null;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const syncCartWithLatestRooms = (prevCart, latestRooms) => {
+        if (!prevCart.length) return prevCart;
+
+        const roomMap = new Map(latestRooms.map((room) => [room.roomTypeId, room]));
+
+        return prevCart
+            .map((cartItem) => {
+                const latestRoom = roomMap.get(cartItem.roomTypeId);
+                if (!latestRoom) return null;
+
+                const preferredRatePlanId = normalizeRatePlanId(cartItem.selectedRatePlanId) ?? latestRoom.selectedRatePlanId;
+                const roomWithSelection = ensureRatePlanSelection(
+                    applyRatePlanSelection(latestRoom, preferredRatePlanId),
+                );
+
+                return {
+                    ...cartItem,
+                    ...roomWithSelection,
+                    quantity: Math.min(cartItem.quantity || 1, roomWithSelection.availableCount || 999),
+                };
+            })
+            .filter(Boolean);
+    };
+
     const applyRatePlanSelection = (room, selectedRatePlanId) => {
-        const selectedPlan = (room.availableRatePlans || []).find((plan) => plan.ratePlanId === selectedRatePlanId);
+        const normalizedPlanId = normalizeRatePlanId(selectedRatePlanId);
+        const selectedPlan = (room.availableRatePlans || []).find(
+            (plan) => normalizeRatePlanId(plan.ratePlanId) === normalizedPlanId,
+        );
         if (!selectedPlan) {
             return {
                 ...room,
@@ -58,6 +91,24 @@ const SearchRoom = () => {
         };
     };
 
+    const ensureRatePlanSelection = (room) => {
+        if (!room) return room;
+        if (normalizeRatePlanId(room.selectedRatePlanId)) return room;
+        if (normalizeRatePlanId(room.appliedRatePlanId)) {
+            return {
+                ...room,
+                selectedRatePlanId: normalizeRatePlanId(room.appliedRatePlanId),
+                selectedRatePlanName: room.selectedRatePlanName || room.appliedRatePlanName || null,
+                selectedPrice: room.selectedPrice || room.appliedPrice || room.basePrice || null,
+                cancellationType: room.cancellationType || null,
+                paymentType: room.paymentType || null,
+                freeCancelBeforeDays: room.freeCancelBeforeDays ?? null,
+            };
+        }
+        const fallbackRatePlanId = room.availableRatePlans?.[0]?.ratePlanId ?? null;
+        return applyRatePlanSelection(room, fallbackRatePlanId);
+    };
+
     const enrichRoomsWithRatePlans = useCallback(async (rawRooms, sp) => {
         if (!rawRooms?.length) return [];
 
@@ -73,10 +124,13 @@ const SearchRoom = () => {
                     });
 
                     const availableRatePlans = available.ratePlans || [];
+                    const normalizedAppliedRatePlanId = normalizeRatePlanId(room.appliedRatePlanId);
                     const defaultRatePlanId =
-                        availableRatePlans.find((plan) => plan.ratePlanId === room.appliedRatePlanId)?.ratePlanId ||
-                        room.appliedRatePlanId ||
+                        availableRatePlans.find(
+                            (plan) => normalizeRatePlanId(plan.ratePlanId) === normalizedAppliedRatePlanId,
+                        )?.ratePlanId ||
                         availableRatePlans[0]?.ratePlanId ||
+                        normalizedAppliedRatePlanId ||
                         null;
 
                     const roomWithPlans = {
@@ -92,7 +146,7 @@ const SearchRoom = () => {
                         freeCancelBeforeDays: room.freeCancelBeforeDays || null,
                     };
 
-                    return applyRatePlanSelection(roomWithPlans, defaultRatePlanId);
+                    return ensureRatePlanSelection(applyRatePlanSelection(roomWithPlans, defaultRatePlanId));
                 } catch (err) {
                     const message = err?.response?.data?.error || err?.message || "Khong tai duoc goi gia";
                     return {
@@ -145,6 +199,7 @@ const SearchRoom = () => {
             const res = await roomService.searchRooms(params);
             const enrichedRooms = await enrichRoomsWithRatePlans(res.content || [], sp);
             setRooms(enrichedRooms);
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, enrichedRooms));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
@@ -168,6 +223,7 @@ const SearchRoom = () => {
             const res = await roomService.searchRooms(params);
             const enrichedRooms = await enrichRoomsWithRatePlans(res.content || [], searchParams);
             setRooms(enrichedRooms);
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, enrichedRooms));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
@@ -183,10 +239,13 @@ const SearchRoom = () => {
     const handleSortChange = (e) => setFilters(p => ({ ...p, sortPrice: e.target.value, page: 0 }));
     const handlePageChange = (page) => setFilters(p => ({ ...p, page }));
     const handleBooking = (room) => {
-        if (!room.selectedRatePlanId) {
-            alert("Vui long chon goi gia hop le truoc khi dat phong.");
+        const hasFallbackRatePlan = Boolean(normalizeRatePlanId(room.selectedRatePlanId) || normalizeRatePlanId(room.appliedRatePlanId));
+        if (!room.availableRatePlans?.length && !hasFallbackRatePlan) {
+            alert("Tam thoi khong co goi gia phu hop cho phong nay.");
             return;
         }
+
+        const roomForCart = ensureRatePlanSelection(room);
 
         // Kiểm tra xem phòng này đã có trong cart chưa
         const existingIndex = selectedCart.findIndex(r => r.roomTypeId === room.roomTypeId);
@@ -194,43 +253,44 @@ const SearchRoom = () => {
         if (existingIndex >= 0) {
             // Nếu đã có → tăng quantity (nhưng không vượt quá availableCount)
             const currentQty = selectedCart[existingIndex].quantity || 1;
-            if (currentQty >= room.availableCount) {
-                alert(`Only ${room.availableCount} room(s) available for ${room.name}`);
+            if (currentQty >= roomForCart.availableCount) {
+                alert(`Only ${roomForCart.availableCount} room(s) available for ${roomForCart.name}`);
                 return;
             }
             setSelectedCart(prev => prev.map((r, idx) =>
                 idx === existingIndex
                     ? {
                         ...r,
-                        quantity: Math.min((r.quantity || 1) + 1, room.availableCount),
-                        selectedRatePlanId: room.selectedRatePlanId,
-                        selectedRatePlanName: room.selectedRatePlanName,
-                        selectedPrice: room.selectedPrice,
-                        cancellationType: room.cancellationType,
-                        paymentType: room.paymentType,
-                        freeCancelBeforeDays: room.freeCancelBeforeDays,
+                        quantity: Math.min((r.quantity || 1) + 1, roomForCart.availableCount),
+                        selectedRatePlanId: roomForCart.selectedRatePlanId,
+                        selectedRatePlanName: roomForCart.selectedRatePlanName,
+                        selectedPrice: roomForCart.selectedPrice,
+                        cancellationType: roomForCart.cancellationType,
+                        paymentType: roomForCart.paymentType,
+                        freeCancelBeforeDays: roomForCart.freeCancelBeforeDays,
                     }
                     : r
             ));
         } else {
             // Nếu chưa → thêm vào cart với quantity = 1
-            if (room.availableCount <= 0) {
-                alert(`${room.name} is fully booked`);
+            if (roomForCart.availableCount <= 0) {
+                alert(`${roomForCart.name} is fully booked`);
                 return;
             }
-            setSelectedCart(prev => [...prev, { ...room, quantity: 1 }]);
+            setSelectedCart(prev => [...prev, { ...roomForCart, quantity: 1 }]);
         }
     };
 
     const handleSelectRatePlan = (roomTypeId, ratePlanId) => {
+        const normalizedRatePlanId = normalizeRatePlanId(ratePlanId);
         setRooms(prev => prev.map((room) => {
             if (room.roomTypeId !== roomTypeId) return room;
-            return applyRatePlanSelection(room, ratePlanId);
+            return applyRatePlanSelection(room, normalizedRatePlanId);
         }));
 
         setSelectedCart(prev => prev.map((room) => {
             if (room.roomTypeId !== roomTypeId) return room;
-            return applyRatePlanSelection(room, ratePlanId);
+            return applyRatePlanSelection(room, normalizedRatePlanId);
         }));
     };
 
@@ -270,7 +330,14 @@ const SearchRoom = () => {
             return;
         }
 
-        const invalidRoom = selectedCart.find((room) => !room.selectedRatePlanId);
+        const invalidRoom = selectedCart.find((room) => {
+            if (!normalizeRatePlanId(room.selectedRatePlanId)) return true;
+            const roomInResults = rooms.find((r) => r.roomTypeId === room.roomTypeId);
+            if (!roomInResults?.availableRatePlans?.length) return true;
+            return !roomInResults.availableRatePlans.some(
+                (plan) => normalizeRatePlanId(plan.ratePlanId) === normalizeRatePlanId(room.selectedRatePlanId),
+            );
+        });
         if (invalidRoom) {
             alert(`Room ${invalidRoom.name} has no valid rate plan. Please choose another plan.`);
             return;
@@ -482,6 +549,43 @@ const SearchRoom = () => {
                                 font-size: 0.85rem;
                                 color: #666;
                             }
+                            .cart-plan-box {
+                                margin: 10px 0;
+                                padding: 8px;
+                                border: 1px solid #e8ece4;
+                                border-radius: 8px;
+                                background: #f8fbf6;
+                            }
+                            .cart-plan-label {
+                                font-size: 0.72rem;
+                                color: #6f7569;
+                                font-weight: 700;
+                                text-transform: uppercase;
+                                letter-spacing: 0.3px;
+                                margin-bottom: 6px;
+                            }
+                            .cart-plan-select {
+                                width: 100%;
+                                border: 1px solid #d6decd;
+                                border-radius: 7px;
+                                padding: 6px 8px;
+                                font-size: 0.8rem;
+                                background: #fff;
+                                color: #333;
+                            }
+                            .cart-plan-note {
+                                font-size: 0.75rem;
+                                color: #7a8271;
+                                margin-top: 6px;
+                            }
+                            .cart-policy {
+                                margin-top: 6px;
+                                font-size: 0.75rem;
+                                color: #657061;
+                                display: flex;
+                                flex-direction: column;
+                                gap: 2px;
+                            }
                             .cart-room-total-amount {
                                 font-weight: 700;
                                 color: #5C6F4E;
@@ -588,6 +692,48 @@ const SearchRoom = () => {
                                                     >
                                                         <i className="bi bi-trash"></i>
                                                     </button>
+                                                </div>
+
+                                                <div className="cart-plan-box">
+                                                    <div className="cart-plan-label">Goi gia</div>
+                                                    <select
+                                                        className="cart-plan-select"
+                                                        value={room.selectedRatePlanId || ""}
+                                                        onChange={(e) => handleSelectRatePlan(room.roomTypeId, e.target.value ? Number(e.target.value) : null)}
+                                                        disabled={!room.availableRatePlans?.length}
+                                                    >
+                                                        <option value="">Chon goi gia</option>
+                                                        {(room.availableRatePlans || []).map((plan) => (
+                                                            <option key={plan.ratePlanId} value={plan.ratePlanId}>
+                                                                {plan.name} - {new Intl.NumberFormat('vi-VN').format(plan.price)}₫
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {!room.availableRatePlans?.length && (
+                                                        <div className="cart-plan-note">Tam thoi khong co goi gia phu hop.</div>
+                                                    )}
+                                                    {room.selectedRatePlanId && (
+                                                        <div className="cart-policy">
+                                                            <span>
+                                                                <i className="bi bi-shield-check me-1"></i>
+                                                                {room.cancellationType === "NON_REFUNDABLE"
+                                                                    ? "Khong hoan tien"
+                                                                    : room.cancellationType === "REFUNDABLE" && room.freeCancelBeforeDays > 0
+                                                                        ? `Mien phi huy truoc ${room.freeCancelBeforeDays} ngay`
+                                                                        : room.cancellationType === "REFUNDABLE"
+                                                                            ? "Mien phi huy"
+                                                                            : "Chinh sach huy theo goi gia"}
+                                                            </span>
+                                                            <span>
+                                                                <i className="bi bi-credit-card me-1"></i>
+                                                                {room.paymentType === "PREPAID"
+                                                                    ? "Thanh toan truoc"
+                                                                    : room.paymentType === "PAY_AT_HOTEL"
+                                                                        ? "Thanh toan tai khach san"
+                                                                        : "Hinh thuc thanh toan theo goi"}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="cart-qty-control">
@@ -712,7 +858,6 @@ const SearchRoom = () => {
                                         room={rt}
                                         onBooking={handleBooking}
                                         onViewDetail={handleViewDetail}
-                                        onSelectRatePlan={handleSelectRatePlan}
                                     />
                                 ))}
                                 <SmartPagination

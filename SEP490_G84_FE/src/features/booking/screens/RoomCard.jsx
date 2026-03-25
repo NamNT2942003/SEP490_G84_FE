@@ -13,7 +13,7 @@ const getPaymentText = (paymentType) => {
     return "Hinh thuc thanh toan theo goi";
 };
 
-const RoomCard = ({ room, onBooking, onViewDetail, onSelectRatePlan }) => {
+const RoomCard = ({ room, onBooking, onViewDetail }) => {
     const formatPrice = (price) =>
         new Intl.NumberFormat("en-US", { style: "currency", currency: "VND", minimumFractionDigits: 0 }).format(price);
 
@@ -29,6 +29,7 @@ const RoomCard = ({ room, onBooking, onViewDetail, onSelectRatePlan }) => {
     const sold = room.availableCount <= 0;
     const selectedPrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice;
     const hasRatePlan = Boolean(room.selectedRatePlanId);
+    const hasAnyRatePlan = Boolean(room.availableRatePlans?.length || room.selectedRatePlanId || room.appliedRatePlanId);
 
     return (
         <>
@@ -48,9 +49,9 @@ const RoomCard = ({ room, onBooking, onViewDetail, onSelectRatePlan }) => {
         .rc-desc{font-size:.84rem;color:#777;line-height:1.55;margin-bottom:auto;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
         .rc-plan{margin-top:12px;padding:10px;border:1px solid #ececec;border-radius:10px;background:#fcfcfc}
         .rc-plan-lbl{font-size:.7rem;font-weight:700;color:#7a7a7a;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
-        .rc-plan-sel{width:100%;border:1px solid #ddd;border-radius:8px;padding:7px 9px;font-size:.83rem;background:#fff;color:#333}
         .rc-plan-msg{font-size:.78rem;color:#999;margin-top:6px}
         .rc-plan-msg.err{color:#d9534f}
+        .rc-plan-badge{display:inline-flex;align-items:center;gap:5px;background:#edf5e8;color:#4f6540;border:1px solid #dfead5;padding:4px 9px;border-radius:999px;font-size:.74rem;font-weight:700}
         .rc-pol{margin-top:8px;font-size:.76rem;color:#666;display:flex;flex-direction:column;gap:2px}
         .rc-left{margin-top:10px}
         .rc-left span{font-size:.76rem;font-weight:700;color:#e67e22;background:#fef5eb;padding:3px 10px;border-radius:6px}
@@ -86,24 +87,24 @@ const RoomCard = ({ room, onBooking, onViewDetail, onSelectRatePlan }) => {
                         <div className="rc-desc">{room.description}</div>
                         <div className="rc-plan">
                             <div className="rc-plan-lbl">Rate Plan</div>
-                            <select
-                                className="rc-plan-sel"
-                                value={room.selectedRatePlanId || ""}
-                                onChange={(e) => onSelectRatePlan(room.roomTypeId, e.target.value ? Number(e.target.value) : null)}
-                                disabled={room.ratePlanLoading || !room.availableRatePlans?.length}
-                            >
-                                <option value="">Chon goi gia</option>
-                                {(room.availableRatePlans || []).map((plan) => (
-                                    <option key={plan.ratePlanId} value={plan.ratePlanId}>
-                                        {plan.name} - {formatPrice(plan.price)}
-                                    </option>
-                                ))}
-                            </select>
-
                             {room.ratePlanLoading && <div className="rc-plan-msg">Dang tai goi gia...</div>}
                             {!room.ratePlanLoading && room.ratePlanError && <div className="rc-plan-msg err">{room.ratePlanError}</div>}
                             {!room.ratePlanLoading && !room.ratePlanError && !room.availableRatePlans?.length && (
-                                <div className="rc-plan-msg err">Tam thoi khong co goi gia phu hop</div>
+                                <div className={`rc-plan-msg ${hasAnyRatePlan ? "" : "err"}`}>
+                                    {hasAnyRatePlan
+                                        ? "Dang ap dung goi gia mac dinh tu ket qua tim phong"
+                                        : "Tam thoi khong co goi gia phu hop"}
+                                </div>
+                            )}
+
+                            {!room.ratePlanLoading && !room.ratePlanError && hasAnyRatePlan && (
+                                <div className="rc-plan-msg">
+                                    <span className="rc-plan-badge">
+                                        <i className="bi bi-gift"></i>
+                                        {room.availableRatePlans.length} goi gia uu dai
+                                    </span>
+                                    <div className="mt-2">Chon phong truoc, sau do ban chon goi gia trong phan "Your Selection".</div>
+                                </div>
                             )}
 
                             {hasRatePlan && (
@@ -127,10 +128,10 @@ const RoomCard = ({ room, onBooking, onViewDetail, onSelectRatePlan }) => {
                             )}
                         </div>
                         <div className="rc-btns">
-                            <button className="rc-book" onClick={() => onBooking(room)} disabled={sold || !hasRatePlan}>
+                            <button className="rc-book" onClick={() => onBooking(room)} disabled={sold || !hasAnyRatePlan}>
                                 {sold
                                     ? <><i className="bi bi-x-circle me-1"></i>Fully Booked</>
-                                    : !hasRatePlan
+                                    : !hasAnyRatePlan
                                         ? <><i className="bi bi-slash-circle me-1"></i>Chua co goi gia</>
                                         : <><i className="bi bi-lightning-charge-fill me-1"></i>Book Now</>}
                             </button>
