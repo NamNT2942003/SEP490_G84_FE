@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { roomManagementApi } from "../api/roomManagementApi";
 import MainLayout from "../../../components/layout/MainLayout";
 import RoomDetailModal from "../components/RoomDetailModal";
+import RoomList from "../components/RoomList";
 import ReportIssueModal from "../components/ReportIssueModal";
 import webSocketService from "../../../services/webSocketService";
 
@@ -85,6 +86,7 @@ function RoomManagement() {
   // Real-time notification state
   const [notification, setNotification] = useState(null);
   const [wsConnected, setWsConnected] = useState(false);
+  const wsCleanupRef = useRef(null);
 
   const pageSize = 20;
 
@@ -387,8 +389,8 @@ function RoomManagement() {
     // Connect immediately on mount
     connectWebSocket()
       .then(cleanupFn => {
-        // Store cleanup function for later use
-        window.wsCleanup = cleanupFn;
+        // Store cleanup function in ref (not global)
+        wsCleanupRef.current = cleanupFn;
       })
       .catch(error => {
         console.error('[RoomManagement] WebSocket connection failed:', error);
@@ -396,7 +398,7 @@ function RoomManagement() {
       });
 
     return () => {
-      if (window.wsCleanup) window.wsCleanup();
+      if (wsCleanupRef.current) wsCleanupRef.current();
       webSocketService.disconnect();
       setWsConnected(false);
     };
@@ -824,6 +826,30 @@ function RoomManagement() {
                 </select>
               </div>
 
+              <div className="filter-item">
+                <label><i className="bi bi-tools me-1" style={{color: "#ffc107"}}></i>Equipment</label>
+                <select 
+                  value={equipmentBrokenFilter}
+                  onChange={(e) => setEquipmentBrokenFilter(e.target.value)}
+                >
+                  <option value="">All</option>
+                  <option value="true">Has Broken Items</option>
+                  <option value="false">No Broken Items</option>
+                </select>
+              </div>
+
+              <div className="filter-item">
+                <label><i className="bi bi-sort-down me-1" style={{color: "#0d6efd"}}></i>Sort</label>
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
+                  <option value="name">Room Name</option>
+                  <option value="floor">Floor</option>
+                  <option value="type">Type</option>
+                </select>
+              </div>
+
               <div className="filter-item" style={{minWidth: "auto"}}>
                 <label style={{opacity: 0}}>View</label>
                 <div className="view-toggle-group">
@@ -909,7 +935,7 @@ function RoomManagement() {
                 <h4 className="text-muted">No rooms found matching your criteria</h4>
                 <button className="btn btn-link link-primary" onClick={() => { setSearch(''); setBranchFilter(''); setPage(0); }}>Clear All Filters</button>
               </div>
-            ) : (
+            ) : viewMode === 'grid' ? (
               <div className="row g-4">
                 {sortedRooms.map((room, index) => (
                   <div key={room.roomId || room.id || `room-${index}`} className="col-12 col-md-6 col-lg-4 col-xl-3">
@@ -1014,6 +1040,11 @@ function RoomManagement() {
                   </div>
                 ))}
               </div>
+            ) : (
+              <RoomList 
+                rooms={sortedRooms} 
+                onRefresh={fetchAllData}
+              />
             )}
             
             {/* FOOTER & PAGINATION */}
