@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import paymentService from '@/features/payment/api/paymentService';
 
 const PaymentSelection = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
     // Hứng dữ liệu từ GuestInformation
-    const { bookingId, totalAmount } = location.state || { bookingId: null, totalAmount: 0 };
+    const {
+        bookingId,
+        totalAmount,
+        rooms = [],
+        checkIn = '',
+        checkOut = '',
+        branchId = null,
+    } = location.state || { bookingId: null, totalAmount: 0 };
+    const hasStayDetails = rooms.length > 0 || checkIn || checkOut || branchId;
 
     const [selectedMethod, setSelectedMethod] = useState('STRIPE');
     const [isLoading, setIsLoading] = useState(false);
@@ -23,10 +32,9 @@ const PaymentSelection = () => {
             intervalId = setInterval(async () => {
                 try {
                     // Gọi API get status mà chúng ta vừa viết ở Backend
-                    const res = await fetch(`http://localhost:8081/api/payment/status/${qrData.paymentId}`);
-                    const data = await res.json();
+                    const data = await paymentService.getPaymentStatus(qrData.paymentId);
 
-                    if (res.ok && data.status === 'COMPLETED') {
+                    if (data && data.status === 'COMPLETED') {
                         // Tiền đã vào -> Dừng kiểm tra ngay lập tức
                         clearInterval(intervalId);
 
@@ -57,32 +65,33 @@ const PaymentSelection = () => {
     const handleProcessPayment = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(`http://localhost:8081/api/payment/create?bookingId=${bookingId}&amount=${totalAmount}&method=${selectedMethod}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+            const data = await paymentService.createPayment({
+                bookingId,
+                amount: totalAmount,
+                method: selectedMethod,
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                if (data.type === 'REDIRECT' && data.payUrl) {
-                    window.location.href = data.payUrl;
-                } else if (data.type === 'QR' && data.qrImg) {
-                    // LƯU Ý: Đã bổ sung lưu thêm paymentId để phục vụ việc check status
-                    setQrData({
-                        imgUrl: data.qrImg,
-                        content: data.content,
-                        paymentId: data.paymentId
-                    });
-                    setIsLoading(false);
-                }
-            } else {
-                alert('Lỗi tạo thanh toán: ' + (data.message || 'Vui lòng thử lại.'));
-                setIsLoading(false);
+            if (data?.type === 'REDIRECT' && data.payUrl) {
+                window.location.href = data.payUrl;
+                return;
             }
+
+            if (data?.type === 'QR' && data.qrImg) {
+                setQrData({
+                    imgUrl: data.qrImg,
+                    content: data.content,
+                    paymentId: data.paymentId,
+                });
+                setIsLoading(false);
+                return;
+            }
+
+            alert('Lỗi tạo thanh toán: Không nhận được hướng dẫn thanh toán.');
+            setIsLoading(false);
         } catch (error) {
             console.error('Lỗi kết nối:', error);
-            alert('Lỗi kết nối đến server!');
+            const message = error?.response?.data?.message || error?.friendlyMessage || error.message || 'Lỗi kết nối đến server!';
+            alert('Lỗi tạo thanh toán: ' + message);
             setIsLoading(false);
         }
     };
@@ -105,6 +114,21 @@ const PaymentSelection = () => {
                             <p className="text-muted mb-1">Total Payment</p>
                             <h3 className="fw-bold m-0" style={{ color: '#D4AF37' }}>{formatCurrency(totalAmount)}</h3>
                         </div>
+
+                        {hasStayDetails && (
+                            <div className="alert alert-light border rounded-3 text-start">
+                                <div className="small text-muted mb-1">Booking snapshot</div>
+                                {rooms.length > 0 && (
+                                    <div className="fw-semibold">Rooms: {rooms.length}</div>
+                                )}
+                                {(checkIn || checkOut) && (
+                                    <div>
+                                        <span className="fw-semibold">Stay:</span> {checkIn || '?'} → {checkOut || '?'}
+                                    </div>
+                                )}
+                                {branchId && <div>Branch ID: {branchId}</div>}
+                            </div>
+                        )}
 
                         <div className="position-relative d-inline-block">
                             <img
@@ -143,6 +167,18 @@ const PaymentSelection = () => {
                             <p className="text-muted mb-1">Total Payment</p>
                             <h3 className="fw-bold m-0" style={{ color: '#D4AF37' }}>{formatCurrency(totalAmount)}</h3>
                         </div>
+
+                        {hasStayDetails && (
+                            <div className="alert alert-secondary bg-white border rounded-3 small text-muted mb-4">
+                                {rooms.length > 0 && <div><strong>Rooms:</strong> {rooms.length}</div>}
+                                {(checkIn || checkOut) && (
+                                    <div>
+                                        <strong>Stay:</strong> {checkIn || '?'} → {checkOut || '?'}
+                                    </div>
+                                )}
+                                {branchId && <div><strong>Branch ID:</strong> {branchId}</div>}
+                            </div>
+                        )}
 
                         <div className="mb-4">
                             <div
@@ -201,3 +237,4 @@ const PaymentSelection = () => {
 };
 
 export default PaymentSelection;
+

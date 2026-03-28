@@ -49,6 +49,56 @@
   border-bottom: none;
 }
 
+.ri-badge-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ri-modifier-badge {
+  background: #eef4ff;
+  color: #34518c;
+  border: 1px solid #d7e5ff;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.ri-explain-row td {
+  background: #fafcff;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.ri-explain-box {
+  border-left: 3px solid #9fb4dd;
+  padding: 8px 12px;
+}
+
+.ri-explain-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #56637a;
+  margin-bottom: 4px;
+}
+
+.ri-explain-note {
+  font-size: 0.84rem;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.ri-steps-list {
+  display: grid;
+  gap: 6px;
+}
+
+.ri-step-item {
+  font-size: 0.82rem;
+  color: #334155;
+}
+
 @media (max-width: 1200px) {
   .ri-toolbar {
     grid-template-columns: repeat(3, minmax(150px, 1fr));

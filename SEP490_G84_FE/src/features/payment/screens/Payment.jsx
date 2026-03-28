@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import paymentService from '@/features/payment/api/paymentService';
 
 const Payment = () => {
     const location = useLocation();
@@ -26,26 +27,23 @@ const Payment = () => {
     const handleStripePayment = async () => {
         setIsLoading(true);
         try {
-            // Truyền bookingId và totalAmount xuống Backend
-            const response = await fetch(`http://localhost:8080/api/payment/create?bookingId=${bookingId}&amount=${totalAmount}&method=STRIPE`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+            const data = await paymentService.createPayment({
+                bookingId,
+                amount: totalAmount,
+                method: 'STRIPE',
             });
 
-            const data = await response.json();
-
-            if (response.ok && data.payUrl) {
+            if (data?.payUrl) {
                 // Có link Stripe -> Bế khách hàng sang trang quẹt thẻ!
                 window.location.href = data.payUrl;
             } else {
-                alert('Payment creation failed: ' + (data.message || 'Please try again.'));
+                alert('Payment creation failed: ' + (data?.message || 'Please try again.'));
                 setIsLoading(false);
             }
         } catch (error) {
             console.error('Payment API Error:', error);
-            alert('Cannot connect to the server!');
+            const message = error?.response?.data?.message || error?.friendlyMessage || error.message || 'Cannot connect to the server!';
+            alert(message);
             setIsLoading(false);
         }
     };

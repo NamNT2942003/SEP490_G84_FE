@@ -29,8 +29,6 @@ import RoomManagement from "@/features/admin/screens/RoomManagement";
 import FurnitureManagement from "@/features/admin/screens/FurnitureManagement";
 import BranchManagement from "@/features/branch-management/screens/BranchManagement.jsx";
 import RoomTypeManagement from "@/features/room-type-management/screens/RoomTypeManagement.jsx";
-import RatePlanManagement from "@/features/rate-plan-management/screens/RatePlanManagement.jsx";
-import RatePlanConditionManagement from "@/features/rate-plan-management/screens/RatePlanConditionManagement.jsx";
 import RoomInventoryManagement from "@/features/room-inventory-management/screens/RoomInventoryManagement.jsx";
 
 // --- ACCOUNT MANAGEMENT PAGES ---
@@ -74,8 +72,6 @@ const AppRouter = () => {
             <Route path="/admin/furniture" element={<MainLayout><FurnitureManagement /></MainLayout>} />
             <Route path="/admin/branches" element={<MainLayout><BranchManagement /></MainLayout>} />
             <Route path="/admin/room-types" element={<MainLayout><RoomTypeManagement /></MainLayout>} />
-            <Route path="/admin/rate-plans" element={<MainLayout><RatePlanManagement /></MainLayout>} />
-            <Route path="/admin/rate-plan-conditions" element={<MainLayout><RatePlanConditionManagement /></MainLayout>} />
             <Route path="/admin/room-inventories" element={<MainLayout><RoomInventoryManagement /></MainLayout>} />
 
             <Route path="/bookings" element={<MainLayout><BookingManagement /></MainLayout>} />

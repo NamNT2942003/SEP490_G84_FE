@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import BookingSummary from '@/features/booking/components/BookingSummary';
 import Input from '@/components/ui/Input';
-import { API_BASE_URL } from '@/constants/apiConfig';
+import bookingService from '@/features/booking/api/bookingService';
 import './GuestInformation.css';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -22,19 +22,37 @@ const getCancellationText = (cancellationType, freeCancelBeforeDays) => {
         return `Mien phi huy truoc ${freeCancelBeforeDays} ngay`;
     }
     if (cancellationType === 'REFUNDABLE') return 'Mien phi huy';
-    return 'Chinh sach huy theo goi gia';
+    return 'Chinh sach huy theo phong';
 };
 
 const getPaymentText = (paymentType) => {
     if (paymentType === 'PREPAID') return 'Thanh toan truoc';
     if (paymentType === 'PAY_AT_HOTEL') return 'Thanh toan tai khach san';
-    return 'Hinh thuc thanh toan theo goi';
+    return 'Hinh thuc thanh toan theo phong';
 };
 
-const normalizeRatePlanId = (value) => {
-    if (value === null || value === undefined || value === '') return null;
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
+const calculateRoomUnitPrice = (room) => {
+    const baseOptPrice = room.selectedPrice ?? room.selectedPricingOption?.finalPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+    if (!room.selectedManualPromotion) return baseOptPrice;
+
+    const promo = room.selectedManualPromotion;
+    let delta = 0;
+    if (promo.adjustmentType === 'PERCENT' || promo.adjustmentType === 'PERCENTAGE') {
+        delta = (room.basePrice * promo.adjustmentValue) / 100;
+    } else {
+        delta = promo.adjustmentValue;
+    }
+    const finalPrice = baseOptPrice + delta;
+    return finalPrice > 0 ? finalPrice : 0;
+};
+
+const getAppliedModifierId = (room) => {
+    if (room.selectedManualPromotion) return room.selectedManualPromotion.priceModifierId;
+    if (room.selectedPricingOption?.modifiers) {
+        const policyMod = room.selectedPricingOption.modifiers.find(m => m.type === 'POLICY');
+        if (policyMod) return policyMod.priceModifierId;
+    }
+    return room.appliedPriceModifierId;
 };
 
 const buildBookingPayload = (formData, rooms, checkIn, checkOut) => ({
@@ -43,12 +61,12 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut) => ({
     departureDate: checkOut,
     rooms: rooms.map((room) => ({
         roomTypeId: room.roomTypeId,
-        ratePlanId: normalizeRatePlanId(room.selectedRatePlanId),
-        price: room.selectedPrice || room.appliedPrice || room.basePrice || room.price,
+        price: calculateRoomUnitPrice(room),
         quantity: room.quantity || 1,
+        appliedPriceModifierId: getAppliedModifierId(room)
     })),
     customer: {
-        full_name: formData.fullName,
+        fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
     },
@@ -57,75 +75,128 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut) => ({
 
 // ─── RoomItem ──────────────────────────────────────────────────────────────
 
-const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove }) => {
+const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove, onSelectPromo }) => {
     const nights = calculateNights(checkIn, checkOut);
-    const unitPrice = room.selectedPrice || room.appliedPrice || room.basePrice || room.price;
+    const unitPrice = calculateRoomUnitPrice(room);
     const qty = room.quantity || 1;
     const maxQty = room.availableCount || 999;
 
     return (
-        <div className="room-item">
-            <div className="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                    <div className="room-name">{room.name}</div>
-                    <div className="room-price">
-                        💰 {new Intl.NumberFormat('vi-VN').format(unitPrice)}₫/night
-                    </div>
-                    {room.selectedRatePlanName && (
-                        <div className="small text-muted mt-1">
-                            <i className="bi bi-tag me-1" />
-                            {room.selectedRatePlanName}
+        <div className="room-item shadow-sm border-0 rounded-4 overflow-hidden mb-4" style={{background: '#fff', transition: 'all 0.3s'}}>
+            <style>{`
+                .promo-container { padding: 20px 24px; background: #fafbf8; border-top: 1px solid #f0f4ec; }
+                .promo-title { font-size: 0.95rem; font-weight: 700; color: #2d3748; letter-spacing: 0.5px; }
+                .promo-list { display: flex; flex-direction: column; gap: 12px; }
+                .promo-card { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; background: #fff; border: 1.5px solid #edf2f7; border-radius: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+                .promo-card:hover { border-color: #cbd5e0; background: #f8fafc; }
+                .promo-card.active { border-color: #5C6F4E; background: #f2f7ec; box-shadow: 0 4px 12px rgba(92,111,78,0.1); }
+                .promo-card.no-promo.active { border-color: #a0aec0; background: #fdfdfd; }
+                .promo-radio { font-size: 1.2rem; line-height: 1; margin-top: 2px; }
+                .promo-content { flex: 1; display:flex; flex-direction: column; }
+                .promo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+                .promo-name { font-weight: 700; font-size: 0.95rem; color: #2d3748; }
+                .promo-badge { font-weight: 800; font-size: 0.8rem; background: linear-gradient(135deg, #D4AF37, #b8962c); color: #fff; padding: 4px 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(212,175,55,0.3); }
+                .promo-reason { font-size: 0.8rem; color: #718096; line-height: 1.5; }
+                .room-item-body { padding: 24px; }
+                .room-total { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+            `}</style>
+            <div className="room-item-body">
+                <div className="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div className="room-name fs-5 fw-bold text-dark mb-1" style={{fontFamily: "'Playfair Display', serif"}}>{room.name}</div>
+                        <div className="room-price fw-semibold text-secondary mb-2" style={{fontSize: '0.9rem'}}>
+                            💵 {new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ đêm</span>
                         </div>
-                    )}
-                    <div className="small text-muted">
-                        <i className="bi bi-shield-check me-1" />
-                        {getCancellationText(room.cancellationType, room.freeCancelBeforeDays)}
+                        <div className="d-flex gap-3">
+                            <div className="small px-2 py-1 rounded" style={{background: '#ebf4ff', color: '#3182ce', fontWeight: 600}}>
+                                <i className="bi bi-shield-check me-1" />
+                                {getCancellationText(room.cancellationType, room.freeCancelBeforeDays)}
+                            </div>
+                            <div className="small px-2 py-1 rounded" style={{background: '#e6fffa', color: '#319795', fontWeight: 600}}>
+                                <i className="bi bi-credit-card me-1" />
+                                {getPaymentText(room.paymentType)}
+                            </div>
+                        </div>
                     </div>
-                    <div className="small text-muted">
-                        <i className="bi bi-credit-card me-1" />
-                        {getPaymentText(room.paymentType)}
+                    <button
+                        type="button"
+                        className="btn btn-outline-danger btn-sm rounded-circle p-2 lh-1"
+                        onClick={() => onRemove(room.roomTypeId)}
+                        title="Remove room"
+                    >
+                        <i className="bi bi-trash" />
+                    </button>
+                </div>
+
+                <div className="d-flex justify-content-between align-items-center mt-4">
+                    <div className="qty-control shadow-sm border rounded-pill d-flex align-items-center p-1 bg-white">
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-light rounded-circle"
+                            onClick={() => onQuantityChange(room.roomTypeId, qty - 1)}
+                            style={{width: '32px', height: '32px', padding: 0}}
+                        >
+                            <i className="bi bi-dash fw-bold" />
+                        </button>
+                        <input
+                            type="number"
+                            className="form-control border-0 text-center text-dark fw-bold"
+                            value={qty}
+                            min="1"
+                            max={maxQty}
+                            onChange={(e) =>
+                                onQuantityChange(room.roomTypeId, parseInt(e.target.value) || 1)
+                            }
+                            style={{width: '50px', background: 'transparent'}}
+                        />
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-light rounded-circle"
+                            onClick={() => onQuantityChange(room.roomTypeId, qty + 1)}
+                            disabled={qty >= maxQty}
+                            style={{width: '32px', height: '32px', padding: 0}}
+                        >
+                            <i className="bi bi-plus fw-bold" />
+                        </button>
+                    </div>
+                    <div className="room-total fs-4 fw-bold" style={{color: '#5C6F4E'}}>
+                        {formatVND(unitPrice * qty * nights)}
                     </div>
                 </div>
-                <button
-                    type="button"
-                    className="delete-btn"
-                    onClick={() => onRemove(room.roomTypeId)}
-                    title="Remove room"
-                >
-                    <i className="bi bi-trash" />
-                </button>
             </div>
 
-            <div className="d-flex justify-content-between align-items-center">
-                <div className="qty-control">
-                    <button
-                        type="button"
-                        onClick={() => onQuantityChange(room.roomTypeId, qty - 1)}
-                        title="Decrease"
-                    >
-                        <i className="bi bi-dash" />
-                    </button>
-                    <input
-                        type="number"
-                        className="qty-input"
-                        value={qty}
-                        min="1"
-                        max={maxQty}
-                        onChange={(e) =>
-                            onQuantityChange(room.roomTypeId, parseInt(e.target.value) || 1)
-                        }
-                    />
-                    <button
-                        type="button"
-                        onClick={() => onQuantityChange(room.roomTypeId, qty + 1)}
-                        disabled={qty >= maxQty}
-                        title="Increase"
-                    >
-                        <i className="bi bi-plus" />
-                    </button>
+            {room.manualSelectPromotions?.length > 0 && (
+                <div className="promo-container">
+                    <h6 className="promo-title mb-3"><i className="bi bi-gift-fill me-2" style={{color: '#D4AF37'}}></i>Khuyến Mãi Đặc Quyền</h6>
+                    <div className="promo-list">
+                        {room.manualSelectPromotions.map((promo, idx) => {
+                            const isChecked = room.selectedManualPromotion?.priceModifierId === promo.priceModifierId;
+                            return (
+                                <div className={`promo-card ${isChecked ? 'active' : ''}`} key={`${room.roomTypeId}-promo-${idx}`} onClick={() => onSelectPromo(room.roomTypeId, promo)}>
+                                    <div className="promo-radio">
+                                        <i className={`bi ${isChecked ? 'bi-check-circle-fill' : 'bi-circle'}`} style={{color: isChecked ? '#5C6F4E' : '#cbd5e0'}}></i>
+                                    </div>
+                                    <div className="promo-content">
+                                        <div className="promo-header">
+                                            <span className="promo-name">{promo.name}</span>
+                                            <span className="promo-badge">{promo.adjustmentType === 'PERCENT' ? `-${promo.adjustmentValue}%` : `-${formatVND(promo.adjustmentValue)}`}</span>
+                                        </div>
+                                        <div className="promo-reason"><i className="bi bi-arrow-return-right me-1"></i>{promo.reason}</div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        <div className={`promo-card no-promo ${!room.selectedManualPromotion ? 'active' : ''}`} onClick={() => onSelectPromo(room.roomTypeId, null)}>
+                            <div className="promo-radio">
+                                <i className={`bi ${!room.selectedManualPromotion ? 'bi-check-circle-fill text-secondary' : 'bi-circle'}`} style={{color: !room.selectedManualPromotion ? '' : '#cbd5e0'}}></i>
+                            </div>
+                            <div className="promo-content justify-content-center">
+                                <span className="text-secondary fw-semibold">Không sử dụng ưu đãi ngay lúc này</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div className="room-total">{formatVND(unitPrice * qty * nights)}</div>
-            </div>
+            )}
         </div>
     );
 };
@@ -175,10 +246,16 @@ const GuestInformation = () => {
         setRooms((prev) => prev.filter((r) => r.roomTypeId !== roomTypeId));
     };
 
+    const handleSelectPromo = (roomTypeId, promo) => {
+        setRooms((prev) =>
+            prev.map((r) => (r.roomTypeId === roomTypeId ? { ...r, selectedManualPromotion: promo } : r))
+        );
+    };
+
     const calculateTotalPrice = () => {
         const nights = calculateNights(checkIn, checkOut);
         return rooms.reduce(
-            (sum, room) => sum + (room.selectedPrice || room.appliedPrice || room.basePrice || room.price) * (room.quantity || 1) * nights,
+            (sum, room) => sum + calculateRoomUnitPrice(room) * (room.quantity || 1) * nights,
             0
         );
     };
@@ -198,44 +275,31 @@ const GuestInformation = () => {
             return;
         }
 
-        const roomWithoutRatePlan = rooms.find((room) => !normalizeRatePlanId(room.selectedRatePlanId));
-        if (roomWithoutRatePlan) {
-            alert(`Phong ${roomWithoutRatePlan.name} chua co rate plan hop le.`);
-            return;
-        }
-
         try {
             const payload = buildBookingPayload(formData, rooms, checkIn, checkOut);
             const currentBranchId = branchId || 1;
+            const data = await bookingService.createFromFrontend(currentBranchId, payload);
+            const createdBookingId = data?.bookingId ?? data?.id;
 
-            const response = await fetch(
-                `${API_BASE_URL}/bookings/create-from-frontend?branchId=${currentBranchId}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                }
-            );
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                alert(`Lỗi đặt phòng: ${errorText || 'Không thể tạo booking'}`);
-                return;
-            }
-
-            const data = await response.json();
-
-            if (!data.bookingId) {
+            if (!createdBookingId) {
                 alert('Lỗi đặt phòng: Không nhận được mã đặt phòng từ server.');
                 return;
             }
 
             navigate('/payment-selection', {
-                state: { bookingId: data.bookingId, totalAmount: calculateTotalPrice() },
+                state: {
+                    bookingId: createdBookingId,
+                    totalAmount: calculateTotalPrice(),
+                    rooms,
+                    checkIn,
+                    checkOut,
+                    branchId: currentBranchId,
+                },
             });
         } catch (error) {
             console.error('Booking error:', error);
-            alert('Lỗi đặt phòng: ' + error.message);
+            const message = error?.response?.data?.message || error?.friendlyMessage || error.message || 'Không thể tạo booking';
+            alert('Lỗi đặt phòng: ' + message);
         }
     };
 
@@ -273,6 +337,7 @@ const GuestInformation = () => {
                                         checkOut={checkOut}
                                         onQuantityChange={handleQuantityChange}
                                         onRemove={handleRemoveRoom}
+                                        onSelectPromo={handleSelectPromo}
                                     />
                                 ))}
                             </div>

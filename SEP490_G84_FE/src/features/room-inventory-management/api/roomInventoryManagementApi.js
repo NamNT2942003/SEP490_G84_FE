@@ -2,17 +2,50 @@ import apiClient from "@/services/apiClient";
 
 const INVENTORY_BASE = "/admin/room-type-inventories";
 
+const toSafeNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
 const normalizeInventory = (item = {}) => ({
   inventoryId: item.inventoryId,
   workDate: item.workDate || "",
-  availability: Number(item.availability ?? 0),
-  price: Number(item.price ?? 0),
+  availability: toSafeNumber(item.availability, 0),
+  basePrice: toSafeNumber(item.basePrice ?? item.price, 0),
+  price: toSafeNumber(item.price ?? item.basePrice, 0),
+  delta: toSafeNumber(item?.priceCalculation?.delta ?? (item.price ?? 0) - (item.basePrice ?? 0), 0),
+  appliedPriceModifiers: Array.isArray(item.appliedPriceModifiers)
+    ? item.appliedPriceModifiers.map((modifier) => ({
+      priceModifierId: modifier?.priceModifierId,
+      name: modifier?.name || "Unnamed modifier",
+      type: modifier?.type || "",
+      adjustmentType: modifier?.adjustmentType || "",
+      adjustmentValue: modifier?.adjustmentValue,
+    }))
+    : [],
+  priceCalculation: item?.priceCalculation
+    ? {
+      basePrice: toSafeNumber(item.priceCalculation.basePrice ?? item.basePrice, 0),
+      finalPrice: toSafeNumber(item.priceCalculation.finalPrice ?? item.price, 0),
+      delta: toSafeNumber(item.priceCalculation.delta, 0),
+      notes: item.priceCalculation.notes || "",
+      steps: Array.isArray(item.priceCalculation.steps)
+        ? item.priceCalculation.steps.map((step) => ({
+          name: step?.name || "",
+          type: step?.type || "",
+          applied: Boolean(step?.applied),
+          adjustmentType: step?.adjustmentType || "",
+          adjustmentValue: step?.adjustmentValue,
+          reason: step?.reason || "",
+          priceModifierId: step?.priceModifierId,
+        }))
+        : [],
+    }
+    : null,
   isClosed: Boolean(item.isClosed),
-  minStay: Number(item.minStay ?? 1),
+  minStay: toSafeNumber(item.minStay, 1),
   roomTypeId: item.roomTypeId,
   roomTypeName: item.roomTypeName || "",
-  ratePlanId: item.ratePlanId,
-  ratePlanName: item.ratePlanName || "",
 });
 
 const toInventoryRequest = (payload = {}) => {
@@ -23,8 +56,6 @@ const toInventoryRequest = (payload = {}) => {
     isClosed: Boolean(payload.isClosed),
     minStay: payload.minStay !== "" && payload.minStay !== undefined ? Number(payload.minStay) : undefined,
   };
-
-  if (payload.ratePlanId) request.ratePlanId = Number(payload.ratePlanId);
 
   if (payload.workDate) {
     request.workDate = payload.workDate;
@@ -37,10 +68,9 @@ const toInventoryRequest = (payload = {}) => {
 };
 
 const roomInventoryManagementApi = {
-  listInventories: async ({ roomTypeId, ratePlanId, fromDate, toDate }) => {
+  listInventories: async ({ roomTypeId, fromDate, toDate }) => {
     const params = new URLSearchParams();
     params.append("roomTypeId", roomTypeId);
-    if (ratePlanId) params.append("ratePlanId", ratePlanId);
     if (fromDate) params.append("fromDate", fromDate);
     if (toDate) params.append("toDate", toDate);
 

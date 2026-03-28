@@ -26,17 +26,49 @@ const SearchRoom = () => {
     const navigate = useNavigate();
     const [selectedCart, setSelectedCart] = useState([]); // Giỏ hàng chọn phòng
     const [isInitialized, setIsInitialized] = useState(false);
+    const [uiMessage, setUiMessage] = useState(null);
 
-    const resolveGuestCount = (sp) => {
-        const adults = Number(sp?.adults || 0);
-        const children = Number(sp?.children || 0);
-        return Math.max(1, adults + children);
+    const safeNumber = (value, fallback = 0) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
     };
 
-    const normalizeRatePlanId = (value) => {
-        if (value === null || value === undefined || value === "") return null;
-        const parsed = Number(value);
-        return Number.isFinite(parsed) ? parsed : null;
+    const toPricingOption = (option = {}) => ({
+        mode: option?.mode || "UNKNOWN",
+        finalPrice: safeNumber(option?.finalPrice, 0),
+        delta: safeNumber(option?.delta, 0),
+        modifierIds: Array.isArray(option?.modifierIds) ? option.modifierIds : [],
+        modifierNames: Array.isArray(option?.modifierNames) ? option.modifierNames : [],
+        reasons: Array.isArray(option?.reasons) ? option.reasons : [],
+    });
+
+    const pricingOptionSignature = (option) => {
+        if (!option) return "";
+        return `${option.mode || ""}-${option.finalPrice || 0}-${(option.modifierIds || []).join("_")}`;
+    };
+
+    const withPricingState = (room, preferredOption = null) => {
+        if (!room) return room;
+
+        const options = (Array.isArray(room?.pricingOptions) ? room.pricingOptions : [])
+            .map(toPricingOption)
+            .sort((a, b) => a.finalPrice - b.finalPrice);
+
+        const selectedOption = options.find(
+            (opt) => pricingOptionSignature(opt) === pricingOptionSignature(preferredOption),
+        ) || options[0] || null;
+
+        const selectedPrice = selectedOption?.finalPrice
+            ?? safeNumber(room?.appliedPrice, NaN)
+            ?? safeNumber(room?.basePrice ?? room?.price, 0);
+
+        return {
+            ...room,
+            pricingOptions: options,
+            selectedPricingOption: selectedOption,
+            selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : safeNumber(room?.basePrice ?? room?.price, 0),
+            pricingCombinationPolicy: room?.pricingCombinationPolicy || null,
+        };
     };
 
     const syncCartWithLatestRooms = (prevCart, latestRooms) => {
@@ -49,122 +81,17 @@ const SearchRoom = () => {
                 const latestRoom = roomMap.get(cartItem.roomTypeId);
                 if (!latestRoom) return null;
 
-                const preferredRatePlanId = normalizeRatePlanId(cartItem.selectedRatePlanId) ?? latestRoom.selectedRatePlanId;
-                const roomWithSelection = ensureRatePlanSelection(
-                    applyRatePlanSelection(latestRoom, preferredRatePlanId),
-                );
+                const mergedRoom = withPricingState(latestRoom, cartItem.selectedPricingOption);
 
                 return {
                     ...cartItem,
-                    ...roomWithSelection,
-                    quantity: Math.min(cartItem.quantity || 1, roomWithSelection.availableCount || 999),
+                    ...mergedRoom,
+                    quantity: Math.min(cartItem.quantity || 1, mergedRoom.availableCount || 999),
                 };
             })
             .filter(Boolean);
     };
 
-    const applyRatePlanSelection = (room, selectedRatePlanId) => {
-        const normalizedPlanId = normalizeRatePlanId(selectedRatePlanId);
-        const selectedPlan = (room.availableRatePlans || []).find(
-            (plan) => normalizeRatePlanId(plan.ratePlanId) === normalizedPlanId,
-        );
-        if (!selectedPlan) {
-            return {
-                ...room,
-                selectedRatePlanId: null,
-                selectedRatePlanName: null,
-                selectedPrice: null,
-                cancellationType: null,
-                paymentType: null,
-                freeCancelBeforeDays: null,
-            };
-        }
-
-        return {
-            ...room,
-            selectedRatePlanId: selectedPlan.ratePlanId,
-            selectedRatePlanName: selectedPlan.name,
-            selectedPrice: selectedPlan.price,
-            cancellationType: selectedPlan.cancellationType,
-            paymentType: selectedPlan.paymentType,
-            freeCancelBeforeDays: selectedPlan.freeCancelBeforeDays,
-        };
-    };
-
-    const ensureRatePlanSelection = (room) => {
-        if (!room) return room;
-        if (normalizeRatePlanId(room.selectedRatePlanId)) return room;
-        if (normalizeRatePlanId(room.appliedRatePlanId)) {
-            return {
-                ...room,
-                selectedRatePlanId: normalizeRatePlanId(room.appliedRatePlanId),
-                selectedRatePlanName: room.selectedRatePlanName || room.appliedRatePlanName || null,
-                selectedPrice: room.selectedPrice || room.appliedPrice || room.basePrice || null,
-                cancellationType: room.cancellationType || null,
-                paymentType: room.paymentType || null,
-                freeCancelBeforeDays: room.freeCancelBeforeDays ?? null,
-            };
-        }
-        const fallbackRatePlanId = room.availableRatePlans?.[0]?.ratePlanId ?? null;
-        return applyRatePlanSelection(room, fallbackRatePlanId);
-    };
-
-    const enrichRoomsWithRatePlans = useCallback(async (rawRooms, sp) => {
-        if (!rawRooms?.length) return [];
-
-        const guestCount = resolveGuestCount(sp);
-        return Promise.all(
-            rawRooms.map(async (room) => {
-                try {
-                    const available = await roomService.getAvailableRatePlans({
-                        roomTypeId: room.roomTypeId,
-                        checkInDate: sp?.checkIn,
-                        checkOutDate: sp?.checkOut,
-                        guestCount,
-                    });
-
-                    const availableRatePlans = available.ratePlans || [];
-                    const normalizedAppliedRatePlanId = normalizeRatePlanId(room.appliedRatePlanId);
-                    const defaultRatePlanId =
-                        availableRatePlans.find(
-                            (plan) => normalizeRatePlanId(plan.ratePlanId) === normalizedAppliedRatePlanId,
-                        )?.ratePlanId ||
-                        availableRatePlans[0]?.ratePlanId ||
-                        normalizedAppliedRatePlanId ||
-                        null;
-
-                    const roomWithPlans = {
-                        ...room,
-                        availableRatePlans,
-                        ratePlanLoading: false,
-                        ratePlanError: null,
-                        selectedRatePlanId: null,
-                        selectedRatePlanName: null,
-                        selectedPrice: null,
-                        cancellationType: room.cancellationType || null,
-                        paymentType: room.paymentType || null,
-                        freeCancelBeforeDays: room.freeCancelBeforeDays || null,
-                    };
-
-                    return ensureRatePlanSelection(applyRatePlanSelection(roomWithPlans, defaultRatePlanId));
-                } catch (err) {
-                    const message = err?.response?.data?.error || err?.message || "Khong tai duoc goi gia";
-                    return {
-                        ...room,
-                        availableRatePlans: [],
-                        ratePlanLoading: false,
-                        ratePlanError: message,
-                        selectedRatePlanId: room.appliedRatePlanId || null,
-                        selectedRatePlanName: room.appliedRatePlanName || null,
-                        selectedPrice: room.appliedPrice || room.basePrice,
-                        cancellationType: room.cancellationType || null,
-                        paymentType: room.paymentType || null,
-                        freeCancelBeforeDays: room.freeCancelBeforeDays || null,
-                    };
-                }
-            }),
-        );
-    }, []);
 
     const calculateNights = (checkIn, checkOut) => {
         if (!checkIn || !checkOut) return 1;
@@ -172,6 +99,10 @@ const SearchRoom = () => {
         const d2 = new Date(checkOut);
         const diffTime = Math.abs(d2 - d1);
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    const showUiMessage = (type, text) => {
+        setUiMessage({ type, text });
     };
 
     // fetch branches once
@@ -197,9 +128,9 @@ const SearchRoom = () => {
             }
             const params = { branchId: filters.branchId ?? 1, ...filters, ...sp };
             const res = await roomService.searchRooms(params);
-            const enrichedRooms = await enrichRoomsWithRatePlans(res.content || [], sp);
-            setRooms(enrichedRooms);
-            setSelectedCart((prev) => syncCartWithLatestRooms(prev, enrichedRooms));
+            const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
+            setRooms(fetchedRooms);
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
@@ -209,7 +140,7 @@ const SearchRoom = () => {
                 : (apiError || err.message || "Failed to search rooms");
             setError(message);
         } finally { setLoading(false); }
-    }, [filters, enrichRoomsWithRatePlans]);
+    }, [filters]);
 
     const refetchRooms = useCallback(async () => {
         if (!searchParams) return;
@@ -221,9 +152,9 @@ const SearchRoom = () => {
             }
             const params = { branchId: filters.branchId ?? 1, ...filters, ...searchParams };
             const res = await roomService.searchRooms(params);
-            const enrichedRooms = await enrichRoomsWithRatePlans(res.content || [], searchParams);
-            setRooms(enrichedRooms);
-            setSelectedCart((prev) => syncCartWithLatestRooms(prev, enrichedRooms));
+            const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
+            setRooms(fetchedRooms);
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
@@ -233,19 +164,14 @@ const SearchRoom = () => {
                 : (apiError || err.message || "Failed to search rooms");
             setError(message);
         } finally { setLoading(false); }
-    }, [searchParams, filters, enrichRoomsWithRatePlans]);
+    }, [searchParams, filters]);
 
     const handleFilterChange = (nf) => setFilters(p => ({ ...p, ...nf, page: 0 }));
     const handleSortChange = (e) => setFilters(p => ({ ...p, sortPrice: e.target.value, page: 0 }));
     const handlePageChange = (page) => setFilters(p => ({ ...p, page }));
-    const handleBooking = (room) => {
-        const hasFallbackRatePlan = Boolean(normalizeRatePlanId(room.selectedRatePlanId) || normalizeRatePlanId(room.appliedRatePlanId));
-        if (!room.availableRatePlans?.length && !hasFallbackRatePlan) {
-            alert("Tam thoi khong co goi gia phu hop cho phong nay.");
-            return;
-        }
 
-        const roomForCart = ensureRatePlanSelection(room);
+    const handleBooking = (room) => {
+        const roomForCart = withPricingState(room, room.selectedPricingOption);
 
         // Kiểm tra xem phòng này đã có trong cart chưa
         const existingIndex = selectedCart.findIndex(r => r.roomTypeId === room.roomTypeId);
@@ -254,7 +180,7 @@ const SearchRoom = () => {
             // Nếu đã có → tăng quantity (nhưng không vượt quá availableCount)
             const currentQty = selectedCart[existingIndex].quantity || 1;
             if (currentQty >= roomForCart.availableCount) {
-                alert(`Only ${roomForCart.availableCount} room(s) available for ${roomForCart.name}`);
+                showUiMessage("warning", `Only ${roomForCart.availableCount} room(s) available for ${roomForCart.name}.`);
                 return;
             }
             setSelectedCart(prev => prev.map((r, idx) =>
@@ -262,36 +188,19 @@ const SearchRoom = () => {
                     ? {
                         ...r,
                         quantity: Math.min((r.quantity || 1) + 1, roomForCart.availableCount),
-                        selectedRatePlanId: roomForCart.selectedRatePlanId,
-                        selectedRatePlanName: roomForCart.selectedRatePlanName,
-                        selectedPrice: roomForCart.selectedPrice,
-                        cancellationType: roomForCart.cancellationType,
-                        paymentType: roomForCart.paymentType,
-                        freeCancelBeforeDays: roomForCart.freeCancelBeforeDays,
                     }
                     : r
             ));
         } else {
             // Nếu chưa → thêm vào cart với quantity = 1
             if (roomForCart.availableCount <= 0) {
-                alert(`${roomForCart.name} is fully booked`);
+                showUiMessage("warning", `${roomForCart.name} is fully booked.`);
                 return;
             }
             setSelectedCart(prev => [...prev, { ...roomForCart, quantity: 1 }]);
         }
-    };
 
-    const handleSelectRatePlan = (roomTypeId, ratePlanId) => {
-        const normalizedRatePlanId = normalizeRatePlanId(ratePlanId);
-        setRooms(prev => prev.map((room) => {
-            if (room.roomTypeId !== roomTypeId) return room;
-            return applyRatePlanSelection(room, normalizedRatePlanId);
-        }));
-
-        setSelectedCart(prev => prev.map((room) => {
-            if (room.roomTypeId !== roomTypeId) return room;
-            return applyRatePlanSelection(room, normalizedRatePlanId);
-        }));
+        showUiMessage("success", `${roomForCart.name} has been added to your selection.`);
     };
 
     const handleRemoveFromCart = (roomTypeId) => {
@@ -309,7 +218,7 @@ const SearchRoom = () => {
         if (roomInCart) {
             const maxAvailable = roomInCart.availableCount || 999;
             if (newQuantity > maxAvailable) {
-                alert(`Only ${maxAvailable} room(s) available for ${roomInCart.name}`);
+                showUiMessage("warning", `Only ${maxAvailable} room(s) available for ${roomInCart.name}.`);
                 return;
             }
         }
@@ -321,31 +230,18 @@ const SearchRoom = () => {
 
     const handleCheckout = () => {
         if (selectedCart.length === 0) {
-            alert("Please select at least one room");
+            showUiMessage("warning", "Please select at least one room before continuing.");
             return;
         }
 
         if (searchParams?.checkIn && searchParams?.checkOut && new Date(searchParams.checkOut) <= new Date(searchParams.checkIn)) {
-            alert("Check-out date must be after check-in date");
-            return;
-        }
-
-        const invalidRoom = selectedCart.find((room) => {
-            if (!normalizeRatePlanId(room.selectedRatePlanId)) return true;
-            const roomInResults = rooms.find((r) => r.roomTypeId === room.roomTypeId);
-            if (!roomInResults?.availableRatePlans?.length) return true;
-            return !roomInResults.availableRatePlans.some(
-                (plan) => normalizeRatePlanId(plan.ratePlanId) === normalizeRatePlanId(room.selectedRatePlanId),
-            );
-        });
-        if (invalidRoom) {
-            alert(`Room ${invalidRoom.name} has no valid rate plan. Please choose another plan.`);
+            showUiMessage("warning", "Check-out date must be after check-in date.");
             return;
         }
 
         const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
         const totalPrice = selectedCart.reduce((sum, room) =>
-            sum + ((room.selectedPrice || room.appliedPrice || room.basePrice || room.price) * (room.quantity || 1) * nights), 0
+            sum + ((room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0) * (room.quantity || 1) * nights), 0
         );
 
         navigate('/guest-information', {
@@ -381,6 +277,23 @@ const SearchRoom = () => {
         }
     }, [filters.branchId, filters.sortPrice, filters.page, searchParams, isInitialized, refetchRooms]);
 
+    useEffect(() => {
+        if (!uiMessage) return;
+        const timer = setTimeout(() => setUiMessage(null), 3500);
+        return () => clearTimeout(timer);
+    }, [uiMessage]);
+
+    const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
+    const totalSelectedRooms = selectedCart.reduce((sum, r) => sum + (r.quantity || 1), 0);
+    const cartTotal = selectedCart.reduce((sum, r) => {
+        const unitPrice = r.selectedPrice ?? r.appliedPrice ?? r.basePrice ?? r.price ?? 0;
+        return sum + (unitPrice * (r.quantity || 1) * nights);
+    }, 0);
+    const hasValidStayDates =
+        Boolean(searchParams?.checkIn) &&
+        Boolean(searchParams?.checkOut) &&
+        new Date(searchParams.checkOut) > new Date(searchParams.checkIn);
+
     return (
         <div style={{ background: '#f5f6f8', minHeight: '100vh' }}>
             <style>{`
@@ -402,6 +315,11 @@ const SearchRoom = () => {
                 .bc-bar .breadcrumb{margin-bottom:0;font-size:.85rem}
                 .bc-bar .breadcrumb a{color:#5C6F4E;text-decoration:none;font-weight:500}
                 .bc-bar .breadcrumb a:hover{text-decoration:underline}
+                .ux-msg{margin-top:12px;border-radius:12px;padding:11px 14px;font-size:.88rem;font-weight:600;display:flex;align-items:center;gap:8px}
+                .ux-msg.warn{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
+                .ux-msg.success{background:#ecfdf3;color:#166534;border:1px solid #b7ebc6}
+                .cart-date-note{margin-top:10px;font-size:.78rem;color:rgba(255,255,255,.85);line-height:1.45}
+                .cart-date-note i{margin-right:4px}
             `}</style>
 
             <div className="hero">
@@ -427,6 +345,12 @@ const SearchRoom = () => {
                         <li className="breadcrumb-item active">Search Results</li>
                     </ol>
                 </nav>
+                {uiMessage && (
+                    <div className={`ux-msg ${uiMessage.type === "success" ? "success" : "warn"}`} role="alert" aria-live="polite">
+                        <i className={`bi ${uiMessage.type === "success" ? "bi-check-circle" : "bi-exclamation-triangle"}`}></i>
+                        <span>{uiMessage.text}</span>
+                    </div>
+                )}
             </div>
 
             <div className="container pb-5">
@@ -661,15 +585,19 @@ const SearchRoom = () => {
                                 <i className="bi bi-cart2"></i>
                                 <h5 className="fw-bold mb-0">Your Selection</h5>
                                 {selectedCart.length > 0 && (
-                                    <span className="badge bg-danger ms-auto">{selectedCart.reduce((sum, r) => sum + (r.quantity || 1), 0)}</span>
+                                    <span className="badge bg-danger ms-auto">{totalSelectedRooms}</span>
                                 )}
+                            </div>
+
+                            <div className="cart-date-note">
+                                <div><i className="bi bi-calendar3"></i>{searchParams?.checkIn || "--"} to {searchParams?.checkOut || "--"}</div>
+                                <div><i className="bi bi-moon-stars"></i>{nights} {nights > 1 ? "nights" : "night"}</div>
                             </div>
 
                             <div style={{marginTop: '15px', maxHeight: '450px', overflowY: 'auto', paddingRight: '8px'}}>
                                 {selectedCart.length > 0 ? (
                                     selectedCart.map((room, idx) => {
-                                        const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
-                                        const roomUnitPrice = room.selectedPrice || room.appliedPrice || room.basePrice || room.price;
+                                        const roomUnitPrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
                                         const roomTotal = roomUnitPrice * (room.quantity || 1) * nights;
                                         return (
                                             <div key={idx} className="cart-room-item">
@@ -682,7 +610,6 @@ const SearchRoom = () => {
                                                         <div className="cart-room-price">
                                                             💰 {new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/night
                                                         </div>
-                                                        {room.selectedRatePlanName && <div className="small text-muted">{room.selectedRatePlanName}</div>}
                                                     </div>
                                                     <button
                                                         className="cart-delete-btn"
@@ -692,48 +619,6 @@ const SearchRoom = () => {
                                                     >
                                                         <i className="bi bi-trash"></i>
                                                     </button>
-                                                </div>
-
-                                                <div className="cart-plan-box">
-                                                    <div className="cart-plan-label">Goi gia</div>
-                                                    <select
-                                                        className="cart-plan-select"
-                                                        value={room.selectedRatePlanId || ""}
-                                                        onChange={(e) => handleSelectRatePlan(room.roomTypeId, e.target.value ? Number(e.target.value) : null)}
-                                                        disabled={!room.availableRatePlans?.length}
-                                                    >
-                                                        <option value="">Chon goi gia</option>
-                                                        {(room.availableRatePlans || []).map((plan) => (
-                                                            <option key={plan.ratePlanId} value={plan.ratePlanId}>
-                                                                {plan.name} - {new Intl.NumberFormat('vi-VN').format(plan.price)}₫
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    {!room.availableRatePlans?.length && (
-                                                        <div className="cart-plan-note">Tam thoi khong co goi gia phu hop.</div>
-                                                    )}
-                                                    {room.selectedRatePlanId && (
-                                                        <div className="cart-policy">
-                                                            <span>
-                                                                <i className="bi bi-shield-check me-1"></i>
-                                                                {room.cancellationType === "NON_REFUNDABLE"
-                                                                    ? "Khong hoan tien"
-                                                                    : room.cancellationType === "REFUNDABLE" && room.freeCancelBeforeDays > 0
-                                                                        ? `Mien phi huy truoc ${room.freeCancelBeforeDays} ngay`
-                                                                        : room.cancellationType === "REFUNDABLE"
-                                                                            ? "Mien phi huy"
-                                                                            : "Chinh sach huy theo goi gia"}
-                                                            </span>
-                                                            <span>
-                                                                <i className="bi bi-credit-card me-1"></i>
-                                                                {room.paymentType === "PREPAID"
-                                                                    ? "Thanh toan truoc"
-                                                                    : room.paymentType === "PAY_AT_HOTEL"
-                                                                        ? "Thanh toan tai khach san"
-                                                                        : "Hinh thuc thanh toan theo goi"}
-                                                            </span>
-                                                        </div>
-                                                    )}
                                                 </div>
 
                                                 <div className="cart-qty-control">
@@ -789,21 +674,21 @@ const SearchRoom = () => {
                                     <div className="cart-total-section">
                                         <span className="cart-total-label">💰 Total:</span>
                                         <span className="cart-total-amount">
-                                            {new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(
-                                                selectedCart.reduce((sum, r) => {
-                                                    const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
-                                                    const unitPrice = r.selectedPrice || r.appliedPrice || r.basePrice || r.price;
-                                                    return sum + (unitPrice * (r.quantity || 1) * nights);
-                                                }, 0)
-                                            )}
+                                            {new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(cartTotal)}
                                         </span>
                                     </div>
                                     <button
                                         className="cart-continue-btn"
                                         onClick={handleCheckout}
+                                        disabled={!hasValidStayDates}
                                     >
                                         <i className="bi bi-arrow-right me-2"></i>Continue to Guest Info
                                     </button>
+                                    {!hasValidStayDates && (
+                                        <p className="mb-0 mt-2" style={{ fontSize: '0.78rem', opacity: 0.9 }}>
+                                            Please re-select valid stay dates before continuing.
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>

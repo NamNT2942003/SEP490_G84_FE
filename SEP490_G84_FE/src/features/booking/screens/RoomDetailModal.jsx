@@ -37,35 +37,8 @@ const RoomDetailModal = ({ room, show, onClose }) => {
         }).format(price);
     };
 
-    const getCancellationText = (ratePlan) => {
-        if (ratePlan.cancellationType === "NON_REFUNDABLE" || ratePlan.cancellationType === "NonRefundable") {
-            return "Non-refundable";
-        }
-        if (ratePlan.cancellationType === "REFUNDABLE" && ratePlan.freeCancelBeforeDays) {
-            return `Free cancellation up to ${ratePlan.freeCancelBeforeDays} days before check-in`;
-        }
-        if (ratePlan.cancellationType === "REFUNDABLE") {
-            return "Free cancellation available";
-        }
-        return "Cancellation policy depends on plan";
-    };
-
-    const getPaymentText = (paymentType) => {
-        switch (paymentType) {
-            case "PREPAID":
-            case "PayNow":
-                return "Pay now";
-            case "PAY_AT_HOTEL":
-            case "PayLater":
-                return "Pay at hotel";
-            default:
-                return "All major credit cards accepted";
-        }
-    };
-
     const roomData = roomDetail?.roomType || room;
     const amenities = roomDetail?.amenities || [];
-    const ratePlans = roomDetail?.ratePlans || [];
 
     return (
         <>
@@ -164,42 +137,6 @@ const RoomDetailModal = ({ room, show, onClose }) => {
                                             </p>
                                         )}
                                     </div>
-
-                                    {ratePlans.length > 0 && (
-                                        <div className="mb-4">
-                                            <h6 className="fw-bold mb-3">Rate Plans</h6>
-                                            {ratePlans.map((ratePlan, index) => (
-                                                <div
-                                                    className="card mb-2"
-                                                    key={ratePlan.ratePlanId || index}
-                                                >
-                                                    <div className="card-body py-2">
-                                                        <div className="d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <strong>{ratePlan.name}</strong>
-                                                                <div className="small text-muted">
-                                                                    <i className="bi bi-x-circle me-1"></i>
-                                                                    {getCancellationText(ratePlan)}
-                                                                </div>
-                                                                {ratePlan.paymentType && (
-                                                                    <div className="small text-muted">
-                                                                        <i className="bi bi-credit-card me-1"></i>
-                                                                        {getPaymentText(ratePlan.paymentType)}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <div className="text-end">
-                                <span className="h5 text-success mb-0">
-                                  {formatPrice(ratePlan.price)}
-                                </span>
-                                                                <div className="small text-muted">/night</div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
 
                                     <div className="mb-4">
                                         <h6 className="fw-bold mb-3">Hotel Policies</h6>

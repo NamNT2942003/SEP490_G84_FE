@@ -1,77 +1,52 @@
-import apiClient from "../../../services/api.js";
-import { API_ENDPOINTS } from "../../../constants/apiConfig.js";
-import { cleanSearchResults, cleanRoomTypeDetail } from "./searchResults.js";
+import apiClient from "@/services/apiClient";
+import { API_ENDPOINTS } from "@/constants/apiConfig";
+import { cleanSearchResults, cleanRoomTypeDetail } from "./searchResults";
+
+const DEFAULT_SEARCH_PARAMS = {
+    branchId: 1,
+    adults: 1,
+    children: 0,
+    sortPrice: "priceAsc",
+    strictRateConditionMatching: false,
+    page: 0,
+    size: 10,
+};
+
+const normalizeSearchParams = (params = {}) => {
+    const merged = { ...DEFAULT_SEARCH_PARAMS, ...params };
+    if (!merged.checkIn || !merged.checkOut) {
+        throw new Error("Both check-in and check-out dates are required for room search");
+    }
+
+    const queryParams = new URLSearchParams();
+    Object.entries(merged).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === "") return;
+        if (Array.isArray(value)) {
+            value.forEach((v) => queryParams.append(key, v));
+            return;
+        }
+        if (typeof value === "boolean") {
+            queryParams.append(key, value ? "true" : "false");
+            return;
+        }
+        queryParams.append(key, value);
+    });
+    return queryParams;
+};
 
 export const roomService = {
     searchRooms: async (params) => {
-        // ensure required parameters are present, apply sensible defaults
-        const searchParams = { ...params };
-        if (searchParams.branchId === undefined || searchParams.branchId === null) {
-            searchParams.branchId = 1;
-        }
-
-        const queryParams = new URLSearchParams();
-
-        Object.keys(searchParams).forEach((key) => {
-            const value = searchParams[key];
-            if (value !== undefined && value !== null) {
-                if (Array.isArray(value)) {
-                    value.forEach((v) => queryParams.append(key, v));
-                } else {
-                    queryParams.append(key, value);
-                }
-            }
-        });
-
+        const queryParams = normalizeSearchParams(params);
         const queryString = queryParams.toString();
-
-        const response = await apiClient.get(
-            `${API_ENDPOINTS.ROOMS.SEARCH}?${queryString}`,
-        );
+        const response = await apiClient.get(`${API_ENDPOINTS.ROOMS.SEARCH}?${queryString}`);
         // Clean circular references before returning
         return cleanSearchResults(response.data);
     },
 
     getRoomDetail: async (roomTypeId) => {
         const detailPath = API_ENDPOINTS.ROOM_TYPES.DETAIL_EXTENDED.replace(":id", roomTypeId);
-        const response = await apiClient.get(
-            detailPath,
-        );
+        const response = await apiClient.get(detailPath);
         // Clean circular references before returning
         return cleanRoomTypeDetail(response.data);
-    },
-
-    getAvailableRatePlans: async ({ roomTypeId, checkInDate, checkOutDate, guestCount }) => {
-        const response = await apiClient.get(API_ENDPOINTS.RATE_PLAN_CONDITIONS.BOOKING_APPLICABLE, {
-            params: {
-                roomTypeId,
-                checkInDate,
-                checkOutDate,
-                guestCount,
-                strictMatching: false, // For booking preview/management use case
-            },
-        });
-
-        const data = response.data || {};
-        const ratePlans = (data.ratePlans || []).map((plan) => ({
-            ratePlanId: plan.ratePlanId,
-            name: plan.name,
-            price: plan.price,
-            cancellationType: plan.cancellationType,
-            freeCancelBeforeDays: plan.freeCancelBeforeDays,
-            paymentType: plan.paymentType,
-            priorityOrder: plan.priorityOrder,
-            conditionCount: plan.conditionCount,
-        }));
-
-        return {
-            success: Boolean(data.success),
-            roomTypeId: data.roomTypeId,
-            checkInDate: data.checkInDate,
-            checkOutDate: data.checkOutDate,
-            guestCount: data.guestCount,
-            ratePlans,
-            count: data.count ?? ratePlans.length,
-        };
     },
 };

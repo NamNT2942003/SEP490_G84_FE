@@ -65,7 +65,6 @@ const roomTypeManagementApi = {
     const data = response.data || {};
     return {
       roomType: normalizeRoomType(data.roomType || {}),
-      ratePlans: Array.isArray(data.ratePlans) ? data.ratePlans : [],
       amenities: Array.isArray(data.amenities) ? data.amenities : [],
     };
   },

@@ -32,21 +32,6 @@ const enumOptionsApi = {
     return Array.isArray(response.data) ? response.data.map(normalizeOption) : [];
   },
 
-  getRatePlanCancellationTypes: async () => {
-    const response = await apiClient.get(`${BASE}/rate-plan/cancellation-types`);
-    return Array.isArray(response.data) ? response.data.map(normalizeOption) : [];
-  },
-
-  getRatePlanPaymentTypes: async () => {
-    const response = await apiClient.get(`${BASE}/rate-plan/payment-types`);
-    return Array.isArray(response.data) ? response.data.map(normalizeOption) : [];
-  },
-
-  getRatePlanConditionTypes: async () => {
-    const response = await apiClient.get(`${BASE}/rate-plan/condition-types`);
-    return Array.isArray(response.data) ? response.data.map(normalizeOption) : [];
-  },
-
   getDayOfWeekOptions: async () => {
     const response = await apiClient.get(`${BASE}/day-of-week`);
     return Array.isArray(response.data) ? response.data.map(normalizeOption) : [];
@@ -54,11 +39,6 @@ const enumOptionsApi = {
 
   getRoomTypeInputRules: async () => {
     const response = await apiClient.get(`${BASE}/room-type/input-rules`);
-    return normalizeRuleMap(response.data);
-  },
-
-  getRatePlanInputRules: async () => {
-    const response = await apiClient.get(`${BASE}/rate-plan/input-rules`);
     return normalizeRuleMap(response.data);
   },
 };

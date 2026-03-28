@@ -23,22 +23,21 @@ export const API_ENDPOINTS = {
     DETAIL_EXTENDED: "/room-types/:id/detail",
     BY_BRANCH: "/room-types/by-branch",
   },
-  RATE_PLANS: {
-    LIST: "/admin/rate-plans",
-    DETAIL: "/admin/rate-plans",
-  },
-  RATE_PLAN_CONDITIONS: {
-    // NEW: Management APIs
-    MANAGEMENT_CONDITIONS: "/management/rate-plans/:ratePlanId/conditions",
-    // NEW: Booking APIs
-    BOOKING_APPLICABLE: "/booking/rate-plans/applicable",
-    // LEGACY: deprecated endpoints (for backward compatibility)
-    AVAILABLE: "/rate-plan-conditions/available",
-    BASE: "/rate-plan-conditions",
-    BY_RATE_PLAN: "/rate-plan-conditions/rate-plan",
-  },
   ROOM_TYPE_INVENTORIES: {
     LIST: "/admin/room-type-inventories",
     DETAIL: "/admin/room-type-inventories",
+  },
+  BOOKING: {
+    CREATE_FROM_FRONTEND: "/bookings/create-from-frontend",
+  },
+  PAYMENT: {
+    CREATE: "/payment/create",
+    STATUS: "/payment/status",
+    STRIPE_SUCCESS: "/payment/stripe-success",
+    STRIPE_WEBHOOK: "/payment/stripe-webhook",
+    SEPAY_WEBHOOK: "/payment/sepay-webhook",
+  },
+  ENUM_OPTIONS: {
+    BASE: "/enum-options",
   },
 };

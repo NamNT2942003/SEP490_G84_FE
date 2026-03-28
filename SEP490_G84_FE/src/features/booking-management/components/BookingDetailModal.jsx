@@ -257,7 +257,6 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                             <thead>
                                                 <tr>
                                                     <th>Room Type</th>
-                                                    <th>Rate Plan</th>
                                                     <th className="text-end">Qty</th>
                                                     <th className="text-end">Price/Night</th>
                                                 </tr>
@@ -266,7 +265,6 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                                 {booking.details.map((item, idx) => (
                                                     <tr key={idx}>
                                                         <td>{item.roomTypeName || "-"}</td>
-                                                        <td>{item.ratePlanName || "-"}</td>
                                                         <td className="text-end">{item.quantity}</td>
                                                         <td className="text-end">{formatVND(item.priceAtBooking)}</td>
                                                     </tr>

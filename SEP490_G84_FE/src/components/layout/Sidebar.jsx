@@ -19,11 +19,6 @@ const Sidebar = () => {
     // Thêm mục Room Type Management
     { path: "/admin/room-types", label: "Room Type Management", icon: "bi-grid-1x2" },
 
-    // Thêm mục Rate Plan Management
-    { path: "/admin/rate-plans", label: "Rate Plan Management", icon: "bi-tags" },
-
-    // Thêm mục Rate Plan Condition Management
-    { path: "/admin/rate-plan-conditions", label: "Rate Plan Conditions", icon: "bi-sliders" },
 
     // Thêm mục Inventory Management
     { path: "/admin/room-inventories", label: "Inventory Management", icon: "bi-calendar3-range" },

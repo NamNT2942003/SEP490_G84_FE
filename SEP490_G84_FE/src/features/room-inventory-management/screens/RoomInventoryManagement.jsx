@@ -1,23 +1,21 @@
 import React, { useEffect, useState } from "react";
 import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
 import roomTypeManagementApi from "@/features/room-type-management/api/roomTypeManagementApi";
-import ratePlanManagementApi from "@/features/rate-plan-management/api/ratePlanManagementApi";
 import roomInventoryManagementApi from "@/features/room-inventory-management/api/roomInventoryManagementApi";
 import { parseApiError } from "@/utils/apiError";
 import "./RoomInventoryManagement.css";
 
 const getToday = () => new Date().toISOString().slice(0, 10);
+const formatVnd = (value) => Number(value || 0).toLocaleString("vi-VN");
 
 const EMPTY_FILTER = {
   roomTypeId: "",
-  ratePlanId: "",
   fromDate: getToday(),
   toDate: getToday(),
 };
 
 const EMPTY_FORM = {
   roomTypeId: "",
-  ratePlanId: "",
   workDate: getToday(),
   fromDate: "",
   toDate: "",
@@ -30,7 +28,6 @@ const EMPTY_FORM = {
 export default function RoomInventoryManagement() {
   const [branches, setBranches] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
-  const [ratePlans, setRatePlans] = useState([]);
 
   const [branchId, setBranchId] = useState("");
   const [filter, setFilter] = useState(EMPTY_FILTER);
@@ -57,7 +54,6 @@ export default function RoomInventoryManagement() {
   const loadRoomTypes = async (selectedBranchId) => {
     if (!selectedBranchId) {
       setRoomTypes([]);
-      setRatePlans([]);
       setFilter(EMPTY_FILTER);
       return;
     }
@@ -66,27 +62,10 @@ export default function RoomInventoryManagement() {
       const data = await roomTypeManagementApi.listRoomTypesByBranch(selectedBranchId);
       setRoomTypes(data || []);
       setFilter(EMPTY_FILTER);
-      setRatePlans([]);
       setInventories([]);
     } catch (err) {
       setRoomTypes([]);
       setError(parseApiError(err, "Failed to load room types."));
-    }
-  };
-
-  const loadRatePlans = async (roomTypeId) => {
-    if (!roomTypeId) {
-      setRatePlans([]);
-      setFilter((prev) => ({ ...prev, ratePlanId: "" }));
-      return;
-    }
-
-    try {
-      const data = await ratePlanManagementApi.listRatePlans(roomTypeId);
-      setRatePlans(data || []);
-    } catch (err) {
-      setRatePlans([]);
-      setError(parseApiError(err, "Failed to load rate plans."));
     }
   };
 
@@ -124,10 +103,6 @@ export default function RoomInventoryManagement() {
     loadRoomTypes(branchId);
   }, [branchId]);
 
-  useEffect(() => {
-    loadRatePlans(filter.roomTypeId);
-  }, [filter.roomTypeId]);
-
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilter((prev) => ({ ...prev, [name]: value }));
@@ -135,7 +110,7 @@ export default function RoomInventoryManagement() {
 
   const openCreateModal = () => {
     setEditingItem(null);
-    setFormData({ ...EMPTY_FORM, roomTypeId: filter.roomTypeId || "", ratePlanId: filter.ratePlanId || "" });
+    setFormData({ ...EMPTY_FORM, roomTypeId: filter.roomTypeId || "" });
     setFormError("");
     setShowFormModal(true);
   };
@@ -144,7 +119,6 @@ export default function RoomInventoryManagement() {
     setEditingItem(item);
     setFormData({
       roomTypeId: item.roomTypeId || "",
-      ratePlanId: item.ratePlanId || "",
       workDate: item.workDate || "",
       fromDate: "",
       toDate: "",
@@ -246,11 +220,6 @@ export default function RoomInventoryManagement() {
             {roomTypes.map((r) => <option key={r.roomTypeId} value={r.roomTypeId}>{r.name}</option>)}
           </select>
 
-          <select className="form-select" name="ratePlanId" value={filter.ratePlanId} onChange={handleFilterChange} disabled={!filter.roomTypeId}>
-            <option value="">All rate plans</option>
-            {ratePlans.map((r) => <option key={r.ratePlanId} value={r.ratePlanId}>{r.name}</option>)}
-          </select>
-
           <input type="date" className="form-control" name="fromDate" value={filter.fromDate} onChange={handleFilterChange} />
           <input type="date" className="form-control" name="toDate" value={filter.toDate} onChange={handleFilterChange} />
 
@@ -265,33 +234,77 @@ export default function RoomInventoryManagement() {
               <tr>
                 <th>Date</th>
                 <th>Room Type</th>
-                <th>Rate Plan</th>
                 <th>Availability</th>
-                <th>Price</th>
+                <th>Base Price</th>
+                <th>Final Price</th>
+                <th>Delta</th>
+                <th>Applied Modifiers</th>
                 <th>Min Stay</th>
                 <th>Closed</th>
                 <th className="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={8} className="text-center py-4">Loading...</td></tr>}
-              {!loading && inventories.length === 0 && <tr><td colSpan={8} className="text-center py-4 text-muted">No inventory data.</td></tr>}
+              {loading && <tr><td colSpan={10} className="text-center py-4">Loading...</td></tr>}
+              {!loading && inventories.length === 0 && <tr><td colSpan={10} className="text-center py-4 text-muted">No inventory data.</td></tr>}
               {!loading && inventories.map((item) => (
-                <tr key={item.inventoryId}>
-                  <td>{item.workDate}</td>
-                  <td>{item.roomTypeName || item.roomTypeId}</td>
-                  <td>{item.ratePlanName || item.ratePlanId || "-"}</td>
-                  <td>{item.availability}</td>
-                  <td>{Number(item.price || 0).toLocaleString("vi-VN")}</td>
-                  <td>{item.minStay}</td>
-                  <td>{item.isClosed ? "Yes" : "No"}</td>
-                  <td className="text-end">
-                    <div className="btn-group btn-group-sm">
-                      <button type="button" className="btn btn-outline-primary" onClick={() => openEditModal(item)}>Edit</button>
-                      <button type="button" className="btn btn-outline-danger" onClick={() => handleDelete(item.inventoryId)}>Delete</button>
-                    </div>
-                  </td>
-                </tr>
+                <React.Fragment key={item.inventoryId}>
+                  <tr>
+                    <td>{item.workDate || "-"}</td>
+                    <td>{item.roomTypeName || item.roomTypeId || "-"}</td>
+                    <td>{item.availability}</td>
+                    <td>{formatVnd(item.basePrice)}</td>
+                    <td>{formatVnd(item.price)}</td>
+                    <td className={item.delta < 0 ? "text-success" : item.delta > 0 ? "text-danger" : "text-muted"}>
+                      {item.delta > 0 ? "+" : ""}{formatVnd(item.delta)}
+                    </td>
+                    <td>
+                      <div className="ri-badge-wrap">
+                        {(item.appliedPriceModifiers || []).length > 0 ? (item.appliedPriceModifiers || []).map((modifier) => (
+                          <span className="ri-modifier-badge" key={`${item.inventoryId}-${modifier.priceModifierId || modifier.name}`}>
+                            {modifier.name}
+                          </span>
+                        )) : <span className="text-muted small">None</span>}
+                      </div>
+                    </td>
+                    <td>{item.minStay}</td>
+                    <td>{item.isClosed ? "Yes" : "No"}</td>
+                    <td className="text-end">
+                      <div className="btn-group btn-group-sm">
+                        <button type="button" className="btn btn-outline-primary" onClick={() => openEditModal(item)}>Edit</button>
+                        <button type="button" className="btn btn-outline-danger" onClick={() => handleDelete(item.inventoryId)}>Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="ri-explain-row">
+                    <td colSpan={10}>
+                      <div className="ri-explain-box">
+                        <div className="ri-explain-title">Giai thich tinh gia</div>
+                        <div className="ri-explain-note">{item.priceCalculation?.notes || "Khong co ghi chu tinh gia."}</div>
+                        {(item.priceCalculation?.steps || []).length > 0 ? (
+                          <div className="ri-steps-list">
+                            {item.priceCalculation.steps.map((step, idx) => (
+                              <div className="ri-step-item" key={`${item.inventoryId}-step-${idx}`}>
+                                <div className="fw-semibold">
+                                  {step.name || `Step ${idx + 1}`}
+                                  {step.type ? ` (${step.type})` : ""}
+                                </div>
+                                <div className="small text-muted">
+                                  applied: {step.applied ? "yes" : "no"}
+                                  {step.adjustmentType ? ` | adjustmentType: ${step.adjustmentType}` : ""}
+                                  {step.adjustmentValue !== undefined && step.adjustmentValue !== null ? ` | adjustmentValue: ${step.adjustmentValue}` : ""}
+                                </div>
+                                {step.reason && <div className="small">reason: {step.reason}</div>}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="small text-muted mt-1">Khong co steps chi tiet.</div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                </React.Fragment>
               ))}
             </tbody>
           </table>
@@ -316,13 +329,6 @@ export default function RoomInventoryManagement() {
                         <select className="form-select" name="roomTypeId" value={formData.roomTypeId} onChange={handleFormChange}>
                           <option value="">Select room type</option>
                           {roomTypes.map((r) => <option key={r.roomTypeId} value={r.roomTypeId}>{r.name}</option>)}
-                        </select>
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">Rate Plan</label>
-                        <select className="form-select" name="ratePlanId" value={formData.ratePlanId} onChange={handleFormChange}>
-                          <option value="">Select rate plan</option>
-                          {ratePlans.map((r) => <option key={r.ratePlanId} value={r.ratePlanId}>{r.name}</option>)}
                         </select>
                       </div>
                       <div className="col-md-4">

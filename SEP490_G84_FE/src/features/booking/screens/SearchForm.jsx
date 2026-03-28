@@ -9,6 +9,7 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
     const tomorrow = fmtYmd(tom);
 
     const [sp, setSp] = useState({ checkIn: today, checkOut: tomorrow, adults: 1, children: 0 });
+    const [validationMessage, setValidationMessage] = useState("");
 
     // guest picker
     const [guestOpen, setGuestOpen] = useState(false);
@@ -18,10 +19,13 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         document.addEventListener("mousedown", h);
         return () => document.removeEventListener("mousedown", h);
     }, []);
-    const adj = (f, d) => setSp(p => {
+    const adj = (f, d) => {
+        setValidationMessage("");
+        setSp(p => {
         const mn = f==="adults"?1:0, mx = f==="adults"?6:4;
         return { ...p, [f]: Math.min(mx, Math.max(mn, p[f]+d)) };
-    });
+        });
+    };
     const guestText = () => {
         let t = `${sp.adults} adult${sp.adults > 1 ? 's' : ''}`;
         if (sp.children > 0) t += `, ${sp.children} child${sp.children > 1 ? 'ren' : ''}`;
@@ -45,8 +49,15 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!sp.checkIn || !sp.checkOut) { alert("Please select check-in and check-out dates"); return; }
-        if (sp.checkOut <= sp.checkIn) { alert("Check-out date must be after check-in date"); return; }
+        if (!sp.checkIn || !sp.checkOut) {
+            setValidationMessage("Please select both check-in and check-out dates.");
+            return;
+        }
+        if (sp.checkOut <= sp.checkIn) {
+            setValidationMessage("Check-out date must be after check-in date.");
+            return;
+        }
+        setValidationMessage("");
         onSearch(sp);
     };
 
@@ -96,6 +107,8 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         .sf-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(92,111,78,.4)}
         .sf-btn:disabled{opacity:.6;cursor:not-allowed}
         .sf-btn .spinner-border{width:16px;height:16px;border-width:2px}
+        .sf-msg{margin-top:10px;font-size:.82rem;font-weight:600;color:#c0392b;display:flex;align-items:center;gap:6px}
+        .sf-help{margin-top:8px;font-size:.75rem;color:#6c757d}
         @media(max-width:992px){.sf-r{flex-wrap:wrap}.sf-g.br{flex:1 1 100%}.sf-g.dt{flex:1 1 100%;min-width:0}.sf-g.gu{flex:1 1 calc(50% - 5px)}.sf-g.ac{flex:1 1 calc(50% - 5px)}}
         @media(max-width:576px){.sf{padding:18px 14px 16px}.sf-g.gu,.sf-g.ac{flex:1 1 100%}}
       `}</style>
@@ -108,7 +121,10 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                             <span className="sf-l"><i className="bi bi-geo-alt-fill"></i>Branch</span>
                             <div className="sf-w">
                                 <i className="bi bi-geo-alt-fill si"></i>
-                                <select className="sf-sel" value={branchId || ""} onChange={(e) => onBranchChange(e.target.value ? parseInt(e.target.value) : "")}>
+                                <select className="sf-sel" value={branchId || ""} onChange={(e) => {
+                                    setValidationMessage("");
+                                    onBranchChange(e.target.value ? parseInt(e.target.value) : "");
+                                }}>
                                     <option value="">All Branches</option>
                                     {branches.map((b) => <option key={b.branchId} value={b.branchId}>{b.branchName}</option>)}
                                 </select>
@@ -123,11 +139,14 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                                     <i className="bi bi-box-arrow-in-right di"></i>
                                     <div><div className="dm">{fmtDate(sp.checkIn).main}</div><div className="ds">{fmtDate(sp.checkIn).sub}</div></div>
                                     <input type="date" id="hci" value={sp.checkIn} min={today}
-                                           onChange={(e) => setSp(p => {
+                                           onChange={(e) => {
+                                               setValidationMessage("");
+                                               setSp(p => {
                                                const ci = e.target.value; let co = p.checkOut;
                                                if (co && co <= ci) { const d = new Date(ci); d.setDate(d.getDate()+1); co = fmtYmd(d); }
                                                return { ...p, checkIn: ci, checkOut: co };
-                                           })}
+                                               });
+                                           }}
                                            style={{ position:"absolute", opacity:0, width:0, height:0, pointerEvents:"none" }}
                                     />
                                 </div>
@@ -136,7 +155,10 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                                     <i className="bi bi-box-arrow-right di"></i>
                                     <div><div className="dm">{fmtDate(sp.checkOut).main}</div><div className="ds">{fmtDate(sp.checkOut).sub}</div></div>
                                     <input type="date" id="hco" value={sp.checkOut} min={(() => { if (!sp.checkIn) return today; const d = new Date(sp.checkIn); d.setDate(d.getDate()+1); return fmtYmd(d); })()}
-                                           onChange={(e) => setSp(p => ({ ...p, checkOut: e.target.value }))}
+                                           onChange={(e) => {
+                                               setValidationMessage("");
+                                               setSp(p => ({ ...p, checkOut: e.target.value }));
+                                           }}
                                            style={{ position:"absolute", opacity:0, width:0, height:0, pointerEvents:"none" }}
                                     />
                                 </div>
@@ -148,7 +170,18 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                             <span className="sf-l"><i className="bi bi-people-fill"></i>Guests</span>
                             <div className="sf-w">
                                 <i className="bi bi-people-fill si"></i>
-                                <div className={`gt ${guestOpen?"op":""}`} onClick={() => setGuestOpen(!guestOpen)}>
+                                <div
+                                    className={`gt ${guestOpen?"op":""}`}
+                                    onClick={() => setGuestOpen(!guestOpen)}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setGuestOpen(!guestOpen);
+                                        }
+                                    }}
+                                >
                                     {guestText()}<i className="bi bi-chevron-down ch"></i>
                                 </div>
                             </div>
@@ -184,6 +217,15 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                                     : <><i className="bi bi-search"></i><span>Search</span></>}
                             </button>
                         </div>
+                    </div>
+                    {validationMessage && (
+                        <div className="sf-msg" role="alert" aria-live="polite">
+                            <i className="bi bi-exclamation-circle"></i>
+                            <span>{validationMessage}</span>
+                        </div>
+                    )}
+                    <div className="sf-help">
+                        Tip: Select your dates first, then choose guests to get accurate room availability.
                     </div>
                 </form>
             </div>

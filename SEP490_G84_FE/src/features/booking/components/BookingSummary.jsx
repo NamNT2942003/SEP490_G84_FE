@@ -8,16 +8,15 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
             return `Mien phi huy truoc ${freeCancelBeforeDays} ngay`;
         }
         if (cancellationType === 'REFUNDABLE') return 'Mien phi huy';
-        return 'Chinh sach huy theo goi gia';
+        return 'Chinh sach huy theo phong';
     };
 
     const getPaymentText = (paymentType) => {
         if (paymentType === 'PREPAID') return 'Thanh toan truoc';
         if (paymentType === 'PAY_AT_HOTEL') return 'Thanh toan tai khach san';
-        return 'Hinh thuc thanh toan theo goi';
+        return 'Hinh thuc thanh toan theo phong';
     };
 
-    // Hàm tính số đêm lưu trú
     const calculateNights = (start, end) => {
         if (!start || !end) return 0;
         const d1 = new Date(start);
@@ -26,18 +25,27 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
-    // Hàm định dạng ngày hiển thị (VD: 27 Feb)
     const formatDateDisplay = (dateStr) => {
-        if (!dateStr) return "...";
+        if (!dateStr) return '--';
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     };
 
+    const getUnitPrice = (room) =>
+        room.selectedPrice ?? room.selectedPricingOption?.finalPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+
+    const formatCurrency = (amount) =>
+        new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+
     const nights = calculateNights(checkIn, checkOut);
+    const totalRooms = selectedRooms.reduce((sum, r) => sum + (r.quantity || 1), 0);
+    const subtotal = selectedRooms.reduce(
+        (sum, room) => sum + (getUnitPrice(room) * (room.quantity || 1) * nights),
+        0,
+    );
 
     return (
         <div className="bg-white rounded-3 p-3 border custom-shadow">
-            {/* Ảnh minh họa - Lấy ảnh của phòng đầu tiên nếu có */}
             <img
                 alt="Resort Room"
                 className="img-fluid rounded-3 mb-3"
@@ -47,12 +55,11 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
 
             <div className="mb-3">
                 <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: '10px', letterSpacing: '1px' }}>
-                    Resort Name
+                    Booking Overview
                 </p>
                 <p className="fw-bold text-olive-dark mb-0 fs-6">Grand Heritage Resort</p>
             </div>
 
-            {/* Hiển thị danh sách các loại phòng đã chọn */}
             <div className="mb-3">
                 <p className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '10px', letterSpacing: '1px' }}>
                     Selected Rooms
@@ -62,13 +69,16 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                         <div key={index} className="d-flex justify-content-between align-items-center mb-1">
                             <div>
                                 <p className="fw-semibold text-dark mb-0 small">{room.quantity}x {room.name}</p>
-                                {room.selectedRatePlanName && <p className="text-muted mb-0" style={{ fontSize: '11px' }}>{room.selectedRatePlanName}</p>}
+                                {room.selectedPricingOption?.mode && <p className="text-muted mb-0" style={{ fontSize: '11px' }}>Mode: {room.selectedPricingOption.mode}</p>}
+                                <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
+                                    {(room.quantity || 1)} room x {nights} {nights > 1 ? 'nights' : 'night'}
+                                </p>
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                     {getCancellationText(room.cancellationType, room.freeCancelBeforeDays)} · {getPaymentText(room.paymentType)}
                                 </p>
                             </div>
                             <span className="text-muted small">
-                {new Intl.NumberFormat('vi-VN').format(room.selectedPrice || room.appliedPrice || room.basePrice || room.price)}₫
+                {formatCurrency(getUnitPrice(room))}
               </span>
                         </div>
                     ))
@@ -92,16 +102,12 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
             <div className="pt-3 border-top mt-2">
                 <div className="d-flex justify-content-between align-items-center">
                     <span className="fw-bold text-dark">Subtotal</span>
-                    <span className="fw-bold text-olive">
-                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                            selectedRooms.reduce((sum, room) => sum + ((room.selectedPrice || room.appliedPrice || room.basePrice || room.price) * (room.quantity || 1) * nights), 0)
-                )}
-            </span>
+                    <span className="fw-bold text-olive">{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="mt-2">
                     <p className="text-muted small mb-1">
                         <i className="fa-solid fa-info-circle me-1"></i>
-                        {nights} {nights > 1 ? 'nights' : 'night'} × {selectedRooms.reduce((sum, r) => sum + (r.quantity || 1), 0)} {selectedRooms.reduce((sum, r) => sum + (r.quantity || 1), 0) > 1 ? 'rooms' : 'room'}
+                        {nights} {nights > 1 ? 'nights' : 'night'} x {totalRooms} {totalRooms > 1 ? 'rooms' : 'room'}
                     </p>
                 </div>
                 <small className="text-muted" style={{ fontSize: '11px' }}>*Taxes and fees included</small>
