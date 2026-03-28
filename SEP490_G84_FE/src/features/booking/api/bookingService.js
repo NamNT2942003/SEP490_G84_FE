@@ -21,6 +21,8 @@ const bookingService = {
 		  error.friendlyMessage = serverData;
 		} else if (serverData?.message) {
 		  error.friendlyMessage = serverData.message;
+		} else if (serverData?.error) {
+		  error.friendlyMessage = serverData.error;
 		}
 	  }
 	  throw error;

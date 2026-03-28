@@ -25,7 +25,8 @@ const buildPaymentPayload = ({ bookingId, amount, method }) => {
 const paymentService = {
   createPayment: async ({ bookingId, amount, method }) => {
     const payload = buildPaymentPayload({ bookingId, amount, method });
-    const response = await apiClient.post(API_ENDPOINTS.PAYMENT.CREATE, payload);
+    // Spring Boot's @RequestParam expects data in URL parameters, not JSON body
+    const response = await apiClient.post(API_ENDPOINTS.PAYMENT.CREATE, null, { params: payload });
     return response.data;
   },
   getPaymentStatus: async (paymentId) => {

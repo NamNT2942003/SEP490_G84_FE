@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
 import enumOptionsApi from "@/features/common/api/enumOptionsApi";
 import roomTypeManagementApi from "@/features/room-type-management/api/roomTypeManagementApi";
@@ -19,6 +20,7 @@ const EMPTY_FORM = {
 };
 
 export default function RoomTypeManagement() {
+  const navigate = useNavigate();
   const [branches, setBranches] = useState([]);
   const [branchId, setBranchId] = useState("");
   const [roomTypes, setRoomTypes] = useState([]);
@@ -279,6 +281,7 @@ export default function RoomTypeManagement() {
                   <td>{item.area || "-"}</td>
                   <td className="text-end">
                     <div className="btn-group btn-group-sm">
+                      <button type="button" className="btn btn-outline-success" onClick={() => navigate(`/admin/room-types/${item.roomTypeId}/price-modifiers`)} title="Manage Pricing Rules"><i className="bi bi-tag-fill"></i></button>
                       <button type="button" className="btn btn-outline-primary" onClick={() => openEditModal(item)}>Edit</button>
                       <button type="button" className="btn btn-outline-danger" onClick={() => handleDelete(item.roomTypeId)}>Delete</button>
                     </div>

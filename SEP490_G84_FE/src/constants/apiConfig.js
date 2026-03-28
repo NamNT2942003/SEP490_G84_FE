@@ -40,4 +40,7 @@ export const API_ENDPOINTS = {
   ENUM_OPTIONS: {
     BASE: "/enum-options",
   },
+  PRICE_MODIFIERS: {
+    BASE: "/price-modifiers",
+  },
 };

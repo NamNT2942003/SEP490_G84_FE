@@ -35,6 +35,7 @@ export default function RoomInventoryManagement() {
   const [inventories, setInventories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [expandedRows, setExpandedRows] = useState({});
 
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -106,6 +107,10 @@ export default function RoomInventoryManagement() {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilter((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const toggleExpand = (id) => {
+    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const openCreateModal = () => {
@@ -232,6 +237,7 @@ export default function RoomInventoryManagement() {
           <table className="table ri-table mb-0">
             <thead>
               <tr>
+                <th style={{ width: '40px' }}></th>
                 <th>Date</th>
                 <th>Room Type</th>
                 <th>Availability</th>
@@ -249,13 +255,22 @@ export default function RoomInventoryManagement() {
               {!loading && inventories.length === 0 && <tr><td colSpan={10} className="text-center py-4 text-muted">No inventory data.</td></tr>}
               {!loading && inventories.map((item) => (
                 <React.Fragment key={item.inventoryId}>
-                  <tr>
+                  <tr className={expandedRows[item.inventoryId] ? "border-bottom-0 bg-light" : ""}>
+                    <td className="text-center align-middle">
+                      <button
+                        className="btn btn-sm btn-light border-0 shadow-none text-muted p-1"
+                        onClick={() => toggleExpand(item.inventoryId)}
+                        title="Xem lịch sử tính giá"
+                      >
+                        <i className={`bi bi-chevron-${expandedRows[item.inventoryId] ? 'up' : 'down'}`}></i>
+                      </button>
+                    </td>
                     <td>{item.workDate || "-"}</td>
                     <td>{item.roomTypeName || item.roomTypeId || "-"}</td>
                     <td>{item.availability}</td>
                     <td>{formatVnd(item.basePrice)}</td>
-                    <td>{formatVnd(item.price)}</td>
-                    <td className={item.delta < 0 ? "text-success" : item.delta > 0 ? "text-danger" : "text-muted"}>
+                    <td className="fw-bold text-dark">{formatVnd(item.price)}</td>
+                    <td className={item.delta < 0 ? "text-success fw-bold" : item.delta > 0 ? "text-danger fw-bold" : "text-muted"}>
                       {item.delta > 0 ? "+" : ""}{formatVnd(item.delta)}
                     </td>
                     <td>
@@ -268,7 +283,11 @@ export default function RoomInventoryManagement() {
                       </div>
                     </td>
                     <td>{item.minStay}</td>
-                    <td>{item.isClosed ? "Yes" : "No"}</td>
+                    <td>
+                      {item.isClosed
+                        ? <span className="badge bg-danger rounded-pill">Yes</span>
+                        : <span className="badge bg-success rounded-pill">No</span>}
+                    </td>
                     <td className="text-end">
                       <div className="btn-group btn-group-sm">
                         <button type="button" className="btn btn-outline-primary" onClick={() => openEditModal(item)}>Edit</button>
@@ -276,34 +295,54 @@ export default function RoomInventoryManagement() {
                       </div>
                     </td>
                   </tr>
-                  <tr className="ri-explain-row">
-                    <td colSpan={10}>
-                      <div className="ri-explain-box">
-                        <div className="ri-explain-title">Giai thich tinh gia</div>
-                        <div className="ri-explain-note">{item.priceCalculation?.notes || "Khong co ghi chu tinh gia."}</div>
-                        {(item.priceCalculation?.steps || []).length > 0 ? (
-                          <div className="ri-steps-list">
-                            {item.priceCalculation.steps.map((step, idx) => (
-                              <div className="ri-step-item" key={`${item.inventoryId}-step-${idx}`}>
-                                <div className="fw-semibold">
-                                  {step.name || `Step ${idx + 1}`}
-                                  {step.type ? ` (${step.type})` : ""}
-                                </div>
-                                <div className="small text-muted">
-                                  applied: {step.applied ? "yes" : "no"}
-                                  {step.adjustmentType ? ` | adjustmentType: ${step.adjustmentType}` : ""}
-                                  {step.adjustmentValue !== undefined && step.adjustmentValue !== null ? ` | adjustmentValue: ${step.adjustmentValue}` : ""}
-                                </div>
-                                {step.reason && <div className="small">reason: {step.reason}</div>}
-                              </div>
-                            ))}
+                  {expandedRows[item.inventoryId] && (
+                    <tr className="ri-explain-row bg-light border-top-0">
+                      <td></td>
+                      <td colSpan={10} className="p-0 pb-3 pe-3">
+                        <div className="ri-explain-box ms-0 bg-white shadow-sm border rounded-3 p-3 mt-1">
+                          <div className="ri-explain-title fw-bold text-primary mb-2 border-bottom pb-2">
+                            <i className="bi bi-calculator me-2"></i> Price Explanation
                           </div>
-                        ) : (
-                          <div className="small text-muted mt-1">Khong co steps chi tiet.</div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                          <div className="ri-explain-note text-muted small mb-3 fst-italic">
+                            {item.priceCalculation?.notes || "Không có ghi chú đặc biệt."}
+                          </div>
+                          {(item.priceCalculation?.steps || []).length > 0 ? (
+                            <div className="ri-steps-list d-flex flex-column gap-2">
+                              {item.priceCalculation.steps.map((step, idx) => (
+                                <div className="ri-step-item p-2 border rounded-2 bg-light" key={`${item.inventoryId}-step-${idx}`}>
+                                  <div className="d-flex justify-content-between align-items-center mb-1">
+                                    <div className="fw-semibold text-dark">
+                                      <span className="badge bg-secondary me-2">Bước {idx + 1}</span>
+                                      {step.name || "Default Rule"}
+                                      {step.type && <span className="text-muted fw-normal ms-1">({step.type})</span>}
+                                    </div>
+                                    <div>
+                                      {step.applied
+                                        ? <span className="badge bg-success"><i className="bi bi-check-circle me-1"></i>Applied</span>
+                                        : <span className="badge bg-secondary"><i className="bi bi-dash-circle me-1"></i>Ignored</span>}
+                                    </div>
+                                  </div>
+                                  {step.adjustmentType && step.adjustmentValue !== undefined && step.applied && (
+                                    <div className="small text-primary fw-semibold mt-1">
+                                      <i className="bi bi-arrow-return-right me-1 text-muted"></i>
+                                      Biến động: {step.adjustmentType === 'PERCENT' ? `${step.adjustmentValue}%` : `+${formatVnd(step.adjustmentValue)} ₫`}
+                                    </div>
+                                  )}
+                                  {step.reason && (
+                                    <div className="small text-muted mt-1" style={{ fontSize: '0.8rem' }}>
+                                      <i className="bi bi-info-circle me-1"></i> {step.reason}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="small text-muted mt-1">Không thấy thay đổi nào can thiệp vào giá.</div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </React.Fragment>
               ))}
             </tbody>

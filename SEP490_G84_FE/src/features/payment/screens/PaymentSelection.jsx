@@ -101,8 +101,8 @@ const PaymentSelection = () => {
     };
 
     return (
-        <div className="bg-light vh-100 d-flex justify-content-center pt-5">
-            <div className="bg-white p-4 rounded-3 shadow-sm" style={{ maxWidth: '600px', width: '100%', height: 'fit-content' }}>
+        <div className="bg-light min-vh-100 d-flex justify-content-center py-5">
+            <div className="bg-white p-4 rounded-3 shadow-sm" style={{ maxWidth: '600px', width: '100%', height: 'fit-content', marginTop: '40px', marginBottom: '40px' }}>
 
                 {/* ĐIỀU KIỆN: NẾU ĐÃ CÓ QR DATA THÌ HIỂN THỊ MÃ QR */}
                 {qrData ? (

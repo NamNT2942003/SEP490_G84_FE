@@ -63,7 +63,7 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut) => ({
         roomTypeId: room.roomTypeId,
         price: calculateRoomUnitPrice(room),
         quantity: room.quantity || 1,
-        appliedPriceModifierId: getAppliedModifierId(room)
+        priceModifierId: getAppliedModifierId(room)
     })),
     customer: {
         fullName: formData.fullName,
@@ -403,9 +403,9 @@ const GuestInformation = () => {
 
                     {/* Right column – Booking Summary */}
                     <div className="col-lg-4">
-                        <div className="sticky-top d-none d-lg-block" style={{ top: '90px', zIndex: 1020 }}>
+                        <div className="sticky-top d-none d-lg-block" style={{ top: '90px', zIndex: 1020, maxHeight: 'calc(100vh - 120px)' }}>
                             <h5 className="fw-bold mb-3">Your Booking</h5>
-                            <div className="bg-white rounded-3 custom-shadow overflow-hidden">
+                            <div className="bg-white rounded-3 custom-shadow" style={{ maxHeight: 'calc(100vh - 160px)', overflowY: 'auto' }}>
                                 <BookingSummary selectedRooms={rooms} checkIn={checkIn} checkOut={checkOut} />
                             </div>
                         </div>
