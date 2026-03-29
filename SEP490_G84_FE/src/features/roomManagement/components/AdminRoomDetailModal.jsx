@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { roomManagementApi } from "../api/roomManagementApi";
 import RoomFurnitureTable from "./RoomFurnitureTable";
 import ReportIncidentModal from "./ReportIncidentModal";
+import ResolveIncidentModal from "./ResolveIncidentModal";
+import EditRoomModal from "./EditRoomModal";
 
 const BRAND = "#5C6F4E";
 const DANGER = "#dc3545";
@@ -35,6 +37,9 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
   const [error,   setError]         = useState(null);
   const [activeTab, setActiveTab] = useState("furniture"); // furniture | incidents
   const [showReport, setShowReport] = useState(false);
+  const [showEditRoom, setShowEditRoom] = useState(false); console.log('showEditRoom:', showEditRoom);
+  const [showResolve, setShowResolve] = useState(false);
+  const [selectedIncident, setSelectedIncident] = useState(null);
   const [incidents, setIncidents] = useState({ content: [], totalElements: 0, totalPages: 0 });
   const [incidentPage, setIncidentPage] = useState(0);
   const [incidentLoading, setIncidentLoading] = useState(false);
@@ -43,7 +48,7 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
     try {
       setLoading(true);
       setError(null);
-      const data = await roomManagementApi.getRoomDetail(room.roomId);
+      const data = await roomManagementApi.getRoomDetailFull(room.roomId);
       setRoomDetail(data);
     } catch (err) {
       setError(err.message || "Error loading room details");
@@ -295,7 +300,7 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                   <RoomFurnitureTable
                     furnitureList={roomDetail.furnitureList}
                     roomId={roomDetail.roomId}
-                    branchId={null}
+                    branchId={room.branchId}
                     onChanged={async () => {
                       await refreshRoom();
                       onRefresh?.();
@@ -348,7 +353,7 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                       <table className="table align-middle mb-0">
                         <thead>
                           <tr style={{ backgroundColor: "#f8f9fb" }}>
-                            {["#", "Mô tả", "Trạng thái", "Thời gian"].map((h, i) => (
+                            {["#", "Mô tả", "Trạng thái", "Thời gian", "Hành động"].map((h, i) => (
                               <th
                                 key={h}
                                 className={`text-muted fw-semibold border-0${i === 0 ? " ps-4" : ""}`}
@@ -356,7 +361,7 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                                   fontSize: "0.72rem",
                                   letterSpacing: "0.06em",
                                   textTransform: "uppercase",
-                                  width: i === 0 ? 44 : i === 2 ? 120 : i === 3 ? 190 : "auto",
+                                  width: i === 0 ? 44 : i === 2 ? 120 : i === 4 ? 110 : i === 3 ? 190 : "auto",
                                 }}
                               >
                                 {h}
@@ -375,15 +380,47 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                                 <span
                                   className="px-2 py-1 rounded-pill small fw-semibold"
                                   style={{
-                                    backgroundColor: it.status === "OPEN" ? "rgba(220,53,69,0.12)" : "rgba(25,135,84,0.12)",
-                                    color: it.status === "OPEN" ? DANGER : "#198754",
-                                  }}
-                                >
-                                  {it.status}
+                                      backgroundColor: it.status === "OPEN" ? "rgba(255,193,7,0.2)" : "rgba(25,135,84,0.12)",
+                                      color: it.status === "OPEN" ? "#856404" : "#198754",
+                                    }}
+                                  >
+                                    {it.status === "OPEN" ? "Chờ xử lý" : "Đã giải quyết"}
                                 </span>
                               </td>
                               <td className="text-muted small">
                                 {it.createdAt ? new Date(it.createdAt).toLocaleString() : "—"}
+                              </td>
+                              <td>
+                                {it.status === "OPEN" ? (
+                                  <button
+                                    className="btn btn-sm"
+                                    style={{
+                                      backgroundColor: "rgba(25,135,84,0.1)",
+                                      color: "#198754",
+                                      border: "none",
+                                      padding: "4px 10px",
+                                      fontSize: "0.8rem",
+                                      fontWeight: 600,
+                                      borderRadius: "6px",
+                                      cursor: "pointer",
+                                      transition: "all 0.2s",
+                                    }}
+                                    onClick={() => {
+                                      setSelectedIncident(it);
+                                      setShowResolve(true);
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.backgroundColor = "rgba(25,135,84,0.2)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.backgroundColor = "rgba(25,135,84,0.1)";
+                                    }}
+                                  >
+                                    <i className="bi bi-check-lg me-1"></i>Giải quyết
+                                  </button>
+                                ) : (
+                                  <span className="text-muted small">—</span>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -408,13 +445,35 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
           <div className="d-flex gap-2">
             <button className="btn btn-outline-secondary px-4" onClick={onClose}>Close</button>
             <button
-              className="btn px-4"
+              className="btn px-4" onClick={() => setShowEditRoom(true)}
               style={{ backgroundColor: BRAND, color: "#fff", border: "none", boxShadow: `0 2px 8px rgba(92,111,78,0.3)` }}
             >
               Edit Room
             </button>
           </div>
         </div>
+
+        {/* Modals */} 
+          {showEditRoom && <EditRoomModal room={roomDetail || room} onClose={() => setShowEditRoom(false)} onSubmitted={() => refreshRoom()} />}
+        {showReport && (
+          <ReportIncidentModal
+            room={room}
+            onClose={() => setShowReport(false)}
+            onSubmitted={() => refreshIncidents(0)}
+          />
+        )}
+
+        {showResolve && selectedIncident && (
+          <ResolveIncidentModal
+            incident={selectedIncident}
+            room={room}
+            onClose={() => {
+              setShowResolve(false);
+              setSelectedIncident(null);
+            }}
+            onResolved={() => refreshIncidents(incidentPage)}
+          />
+        )}
       </div>
     </div>
   );

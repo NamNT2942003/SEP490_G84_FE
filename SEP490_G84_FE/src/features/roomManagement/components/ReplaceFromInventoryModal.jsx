@@ -23,13 +23,13 @@ export default function ReplaceFromInventoryModal({
     try {
       setLoading(true);
       setError(null);
-      const res = await roomManagementApi.searchInventory({
+      const res = await roomManagementApi.searchFurnitureInventoryByBranch(
         branchId,
         keyword,
-        inStockOnly: true,
         page,
-        size,
-      });
+        size
+      );
+      // Data format from searchFurnitureInventoryByBranch is { content: [], totalElements, totalPages, number, size }
       setData(res);
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Failed to load inventory");
@@ -39,18 +39,31 @@ export default function ReplaceFromInventoryModal({
   };
 
   useEffect(() => {
+    if (!branchId) {
+      setError("Branch ID not found. Cannot load inventory.");
+      return;
+    }
     fetchList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, branchId]);
 
   const filtered = useMemo(() => data?.content || [], [data]);
 
   const submitReplace = async () => {
     if (!selected) return;
+    if (!selected.furnitureId) {
+      setError("Selected item does not have ID. Please try again.");
+      return;
+    }
+    if (!oldItem?.furnitureId) {
+      setError("Original item does not have ID. Cannot process replacement.");
+      return;
+    }
     try {
       setSubmitting(true);
+      setError(null);
       await roomManagementApi.replaceFromInventory(roomId, oldItem.furnitureId, {
-        inventoryId: selected.inventoryId,
+        furnitureId: selected.furnitureId, // We use furnitureId instead of inventoryId now
         quantity: 1,
       });
       onReplaced?.();
@@ -147,22 +160,26 @@ export default function ReplaceFromInventoryModal({
           ) : (
             <div className="d-flex flex-column gap-2">
               {filtered.map((it) => {
-                const isSel = selected?.inventoryId === it.inventoryId;
+                const isSel = selected?.furnitureId === it.furnitureId;
                 return (
                   <label
-                    key={it.inventoryId}
+                    key={it.furnitureId}
                     className="d-flex align-items-center gap-3 p-3 rounded-3"
                     style={{
                       border: `1px solid ${isSel ? "rgba(13,110,253,0.35)" : "rgba(0,0,0,0.06)"}`,
                       backgroundColor: isSel ? "rgba(13,110,253,0.05)" : "#fff",
                       cursor: "pointer",
+                      opacity: it.inStock > 0 ? 1 : 0.6,
                     }}
                   >
                     <input
                       type="checkbox"
                       checked={isSel}
-                      onChange={() => setSelected(isSel ? null : it)}
-                      style={{ width: 18, height: 18 }}
+                      disabled={it.inStock <= 0}
+                      onChange={() => {
+                        if (it.inStock > 0) setSelected(isSel ? null : it);
+                      }}
+                      style={{ width: 18, height: 18, cursor: it.inStock > 0 ? "pointer" : "not-allowed" }}
                     />
                     <div
                       className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
@@ -176,16 +193,17 @@ export default function ReplaceFromInventoryModal({
                       <i className="bi bi-box-seam"></i>
                     </div>
                     <div className="flex-grow-1">
-                      <div className="fw-semibold" style={{ color: "#1a1a2e" }}>
-                        {it.inventoryName}
+                      <div className="fw-semibold d-flex align-items-center gap-2" style={{ color: "#1a1a2e" }}>
+                        {it.furnitorName}
+                        {it.type && <span className="badge bg-secondary" style={{ fontSize: "0.65rem", padding: "3px 6px" }}>{it.type}</span>}
                       </div>
                       <div className="text-muted small">
-                        {it.branchId ? `Chi nhánh: ${it.branchId}` : " "}
+                        Mã TB: {it.furnitureCode} {branchId ? `• Chi nhánh: ${branchId}` : ""}
                       </div>
                     </div>
                     <div className="text-end">
-                      <div className="fw-bold" style={{ color: "#198754" }}>
-                        {it.stock}
+                      <div className="fw-bold" style={{ color: it.inStock > 0 ? "#198754" : "#dc3545" }}>
+                        {it.inStock}
                       </div>
                       <div className="text-muted small">trong kho</div>
                     </div>

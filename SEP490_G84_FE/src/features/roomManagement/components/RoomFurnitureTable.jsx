@@ -115,32 +115,6 @@ function RoomFurnitureTable({ furnitureList, roomId, branchId, onChanged }) {
                       <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: cond.dot, flexShrink: 0, display: "inline-block" }} />
                       {cond.label}
                     </span>
-                    <div className="dropdown">
-                      <button
-                        className="btn btn-sm border-0"
-                        data-bs-toggle="dropdown"
-                        title="Change status"
-                        style={{
-                          backgroundColor: "rgba(92,111,78,0.08)",
-                          color: BRAND,
-                          borderRadius: 10,
-                        }}
-                      >
-                        <i className="bi bi-chevron-down" style={{ fontSize: "0.7rem" }}></i>
-                      </button>
-                      <ul className="dropdown-menu shadow-sm border-0">
-                        {CONDITION_OPTIONS.map((opt) => (
-                          <li key={opt.value}>
-                            <button
-                              className="dropdown-item small"
-                              onClick={() => setPending({ item, nextStatus: opt.value })}
-                            >
-                              {opt.label}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
                   </div>
                 </td>
                 <td className="text-end pe-4">

@@ -326,6 +326,8 @@ const ImportHistory = () => {
                                                     (receipt.details || []).map((it) => ({
                                                         inventoryId: it.inventoryId,
                                                         inventoryName: it.inventoryName,
+                                                        furnitureId: it.furnitureId,
+                                                        furnitureName: it.furnitureName,
                                                         quantity: it.quantity,
                                                         unitPrice: it.unitPrice
                                                     }))
@@ -465,7 +467,7 @@ const ImportHistory = () => {
                             <tbody>
                             {selectedReceipt.details.map((d, i) => (
                                 <tr key={i}>
-                                    <td style={{ padding: '8px' }}>{d.inventoryName}</td>
+                                    <td style={{ padding: '8px' }}>{d.inventoryName || d.furnitureName || 'N/A'}</td>
                                     <td>{d.quantity} {d.unit}</td>
                                     <td>{Number(d.unitPrice).toLocaleString()} đ</td>
                                     <td style={{ fontWeight: 'bold' }}>{(Number(d.unitPrice) * Number(d.quantity)).toLocaleString()} đ</td>
@@ -508,8 +510,8 @@ const ImportHistory = () => {
                             </thead>
                             <tbody>
                             {editLines.map((line, idx) => (
-                                <tr key={line.inventoryId || idx}>
-                                    <td style={{ padding: '8px' }}>{line.inventoryName}</td>
+                                <tr key={line.inventoryId || line.furnitureId || idx}>
+                                    <td style={{ padding: '8px' }}>{line.inventoryName || line.furnitureName || 'N/A'}</td>
                                     <td style={{ padding: '8px' }}>
                                         <input
                                             type="number"

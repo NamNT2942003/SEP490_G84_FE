@@ -1,20 +1,17 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { roomManagementApi } from "../api/roomManagementApi";
+import ReplaceFromInventoryModal from "./ReplaceFromInventoryModal";
 
 const BRAND = "#5C6F4E";
 
 const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onShowNotification }) => {
   const [activeTab, setActiveTab] = useState("equipment");
+  const [actionQuantities, setActionQuantities] = useState({});
   const [equipmentList, setEquipmentList] = useState([]);
   const [issuesList, setIssuesList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // equipmentId being actioned
-  // Replace from inventory state
-  const [showInventoryModal, setShowInventoryModal] = useState(false);
-  const [selectedBrokenEquipment, setSelectedBrokenEquipment] = useState(null);
-  const [inventoryItems, setInventoryItems] = useState([]);
-  const [inventorySearch, setInventorySearch] = useState("");
-  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [replaceFor, setReplaceFor] = useState(null); // furniture item to replace
 
   useEffect(() => {
     if (show && room && (room.roomId || room.id)) {
@@ -33,8 +30,9 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
       }
       
       // Get room detail (includes equipment)
-      const detail = await roomManagementApi.getRoomDetail(roomId);
-      setEquipmentList(detail?.equipment || []);
+      const detail = await roomManagementApi.getRoomDetailFull(roomId);
+      const eqList = detail?.furnitureList || detail?.equipment || [];
+      setEquipmentList(eqList);
 
       // Fetch issues separately (may not exist yet)
       try {
@@ -45,8 +43,8 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
       }
 
       // Auto-update room status: Maintenance → Available when all equipment is fixed
-      if (room.status === "MAINTENANCE" && detail?.equipment) {
-        const brokenCount = detail.equipment.filter(e => {
+      if (room.status === "MAINTENANCE" && eqList.length > 0) {
+        const brokenCount = eqList.filter(e => {
           const s = (e.status || e.condition || "").toLowerCase();
           return s.includes("broken") || s.includes("failed") || s.includes("need") || s.includes("repair") || s.includes("maintenance") || s.includes("bảo trì");
         }).length;
@@ -67,6 +65,36 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
       setIssuesList([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleWarehouseFailAction = async (action, equipment, customQuantity) => {
+    try {
+      setActionLoading(equipment.furnitureId);
+      const roomId = room.roomId || room.id;
+      if (!roomId) return;
+
+      if (action === 'fix') {
+        const response = await roomManagementApi.fixWarehouseFailFurniture(roomId, equipment.furnitureId, customQuantity);
+        if (onShowNotification) {
+          onShowNotification({ type: 'success', message: response.message || 'Đã khôi phục thiết bị về kho', timestamp: Date.now() });
+        }
+      } else if (action === 'discard') {
+        const response = await roomManagementApi.discardWarehouseFailFurniture(roomId, equipment.furnitureId, customQuantity);
+        if (onShowNotification) {
+          onShowNotification({ type: 'success', message: response.message || 'Đã loại bỏ thiết bị khỏi kho', timestamp: Date.now() });
+        }
+      }
+
+      await fetchRoomDetails();
+      if (onRoomUpdated) onRoomUpdated();
+    } catch (error) {
+      console.error(`Error performing ${action} on equipment:`, error);
+      if (onShowNotification) {
+        onShowNotification({ type: 'error', message: `❌ Thao tác thất bại`, timestamp: Date.now() });
+      }
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -105,74 +133,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
     }
   };
 
-  // Open inventory modal to pick replacement
-  const handleOpenReplaceModal = async (equipment) => {
-    setSelectedBrokenEquipment(equipment);
-    setShowInventoryModal(true);
-    setInventorySearch("");
-    await fetchInventory("");
-  };
 
-  // Search inventory
-  const fetchInventory = async (keyword) => {
-    try {
-      setInventoryLoading(true);
-      const branchId = room.branchId || null;
-      const result = await roomManagementApi.searchInventory({
-        branchId,
-        keyword,
-        inStockOnly: true,
-        page: 0,
-        size: 20,
-      });
-      setInventoryItems(result?.content || []);
-    } catch (error) {
-      console.error("Error fetching inventory:", error);
-      setInventoryItems([]);
-    } finally {
-      setInventoryLoading(false);
-    }
-  };
-
-  // Confirm replacement from inventory
-  const handleReplaceFromInventory = async (inventoryItem) => {
-    try {
-      setActionLoading(selectedBrokenEquipment?.id || selectedBrokenEquipment?.furnitureId);
-      const roomId = room.roomId || room.id;
-      const oldFurnitureId = selectedBrokenEquipment?.id || selectedBrokenEquipment?.furnitureId;
-
-      await roomManagementApi.replaceFromInventory(roomId, oldFurnitureId, {
-        inventoryId: inventoryItem.id || inventoryItem.inventoryId,
-        quantity: selectedBrokenEquipment?.quantity || 1,
-      });
-
-      // Show success notification
-      if (onShowNotification) {
-        onShowNotification({
-          type: 'success',
-          message: `✅ Equipment replaced successfully in room ${room.roomName}`,
-          timestamp: Date.now()
-        });
-      }
-
-      setShowInventoryModal(false);
-      setSelectedBrokenEquipment(null);
-      await fetchRoomDetails();
-      if (onRoomUpdated) onRoomUpdated();
-    } catch (error) {
-      console.error("Error replacing equipment:", error);
-      if (onShowNotification) {
-        onShowNotification({
-          type: 'error',
-          message: `❌ Failed to replace equipment from inventory`,
-          timestamp: Date.now()
-        });
-      }
-      alert("Không thể thay thế thiết bị từ kho. Vui lòng thử lại.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
 
   const getStatusColor = (status) => {
     if (!status) return "#6c757d";
@@ -230,8 +191,8 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
     return c.includes("broken") || c.includes("failed") || c.includes("need") || c.includes("repair") || c.includes("maintenance") || c.includes("bảo trì") || c.includes("bao tri");
   };
 
-  const goodEquipment = equipmentList.filter(e => isEquipmentGood(e.status || e.condition)).length;
-  const brokenEquipment = equipmentList.filter(e => isEquipmentBroken(e.status || e.condition)).length;
+  const goodEquipment = equipmentList.filter(e => isEquipmentGood(e.condition)).length;
+  const brokenEquipment = equipmentList.filter(e => isEquipmentBroken(e.condition)).length;
 
   if (!show) return null;
 
@@ -277,14 +238,16 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
 
               {/* Report Issue Button */}
               <div className="d-flex gap-2">
-                <button
-                  className="btn btn-danger d-flex align-items-center gap-2 px-3 py-2"
-                  onClick={() => onReportIssue(room)}
-                  style={{ borderRadius: 8 }}
-                >
-                  <i className="bi bi-bell-fill"></i>
-                  Report Issue
-                </button>
+                {!room?.roomName?.includes('WAREHOUSE') && (
+                  <button
+                    className="btn btn-danger d-flex align-items-center gap-2 px-3 py-2"
+                    onClick={() => onReportIssue(room)}
+                    style={{ borderRadius: 8 }}
+                  >
+                    <i className="bi bi-bell-fill"></i>
+                    Report Issue
+                  </button>
+                )}
                 
                 <button
                   type="button"
@@ -315,22 +278,24 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                   Equipment ({equipmentList?.length || 0})
                 </button>
               </li>
-              <li className="nav-item">
-                <button
-                  className={`nav-link border-0 px-3 py-2 ${
-                    activeTab === "issues"
-                      ? "active text-white"
-                      : "text-muted bg-light"
-                  }`}
-                  style={{
-                    borderRadius: 8,
-                    backgroundColor: activeTab === "issues" ? BRAND : "transparent",
-                  }}
-                  onClick={() => setActiveTab("issues")}
-                >
-                  Issues ({issuesList?.length || 0})
-                </button>
-              </li>
+              {!room?.roomName?.includes('WAREHOUSE') && (
+                <li className="nav-item">
+                  <button
+                    className={`nav-link border-0 px-3 py-2 ${
+                      activeTab === "issues"
+                        ? "active text-white"
+                        : "text-muted bg-light"
+                    }`}
+                    style={{
+                      borderRadius: 8,
+                      backgroundColor: activeTab === "issues" ? BRAND : "transparent",
+                    }}
+                    onClick={() => setActiveTab("issues")}
+                  >
+                    Issues ({issuesList?.length || 0})
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -396,15 +361,15 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                           <tbody>
                             {equipmentList && equipmentList.length > 0 ? (
                               equipmentList.map((equipment, index) => {
-                                const eqGood = isEquipmentGood(equipment.status || equipment.condition);
-                                const eqBroken = isEquipmentBroken(equipment.status || equipment.condition);
+                                const eqGood = isEquipmentGood(equipment.condition);
+                                const eqBroken = isEquipmentBroken(equipment.condition);
                                 return (
-                                <tr key={equipment.furnitureId || equipment.id || index}>
+                                <tr key={equipment.furnitureId || index}>
                                   <td className="border-0 text-muted">
                                     {String(index + 1).padStart(2, '0')}
                                   </td>
                                   <td className="border-0 fw-medium">
-                                    {equipment.furnitorName || equipment.name || 'Không xác định'}
+                                    {equipment.furnitorName || 'Không xác định'}
                                   </td>
                                   <td className="border-0 text-center">
                                     {equipment.quantity || 1}
@@ -413,7 +378,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                     <span
                                       className="badge px-3 py-2 d-flex align-items-center gap-1 justify-content-center"
                                       style={{
-                                        backgroundColor: getEquipmentConditionColor(equipment.status || equipment.condition),
+                                        backgroundColor: getEquipmentConditionColor(equipment.condition),
                                         color: "#fff",
                                         width: "120px",
                                         margin: "0 auto",
@@ -422,18 +387,47 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                       }}
                                     >
                                       <i className={`bi ${eqGood ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill"}`}></i>
-                                      {getEquipmentConditionText(equipment.status || equipment.condition)}
+                                      {getEquipmentConditionText(equipment.condition)}
                                     </span>
                                   </td>
                                   <td className="border-0 text-center">
-                                    {eqGood ? (
+                                    {room?.roomName === 'WAREHOUSE_FAIL' ? (
+                                      <div className="d-flex align-items-center gap-2 justify-content-center">
+                                          <input
+                                            type="number"
+                                            className="form-control form-control-sm"
+                                            style={{ width: "60px", fontSize: "0.75rem" }}
+                                            min={1}
+                                            max={equipment.quantity}
+                                            value={actionQuantities[equipment.furnitureId] || 1}
+                                            onChange={(e) => setActionQuantities(prev => ({ ...prev, [equipment.furnitureId]: Number(e.target.value) }))}
+                                            disabled={actionLoading === equipment.furnitureId}
+                                          />
+                                        <button
+                                          className="btn btn-success btn-sm px-3"
+                                          style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
+                                          onClick={() => handleWarehouseFailAction('fix', equipment, actionQuantities[equipment.furnitureId] || 1)}
+                                          disabled={actionLoading === equipment.furnitureId}
+                                        >
+                                          {actionLoading === equipment.furnitureId ? 'Đang xử lý...' : 'Fixed'}
+                                        </button>
+                                        <button
+                                          className="btn btn-danger btn-sm px-3"
+                                          style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
+                                          onClick={() => handleWarehouseFailAction('discard', equipment, actionQuantities[equipment.furnitureId] || 1)}
+                                          disabled={actionLoading === equipment.furnitureId}
+                                        >
+                                          {actionLoading === equipment.furnitureId ? 'Đang xử lý...' : 'Beyond fixed'}
+                                        </button>
+                                      </div>
+                                    ) : eqGood ? (
                                       <button
                                         className="btn btn-outline-danger btn-sm px-3"
                                         style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
-                                        onClick={() => handleMarkBroken(equipment.furnitureId || equipment.id)}
-                                        disabled={actionLoading === (equipment.furnitureId || equipment.id)}
+                                        onClick={() => handleMarkBroken(equipment.furnitureId)}
+                                        disabled={actionLoading === equipment.furnitureId}
                                       >
-                                        {actionLoading === (equipment.furnitureId || equipment.id) ? (
+                                        {actionLoading === equipment.furnitureId ? (
                                           <>
                                             <div className="spinner-border spinner-border-sm me-1" role="status">
                                               <span className="visually-hidden">Loading...</span>
@@ -451,10 +445,10 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                       <button
                                         className="btn btn-warning btn-sm px-3"
                                         style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
-                                        onClick={() => handleOpenReplaceModal(equipment)}
-                                        disabled={actionLoading === (equipment.furnitureId || equipment.id)}
+                                        onClick={() => setReplaceFor(equipment)}
+                                        disabled={actionLoading === equipment.furnitureId}
                                       >
-                                        {actionLoading === (equipment.furnitureId || equipment.id) ? (
+                                        {actionLoading === equipment.furnitureId ? (
                                           <>
                                             <div className="spinner-border spinner-border-sm me-1" role="status">
                                               <span className="visually-hidden">Loading...</span>
@@ -554,11 +548,11 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                 </td>
                                 <td className="border-0">
                                   <span className={`badge ${
-                                    issue.status === 'RESOLVED' ? 'bg-success' :
-                                    issue.status === 'IN_PROGRESS' ? 'bg-info' :
-                                    'bg-warning text-dark'
-                                  }`}>
-                                    {issue.status === 'RESOLVED' ? 'Đã giải quyết' :
+                                      (issue.status === 'RESOLVED' || issue.status === 'CLOSED') ? 'bg-success' :
+                                      issue.status === 'IN_PROGRESS' ? 'bg-info' :
+                                      'bg-warning text-dark'
+                                    }`}>
+                                      {(issue.status === 'RESOLVED' || issue.status === 'CLOSED') ? 'Đã giải quyết' :
                                      issue.status === 'IN_PROGRESS' ? 'Đang xử lý' :
                                      'Chờ xử lý'}
                                   </span>
@@ -605,112 +599,31 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
         </div>
       </div>
 
-      {/* INVENTORY SELECTION MODAL */}
-      {showInventoryModal && (
-        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060 }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content border-0" style={{ borderRadius: 15 }}>
-              <div className="modal-header border-0 p-4 pb-3">
-                <div>
-                  <h5 className="fw-bold mb-1">Thay thế thiết bị từ kho</h5>
-                  <p className="text-muted mb-0 small">
-                    Thiết bị hỏng: <strong>{selectedBrokenEquipment?.name || selectedBrokenEquipment?.furnitorName || "N/A"}</strong>
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => { setShowInventoryModal(false); setSelectedBrokenEquipment(null); }}
-                ></button>
-              </div>
-              <div className="modal-body p-4 pt-0">
-                {/* Search bar */}
-                <div className="input-group mb-3">
-                  <span className="input-group-text bg-white border-end-0">
-                    <i className="bi bi-search text-muted"></i>
-                  </span>
-                  <input
-                    type="text"
-                    className="form-control border-start-0"
-                    placeholder="Tìm kiếm thiết bị trong kho..."
-                    value={inventorySearch}
-                    onChange={(e) => {
-                      setInventorySearch(e.target.value);
-                      fetchInventory(e.target.value);
-                    }}
-                  />
-                </div>
-
-                {/* Inventory list */}
-                {inventoryLoading ? (
-                  <div className="d-flex justify-content-center py-4">
-                    <div className="spinner-border" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                  </div>
-                ) : inventoryItems.length > 0 ? (
-                  <div className="table-responsive" style={{ maxHeight: "400px" }}>
-                    <table className="table table-hover">
-                      <thead className="table-light sticky-top">
-                        <tr style={{ fontSize: "0.85rem", fontWeight: 600 }}>
-                          <th className="text-muted border-0">#</th>
-                          <th className="text-muted border-0">Tên thiết bị</th>
-                          <th className="text-muted border-0 text-center">Tồn kho</th>
-                          <th className="text-muted border-0 text-center">Hành động</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inventoryItems.map((item, idx) => (
-                          <tr key={item.id || item.inventoryId || idx}>
-                            <td className="border-0 text-muted">{String(idx + 1).padStart(2, '0')}</td>
-                            <td className="border-0 fw-medium">{item.name || item.facilityName || 'N/A'}</td>
-                            <td className="border-0 text-center">
-                              <span className="badge bg-info">{item.quantity || item.stock || 0}</span>
-                            </td>
-                            <td className="border-0 text-center">
-                              <button
-                                className="btn btn-sm px-3 py-1 fw-semibold"
-                                style={{
-                                  backgroundColor: BRAND,
-                                  color: "#fff",
-                                  borderRadius: "6px",
-                                  fontSize: "0.75rem",
-                                }}
-                                onClick={() => handleReplaceFromInventory(item)}
-                                disabled={actionLoading != null}
-                              >
-                                <i className="bi bi-check2 me-1"></i>
-                                Chọn thay thế
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center text-muted py-4">
-                    <i className="bi bi-box-seam me-2" style={{ fontSize: "1.5rem" }}></i>
-                    <div className="mt-2">Không tìm thấy thiết bị trong kho</div>
-                    <div className="small mt-1">Thử tìm kiếm với từ khóa khác</div>
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer border-0 p-4 pt-0">
-                <button
-                  className="btn btn-outline-secondary px-4"
-                  style={{ borderRadius: 8 }}
-                  onClick={() => { setShowInventoryModal(false); setSelectedBrokenEquipment(null); }}
-                >
-                  Hủy
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* REPLACE FROM INVENTORY MODAL */}
+      {replaceFor && (
+        <ReplaceFromInventoryModal
+          roomId={room.roomId || room.id}
+          branchId={room.branchId}
+          oldItem={replaceFor}
+          onClose={() => setReplaceFor(null)}
+          onReplaced={() => {
+            setReplaceFor(null);
+            if (onShowNotification) {
+              onShowNotification({
+                type: 'success',
+                message: `✅ Equipment replaced successfully`,
+                timestamp: Date.now()
+              });
+            }
+            fetchRoomDetails();
+            if (onRoomUpdated) onRoomUpdated();
+          }}
+        />
       )}
     </div>
   );
 };
 
 export default RoomDetailModal;
+
+

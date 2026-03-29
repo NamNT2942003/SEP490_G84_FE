@@ -406,6 +406,8 @@ function RoomManagement() {
 
   // Filter rooms based on UI filters
   const filteredRooms = rooms.filter(room => {
+    if (room.roomName === "WAREHOUSE" || room.roomName === "WAREHOUSE_FAIL") return false;
+
     let match = true;
     if (floorFilter) match = match && room.floor?.toString() === floorFilter;
     if (roomTypeFilter) match = match && room.roomType === roomTypeFilter;
@@ -579,7 +581,7 @@ function RoomManagement() {
         }
       `}</style>
 
-      <MainLayout>
+
         <div className="container-fluid py-4 px-xl-5" style={{ backgroundColor: "#fbfbfb", minHeight: "100vh" }}>
 
         {/* BREADCRUMB & ADD BUTTON */}
@@ -1108,7 +1110,7 @@ function RoomManagement() {
           }}
         />
       )}
-    </MainLayout>
+
   </>
 );
 }

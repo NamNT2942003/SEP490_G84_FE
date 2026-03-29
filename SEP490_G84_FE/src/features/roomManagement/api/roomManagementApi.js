@@ -1,7 +1,7 @@
 import apiClient from '../../../services/apiClient';
 
 const ROOM_API_BASE = '/rooms';
-const FURNITURE_API_BASE = '/rooms/furniture';
+const FURNITURE_API_BASE = '/rooms-detail/furniture';
 const ADMIN_ROOM_API_BASE = '/admin/rooms';
 
 export const roomManagementApi = {
@@ -51,6 +51,13 @@ export const roomManagementApi = {
   getRoomDetail: async (roomId) => {
     // Standardized to use RoomManagementController endpoint which now returns full detail
     const response = await apiClient.get(`${ROOM_API_BASE}/${roomId}/detail`);
+    return response.data;
+  },
+
+  // Get full room detail with complete furniture list (includes code, type, condition)
+  getRoomDetailFull: async (roomId) => {
+    // Uses RoomDetailController endpoint which returns complete FurnitureInRoomDTO with all fields
+    const response = await apiClient.get(`/rooms-detail/${roomId}/detail`);
     return response.data;
   },
 
@@ -107,6 +114,28 @@ export const roomManagementApi = {
     return response.data;
   },
 
+  updateRoomBaseInfo: async (roomId, payload) => {
+    const response = await apiClient.put(
+      `${ADMIN_ROOM_API_BASE}/${roomId}`,
+      payload,
+    );
+    return response.data;
+  },
+
+  fixWarehouseFailFurniture: async (roomId, furnitureId, quantity = 1) => {
+    const response = await apiClient.post(
+      `${ADMIN_ROOM_API_BASE}/${roomId}/furniture/${furnitureId}/fix?quantity=${quantity}`
+    );
+    return response.data;
+  },
+
+  discardWarehouseFailFurniture: async (roomId, furnitureId, quantity = 1) => {
+    const response = await apiClient.post(
+      `${ADMIN_ROOM_API_BASE}/${roomId}/furniture/${furnitureId}/discard?quantity=${quantity}`
+    );
+    return response.data;
+  },
+
   // Report incident for room
   createIncident: async (roomId, payload) => {
     const response = await apiClient.post(
@@ -147,6 +176,15 @@ export const roomManagementApi = {
   listIncidents: async (roomId, page = 0, size = 10) => {
     const response = await apiClient.get(
       `${ADMIN_ROOM_API_BASE}/${roomId}/incidents?page=${page}&size=${size}`,
+    );
+    return response.data;
+  },
+
+  // Close/resolve incident
+  closeIncident: async (roomId, incidentId, resolution) => {
+    const response = await apiClient.put(
+      `${ADMIN_ROOM_API_BASE}/${roomId}/incidents/${incidentId}`,
+      { resolution }
     );
     return response.data;
   },
