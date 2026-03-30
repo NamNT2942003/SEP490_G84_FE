@@ -28,14 +28,19 @@ import Dashboard from "@/features/dashboard/screens/Dashboard";
 import RoomManagement from "@/features/admin/screens/RoomManagement";
 import FurnitureManagement from "@/features/admin/screens/FurnitureManagement";
 
-// --- ACCOUNT MANAGEMENT PAGES ---
+// --- SERVICE MANAGEMENT ---
+import ServiceList from '@/features/services/screens/ServiceList';
+
+// --- ACCOUNT & PROFILE PAGES ---
 import AccountList from '@/features/accounts/screens/AccountList';
 import UserDetail from '@/features/accounts/screens/UserDetail';
 import EditStaff from '@/features/accounts/screens/EditStaff';
 import CreateAccount from '@/features/accounts/screens/CreateAccount';
+import UserProfile from '@/features/profile/screens/UserProfile';
+import UpdateProfile from '@/features/profile/screens/UpdateProfile';
 
-/** Helper: Staff không được vào trang Account → redirect về /dashboard */
-const BlockStaffFromAccounts = ({ children }) => {
+/** Staff cannot access account or service management — redirect to dashboard */
+const RedirectStaffToDashboard = ({ children }) => {
     const currentUser = useCurrentUser();
     if (currentUser?.permissions?.isStaff) {
         return <Navigate to="/dashboard" replace />;
@@ -70,23 +75,26 @@ const AppRouter = () => {
             {/* 5. PRIVATE PAGES (With MainLayout) */}
             <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
             <Route path="/rooms" element={<MainLayout><div>Room List (Coming Soon)</div></MainLayout>} />
+            <Route path="/services" element={<MainLayout><RedirectStaffToDashboard><ServiceList /></RedirectStaffToDashboard></MainLayout>} />
+            <Route path="/profile" element={<MainLayout><UserProfile /></MainLayout>} />
+            <Route path="/profile/edit" element={<MainLayout><UpdateProfile /></MainLayout>} />
 
-            {/* 6. ACCOUNT PAGES (MainLayout + Block Staff) */}
+            {/* 6. ACCOUNT PAGES (MainLayout + Staff redirect) */}
             <Route
                 path="/accounts"
-                element={<MainLayout><BlockStaffFromAccounts><AccountList /></BlockStaffFromAccounts></MainLayout>}
+                element={<MainLayout><RedirectStaffToDashboard><AccountList /></RedirectStaffToDashboard></MainLayout>}
             />
             <Route
                 path="/accounts/create"
-                element={<MainLayout><BlockStaffFromAccounts><CreateAccount /></BlockStaffFromAccounts></MainLayout>}
+                element={<MainLayout><RedirectStaffToDashboard><CreateAccount /></RedirectStaffToDashboard></MainLayout>}
             />
             <Route
                 path="/accounts/:id"
-                element={<MainLayout><BlockStaffFromAccounts><UserDetail /></BlockStaffFromAccounts></MainLayout>}
+                element={<MainLayout><RedirectStaffToDashboard><UserDetail /></RedirectStaffToDashboard></MainLayout>}
             />
             <Route
                 path="/accounts/:id/edit"
-                element={<MainLayout><BlockStaffFromAccounts><EditStaff /></BlockStaffFromAccounts></MainLayout>}
+                element={<MainLayout><RedirectStaffToDashboard><EditStaff /></RedirectStaffToDashboard></MainLayout>}
             />
 
             {/* 7. CATCH-ALL (Redirect to Login for unknown routes) */}

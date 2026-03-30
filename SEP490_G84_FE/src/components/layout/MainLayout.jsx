@@ -7,14 +7,14 @@ const layoutMain = {
     display: 'grid',
     gridTemplateColumns: '260px 1fr', // Cột trái 260px (Sidebar), cột phải là phần còn lại (1fr)
     height: '100vh',                  // BẮT BUỘC: Khóa cứng chiều cao vừa đúng 1 màn hình
-    overflow: 'hidden',               // Không cho phép cuộn toàn trang
+    overflow: 'auto',               // Không cho phép cuộn toàn trang
     background: '#f3f4f6',
 };
 
 // Bọc Sidebar lại để đảm bảo nó luôn lấp đầy 100% chiều cao cột trái
 const sidebarWrapper = {
     height: '100%',
-    overflowY: 'auto', // Nếu menu quá nhiều mục, nó sẽ tự có thanh cuộn riêng ở Sidebar
+    overflowY: 'auto', // Default: Sidebar có thể scroll độc lập nếu menu dài
     display: 'flex',
     flexDirection: 'column'
 };
