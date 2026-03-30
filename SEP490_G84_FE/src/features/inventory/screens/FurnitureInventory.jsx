@@ -26,6 +26,9 @@ const FurnitureInventory = () => {
     const [rows, setRows] = useState([]);
     const [selectedBranch, setSelectedBranch] = useState(currentUser?.defaultBranchId ? String(currentUser.defaultBranchId) : 'all');
     const [nameDraft, setNameDraft] = useState('');
+    const [typeFilterDraft, setTypeFilterDraft] = useState('all');
+    const [typeFilterApplied, setTypeFilterApplied] = useState('all');
+    const [furnitureTypes, setFurnitureTypes] = useState([]);
     const [nameApplied, setNameApplied] = useState('');
     const [page, setPage] = useState(1);
     const [pageInput, setPageInput] = useState('1');
@@ -61,7 +64,7 @@ const FurnitureInventory = () => {
     const [itemHistoryData, setItemHistoryData] = useState([]);
 
     // Fetch branches
-    useEffect(() => {
+        useEffect(() => {
         const fetchBranches = async () => {
             try {
                 const data = await roomManagementApi.listBranches();
@@ -78,10 +81,20 @@ const FurnitureInventory = () => {
             }
         };
         fetchBranches();
+
+        const fetchTypes = async () => {
+            try {
+                const typeData = await apiClient.get('/inventory/furniture/types');
+                setFurnitureTypes(typeData.data || []);
+            } catch (e) {
+                console.error('Failed to fetch types:', e);
+            }
+        };
+        fetchTypes();
     }, []);
 
     // Fetch furniture inventory data
-    const fetchFurnitureData = useCallback(async (branchId, searchKeyword = '', pageNum = 1) => {
+    const fetchFurnitureData = useCallback(async (branchId, searchKeyword = '', typeId = 'all', pageNum = 1) => {
         if (branchId === 'all') {
             setRows([]);
             return;
@@ -94,13 +107,15 @@ const FurnitureInventory = () => {
                     branchId,
                     searchKeyword,
                     pageNum - 1,
-                    pageSize
+                    pageSize,
+                    typeId === 'all' ? null : typeId
                 );
             } else {
                 response = await roomManagementApi.listFurnitureInventoryByBranch(
                     branchId,
                     pageNum - 1,
-                    pageSize
+                    pageSize,
+                    typeId === 'all' ? null : typeId
                 );
             }
 
@@ -142,8 +157,8 @@ const FurnitureInventory = () => {
     // Fetch data when page changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
-        fetchFurnitureData(selectedBranch, nameApplied, page);
-    }, [page, fetchFurnitureData, selectedBranch, nameApplied]);
+        fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page);
+    }, [page, fetchFurnitureData, selectedBranch, nameApplied, typeFilterApplied]);
 
     const formatVND = (value) =>
         new Intl.NumberFormat('vi-VN').format(value) + ' đ';
@@ -202,7 +217,7 @@ const FurnitureInventory = () => {
         setPageInput('1');
     };
 
-    const applyNameSearch = () => {
+    const applyFilters = () => {
         setNameApplied(nameDraft.trim());
         setPage(1);
         setPageInput('1');
@@ -367,7 +382,7 @@ const FurnitureInventory = () => {
             alert('Import successfully! Furniture imported to stock.');
             setIsImportModalOpen(false);
             // Refresh furniture data
-            fetchFurnitureData(selectedBranch, nameApplied, page);
+            fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page);
         } catch (error) {
             console.error('Furniture import error:', error);
             const msg = error?.response?.data?.message || 'Import failed! Please check your data.';
@@ -410,7 +425,7 @@ const FurnitureInventory = () => {
             
             setBrokenDetailInfo(null);
             setBrokenActionQuantity(1);
-            fetchFurnitureData(selectedBranch, nameApplied, page);
+            fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page);
             
         } catch (e) {
             console.error(e);
@@ -601,13 +616,31 @@ const FurnitureInventory = () => {
                                         ))}
                                     </select>
                                 </div>
+                                                        </div>
+
+                            <div className="filter-group">
+                                <label className="filter-label">
+                                    <i className="bi bi-tag me-1"></i>Type
+                                </label>
+                                <div className="filter-input-group">
+                                    <select
+                                        value={typeFilterDraft}
+                                        onChange={(e) => setTypeFilterDraft(e.target.value)}
+                                        style={{ paddingLeft: "14px", appearance: 'auto', width: '100%' }}
+                                    >
+                                        <option value="all">All Types</option>
+                                        {furnitureTypes.map(t => (
+                                            <option key={t.typeId} value={t.typeId}>{t.typeName}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="filter-group">
                                 <label className="filter-label">
                                     <i className="bi bi-search me-1"></i>By Name
                                 </label>
-                                <form onSubmit={(e) => { e.preventDefault(); applyNameSearch(); }} className="filter-input-group">
+                                <form onSubmit={(e) => { e.preventDefault(); applyFilters(); }} className="filter-input-group">
                                     <i className="filter-icon bi bi-search"></i>
                                     <input
                                         type="text"
@@ -622,7 +655,7 @@ const FurnitureInventory = () => {
                                 <button
                                     type="button"
                                     className="filter-btn filter-btn-search"
-                                    onClick={applyNameSearch}
+                                    onClick={applyFilters}
                                 >
                                     <i className="bi bi-search"></i> Search
                                 </button>
@@ -1413,7 +1446,7 @@ const FurnitureInventory = () => {
                         setShowWarehouseFailModal(false);
                         setWarehouseFailRoom(null);
                         // Refresh inventory data optionally to update stock
-                        fetchFurnitureData(selectedBranch, nameApplied, page);
+                        fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page);
                     }}
                 />
             )}

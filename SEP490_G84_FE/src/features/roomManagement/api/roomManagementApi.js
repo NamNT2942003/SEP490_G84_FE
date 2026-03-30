@@ -1,4 +1,4 @@
-import apiClient from '../../../services/apiClient';
+﻿import apiClient from '../../../services/apiClient';
 
 const ROOM_API_BASE = '/rooms';
 const FURNITURE_API_BASE = '/rooms-detail/furniture';
@@ -225,20 +225,22 @@ export const roomManagementApi = {
   },
 
   // Furniture Inventory - List by branch with details (in-use, broken, stock, etc.)
-  listFurnitureInventoryByBranch: async (branchId, page = 0, size = 10) => {
+  listFurnitureInventoryByBranch: async (branchId, page = 0, size = 10, typeId = null) => {
     const params = new URLSearchParams();
-    params.append('page', page);
-    params.append('size', size);
+    if (page !== undefined && page !== null) params.append('page', page);
+    if (size !== undefined && size !== null) params.append('size', size);
+    if (typeId) params.append('typeId', typeId);
     const response = await apiClient.get(`/rooms-detail/furniture/branch/${branchId}?${params.toString()}`);
     return response.data;
   },
 
   // Furniture Inventory - Search by branch
-  searchFurnitureInventoryByBranch: async (branchId, keyword = '', page = 0, size = 10) => {
+  searchFurnitureInventoryByBranch: async (branchId, keyword = '', page = 0, size = 10, typeId = null) => {
     const params = new URLSearchParams();
     if (keyword) params.append('keyword', keyword);
-    params.append('page', page);
-    params.append('size', size);
+    if (page !== undefined && page !== null) params.append('page', page);
+    if (size !== undefined && size !== null) params.append('size', size);
+    if (typeId) params.append('typeId', typeId);
     const response = await apiClient.get(`/rooms-detail/furniture/branch/${branchId}/search?${params.toString()}`);
     return response.data;
   },

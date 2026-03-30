@@ -27,7 +27,8 @@ export default function ReplaceFromInventoryModal({
         branchId,
         keyword,
         page,
-        size
+        size,
+        oldItem?.typeId
       );
       // Data format from searchFurnitureInventoryByBranch is { content: [], totalElements, totalPages, number, size }
       setData(res);
