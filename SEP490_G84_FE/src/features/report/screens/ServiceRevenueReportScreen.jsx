@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { reportApi } from '../api/reportApi'; // Nhớ trỏ đúng đường dẫn file api của em
+import { useSearchParams } from 'react-router-dom';
+import { reportApi } from '../api/reportApi';
 import { COLORS } from '@/constants';
-import YearlyRevenueChart from '../component/YearlyRevenueChart'; 
+import YearlyServiceRevenueDashboard from '../component/YearlyServiceRevenueDashboard';
 import ExpensePieChart from '../component/ExpensePieChart'; 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ServiceRevenueReportScreen = () => {
-    // 1. Global Filters (Bộ lọc)
-    const [selectedBranch, setSelectedBranch] = useState(null); 
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [searchParams] = useSearchParams();
+
+    // Pre-populate from URL params if navigated from Aggregated Report
+    const initBranch = searchParams.get('branchId') ? Number(searchParams.get('branchId')) : null;
+    const initYear   = searchParams.get('year')     ? Number(searchParams.get('year'))     : new Date().getFullYear();
+    const initMonth  = searchParams.get('month')    ? Number(searchParams.get('month'))    : null;
+
+    // 1. Global Filters (Бộ lọc)
+    const [selectedBranch, setSelectedBranch] = useState(initBranch);
+    const [selectedYear, setSelectedYear] = useState(initYear);
     
     // 2. Navigation State (Điều hướng Drill-down)
-    const [viewLevel, setViewLevel] = useState('yearly'); 
-    const [selectedMonth, setSelectedMonth] = useState(null);
+    const [viewLevel, setViewLevel] = useState(initMonth ? 'monthly' : 'yearly');
+    const [selectedMonth, setSelectedMonth] = useState(initMonth);
 
     // 3. Data States (Lưu trữ dữ liệu thật từ API)
     const [yearlyData, setYearlyData] = useState([]);
@@ -37,8 +45,7 @@ const ServiceRevenueReportScreen = () => {
                 const data = await reportApi.getReportBranches();
                 setBranches(data);
                 
-                // Tự động gán chi nhánh đầu tiên vào filter nếu data trả về có chứa chi nhánh
-                if (data && data.length > 0) {
+                if (!initBranch && data && data.length > 0) {
                     setSelectedBranch(data[0].branchId);
                 }
             } catch (error) {
@@ -149,14 +156,12 @@ const ServiceRevenueReportScreen = () => {
             )}
 
             {/* LEVEL 1: TỔNG QUAN NĂM */}
-            {!loading && viewLevel === 'yearly' && (
-                <div className="card shadow-sm border-0 rounded-3 p-4 animate__animated animate__fadeIn">
-                    <h5 className="fw-bold mb-4 text-dark">Total Service Revenue in {selectedYear}</h5>
-                    <YearlyRevenueChart 
-                        data={yearlyData} 
-                        onMonthClick={(m) => { setSelectedMonth(m); setViewLevel('monthly'); }} 
-                    />
-                </div>
+            {!loading && viewLevel === 'yearly' && Array.isArray(yearlyData) && yearlyData.length > 0 && (
+                <YearlyServiceRevenueDashboard
+                    yearlyData={yearlyData}
+                    selectedYear={selectedYear}
+                    onMonthClick={(m) => { setSelectedMonth(m); setViewLevel('monthly'); }}
+                />
             )}
 
             {/* LEVEL 2: CHI TIẾT THÁNG (Pie Chart + Table) */}

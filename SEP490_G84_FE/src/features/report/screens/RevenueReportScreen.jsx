@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { reportApi } from '../api/reportApi';
 import YearlyRevenueDashboard from '../component/YearlyRevenueDashboard';
 import MonthlyRevenueDashboard from '../component/MonthlyRevenueDashboard';
@@ -6,13 +7,19 @@ import { COLORS } from '@/constants';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const RevenueReportScreen = () => {
-    // Global Filters
-    const [selectedBranch, setSelectedBranch] = useState(null);
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-    
-    // Luồng Drill-down State
-    const [viewLevel, setViewLevel] = useState('yearly'); // 'yearly' | 'monthly'
-    const [selectedMonth, setSelectedMonth] = useState(null);
+    const [searchParams] = useSearchParams();
+
+    // Global Filters — pre-populate from URL params if navigated from Aggregated Report
+    const initBranch = searchParams.get('branchId') ? Number(searchParams.get('branchId')) : null;
+    const initYear   = searchParams.get('year')     ? Number(searchParams.get('year'))     : new Date().getFullYear();
+    const initMonth  = searchParams.get('month')    ? Number(searchParams.get('month'))    : null;
+
+    const [selectedBranch, setSelectedBranch] = useState(initBranch);
+    const [selectedYear, setSelectedYear] = useState(initYear);
+
+    // Drill-down State — jump to monthly view if month param provided
+    const [viewLevel, setViewLevel] = useState(initMonth ? 'monthly' : 'yearly');
+    const [selectedMonth, setSelectedMonth] = useState(initMonth);
     
     // Data States
     const [yearlyData, setYearlyData] = useState(null);
@@ -33,7 +40,7 @@ const RevenueReportScreen = () => {
             try {
                 const data = await reportApi.getReportBranches();
                 setBranches(data);
-                if (data && data.length > 0) {
+                if (!initBranch && data && data.length > 0) {
                     setSelectedBranch(data[0].branchId);
                 }
             } catch (error) {

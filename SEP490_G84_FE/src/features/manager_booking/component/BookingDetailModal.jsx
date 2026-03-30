@@ -42,7 +42,8 @@ export default function BookingDetailModal({ show, onClose, booking, onRefresh }
       // FIX TẠI ĐÂY: Loại bỏ empty string của dateOfBirth
       const payload = {
         ...editForm,
-        dateOfBirth: editForm.dateOfBirth === '' ? null : editForm.dateOfBirth
+        dateOfBirth: editForm.dateOfBirth === '' ? null : editForm.dateOfBirth,
+        identityNumber: editForm.identityNumber === '' ? null : editForm.identityNumber
       };
 
       await checkInApi.updateGuestInfo(guestId, payload);

@@ -180,7 +180,7 @@ function Toggle({ on, onChange, disabled }) {
 }
 
 /* ── Step 1: Arrival Info ── */
-function StepArrival({ applyEarlyCheckIn, setApplyEarlyCheckIn, earlyCheckInFee, setEarlyCheckInFee, earlyCheckInNote, setEarlyCheckInNote, luggageNote, setLuggageNote, isSubmitting }) {
+function StepArrival({ applyEarlyCheckIn, setApplyEarlyCheckIn, earlyCheckInFee, setEarlyCheckInFee, earlyCheckInNote, setEarlyCheckInNote, luggageNote, setLuggageNote, payNow, setPayNow, paymentMethod, setPaymentMethod, isSubmitting }) {
   return (
     <div>
       <p style={S.sectionLabel}>Fill in arrival context before assigning rooms</p>
@@ -194,16 +194,55 @@ function StepArrival({ applyEarlyCheckIn, setApplyEarlyCheckIn, earlyCheckInFee,
           <Toggle on={applyEarlyCheckIn} onChange={setApplyEarlyCheckIn} disabled={isSubmitting} />
         </div>
         {applyEarlyCheckIn && (
-          <div style={S.grid2}>
-            <Field label="Amount (VND)">
-              <input style={S.input(false)} type="number" value={earlyCheckInFee}
-                onChange={e => setEarlyCheckInFee(e.target.value)} placeholder="e.g. 500000" disabled={isSubmitting} />
-            </Field>
-            <Field label="Reason / Invoice Note">
-              <input style={S.input(false)} value={earlyCheckInNote}
-                onChange={e => setEarlyCheckInNote(e.target.value)} placeholder="e.g. Early check-in at 08:00" disabled={isSubmitting} />
-            </Field>
-          </div>
+          <>
+            <div style={S.grid2}>
+              <Field label="Amount (VND)">
+                <input style={S.input(false)} type="number" value={earlyCheckInFee}
+                  onChange={e => setEarlyCheckInFee(e.target.value)} placeholder="e.g. 500000" disabled={isSubmitting} />
+              </Field>
+              <Field label="Reason / Invoice Note">
+                <input style={S.input(false)} value={earlyCheckInNote}
+                  onChange={e => setEarlyCheckInNote(e.target.value)} placeholder="e.g. Early check-in at 08:00" disabled={isSubmitting} />
+              </Field>
+            </div>
+
+            <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: `1px solid ${C.BORDER}` }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 600, color: C.MUTED, marginBottom: '10px', letterSpacing: '0.2px' }}>PAYMENT OPTION</div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                {[{ val: false, label: 'Pay Later', sub: 'Roll into checkout bill' }, { val: true, label: 'Pay Now', sub: 'Collect at counter immediately' }].map(opt => (
+                  <div key={String(opt.val)}
+                    onClick={() => !isSubmitting && setPayNow(opt.val)}
+                    style={{
+                      flex: 1, padding: '12px 14px', borderRadius: '8px', cursor: 'pointer',
+                      border: `2px solid ${payNow === opt.val ? C.PRIMARY : C.BORDER}`,
+                      background: payNow === opt.val ? '#f0f5f0' : C.SURFACE,
+                      transition: 'all .15s',
+                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{
+                        width: 14, height: 14, borderRadius: '50%',
+                        border: `2px solid ${payNow === opt.val ? C.PRIMARY : C.BORDER}`,
+                        background: payNow === opt.val ? C.PRIMARY : 'transparent',
+                      }} />
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: payNow === opt.val ? C.PRIMARY : C.TEXT_DARK }}>{opt.label}</span>
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: C.MUTED, marginTop: '3px', marginLeft: '22px' }}>{opt.sub}</div>
+                  </div>
+                ))}
+              </div>
+              {payNow && (
+                <div style={{ marginTop: '12px' }}>
+                  <Field label="Payment Method">
+                    <select style={S.select(false)} value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} disabled={isSubmitting}>
+                      <option value="CASH">💵 Cash</option>
+                      <option value="CARD">💳 Card</option>
+                      <option value="TRANSFER">🏦 Bank Transfer</option>
+                    </select>
+                  </Field>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
@@ -227,12 +266,23 @@ function StepArrival({ applyEarlyCheckIn, setApplyEarlyCheckIn, earlyCheckInFee,
 /* ── Step 2: Room Assignment ── */
 function StepRooms({ assignments, availableRooms, errorMessage, isSubmitting, onChange }) {
   const hasErr = !!errorMessage;
+
+  // Set of roomIds already picked by OTHER slots
+  const takenByIndex = (currentIndex) =>
+    new Set(
+      assignments
+        .filter((a, i) => i !== currentIndex && a.selectedRoomId)
+        .map(a => a.selectedRoomId)
+    );
+
   return (
     <div>
       <p style={S.sectionLabel}>Assign a physical room and register each guest</p>
       {assignments.map((assign, index) => {
         const rooms  = availableRooms[assign.roomTypeName];
-        const noRoom = !rooms || rooms.length === 0;
+        const taken  = takenByIndex(index);
+        const filteredRooms = rooms ? rooms.filter(r => !taken.has(r.id)) : [];
+        const noRoom = !filteredRooms || filteredRooms.length === 0;
         return (
           <div key={assign.id} style={S.card(!noRoom && !!assign.selectedRoomId)}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -255,7 +305,7 @@ function StepRooms({ assignments, availableRooms, errorMessage, isSubmitting, on
                   : <select style={S.select(hasErr && !assign.selectedRoomId)} value={assign.selectedRoomId}
                       onChange={e => onChange(index, 'selectedRoomId', Number(e.target.value))} disabled={isSubmitting}>
                       <option value="">Select room</option>
-                      {rooms.map(r => <option key={r.id} value={r.id}>Room {r.name}</option>)}
+                      {filteredRooms.map(r => <option key={r.id} value={r.id}>Room {r.name}</option>)}
                     </select>
                 }
               </Field>
@@ -292,7 +342,7 @@ function StepRooms({ assignments, availableRooms, errorMessage, isSubmitting, on
 }
 
 /* ── Step 3: Confirm ── */
-function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee, earlyCheckInNote, luggageNote }) {
+function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee, earlyCheckInNote, luggageNote, payNow, paymentMethod }) {
   const pill = { display: 'inline-block', padding: '2px 9px', borderRadius: '20px', fontSize: '11.5px', fontWeight: 600, background: '#e8ede8', color: C.PRIMARY, marginLeft: '8px' };
   return (
     <div>
@@ -303,10 +353,23 @@ function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee,
         <div style={S.summaryRow}><span style={S.summaryLabel}>Booking Code</span><span style={S.summaryVal}>{booking.bookingCode}</span></div>
         <div style={S.summaryRow}><span style={S.summaryLabel}>Booker</span><span style={S.summaryVal}>{booking.guestName}</span></div>
         {applyEarlyCheckIn && (
-          <div style={S.summaryRow}>
-            <span style={S.summaryLabel}>Early Check-in Fee</span>
-            <span style={S.summaryVal}>{Number(earlyCheckInFee || 0).toLocaleString()} VND{earlyCheckInNote && <> &mdash; <span style={{ fontWeight: 400, color: C.MUTED }}>{earlyCheckInNote}</span></>}</span>
-          </div>
+          <>
+            <div style={S.summaryRow}>
+              <span style={S.summaryLabel}>Early Check-in Fee</span>
+              <span style={S.summaryVal}>{Number(earlyCheckInFee || 0).toLocaleString()} VND{earlyCheckInNote && <> &mdash; <span style={{ fontWeight: 400, color: C.MUTED }}>{earlyCheckInNote}</span></>}</span>
+            </div>
+            <div style={{ ...S.summaryRow, borderBottom: 'none' }}>
+              <span style={S.summaryLabel}>Payment</span>
+              <span style={{
+                ...S.summaryVal,
+                color: payNow ? '#1a7a3c' : '#b07800',
+                background: payNow ? '#eaf5ee' : '#fdf5e0',
+                padding: '2px 10px', borderRadius: '20px', fontSize: '12px',
+              }}>
+                {payNow ? `✓ Paid at counter (${paymentMethod === 'CARD' ? 'Card' : paymentMethod === 'TRANSFER' ? 'Bank Transfer' : 'Cash'})` : '⏳ To be paid at checkout'}
+              </span>
+            </div>
+          </>
         )}
         {luggageNote && (
           <div style={{ ...S.summaryRow, borderBottom: 'none' }}>
@@ -353,6 +416,8 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
   const [earlyCheckInFee, setEarlyCheckInFee] = useState('');
   const [earlyCheckInNote, setEarlyCheckInNote] = useState('');
   const [luggageNote, setLuggageNote] = useState(booking?.luggageNote || '');
+  const [payNow, setPayNow] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('CASH');
 
   useEffect(() => {
     if (!show || !branchId) return;
@@ -376,6 +441,8 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
         assignments: assignments.map(a => ({ ...a, dateOfBirth: a.dateOfBirth || null })),
         earlyCheckInFee: applyEarlyCheckIn && earlyCheckInFee ? Number(earlyCheckInFee) : 0,
         earlyCheckInNote: applyEarlyCheckIn ? earlyCheckInNote : '',
+        payNow: applyEarlyCheckIn ? payNow : false,
+        paymentMethod: applyEarlyCheckIn && payNow ? paymentMethod : null,
       };
       await checkInApi.processCheckIn(booking.id, payload);
       alert('Check-in completed successfully!');
@@ -434,9 +501,9 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
                 <button onClick={() => setErrorMessage('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: C.ERROR, fontSize: '13px', padding: 0, fontFamily: font }}>Dismiss</button>
               </div>
             )}
-            {step === 0 && <StepArrival applyEarlyCheckIn={applyEarlyCheckIn} setApplyEarlyCheckIn={setApplyEarlyCheckIn} earlyCheckInFee={earlyCheckInFee} setEarlyCheckInFee={setEarlyCheckInFee} earlyCheckInNote={earlyCheckInNote} setEarlyCheckInNote={setEarlyCheckInNote} luggageNote={luggageNote} setLuggageNote={setLuggageNote} isSubmitting={isSubmitting} />}
+            {step === 0 && <StepArrival applyEarlyCheckIn={applyEarlyCheckIn} setApplyEarlyCheckIn={setApplyEarlyCheckIn} earlyCheckInFee={earlyCheckInFee} setEarlyCheckInFee={setEarlyCheckInFee} earlyCheckInNote={earlyCheckInNote} setEarlyCheckInNote={setEarlyCheckInNote} luggageNote={luggageNote} setLuggageNote={setLuggageNote} payNow={payNow} setPayNow={setPayNow} paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} isSubmitting={isSubmitting} />}
             {step === 1 && <StepRooms assignments={assignments} availableRooms={availableRooms} errorMessage={errorMessage} isSubmitting={isSubmitting} onChange={handleChange} />}
-            {step === 2 && <StepConfirm booking={booking} assignments={assignments} applyEarlyCheckIn={applyEarlyCheckIn} earlyCheckInFee={earlyCheckInFee} earlyCheckInNote={earlyCheckInNote} luggageNote={luggageNote} />}
+            {step === 2 && <StepConfirm booking={booking} assignments={assignments} applyEarlyCheckIn={applyEarlyCheckIn} earlyCheckInFee={earlyCheckInFee} earlyCheckInNote={earlyCheckInNote} luggageNote={luggageNote} payNow={payNow} paymentMethod={paymentMethod} />}
           </div>
 
           <div style={S.footer}>

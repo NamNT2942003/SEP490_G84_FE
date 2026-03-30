@@ -75,6 +75,29 @@ export const checkInApi = {
       headers: getAuthHeaders()
     });
     return response.data;
-  }
+  },
+
+  // 7. Gửi email cảnh báo No-Show (không đổi status)
+  notifyNoShow: async (bookingId) => {
+    const response = await axios.post(`http://localhost:8081/api/bookings/${bookingId}/notify-noshow`, {}, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  },
+
+  // 8. Đổi trạng thái booking thành NO_SHOW (không gửi email)
+  markNoShow: async (bookingId) => {
+    const response = await axios.put(`http://localhost:8081/api/bookings/${bookingId}/no-show`, {}, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  },
+  // 9. Gửi email nhắc nhở checkout (không đổi status)
+  notifyCheckout: async (bookingId) => {
+    const response = await axios.post(`http://localhost:8081/api/bookings/${bookingId}/notify-checkout`, {}, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  },
 
 };

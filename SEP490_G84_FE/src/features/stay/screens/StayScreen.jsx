@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StayDetail from '../component/StayDetail';
 import { stayApi } from '../api/stayApi'; 
+import { checkInApi } from '@/features/manager_booking/api/checkInApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const StayScreen = () => {
@@ -10,8 +11,18 @@ const StayScreen = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState(currentUser?.branchId || '');
+  const [branches, setBranches] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Load branch list for admin/manager
+  useEffect(() => {
+    if (isAdminOrManager) {
+      checkInApi.getMyBranches()
+        .then(data => setBranches(data || []))
+        .catch(() => setBranches([]));
+    }
+  }, [isAdminOrManager]);
 
   useEffect(() => {
     if (currentUser) {
@@ -82,8 +93,9 @@ const StayScreen = () => {
               onChange={(e) => setSelectedBranchId(e.target.value)}
             >
               <option value="">-- All Branches --</option>
-              <option value="1">Branch 1 (Hanoi)</option>
-              <option value="2">Branch 2 (Da Nang)</option>
+              {branches.map(b => (
+                <option key={b.branchId} value={b.branchId}>{b.branchName}</option>
+              ))}
             </select>
           )}
 

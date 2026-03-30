@@ -1,27 +1,35 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { reportApi } from '../api/reportApi';
 import { COLORS } from '@/constants';
-import YearlyRevenueChart from '../component/YearlyRevenueChart'; 
+import YearlyExpenseDashboard from '../component/YearlyExpenseDashboard';
 import ExpensePieChart from '../component/ExpensePieChart';
+import ExpenseDeclarationForm from '../component/ExpenseDeclarationForm';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ExpenseReportScreen = () => {
+    const [searchParams] = useSearchParams();
+
+    // Pre-populate from URL params if navigated from Aggregated Report
+    const initBranch = searchParams.get('branchId') ? Number(searchParams.get('branchId')) : null;
+    const initYear   = searchParams.get('year')     ? Number(searchParams.get('year'))     : new Date().getFullYear();
+    const initMonth  = searchParams.get('month')    ? Number(searchParams.get('month'))    : null;
+
     // 1. Global Filters
-   const [selectedBranch, setSelectedBranch] = useState(null);
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+   const [selectedBranch, setSelectedBranch] = useState(initBranch);
+    const [selectedYear, setSelectedYear] = useState(initYear);
     
     // 2. Navigation State
-    const [viewLevel, setViewLevel] = useState('yearly'); 
-    const [selectedMonth, setSelectedMonth] = useState(null);
+    const [viewLevel, setViewLevel] = useState(initMonth ? 'monthly' : 'yearly');
+    const [selectedMonth, setSelectedMonth] = useState(initMonth);
 
     // 3. Data States
     const [yearlyData, setYearlyData] = useState([]);
     const [monthlyData, setMonthlyData] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    // 4. Form States (Quản lý Modal nhập liệu)
-    const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState([]);
+    // 4. Form States (Quản lý Form nhập liệu)
+    const [isDeclaring, setIsDeclaring] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     // 1. Khai báo state lưu danh sách chi nhánh lấy từ API
@@ -42,8 +50,8 @@ const ExpenseReportScreen = () => {
                 const data = await reportApi.getReportBranches();
                 setBranches(data);
                 
-                // Tự động gán chi nhánh đầu tiên vào filter nếu data trả về có chứa chi nhánh
-                if (data && data.length > 0) {
+                // Only auto-select first branch if not navigated from Aggregated Report
+                if (!initBranch && data && data.length > 0) {
                     setSelectedBranch(data[0].branchId);
                 }
             } catch (error) {
@@ -95,48 +103,9 @@ const ExpenseReportScreen = () => {
     }, [selectedBranch, selectedYear, selectedMonth, viewLevel]);
 
     // --- LOGIC XỬ LÝ FORM NHẬP LIỆU ---
-    const handleOpenModal = () => {
-        // Clone data hiện tại đổ vào form. Nếu amount null thì set giá trị input là chuỗi rỗng
-        const initialForm = monthlyData.map(item => ({
-            category: item.category,
-            amount: item.amount !== null ? item.amount : '',
-            note: item.note || ''
-        }));
-        setFormData(initialForm);
-        setShowModal(true);
-    };
-
-    const handleFormChange = (index, field, value) => {
-        const newForm = [...formData];
-        newForm[index][field] = value;
-        setFormData(newForm);
-    };
-
-    const handleAddCustomExpense = () => {
-        setFormData([
-            ...formData,
-            { category: '', amount: '', note: '', isCustom: true }
-        ]);
-    };
-
-    const handleRemoveCustomExpense = (index) => {
-        const newForm = [...formData];
-        newForm.splice(index, 1);
-        setFormData(newForm);
-    };
-
-    const handleSaveExpenses = async () => {
+    const handleSaveExpenses = async (validExpenses) => {
         setIsSaving(true);
         try {
-            // Lọc ra những mục user có nhập tiền (bỏ qua những mục để trống)
-            const validExpenses = formData
-                .filter(item => item.category && item.category.trim() !== '' && item.amount !== '' && item.amount !== null)
-                .map(item => ({
-                    category: item.category.trim(),
-                    amount: parseFloat(item.amount),
-                    note: item.note
-                }));
-
             const payload = {
                 branchId: selectedBranch,
                 month: selectedMonth,
@@ -145,9 +114,9 @@ const ExpenseReportScreen = () => {
             };
 
             await reportApi.saveMonthlyExpenses(payload);
-            setShowModal(false);
+            setIsDeclaring(false);
             fetchMonthlyData(); // Cập nhật lại giao diện ngay lập tức
-            alert('Expenses saved successfully!');
+            alert('Expenses declared successfully!');
         } catch (error) {
             alert('Error saving data. Please try again.');
         } finally {
@@ -165,7 +134,7 @@ const ExpenseReportScreen = () => {
                 <h2 className="fw-bold m-0" style={{ color: COLORS.PRIMARY }}>
                     EXPENSE REPORT {viewLevel === 'monthly' && `- MONTH ${selectedMonth}`}
                 </h2>
-                {viewLevel === 'monthly' && (
+                {viewLevel === 'monthly' && !isDeclaring && (
                     <button className="btn btn-outline-secondary fw-bold shadow-sm" onClick={() => setViewLevel('yearly')}>
                          <i className="bi bi-arrow-left me-2"></i> Back to Overview
                     </button>
@@ -213,15 +182,27 @@ const ExpenseReportScreen = () => {
             {loading && <div className="text-center p-5"><div className="spinner-border" style={{color: COLORS.PRIMARY}}></div></div>}
 
             {/* LEVEL 1: NĂM */}
-            {!loading && viewLevel === 'yearly' && (
-                <div className="card shadow-sm border-0 rounded-3 p-4 animate__animated animate__fadeIn">
-                    <h5 className="fw-bold mb-4 text-dark">Total Operating Expenses in {selectedYear}</h5>
-                    <YearlyRevenueChart data={yearlyData} onMonthClick={(m) => { setSelectedMonth(m); setViewLevel('monthly'); }} />
-                </div>
+            {!loading && viewLevel === 'yearly' && Array.isArray(yearlyData) && yearlyData.length > 0 && (
+                <YearlyExpenseDashboard
+                    yearlyData={yearlyData}
+                    selectedYear={selectedYear}
+                    onMonthClick={(m) => { setSelectedMonth(m); setViewLevel('monthly'); }}
+                />
             )}
 
             {/* LEVEL 2: THÁNG */}
             {!loading && viewLevel === 'monthly' && (
+                isDeclaring ? (
+                    <ExpenseDeclarationForm
+                        month={selectedMonth}
+                        year={selectedYear}
+                        branchName={branches.find(b => b.branchId === selectedBranch)?.branchName}
+                        initialData={monthlyData}
+                        onSave={handleSaveExpenses}
+                        onCancel={() => setIsDeclaring(false)}
+                        isSaving={isSaving}
+                    />
+                ) : (
                 <div className="row g-4 animate__animated animate__fadeInRight">
                     <div className="col-lg-5">
                         <div className="card shadow-sm border-0 rounded-3 h-100">
@@ -236,18 +217,29 @@ const ExpenseReportScreen = () => {
                     </div>
 
                     <div className="col-lg-7">
+                        {/* Cảnh báo chưa khai báo chi phí */}
+                        {!monthlyData.some(d => d.amount !== null) && (
+                            <div className="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4 text-start">
+                                <i className="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
+                                <div>
+                                    <h6 className="fw-bold mb-1">Action Required: Monthly Expense Declaration Pending</h6>
+                                    <span className="small">The operating expenses for {selectedMonth}/{selectedYear} have not been declared yet. Please submit the report to reflect accurate financial data.</span>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="card shadow-sm border-0 rounded-3 h-100">
                             <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
-                                <div>
+                                <div className="text-start">
                                     <h5 className="fw-bold m-0 text-dark">Category Details</h5>
                                     <small className="text-danger fw-bold">Total Expenses: {formatCurrency(totalMonthlyExpense)}</small>
                                 </div>
                                 <button 
-                                    className="btn text-white fw-bold btn-sm shadow-sm" 
+                                    className="btn text-white fw-bold btn-sm shadow-sm px-3" 
                                     style={{ backgroundColor: COLORS.PRIMARY }}
-                                    onClick={handleOpenModal}
+                                    onClick={() => setIsDeclaring(true)}
                                 >
-                                    <i className="bi bi-pencil-square me-1"></i> Update Data
+                                    <i className="bi bi-journal-text me-2"></i> {monthlyData.some(d => d.amount !== null) ? 'Review / Edit Declaration' : 'Declare Expenses'}
                                 </button>
                             </div>
                             <div className="card-body p-0">
@@ -283,73 +275,9 @@ const ExpenseReportScreen = () => {
                         </div>
                     </div>
                 </div>
+                )
             )}
 
-            {/* Custom Modal Nhập Liệu (Sử dụng overlay CSS thuần để không phụ thuộc JS Bootstrap) */}
-            {showModal && (
-                <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-                    <div className="card border-0 shadow-lg" style={{ width: '600px', maxWidth: '95%' }}>
-                        <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                            <h5 className="fw-bold m-0" style={{ color: COLORS.PRIMARY }}>Update Expenses for {selectedMonth}/{selectedYear}</h5>
-                            <button className="btn-close" onClick={() => setShowModal(false)}></button>
-                        </div>
-                        <div className="card-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                            {formData.map((item, index) => (
-                                <div className="row mb-3 align-items-center" key={index}>
-                                    <div className="col-md-4 fw-bold text-dark">
-                                        {item.isCustom ? (
-                                            <input 
-                                                type="text" 
-                                                className="form-control" 
-                                                placeholder="Category Name"
-                                                value={item.category}
-                                                onChange={(e) => handleFormChange(index, 'category', e.target.value)}
-                                            />
-                                        ) : (
-                                            item.category
-                                        )}
-                                    </div>
-                                    <div className={item.isCustom ? "col-md-7" : "col-md-8"}>
-                                        <div className="input-group mb-2">
-                                            <input 
-                                                type="number" 
-                                                className="form-control" 
-                                                placeholder="Enter amount..."
-                                                value={item.amount}
-                                                onChange={(e) => handleFormChange(index, 'amount', e.target.value)}
-                                            />
-                                            <span className="input-group-text">VND</span>
-                                        </div>
-                                        <input 
-                                            type="text" 
-                                            className="form-control form-control-sm" 
-                                            placeholder="Note (Optional)"
-                                            value={item.note}
-                                            onChange={(e) => handleFormChange(index, 'note', e.target.value)}
-                                        />
-                                    </div>
-                                    {item.isCustom && (
-                                        <div className="col-md-1 text-end">
-                                            <button className="btn btn-sm btn-outline-danger" title="Remove" onClick={() => handleRemoveCustomExpense(index)}>
-                                                <i className="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                            <button className="btn btn-outline-primary btn-sm mt-2 fw-bold" onClick={handleAddCustomExpense}>
-                                <i className="bi bi-plus-circle me-1"></i> Add Custom Expense
-                            </button>
-                        </div>
-                        <div className="card-footer bg-white py-3 text-end">
-                            <button className="btn btn-secondary me-2 fw-bold" onClick={() => setShowModal(false)} disabled={isSaving}>Cancel</button>
-                            <button className="btn text-white fw-bold" style={{ backgroundColor: COLORS.PRIMARY }} onClick={handleSaveExpenses} disabled={isSaving}>
-                                {isSaving ? 'Saving...' : 'Save Report'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

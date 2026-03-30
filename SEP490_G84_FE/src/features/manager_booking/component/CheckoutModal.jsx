@@ -66,13 +66,15 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
     </>
   );
 
-  // Lấy dữ liệu từ API map vào biến
-  const roomCharge = billDetails.roomCharge || 0;
-  const servicesList = billDetails.services || [];
-  const discount = billDetails.discount || 0;
-  const grandTotal = billDetails.grandTotal || 0;
-  const paidAmount = billDetails.paidAmount || 0;
-  const amountDue = billDetails.amountDue || 0;
+  const roomCharge      = billDetails.roomCharge || 0;
+  const roomChargePaid  = billDetails.roomChargePaid || false;
+  const servicesList    = billDetails.services || [];
+  const discount        = billDetails.discount || 0;
+  const grandTotal      = billDetails.grandTotal || 0;
+  const alreadyPaid     = billDetails.alreadyPaidTotal || 0;
+  const amountDue       = billDetails.amountDue || 0;
+
+  const methodLabel = (m) => m === 'CARD' ? 'Card' : m === 'TRANSFER' ? 'Transfer' : 'Cash';
 
   // Cấu hình VietQR
   const BANK_BIN = "970436"; // Mã BIN ngân hàng (VD: Vietcombank)
@@ -129,6 +131,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                           <tr>
                             <th>Description</th>
                             <th className="text-center">Qty</th>
+                            <th className="text-center">Status</th>
                             <th className="text-end">Amount (VND)</th>
                           </tr>
                         </thead>
@@ -136,28 +139,42 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                           <tr>
                             <td className="fw-medium">Accommodation (Room Charge)</td>
                             <td className="text-center">{booking.nights} nights</td>
-                            <td className="text-end">{roomCharge.toLocaleString()}</td>
+                            <td className="text-center">
+                              {roomChargePaid
+                                ? <span className="text-success fw-semibold" style={{fontSize:'12px'}}>Paid</span>
+                                : <span className="text-danger fw-semibold" style={{fontSize:'12px'}}>Unpaid</span>}
+                            </td>
+                            <td className="text-end">{Number(roomCharge).toLocaleString()}</td>
                           </tr>
                           {servicesList.map((svc, idx) => (
                             <tr key={idx}>
-                              <td className="text-muted"><i className="bi bi-arrow-return-right me-2"></i>{svc.name}</td>
+                              <td>
+                                <i className="bi bi-arrow-return-right me-2 text-muted"></i>
+                                {svc.name}
+                              </td>
                               <td className="text-center">{svc.quantity || 1}</td>
-                              <td className="text-end">{svc.amount?.toLocaleString()}</td>
+                              <td className="text-center">
+                                {svc.paid
+                                  ? <span className="text-success fw-semibold" style={{fontSize:'12px'}}>Paid ({methodLabel(svc.paymentMethod)})</span>
+                                  : <span className="text-danger fw-semibold" style={{fontSize:'12px'}}>Unpaid</span>
+                                }
+                              </td>
+                              <td className="text-end">{Number(svc.amount || 0).toLocaleString()}</td>
                             </tr>
                           ))}
                         </tbody>
                         <tfoot className="table-light">
                           <tr>
-                            <td colSpan="2" className="text-end fw-bold text-dark">GRAND TOTAL:</td>
-                            <td className="text-end fw-bold text-dark fs-5">{grandTotal.toLocaleString()}</td>
+                            <td colSpan="3" className="text-end fw-bold text-dark">GRAND TOTAL:</td>
+                            <td className="text-end fw-bold text-dark fs-5">{Number(grandTotal).toLocaleString()}</td>
                           </tr>
                           <tr>
-                            <td colSpan="2" className="text-end fw-bold text-success">Advance Payment / Deposit:</td>
-                            <td className="text-end fw-bold text-success">- {paidAmount.toLocaleString()}</td>
+                            <td colSpan="3" className="text-end fw-bold text-success">Already Paid (room + services):</td>
+                            <td className="text-end fw-bold text-success">- {Number(alreadyPaid).toLocaleString()}</td>
                           </tr>
                           <tr>
-                            <td colSpan="2" className="text-end fw-bold text-danger">AMOUNT DUE (CẦN THU):</td>
-                            <td className="text-end fw-bold text-danger fs-4">{amountDue > 0 ? amountDue.toLocaleString() : '0'}</td>
+                            <td colSpan="3" className="text-end fw-bold text-danger">AMOUNT DUE (CẦN THU):</td>
+                            <td className="text-end fw-bold text-danger fs-4">{amountDue > 0 ? Number(amountDue).toLocaleString() : '0'}</td>
                           </tr>
                         </tfoot>
                       </table>
@@ -252,7 +269,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
             <span>Paid:</span>
-            <span>- {paidAmount.toLocaleString()}</span>
+            <span>- {Number(alreadyPaid).toLocaleString()}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px' }}>
             <span>DUE:</span>

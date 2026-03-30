@@ -9,19 +9,48 @@ export default function BookingTable({ bookings, emptyMessage, onCheckInClick, o
 
   const handleUndoCheckIn = async (booking) => {
     const confirmMessage = `⚠️ WARNING: Are you sure you want to UNDO the check-in for booking ${booking.bookingCode}?\n\nAll check-in data and surcharges (if any) will be permanently deleted!`;
-    
     if (window.confirm(confirmMessage)) {
       try {
         await checkInApi.undoCheckIn(booking.id);
         alert("Check-in undone successfully. Booking status has been restored!");
-        if (onRefresh) {
-          onRefresh();
-        } else {
-          window.location.reload();
-        }
+        if (onRefresh) onRefresh(); else window.location.reload();
       } catch (error) {
         console.error("Undo Check-in Error:", error);
         alert(error.response?.data?.error || "An error occurred while undoing the check-in!");
+      }
+    }
+  };
+
+  const handleNotifyNoShow = async (booking) => {
+    if (window.confirm(`Send a no-show reminder email to the guest for booking ${booking.bookingCode}?`)) {
+      try {
+        await checkInApi.notifyNoShow(booking.id);
+        alert('Notification email sent to guest successfully!');
+      } catch (error) {
+        alert(error.response?.data?.error || 'Failed to send notification email.');
+      }
+    }
+  };
+
+  const handleMarkNoShow = async (booking) => {
+    if (window.confirm(`Mark booking ${booking.bookingCode} as NO_SHOW?\n\nThis cannot be undone. The booking will be closed and no refund will be issued.`)) {
+      try {
+        await checkInApi.markNoShow(booking.id);
+        alert('Booking marked as NO_SHOW.');
+        if (onRefresh) onRefresh(); else window.location.reload();
+      } catch (error) {
+        alert(error.response?.data?.error || 'Failed to mark as NO_SHOW.');
+      }
+    }
+  };
+
+  const handleRemindCheckout = async (booking) => {
+    if (window.confirm(`Send checkout reminder email to ${booking.guestName} for booking ${booking.bookingCode}?`)) {
+      try {
+        await checkInApi.notifyCheckout(booking.id);
+        alert('Checkout reminder email sent successfully!');
+      } catch (error) {
+        alert(error.response?.data?.error || 'Failed to send checkout reminder.');
       }
     }
   };
@@ -135,7 +164,10 @@ export default function BookingTable({ bookings, emptyMessage, onCheckInClick, o
               </td>
               
               <td>
-                {isNoShow && (
+                {booking.status === 'NO_SHOW' && (
+                  <span className="badge bg-dark px-2 py-1">No-Show</span>
+                )}
+                {isNoShow && booking.status !== 'NO_SHOW' && (
                   <div className="mb-1">
                     <span className="badge bg-danger">
                       <i className="bi bi-exclamation-triangle-fill me-1"></i>Overdue / No-Show
@@ -172,8 +204,28 @@ export default function BookingTable({ bookings, emptyMessage, onCheckInClick, o
               <td className="text-end">
                 <div className="dropdown d-flex justify-content-end align-items-center">
                   
-                  {/* NÚT CHECK-IN ĐÃ ĐƯỢC ĐỔI SANG MÀU BRAND */}
-                  {(booking.status === 'CONFIRMED' || booking.status === 'ARRIVED') && (
+                  {/* Overdue: Notify + No-Show buttons (no Check-In) */}
+                  {isNoShow && booking.status !== 'NO_SHOW' && (
+                    <>
+                      <button
+                        className="btn btn-sm btn-info text-white px-2 shadow-sm me-1 fw-medium"
+                        title="Send reminder email to guest"
+                        onClick={() => handleNotifyNoShow(booking)}
+                      >
+                        <i className="bi bi-envelope-fill me-1"></i>Notify
+                      </button>
+                      <button
+                        className="btn btn-sm btn-dark px-2 shadow-sm me-2 fw-medium"
+                        title="Mark as No-Show (non-refundable)"
+                        onClick={() => handleMarkNoShow(booking)}
+                      >
+                        <i className="bi bi-person-slash me-1"></i>No-Show
+                      </button>
+                    </>
+                  )}
+
+                  {/* Check-In: only for non-overdue CONFIRMED/ARRIVED */}
+                  {!isNoShow && (booking.status === 'CONFIRMED' || booking.status === 'ARRIVED') && (
                     <button 
                       className="btn btn-sm btn-brand-primary px-3 shadow-sm me-2 fw-medium" 
                       onClick={() => onCheckInClick(booking)}
@@ -183,12 +235,24 @@ export default function BookingTable({ bookings, emptyMessage, onCheckInClick, o
                   )}
                   
                   {booking.status === 'CHECKED_IN' && (
-                    <button 
-                      className="btn btn-sm btn-danger px-3 shadow-sm me-2 fw-medium"
-                      onClick={() => onCheckoutClick(booking)}
-                    >
-                      <i className="bi bi-box-arrow-right me-1"></i> Check Out
-                    </button>
+                    <>
+                      {/* Remind checkout button for today's departures */}
+                      {isCheckoutToday && (
+                        <button
+                          className="btn btn-sm btn-warning px-2 shadow-sm me-1 fw-medium"
+                          title="Send checkout reminder email to guest"
+                          onClick={() => handleRemindCheckout(booking)}
+                        >
+                          <i className="bi bi-bell-fill me-1"></i>Remind
+                        </button>
+                      )}
+                      <button 
+                        className="btn btn-sm btn-danger px-3 shadow-sm me-2 fw-medium"
+                        onClick={() => onCheckoutClick(booking)}
+                      >
+                        <i className="bi bi-box-arrow-right me-1"></i> Check Out
+                      </button>
+                    </>
                   )}
 
                   <button 

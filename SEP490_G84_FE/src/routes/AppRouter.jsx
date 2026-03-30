@@ -15,6 +15,10 @@ import Login from "@/features/auth/screens/Login";
 import ForgotPassword from "@/features/auth/screens/ForgotPassword";
 import ResetPassword from "@/features/auth/screens/ResetPassword";
 
+// --- GUEST BOOKING HISTORY (Magic Link) ---
+import GuestAccessPage from "@/features/guest/screens/GuestAccessPage.jsx";
+import GuestBookingHistoryPage from "@/features/guest/screens/GuestBookingHistoryPage.jsx";
+
 // --- BOOKING & PAYMENT PAGES ---
 // Đã chuyển SearchRoom từ home sang booking theo đúng cấu trúc mới
 import SearchRoom from "@/features/booking/screens/SearchRoom.jsx";
@@ -46,6 +50,7 @@ import ServiceRevenueReportScreen from "../features/report/screens/ServiceRevenu
 import RevenueReportScreen from "@/features/report/screens/RevenueReportScreen.jsx";
 import AggregatedReportScreen from "../features/report/screens/AggregatedReportScreen.jsx";
 import MultiBranchReportScreen from "@/features/report/screens/MultiBranchReportScreen.jsx";
+import ReportDetailScreen from "@/features/report/screens/ReportDetailScreen.jsx";
 
 
 
@@ -54,6 +59,8 @@ import StayScreen from "../features/stay/screens/StayScreen";
 import InventoryReportPage from "../features/test/InventoryReportPage";
 import RevenueDashboard from "../features/test/RevenueDashboard.jsx";
 import ExpenseReportScreen from "../features/report/screens/ExpenseReportScreen.jsx";
+import InventoryScreen from "../features/inventory/screens/InventoryScreen.jsx";
+import CashflowScreen from "../features/finance/screens/CashflowScreen.jsx";
 
 /** Helper: Staff không được vào trang Account → redirect về /dashboard */
 const BlockStaffFromAccounts = ({ children }) => {
@@ -76,11 +83,12 @@ const AppRouter = () => {
             <Route path="/test3" element={<ExcelToWebReport></ExcelToWebReport>} />
             <Route path="/import-receipt" element={<ImportReceiptUI></ImportReceiptUI>} />
             <Route path="/inventory-report" element={<InventoryReportPage></InventoryReportPage>} />
-           <Route path="/report/revenue" element={<MainLayout><RevenueReportScreen /></MainLayout>} />
+            <Route path="/report/revenue" element={<MainLayout><RevenueReportScreen /></MainLayout>} />
             <Route path="/report/expense" element={<MainLayout><ExpenseReportScreen /></MainLayout>} />
             <Route path="/report/services" element={<MainLayout><ServiceRevenueReportScreen /></MainLayout>} />
             <Route path="/report/aggregated" element={<MainLayout><AggregatedReportScreen /></MainLayout>} />
             <Route path="/report/multi-branch" element={<MainLayout><MultiBranchReportScreen /></MainLayout>} />
+            <Route path="/report/detail/:category" element={<MainLayout><ReportDetailScreen /></MainLayout>} />
 
 
             
@@ -89,6 +97,10 @@ const AppRouter = () => {
             <Route path="/login" element={<ClientLayout><Login /></ClientLayout>} />
             <Route path="/forgot-password" element={<ClientLayout><ForgotPassword /></ClientLayout>} />
             <Route path="/reset-password" element={<ClientLayout><ResetPassword /></ClientLayout>} />
+
+            {/* --- NHÓM: GUEST BOOKING HISTORY (Public – OTP) --- */}
+            <Route path="/guest-access" element={<ClientLayout><GuestAccessPage /></ClientLayout>} />
+            <Route path="/guest/bookings" element={<ClientLayout><GuestBookingHistoryPage /></ClientLayout>} />
 
             {/* 3. BOOKING & PAYMENT */}
             <Route path="/search" element={<ClientLayout><SearchRoom /></ClientLayout>} />
@@ -109,6 +121,13 @@ const AppRouter = () => {
              {/* 5. Check-in(With MainLayout) */}
               <Route path="/manager-booking" element={<MainLayout><FrontDeskDashboard /></MainLayout>} />
               <Route path="/stay" element={<MainLayout><StayScreen /></MainLayout>} />
+
+              {/* 5b. INVENTORY MANAGEMENT */}
+              <Route path="/inventory" element={<MainLayout><InventoryScreen /></MainLayout>} />
+
+              {/* 5c. FINANCE - CASHFLOW */}
+              <Route path="/finance/cashflow" element={<MainLayout><CashflowScreen /></MainLayout>} />
+
 
 
             {/* 6. ACCOUNT PAGES (MainLayout + Block Staff) */}

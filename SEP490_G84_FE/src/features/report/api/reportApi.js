@@ -38,7 +38,7 @@ export const reportApi = {
 
     getMultiBranchDashboard: async (branchIds, month, year) => {
         try {
-            const branchQuery = branchIds && branchIds.length > 0 ? `branchIds=${branchIds.join(',')}&` : '';
+            const branchQuery = branchIds && branchIds.length > 0 ? branchIds.map(id => `branchIds=${id}`).join('&') + '&' : '';
             const response = await fetch(`${BASE_URL}/multi-branch?${branchQuery}month=${month}&year=${year}`);
             if (!response.ok) throw new Error('Error fetching multi-branch dashboard');
             return await response.json();
@@ -50,7 +50,7 @@ export const reportApi = {
 
     getYearlyMultiBranchDashboard: async (branchIds, year) => {
         try {
-            const branchQuery = branchIds && branchIds.length > 0 ? `branchIds=${branchIds.join(',')}&` : '';
+            const branchQuery = branchIds && branchIds.length > 0 ? branchIds.map(id => `branchIds=${id}`).join('&') + '&' : '';
             const response = await fetch(`${BASE_URL}/multi-branch/yearly?${branchQuery}year=${year}`);
             if (!response.ok) throw new Error('Error fetching yearly multi-branch dashboard');
             return await response.json();

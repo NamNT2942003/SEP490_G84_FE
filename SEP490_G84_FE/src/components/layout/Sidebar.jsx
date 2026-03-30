@@ -46,6 +46,12 @@ const Sidebar = ({ collapsed }) => {
           show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
         },
         {
+          path: "/inventory",
+          label: "Inventory",
+          icon: "bi-box-seam",
+          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+        },
+        {
           path: "/accounts",
           label: "Accounts",
           icon: "bi-people",
@@ -53,6 +59,7 @@ const Sidebar = ({ collapsed }) => {
         },
       ],
     },
+
     {
       groupLabel: "Analytics",
       items: [
@@ -67,10 +74,18 @@ const Sidebar = ({ collapsed }) => {
             { path: "/report/aggregated", label: "Aggregated Report", icon: "bi-clipboard-data" },
             { path: "/report/multi-branch", label: "Multi-Branch Report", icon: "bi-diagram-3-fill" },
           ],
-
+        },
+        {
+          label: "Dòng tiền",
+          icon: "bi-cash-coin",
+          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+          children: [
+            { path: "/finance/cashflow", label: "Báo cáo thu tiền", icon: "bi-arrow-down-circle" },
+          ],
         },
       ],
     },
+
   ];
 
   // Auto-open accordion if child is active

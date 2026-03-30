@@ -21,4 +21,9 @@ export const API_ENDPOINTS = {
     LIST: "/room-types",
     BY_BRANCH: "/room-types/by-branch",
   },
+  GUEST: {
+    REQUEST_ACCESS: "/guest/request-access",
+    VERIFY_OTP: "/guest/verify-otp",
+    BOOKINGS: "/guest/bookings",
+  },
 };
