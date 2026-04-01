@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { roomManagementApi } from '@/features/roomManagement/api/roomManagementApi';
@@ -84,7 +84,7 @@ const FurnitureInventory = () => {
 
         const fetchTypes = async () => {
             try {
-                const typeData = await apiClient.get('/inventory/furniture/types');
+                const typeData = await apiClient.get('/inventory1/furniture/types');
                 setFurnitureTypes(typeData.data || []);
             } catch (e) {
                 console.error('Failed to fetch types:', e);
@@ -161,7 +161,7 @@ const FurnitureInventory = () => {
     }, [page, fetchFurnitureData, selectedBranch, nameApplied, typeFilterApplied]);
 
     const formatVND = (value) =>
-        new Intl.NumberFormat('vi-VN').format(value) + ' đ';
+        new Intl.NumberFormat('vi-VN').format(value) + ' d';
 
     const filteredRows = useMemo(() => {
         return rows; // Already filtered by API
@@ -367,7 +367,7 @@ const FurnitureInventory = () => {
                 furnitureName: item.isNew ? item.furnitureName.trim() : null,
                 price: unitPrice,
                 quantity: parseInt(item.quantity),
-                unit: item.unit || 'Cái',
+                unit: item.unit || 'C�i',
                 type: item.isNew ? item.type || '' : null  // For existing furniture
             };
         });
@@ -401,7 +401,7 @@ const FurnitureInventory = () => {
     const handleProcessBrokenItems = async (action) => {
         try {
             if (!brokenActionQuantity || brokenActionQuantity <= 0 || brokenActionQuantity > (brokenDetailInfo?.brokenInStock || 0)) {
-                alert("Số lượng không hợp lệ!");
+                alert("S? lu?ng kh�ng h?p l?!");
                 return;
             }
             setIsProcessingBroken(true);
@@ -411,16 +411,16 @@ const FurnitureInventory = () => {
             const warehouseFail = data?.content?.find(r => r.roomName === 'WAREHOUSE_FAIL');
             
             if (!warehouseFail) {
-                alert('Không tìm thấy kho đồ hỏng cho chi nhánh này!');
+                alert('Kh�ng t�m th?y kho d? h?ng cho chi nh�nh n�y!');
                 return;
             }
 
             if (action === 'fix') {
                 await roomManagementApi.fixWarehouseFailFurniture(warehouseFail.roomId, brokenDetailInfo.id, brokenActionQuantity);
-                alert("Đã chuyển đồ từ Kho Hỏng về Kho thành công!");
+                alert("�� chuy?n d? t? Kho H?ng v? Kho th�nh c�ng!");
             } else if (action === 'discard') {
                 await roomManagementApi.discardWarehouseFailFurniture(warehouseFail.roomId, brokenDetailInfo.id, brokenActionQuantity);
-                alert("Đã vứt bỏ đồ hỏng!");
+                alert("�� v?t b? d? h?ng!");
             }
             
             setBrokenDetailInfo(null);
@@ -429,7 +429,7 @@ const FurnitureInventory = () => {
             
         } catch (e) {
             console.error(e);
-            const msg = e?.response?.data?.message || 'Có lỗi xảy ra khi xử lý!';
+            const msg = e?.response?.data?.message || 'C� l?i x?y ra khi x? l�!';
             alert(msg);
         } finally {
             setIsProcessingBroken(false);
@@ -669,14 +669,14 @@ const FurnitureInventory = () => {
                                 <span style={{ marginLeft: '8px', fontWeight: 'bold' }}>Warehouse Fail</span>
                             </div>
                             <p className="text-muted small mt-2 mb-3">
-                                Quản lý các thiết bị lỗi/hỏng trong kho.
+                                Qu?n l� c�c thi?t b? l?i/h?ng trong kho.
                             </p>
                             <button 
                                 className="filter-btn w-100" 
                                 style={{ backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '10px', borderRadius: '10px', fontWeight: 'bold' }}
                                 onClick={handleOpenWarehouseFail}
                             >
-                                <i className="bi bi-tools me-2"></i> Mở kho thiết bị lỗi
+                                <i className="bi bi-tools me-2"></i> M? kho thi?t b? l?i
                             </button>
                         </div>
                     </div>
@@ -903,7 +903,7 @@ const FurnitureInventory = () => {
                             {/* Stat Cards Row */}
                             <div className="row g-3 mb-4">
                                 {[
-                                    { icon: "bi-building", label: "Branch / Area", value: detailItem.facility || detailItem.branch || "—", color: "#5C6F4E" },
+                                    { icon: "bi-building", label: "Branch / Area", value: detailItem.facility || detailItem.branch || "�", color: "#5C6F4E" },
                                     { icon: "bi-tags", label: "Total Quantity", value: `${detailItem.quantity} items`, color: "#0d6efd" },
                                     { icon: "bi-cash", label: "Unit Price", value: formatVND(detailItem.price), color: "#dc3545" },
                                     { icon: "bi-archive", label: "In Stock", value: `${detailItem.inStock} items`, color: "#198754" }
@@ -1066,8 +1066,8 @@ const FurnitureInventory = () => {
                                                     <td className="px-4 py-3 text-muted">{new Date(item.importDate).toLocaleString('vi-VN')}</td>
                                                     <td className="px-4 py-3 fw-semibold">#{item.receiptId}</td>
                                                     <td className="px-4 py-3 text-end fw-bold">{item.quantity}</td>
-                                                    <td className="px-4 py-3 text-end">{(item.unitPrice || 0).toLocaleString()} đ</td>
-                                                    <td className="px-4 py-3 text-end fw-bold text-danger">{((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString()} đ</td>
+                                                    <td className="px-4 py-3 text-end">{(item.unitPrice || 0).toLocaleString()} d</td>
+                                                    <td className="px-4 py-3 text-end fw-bold text-danger">{((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString()} d</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -1100,7 +1100,7 @@ const FurnitureInventory = () => {
                                 onClick={() => setIsImportModalOpen(false)}
                                 style={{ cursor: 'pointer', fontSize: '20px' }}
                             >
-                                ✖
+                                ?
                             </button>
                         </div>
 
@@ -1185,7 +1185,7 @@ const FurnitureInventory = () => {
                                             />
                                               <input
                                                   type="text"
-                                                  placeholder="Loại (VD: Đồ chiếu sáng...)"
+                                                  placeholder="Lo?i (VD: �? chi?u s�ng...)"
                                                   value={row.type || ""}
                                                   onChange={(e) => handleImportChange(index, 'type', e.target.value)}
                                                   style={{
@@ -1298,7 +1298,7 @@ const FurnitureInventory = () => {
                                 onClick={() => setShowImportHistory(false)}
                                 style={{ cursor: 'pointer', fontSize: '20px' }}
                             >
-                                ✖
+                                ?
                             </button>
                         </div>
 
@@ -1320,7 +1320,7 @@ const FurnitureInventory = () => {
                                                 {new Date(receipt.importDate).toLocaleString('vi-VN')}
                                             </td>
                                             <td className="text-center font-semibold" style={{ color: '#d9534f' }}>
-                                                {receipt.totalReceiptAmount.toLocaleString()} đ
+                                                {receipt.totalReceiptAmount.toLocaleString()} d
                                             </td>
                                             <td className="text-center">
                                                 <button
@@ -1389,13 +1389,13 @@ const FurnitureInventory = () => {
                                                 color: '#666'
                                             }}
                                         >
-                                            ✖
+                                            ?
                                         </button>
                                     </div>
 
                                     <div style={{ marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #eee' }}>
                                         <p><strong>Import Date:</strong> {new Date(historySelectedReceipt.importDate).toLocaleString('vi-VN')}</p>
-                                        <p><strong>Total Amount:</strong> <span style={{ color: '#d9534f', fontWeight: 'bold' }}>{historySelectedReceipt.totalReceiptAmount.toLocaleString()} đ</span></p>
+                                        <p><strong>Total Amount:</strong> <span style={{ color: '#d9534f', fontWeight: 'bold' }}>{historySelectedReceipt.totalReceiptAmount.toLocaleString()} d</span></p>
                                     </div>
 
                                     <div>
@@ -1414,8 +1414,8 @@ const FurnitureInventory = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
                                                         <td style={{ padding: '8px' }}>{item.furnitureName || item.inventoryName || 'N/A'}</td>
                                                         <td style={{ padding: '8px', textAlign: 'center' }}>{item.quantity}</td>
-                                                        <td style={{ padding: '8px', textAlign: 'right' }}>{(item.unitPrice || 0).toLocaleString()} đ</td>
-                                                        <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{(item.itemTotal || 0).toLocaleString()} đ</td>
+                                                        <td style={{ padding: '8px', textAlign: 'right' }}>{(item.unitPrice || 0).toLocaleString()} d</td>
+                                                        <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{(item.itemTotal || 0).toLocaleString()} d</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -1458,10 +1458,10 @@ const FurnitureInventory = () => {
                         <button className="btn-close" style={{ position: 'absolute', top: '15px', right: '15px' }} onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}></button>
                         <h4 style={{ color: '#dc3545', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '1.25rem', fontWeight: 'bold' }}>
                             <i className="bi bi-exclamation-triangle-fill"></i>
-                            Chi tiết đồ hỏng
+                            Chi ti?t d? h?ng
                         </h4>
                         <div style={{ marginBottom: '20px', color: '#6c757d', fontSize: '0.9rem' }}>
-                            <strong>{brokenDetailInfo.name}</strong> • #{brokenDetailInfo.id}
+                            <strong>{brokenDetailInfo.name}</strong> � #{brokenDetailInfo.id}
                         </div>
                         
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1469,12 +1469,12 @@ const FurnitureInventory = () => {
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                       <div style={{ fontSize: '0.85rem', color: '#dc3545', fontWeight: 'bold' }}>TRONG KHO (Warehouse Fail)</div>
                                       <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
-                                          {brokenDetailInfo.brokenInStock || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>cái</span>
+                                          {brokenDetailInfo.brokenInStock || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>c�i</span>
                                       </div>
                                   </div>
                                   {(brokenDetailInfo.brokenInStock > 0) && (
                                       <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #ffdcdc' }}>
-                                          <div className="mb-2" style={{ fontSize: '0.85rem', color: '#dc3545' }}><strong>Xử lý đồ trong kho:</strong></div>
+                                          <div className="mb-2" style={{ fontSize: '0.85rem', color: '#dc3545' }}><strong>X? l� d? trong kho:</strong></div>
                                           <div className="d-flex align-items-center gap-2">
                                               <input
                                                   type="number"
@@ -1490,35 +1490,35 @@ const FurnitureInventory = () => {
                                                   className="btn btn-sm btn-success text-white px-3"
                                                   onClick={() => handleProcessBrokenItems('fix')}
                                                   disabled={isProcessingBroken}
-                                                  title="Đã sửa xong, chuyển về Kho"
-                                              ><i className="bi bi-tools me-1"></i>Sửa được</button>
+                                                  title="�� s?a xong, chuy?n v? Kho"
+                                              ><i className="bi bi-tools me-1"></i>S?a du?c</button>
                                               <button 
                                                   className="btn btn-sm btn-danger px-3 text-white"
                                                   onClick={() => handleProcessBrokenItems('discard')}
                                                   disabled={isProcessingBroken}
-                                                  title="Không thể sửa, chọn vứt bỏ"
-                                              ><i className="bi bi-trash me-1"></i>Không thể sửa</button>
+                                                  title="Kh�ng th? s?a, ch?n v?t b?"
+                                              ><i className="bi bi-trash me-1"></i>Kh�ng th? s?a</button>
                                           </div>
                                       </div>
                                   )}
                               </div>
                             <div style={{ padding: '16px', background: '#f8f9fa', borderRadius: '12px', borderLeft: '4px solid #6c757d', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ fontSize: '0.85rem', color: '#495057', fontWeight: 'bold' }}>TRONG PHÒNG</div>
+                                    <div style={{ fontSize: '0.85rem', color: '#495057', fontWeight: 'bold' }}>TRONG PH�NG</div>
                                     <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#495057' }}>
-                                        {brokenDetailInfo.brokenInUse || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>cái</span>
+                                        {brokenDetailInfo.brokenInUse || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>c�i</span>
                                     </div>
                                 </div>
                                 {brokenDetailInfo.roomsBroken && brokenDetailInfo.roomsBroken.length > 0 && (
                                     <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '4px', borderTop: '1px solid #e9ecef', paddingTop: '8px' }}>
-                                        <strong>Phòng:</strong> {formatRoomList(brokenDetailInfo.roomsBroken).join(', ')}
+                                        <strong>Ph�ng:</strong> {formatRoomList(brokenDetailInfo.roomsBroken).join(', ')}
                                     </div>
                                 )}
                             </div>
                         </div>
                         
                         <div style={{ marginTop: '24px', textAlign: 'right' }}>
-                            <button className="btn btn-secondary px-4 fw-semibold" style={{ borderRadius: '8px' }} onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}>Đóng</button>
+                            <button className="btn btn-secondary px-4 fw-semibold" style={{ borderRadius: '8px' }} onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}>��ng</button>
                         </div>
                     </div>
                 </div>
@@ -1529,6 +1529,7 @@ const FurnitureInventory = () => {
 };
 
 export default FurnitureInventory;
+
 
 
 

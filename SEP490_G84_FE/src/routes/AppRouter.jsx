@@ -25,10 +25,10 @@ import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
 // --- MANAGEMENT PAGES ---
 import RoomManagement from "@/features/roomManagement/screens/RoomManagement";
 import FurnitureManagement from "@/features/roomManagement/screens/FurnitureManagement";
-import InventoryManagement from "@/features/inventory/screens/InventoryManagement";
-import InventoryReport from "@/features/inventory/screens/InventoryReport";
-import FurnitureInventory from "@/features/inventory/screens/FurnitureInventory";
-import ImportHistory from "@/features/inventory/screens/ImportHistory";
+import InventoryManagement from "@/features/inventory1/screens/InventoryManagement";
+import InventoryReport from "@/features/inventory1/screens/InventoryReport";
+import FurnitureInventory from "@/features/inventory1/screens/FurnitureInventory";
+import ImportHistory from "@/features/inventory1/screens/ImportHistory";
 
 // --- DASHBOARD & ADMIN PAGES ---
 import Dashboard from "@/features/dashboard/screens/Dashboard";
@@ -73,10 +73,10 @@ const AppRouter = () => {
             <Route path="/admin/furniture" element={<MainLayout><FurnitureManagement /></MainLayout>} />
 
             {/* Inventory & Warehouse */}
-            <Route path="/inventory" element={<MainLayout><InventoryManagement /></MainLayout>} />
-            <Route path="/inventory/report" element={<MainLayout><InventoryReport /></MainLayout>} />
-            <Route path="/inventory/history" element={<MainLayout><ImportHistory /></MainLayout>} />
-            <Route path="/inventory/furniture" element={<MainLayout><FurnitureInventory /></MainLayout>} />
+            <Route path="/inventory1" element={<MainLayout><InventoryManagement /></MainLayout>} />
+            <Route path="/inventory1/report" element={<MainLayout><InventoryReport /></MainLayout>} />
+            <Route path="/inventory1/history" element={<MainLayout><ImportHistory /></MainLayout>} />
+            <Route path="/inventory1/furniture" element={<MainLayout><FurnitureInventory /></MainLayout>} />
 
             {/* --- NHÓM 5: PRIVATE PAGES (With MainLayout) --- */}
             <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
@@ -107,3 +107,4 @@ const AppRouter = () => {
 };
 
 export default AppRouter;
+

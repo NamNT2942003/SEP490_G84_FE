@@ -18,8 +18,8 @@ const Header = () => {
         if (path.includes('/admin/furniture')) return 'Furniture Management';
         if (path.includes('/accounts')) return 'Account Management';
         if (path.includes('/booking')) return 'Booking Management';
-        if (path.includes('/inventory/report')) return 'Inventory Report';
-        if (path.includes('/inventory')) return 'Item Inventory';
+        if (path.includes('/inventory1/report')) return 'Inventory Report';
+        if (path.includes('/inventory1')) return 'Item Inventory';
         if (path.includes('/reports')) return 'Reports';
         if (path.includes('/dashboard')) return 'Dashboard';
         return 'Dashboard'; // 默认值
