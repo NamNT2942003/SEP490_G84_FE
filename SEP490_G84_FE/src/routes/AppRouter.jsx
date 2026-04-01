@@ -49,6 +49,7 @@ import BranchManagement from "@/features/branch-management/screens/BranchManagem
 import RoomTypeManagement from "@/features/room-type-management/screens/RoomTypeManagement.jsx";
 import RoomInventoryManagement from "@/features/room-inventory-management/screens/RoomInventoryManagement.jsx";
 import PriceModifierManagement from "@/features/price-modifiers/screens/PriceModifierManagement.jsx";
+import RefundPolicyManagement from "@/features/refund-policy/screens/RefundPolicyManagement.jsx";
 import ServiceList from '@/features/services/screens/ServiceList';
 
 // =====================================================================
@@ -170,6 +171,7 @@ const AppRouter = () => {
             <Route path="/admin/room-types" element={<MainLayout><RoomTypeManagement /></MainLayout>} />
             <Route path="/admin/room-types/:roomTypeId/price-modifiers" element={<MainLayout><PriceModifierManagement /></MainLayout>} />
             <Route path="/admin/room-inventories" element={<MainLayout><RoomInventoryManagement /></MainLayout>} />
+            <Route path="/admin/branches/:branchId/refund-policies" element={<MainLayout><RefundPolicyManagement /></MainLayout>} />
             
             {/* 6.2 Services Management */}
             <Route path="/services" element={<MainLayout><RequireManagerOrAdmin><ServiceList /></RequireManagerOrAdmin></MainLayout>} />

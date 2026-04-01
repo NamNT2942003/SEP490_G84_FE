@@ -20,7 +20,6 @@ const EMPTY_FORM = {
   fromDate: "",
   toDate: "",
   availability: "",
-  price: "",
   isClosed: false,
   minStay: 1,
 };
@@ -128,7 +127,6 @@ export default function RoomInventoryManagement() {
       fromDate: "",
       toDate: "",
       availability: item.availability,
-      price: item.price,
       isClosed: item.isClosed,
       minStay: item.minStay,
     });
@@ -147,16 +145,25 @@ export default function RoomInventoryManagement() {
   };
 
   const validateInventoryForm = () => {
-    if (!formData.roomTypeId) return "roomTypeId is required.";
+    // ✅ Always validate roomTypeId regardless of date mode
+    if (!formData.roomTypeId) return "Vui lòng chọn loại phòng (Room Type).";
 
-    if (formData.workDate) return "";
+    const hasWorkDate = !!formData.workDate;
+    const hasRange = formData.fromDate && formData.toDate;
 
-    if (!formData.fromDate || !formData.toDate) {
-      return "fromDate and toDate are required when workDate is empty.";
+    if (!hasWorkDate && !hasRange) {
+      return "Vui lòng nhập Work Date hoặc khoảng ngày (From Date → To Date).";
     }
 
-    if (formData.toDate < formData.fromDate) {
-      return "toDate must be greater than or equal to fromDate.";
+    if (!hasWorkDate && hasRange && formData.toDate < formData.fromDate) {
+      return "To Date phải lớn hơn hoặc bằng From Date.";
+    }
+
+    if (formData.availability !== "" && Number(formData.availability) < 0) {
+      return "Availability không được âm.";
+    }
+    if (formData.minStay !== "" && Number(formData.minStay) < 1) {
+      return "Min Stay tối thiểu là 1.";
     }
 
     return "";
@@ -363,46 +370,91 @@ export default function RoomInventoryManagement() {
                   <div className="modal-body">
                     {formError && <div className="alert alert-danger py-2">{formError}</div>}
                     <div className="row g-3">
+                      <div className="col-12">
+                        <div className="alert alert-info py-2 mb-0" style={{ fontSize: '0.82rem' }}>
+                          <i className="bi bi-info-circle me-1"></i>
+                          <strong>Chế độ ngày:</strong> Nhập <strong>Work Date</strong> cho 1 ngày cụ thể, hoặc nhập <strong>From Date + To Date</strong> cho khoảng nhiều ngày. Nếu có Work Date, From/To Date sẽ bị bỏ qua.
+                        </div>
+                      </div>
                       <div className="col-md-6">
-                        <label className="form-label">Room Type *</label>
+                        <label className="form-label">Room Type <span className="text-danger">*</span></label>
                         <select className="form-select" name="roomTypeId" value={formData.roomTypeId} onChange={handleFormChange}>
-                          <option value="">Select room type</option>
+                          <option value="">-- Chọn loại phòng --</option>
                           {roomTypes.map((r) => <option key={r.roomTypeId} value={r.roomTypeId}>{r.name}</option>)}
                         </select>
                       </div>
+                      {/* Work Date (single day) */}
+                      <div className="col-md-6">
+                        <label className="form-label d-flex align-items-center gap-2">
+                          Work Date (1 ngày cụ thể)
+                          {formData.workDate && <span className="badge bg-primary" style={{fontSize:'0.65rem'}}>ĐANG DÙNG</span>}
+                        </label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          name="workDate"
+                          value={formData.workDate}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                      {/* Date Range */}
                       <div className="col-md-4">
-                        <label className="form-label">Work Date</label>
-                        <input type="date" className="form-control" name="workDate" value={formData.workDate} onChange={handleFormChange} />
+                        <label className="form-label d-flex align-items-center gap-2">
+                          From Date
+                          {!formData.workDate && formData.fromDate && <span className="badge bg-success" style={{fontSize:'0.65rem'}}>ĐANG DÙNG</span>}
+                        </label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          name="fromDate"
+                          value={formData.fromDate}
+                          onChange={handleFormChange}
+                          disabled={!!formData.workDate}
+                          style={formData.workDate ? {opacity:0.4} : {}}
+                        />
                       </div>
                       <div className="col-md-4">
-                        <label className="form-label">From Date</label>
-                        <input type="date" className="form-control" name="fromDate" value={formData.fromDate} onChange={handleFormChange} />
+                        <label className="form-label d-flex align-items-center gap-2">
+                          To Date
+                          {!formData.workDate && formData.toDate && <span className="badge bg-success" style={{fontSize:'0.65rem'}}>ĐANG DÙNG</span>}
+                        </label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          name="toDate"
+                          value={formData.toDate}
+                          onChange={handleFormChange}
+                          disabled={!!formData.workDate}
+                          style={formData.workDate ? {opacity:0.4} : {}}
+                        />
                       </div>
                       <div className="col-md-4">
-                        <label className="form-label">To Date</label>
-                        <input type="date" className="form-control" name="toDate" value={formData.toDate} onChange={handleFormChange} />
+                        <label className="form-label">Availability (số phòng)</label>
+                        <input type="number" min="0" className="form-control" name="availability" value={formData.availability} onChange={handleFormChange} placeholder="Để trống = không đổi" />
                       </div>
                       <div className="col-md-4">
-                        <label className="form-label">Availability</label>
-                        <input type="number" min="0" className="form-control" name="availability" value={formData.availability} onChange={handleFormChange} />
-                      </div>
-                      <div className="col-md-4">
-                        <label className="form-label">Price</label>
-                        <input type="number" min="0" className="form-control" name="price" value={formData.price} onChange={handleFormChange} />
-                      </div>
-                      <div className="col-md-4">
-                        <label className="form-label">Min Stay</label>
-                        <input type="number" min="1" className="form-control" name="minStay" value={formData.minStay} onChange={handleFormChange} />
-                      </div>
-                      <div className="col-md-6 d-flex align-items-end">
-                        <div className="form-check">
-                          <input className="form-check-input" type="checkbox" name="isClosed" checked={formData.isClosed} onChange={handleFormChange} id="inventory-closed" />
-                          <label className="form-check-label" htmlFor="inventory-closed">Closed</label>
+                        <label className="form-label d-flex align-items-center gap-1">
+                          Giá base
+                          <span className="badge bg-secondary" style={{fontSize:'0.6rem', fontWeight:500}}>Tự động</span>
+                        </label>
+                        <div className="form-control bg-light text-muted" style={{cursor:'not-allowed', fontSize:'0.85rem'}}>
+                          <i className="bi bi-lock-fill me-1 text-warning" style={{fontSize:'0.75rem'}}></i>
+                          Lấy từ cấu hình Loại Phòng
+                        </div>
+                        <div className="form-text" style={{fontSize:'0.72rem'}}>
+                          Giá cuối = Giá loại phòng ± PriceModifier theo ngày
                         </div>
                       </div>
-                    </div>
-                    <div className="small text-muted mt-3">
-                      Rule: if workDate is provided, backend will ignore fromDate/toDate.
+                      <div className="col-md-4">
+                        <label className="form-label">Min Stay (đêm)</label>
+                        <input type="number" min="1" className="form-control" name="minStay" value={formData.minStay} onChange={handleFormChange} />
+                      </div>
+                      <div className="col-md-4 d-flex align-items-end">
+                        <div className="form-check">
+                          <input className="form-check-input" type="checkbox" name="isClosed" checked={formData.isClosed} onChange={handleFormChange} id="inventory-closed" />
+                          <label className="form-check-label" htmlFor="inventory-closed">Đóng phòng (Closed)</label>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="modal-footer">

@@ -193,14 +193,39 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData }) => {
                                 <div className="col-md-6">
                                     <label className="form-label text-muted small fw-semibold">Adjustment Type</label>
                                     <select className="form-select" name="adjustmentType" value={formData.adjustmentType} onChange={handleChange}>
-                                        <option value="PERCENT">Percentage (%)</option>
-                                        <option value="FIXED">Fixed Amount (₫)</option>
+                                        <option value="PERCENT">Phần trăm (%)</option>
+                                        <option value="AMOUNT">Số tiền cố định (₫)</option>
                                     </select>
                                 </div>
                                 <div className="col-md-6">
-                                    <label className="form-label text-muted small fw-semibold">Adjustment Value (+ Cost / - Discount)</label>
-                                    <input type="number" step="0.01" className="form-control" name="adjustmentValue" value={formData.adjustmentValue} onChange={handleChange} placeholder="-10 for 10% discount" required />
-                                    <div className="form-text" style={{ fontSize: '0.75rem' }}>E.g: -20 (reduce 20%), 150000 (add 150,000₫)</div>
+                                    <label className="form-label text-muted small fw-semibold">
+                                        Giá trị điều chỉnh{' '}
+                                        <span className="text-muted fw-normal">
+                                            {formData.adjustmentType === 'PERCENT' ? '(− giảm / + tăng %)' : '(− giảm VNĐ / + tăng VNĐ)'}
+                                        </span>
+                                    </label>
+                                    <div className="input-group">
+                                        <input
+                                            type="number"
+                                            step={formData.adjustmentType === 'PERCENT' ? '0.01' : '1000'}
+                                            min={formData.adjustmentType === 'PERCENT' ? '-100' : undefined}
+                                            max={formData.adjustmentType === 'PERCENT' ? '100' : undefined}
+                                            className="form-control"
+                                            name="adjustmentValue"
+                                            value={formData.adjustmentValue}
+                                            onChange={handleChange}
+                                            placeholder={formData.adjustmentType === 'PERCENT' ? '-10 (giảm 10%)' : '-50000 (giảm 50k₫)'}
+                                            required
+                                        />
+                                        <span className="input-group-text">
+                                            {formData.adjustmentType === 'PERCENT' ? '%' : '₫'}
+                                        </span>
+                                    </div>
+                                    <div className="form-text" style={{ fontSize: '0.75rem' }}>
+                                        {formData.adjustmentType === 'PERCENT'
+                                            ? 'VD: -20 (giảm 20% giá gốc), +15 (tăng 15%)'
+                                            : 'VD: -50000 (giảm 50.000₫), 100000 (phụ thu 100k)'}
+                                    </div>
                                 </div>
                             </div>
 
@@ -213,9 +238,9 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData }) => {
                                 <div className="col-md-4">
                                     <label className="form-label text-muted small fw-semibold">Condition Type</label>
                                     <select className="form-select" name="type" value={formData.type} onChange={(e) => {
-                                        handleChange(e);
-                                        // Reset metadata on type change to prevent leftover keys
-                                        setFormData(p => ({ ...p, metadata: {} }));
+                                        const newType = e.target.value;
+                                        // Atomic update: change type AND clear metadata together
+                                        setFormData(p => ({ ...p, type: newType, metadata: {} }));
                                     }}>
                                         <option value="DATE_RANGE">Date Range</option>
                                         <option value="DAY_OF_WEEK">Day of Week</option>
