@@ -62,4 +62,18 @@ export const furnitureApi = {
     const response = await apiClient.get(`/rooms-detail/furniture/branch/${branchId}/search?${params.toString()}`);
     return response.data;
   },
+
+  fixWarehouseFailFurniture: async (roomId, furnitureId, quantity = 1) => {
+    const response = await apiClient.post(
+      `/admin/rooms/${roomId}/furniture/${furnitureId}/fix?quantity=${quantity}`
+    );
+    return response.data;
+  },
+
+  discardWarehouseFailFurniture: async (roomId, furnitureId, quantity = 1) => {
+    const response = await apiClient.post(
+      `/admin/rooms/${roomId}/furniture/${furnitureId}/discard?quantity=${quantity}`
+    );
+    return response.data;
+  },
 };

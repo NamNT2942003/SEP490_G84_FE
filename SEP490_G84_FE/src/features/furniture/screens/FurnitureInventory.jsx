@@ -84,7 +84,7 @@ const FurnitureInventory = () => {
 
         const fetchTypes = async () => {
             try {
-                const typeData = await apiClient.get('/furniture/furniture/types');
+                const typeData = await apiClient.get('/furniture/types');
                 setFurnitureTypes(typeData.data || []);
             } catch (e) {
                 console.error('Failed to fetch types:', e);
@@ -407,7 +407,7 @@ const FurnitureInventory = () => {
             setIsProcessingBroken(true);
             
             const branchIdParam = selectedBranch === 'all' ? "" : selectedBranch;
-            const data = await furnitureApi.listRooms('WAREHOUSE_FAIL', '', 0, 10, { branchId: branchIdParam });
+            const data = await furnitureApi.listRooms('WAREHOUSE_FAIL', '', 0, 10, branchIdParam);
             const warehouseFail = data?.content?.find(r => r.roomName === 'WAREHOUSE_FAIL');
             
             if (!warehouseFail) {
