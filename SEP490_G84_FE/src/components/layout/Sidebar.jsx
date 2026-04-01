@@ -61,15 +61,26 @@ const Sidebar = ({ collapsed }) => {
         },
         {
           path: "/admin/furniture",
-          label: "Furniture",
+          label: "Furniture Master",
           icon: "bi-lamp",
           show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
         },
         {
           path: "/inventory",
-          label: "Inventory",
+          label: "Main Inventory",
           icon: "bi-box-seam",
           show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+        },
+        // Đã merge Item Inventory (Furniture) từ bản 2 vào đây dạng Dropdown
+        {
+          label: "Item Inventory",
+          icon: "bi-box",
+          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+          children: [
+            { path: "/furniture/furniture", label: "Furniture Inventory", icon: "bi-list-ul" },
+            { path: "/furniture/history", label: "Import History", icon: "bi-clock-history" },
+            { path: "/furniture/report", label: "Inventory Report", icon: "bi-file-earmark-bar-graph" },
+          ],
         },
         {
           path: "/accounts",

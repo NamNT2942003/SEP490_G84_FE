@@ -37,8 +37,8 @@ import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
 // =====================================================================
 import Dashboard from "@/features/dashboard/screens/Dashboard";
 import BookingManagement from "@/features/booking-management/screens/BookingManagement.jsx";
-import FrontDeskDashboard from "../features/manager_booking/screens/FrontDeskDashboard";
-import StayScreen from "../features/stay/screens/StayScreen";
+import FrontDeskDashboard from "@/features/manager_booking/screens/FrontDeskDashboard";
+import StayScreen from "@/features/stay/screens/StayScreen";
 
 // =====================================================================
 // --- 6. ADMIN & MANAGEMENT PAGES ---
@@ -54,12 +54,19 @@ import ServiceList from '@/features/services/screens/ServiceList';
 // =====================================================================
 // --- 7. INVENTORY, FINANCE & REPORTS ---
 // =====================================================================
-import InventoryScreen from "../features/inventory/screens/InventoryScreen.jsx";
-import CashflowScreen from "../features/finance/screens/CashflowScreen.jsx";
-import ServiceRevenueReportScreen from "../features/report/screens/ServiceRevenueReportScreen.jsx";
+// Inventory (Chuẩn)
+import InventoryScreen from "@/features/inventory/screens/InventoryScreen.jsx";
+// Furniture Inventory (Giữ lại từ file cũ để không sót tính năng)
+import InventoryManagement from "@/features/furniture/screens/InventoryManagement";
+import InventoryReport from "@/features/furniture/screens/InventoryReport";
+import FurnitureInventory from "@/features/furniture/screens/FurnitureInventory";
+import ImportHistory from "@/features/furniture/screens/ImportHistory";
+// Finance & Reports
+import CashflowScreen from "@/features/finance/screens/CashflowScreen.jsx";
+import ServiceRevenueReportScreen from "@/features/report/screens/ServiceRevenueReportScreen.jsx";
 import RevenueReportScreen from "@/features/report/screens/RevenueReportScreen.jsx";
-import ExpenseReportScreen from "../features/report/screens/ExpenseReportScreen.jsx";
-import AggregatedReportScreen from "../features/report/screens/AggregatedReportScreen.jsx";
+import ExpenseReportScreen from "@/features/report/screens/ExpenseReportScreen.jsx";
+import AggregatedReportScreen from "@/features/report/screens/AggregatedReportScreen.jsx";
 import MultiBranchReportScreen from "@/features/report/screens/MultiBranchReportScreen.jsx";
 import ReportDetailScreen from "@/features/report/screens/ReportDetailScreen.jsx";
 
@@ -80,9 +87,10 @@ import ImportInventoryBootstrap from "@/features/test/ImportInventoryBootstrap.j
 import MonthlyReportBootstrap from "@/features/test/MonthlyReportBootstrap.jsx";
 import ExcelToWebReport from "@/features/test/ExcelToWebReport.jsx";
 import ImportReceiptUI from "@/features/test/ImportReceiptUI.jsx";
-import InventoryReportPage from "../features/test/InventoryReportPage";
+import InventoryReportPage from "@/features/test/InventoryReportPage";
 
-/** * Helper HOC: Chặn Staff truy cập vào các trang quản lý nhạy cảm (Account, Services, Admin...).
+/**
+ * Helper HOC: Chặn Staff truy cập vào các trang quản lý nhạy cảm (Account, Services, Admin...).
  * Redirect về trang /dashboard an toàn.
  */
 const RequireManagerOrAdmin = ({ children }) => {
@@ -108,7 +116,7 @@ const AppRouter = () => {
             <Route path="/forgot-password" element={<ClientLayout><ForgotPassword /></ClientLayout>} />
             <Route path="/reset-password" element={<ClientLayout><ResetPassword /></ClientLayout>} />
 
-            {/* --- NHÓM 3: BOOKING & PAYMENT --- */}
+            {/* --- NHÓM 3: BOOKING & PAYMENT (Client Layout) --- */}
             <Route path="/search" element={<ClientLayout><SearchRoom /></ClientLayout>} />
             <Route path="/BookingSummary" element={<ClientLayout><BookingSummary /></ClientLayout>} />
             <Route path="/guest-information" element={<ClientLayout><GuestInformation/></ClientLayout>} />
@@ -133,6 +141,12 @@ const AppRouter = () => {
 
             {/* 5.2 Inventory & Finance */}
             <Route path="/inventory" element={<MainLayout><InventoryScreen /></MainLayout>} />
+            {/* Sub-routes cho Furniture Inventory (Giữ nguyên cấu trúc file 1) */}
+            <Route path="/furniture" element={<MainLayout><InventoryManagement /></MainLayout>} />
+            <Route path="/furniture/report" element={<MainLayout><InventoryReport /></MainLayout>} />
+            <Route path="/furniture/history" element={<MainLayout><ImportHistory /></MainLayout>} />
+            <Route path="/furniture/furniture" element={<MainLayout><FurnitureInventory /></MainLayout>} />
+            
             <Route path="/finance/cashflow" element={<MainLayout><CashflowScreen /></MainLayout>} />
 
             {/* 5.3 Profile */}
