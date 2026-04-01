@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { accountAPI, branchAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import SuccessNoticeModal from '@/features/accounts/components/SuccessNoticeModal';
 import './CreateAccount.css';
 
 const CreateAccount = ({ onClose, onSuccess, isModal }) => {
@@ -22,6 +23,11 @@ const CreateAccount = ({ onClose, onSuccess, isModal }) => {
   const [assignableRoles, setAssignableRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successNotice, setSuccessNotice] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     if (!currentUser) {
@@ -131,10 +137,18 @@ const CreateAccount = ({ onClose, onSuccess, isModal }) => {
 
       await accountAPI.createAccount(requestData, currentUser.userId);
 
-      alert('Account created successfully!');
-      if (isModal && onSuccess) onSuccess();
-      if (isModal && onClose) onClose();
-      else navigate('/accounts');
+      if (isModal && onSuccess) {
+        onSuccess({
+          username: formData.username,
+          fullName: formData.fullName,
+        });
+      } else {
+        setSuccessNotice({
+          open: true,
+          title: 'Account created!',
+          message: `Account "${formData.username}" (${formData.fullName}) has been created.`,
+        });
+      }
     } catch (err) {
       console.error('Error creating account:', err);
       const errorMessage = err.response?.data?.message || err.response?.data || 'Unable to create account';
@@ -153,6 +167,11 @@ const CreateAccount = ({ onClose, onSuccess, isModal }) => {
   const roleOptions = assignableRoles;
 
   if (!currentUser || !currentUser.permissions?.canAccessAccountList) return null;
+
+  const handleCloseSuccessNotice = () => {
+    setSuccessNotice((prev) => ({ ...prev, open: false }));
+    navigate('/accounts');
+  };
 
   return (
       <div className="create-account-container">
@@ -324,6 +343,13 @@ const CreateAccount = ({ onClose, onSuccess, isModal }) => {
             </button>
           </div>
         </form>
+
+        <SuccessNoticeModal
+          open={successNotice.open}
+          title={successNotice.title}
+          message={successNotice.message}
+          onClose={handleCloseSuccessNotice}
+        />
       </div>
   );
 };

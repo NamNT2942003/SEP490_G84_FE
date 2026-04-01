@@ -1,0 +1,98 @@
+.update-profile-page {
+  padding: 24px;
+}
+
+.update-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.update-profile-header h1 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 14px;
+  color: #495057;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-back:hover {
+  background: #f1f3f5;
+}
+
+/* Two-column grid on wide screens */
+.update-profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 767px) {
+  .update-profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.up-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.up-card-header {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  color: #2d3748;
+}
+
+.up-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Password input wrapper */
+.input-pw {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-pw .form-control {
+  padding-right: 40px;
+}
+
+.btn-eye {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6c757d;
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+}
+
+.btn-eye:hover {
+  color: #343a40;
+}

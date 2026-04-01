@@ -1,0 +1,34 @@
+.edit-service-page {
+  padding: 0 0 1rem 0;
+}
+
+.edit-service-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #465c47;
+  margin-bottom: 1rem;
+}
+
+.edit-service-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+}
+
+.edit-service-form {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.edit-service-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

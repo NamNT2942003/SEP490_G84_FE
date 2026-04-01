@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { accountAPI, branchAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import SuccessNoticeModal from '@/features/accounts/components/SuccessNoticeModal';
 import './EditStaff.css';
 
 const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
@@ -26,6 +27,11 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [successNotice, setSuccessNotice] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     if (!currentUser) {
@@ -149,10 +155,15 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
 
       await accountAPI.updateAccount(id, updateData, currentUser?.userId);
 
-      alert('Updated successfully.');
-      if (isModal && onSuccess) onSuccess();
-      if (isModal && onClose) onClose();
-      else navigate('/accounts', { state: { refreshList: true } });
+      if (isModal && onSuccess) {
+        onSuccess({ username: formData.username });
+      } else {
+        setSuccessNotice({
+          open: true,
+          title: 'Updated successfully!',
+          message: `Account "${formData.username}" has been saved.`,
+        });
+      }
     } catch (error) {
       console.error('Error updating user:', error);
       const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response?.data : JSON.stringify(error.response?.data));
@@ -171,6 +182,11 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
   const handleCancel = () => {
     if (isModal && onClose) onClose();
     else navigate('/accounts');
+  };
+
+  const handleCloseSuccessNotice = () => {
+    setSuccessNotice((prev) => ({ ...prev, open: false }));
+    navigate('/accounts', { state: { refreshList: true } });
   };
 
   // Role options from API (assignable roles for current user)
@@ -356,6 +372,13 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
           </div>
         </div>
       </form>
+
+      <SuccessNoticeModal
+        open={successNotice.open}
+        title={successNotice.title}
+        message={successNotice.message}
+        onClose={handleCloseSuccessNotice}
+      />
     </div>
   );
 };

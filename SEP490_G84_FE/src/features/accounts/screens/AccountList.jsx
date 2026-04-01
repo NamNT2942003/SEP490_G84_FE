@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { accountAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import UserDetail from './UserDetail';
 import CreateAccount from './CreateAccount';
 import EditStaff from './EditStaff';
+import SuccessNoticeModal from '@/features/accounts/components/SuccessNoticeModal';
+import DeleteAccountConfirmModal from '@/features/accounts/components/DeleteAccountConfirmModal';
 import './AccountList.css';
 
 /** Fallback khi API /accounts/roles lỗi hoặc rỗng — giống các trang khác */
@@ -33,7 +36,25 @@ const AccountList = () => {
   const [viewModalId, setViewModalId] = useState(null);
   const [editModalId, setEditModalId] = useState(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [successNotice, setSuccessNotice] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    open: false,
+    userId: null,
+    username: '',
+  });
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const accountsPerPage = 5;
+
+  const showSuccessNotice = (title, message) => {
+    setSuccessNotice({ open: true, title, message });
+  };
+  const closeSuccessNotice = () => {
+    setSuccessNotice((prev) => ({ ...prev, open: false }));
+  };
 
   useEffect(() => {
     if (!currentUser) {
@@ -137,18 +158,36 @@ const AccountList = () => {
     }
   };
 
-  const handleDelete = async (userId, username) => {
-    if (!window.confirm(`Are you sure you want to delete account "${username}"?\nThis action cannot be undone.`)) {
-      return;
-    }
+  const openDeleteConfirm = (userId, username) => {
+    setDeleteConfirm({
+      open: true,
+      userId,
+      username: username || '',
+    });
+  };
 
+  const closeDeleteConfirm = () => {
+    if (deleteSubmitting) return;
+    setDeleteConfirm({ open: false, userId: null, username: '' });
+  };
+
+  const confirmDeleteAccount = async () => {
+    const { userId, username } = deleteConfirm;
+    if (userId == null) return;
     try {
+      setDeleteSubmitting(true);
       await accountAPI.deleteAccount(userId, currentUser?.userId);
-      alert('Account deleted successfully.');
+      setDeleteConfirm({ open: false, userId: null, username: '' });
       fetchAccounts();
+      showSuccessNotice(
+        'Deleted successfully!',
+        `Account "${username}" has been removed.`
+      );
     } catch (error) {
       const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response?.data : error.message);
       alert('Could not delete account. ' + (msg || ''));
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -176,13 +215,28 @@ const AccountList = () => {
   const closeViewModal = () => setViewModalId(null);
   const closeEditModal = () => setEditModalId(null);
   const closeCreateModal = () => setCreateModalOpen(false);
-  const onEditSuccess = () => {
+  const onEditSuccess = (meta) => {
     fetchAccounts();
     setEditModalId(null);
+    const u = meta?.username;
+    showSuccessNotice(
+      'Updated successfully!',
+      u
+        ? `Account "${u}" has been saved.`
+        : 'The account has been updated successfully.'
+    );
   };
-  const onCreateSuccess = () => {
+  const onCreateSuccess = (meta) => {
     fetchAccounts();
     setCreateModalOpen(false);
+    const u = meta?.username;
+    const fn = meta?.fullName;
+    showSuccessNotice(
+      'Account created!',
+      u
+        ? `Account "${u}"${fn ? ` (${fn})` : ''} has been created.`
+        : 'The new account has been created successfully.'
+    );
   };
 
   if (!currentUser || !currentUser.permissions?.canAccessAccountList) return null;
@@ -372,7 +426,7 @@ const AccountList = () => {
                                   <button
                                       className="action-btn delete"
                                       title="Delete"
-                                      onClick={() => handleDelete(account.userId, account.username)}
+                                      onClick={() => openDeleteConfirm(account.userId, account.username)}
                                   >
                                     <i className="bi bi-trash"></i>
                                   </button>
@@ -430,58 +484,58 @@ const AccountList = () => {
         </div>
 
         {/* Modal: View User Details */}
-        {viewModalId != null && (
-            <div
-                className="service-modal-overlay"
-                onClick={closeViewModal}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="user-detail-title"
-            >
-              <div className="service-modal-box account-modal-box" onClick={(e) => e.stopPropagation()}>
+        {viewModalId != null && ReactDOM.createPortal(
+            <div className="account-modal-overlay" onClick={closeViewModal} role="dialog" aria-modal="true">
+              <div className="account-modal-box" onClick={(e) => e.stopPropagation()}>
                 <button type="button" className="service-modal-close" onClick={closeViewModal} aria-label="Close">
                   <i className="bi bi-x-lg" />
                 </button>
                 <UserDetail userId={viewModalId} onClose={closeViewModal} isModal />
               </div>
-            </div>
+            </div>,
+            document.body
         )}
 
         {/* Modal: Edit User */}
-        {editModalId != null && (
-            <div
-                className="service-modal-overlay"
-                onClick={closeEditModal}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="edit-user-title"
-            >
-              <div className="service-modal-box account-modal-box" onClick={(e) => e.stopPropagation()}>
+        {editModalId != null && ReactDOM.createPortal(
+            <div className="account-modal-overlay" onClick={closeEditModal} role="dialog" aria-modal="true">
+              <div className="account-modal-box" onClick={(e) => e.stopPropagation()}>
                 <button type="button" className="service-modal-close" onClick={closeEditModal} aria-label="Close">
                   <i className="bi bi-x-lg" />
                 </button>
                 <EditStaff id={String(editModalId)} onClose={closeEditModal} onSuccess={onEditSuccess} isModal />
               </div>
-            </div>
+            </div>,
+            document.body
         )}
 
         {/* Modal: Create Account */}
-        {createModalOpen && (
-            <div
-                className="service-modal-overlay"
-                onClick={closeCreateModal}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="create-account-title"
-            >
-              <div className="service-modal-box account-modal-box" onClick={(e) => e.stopPropagation()}>
+        {createModalOpen && ReactDOM.createPortal(
+            <div className="account-modal-overlay" onClick={closeCreateModal} role="dialog" aria-modal="true">
+              <div className="account-modal-box" onClick={(e) => e.stopPropagation()}>
                 <button type="button" className="service-modal-close" onClick={closeCreateModal} aria-label="Close">
                   <i className="bi bi-x-lg" />
                 </button>
                 <CreateAccount onClose={closeCreateModal} onSuccess={onCreateSuccess} isModal />
               </div>
-            </div>
+            </div>,
+            document.body
         )}
+
+        <DeleteAccountConfirmModal
+          open={deleteConfirm.open}
+          username={deleteConfirm.username}
+          onCancel={closeDeleteConfirm}
+          onConfirm={confirmDeleteAccount}
+          confirming={deleteSubmitting}
+        />
+
+        <SuccessNoticeModal
+          open={successNotice.open}
+          title={successNotice.title}
+          message={successNotice.message}
+          onClose={closeSuccessNotice}
+        />
       </div>
   );
 };
