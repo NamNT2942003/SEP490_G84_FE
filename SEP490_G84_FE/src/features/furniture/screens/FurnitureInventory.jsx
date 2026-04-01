@@ -367,7 +367,7 @@ const FurnitureInventory = () => {
                 furnitureName: item.isNew ? item.furnitureName.trim() : null,
                 price: unitPrice,
                 quantity: parseInt(item.quantity),
-                unit: item.unit || 'C�i',
+                unit: item.unit || 'Piece',
                 type: item.isNew ? item.type || '' : null  // For existing furniture
             };
         });
@@ -401,7 +401,7 @@ const FurnitureInventory = () => {
     const handleProcessBrokenItems = async (action) => {
         try {
             if (!brokenActionQuantity || brokenActionQuantity <= 0 || brokenActionQuantity > (brokenDetailInfo?.brokenInStock || 0)) {
-                alert("S? lu?ng kh�ng h?p l?!");
+                alert("Invalid quantity!");
                 return;
             }
             setIsProcessingBroken(true);
@@ -411,16 +411,16 @@ const FurnitureInventory = () => {
             const warehouseFail = data?.content?.find(r => r.roomName === 'WAREHOUSE_FAIL');
             
             if (!warehouseFail) {
-                alert('Kh�ng t�m th?y kho d? h?ng cho chi nh�nh n�y!');
+                alert('No warehouse fail room found for this branch!');
                 return;
             }
 
             if (action === 'fix') {
                 await furnitureApi.fixWarehouseFailFurniture(warehouseFail.roomId, brokenDetailInfo.id, brokenActionQuantity);
-                alert("�� chuy?n d? t? Kho H?ng v? Kho th�nh c�ng!");
+                alert("Successfully moved items from warehouse fail to normal warehouse!");
             } else if (action === 'discard') {
                 await furnitureApi.discardWarehouseFailFurniture(warehouseFail.roomId, brokenDetailInfo.id, brokenActionQuantity);
-                alert("�� v?t b? d? h?ng!");
+                alert("Successfully discarded broken items!");
             }
             
             setBrokenDetailInfo(null);
@@ -429,7 +429,7 @@ const FurnitureInventory = () => {
             
         } catch (e) {
             console.error(e);
-            const msg = e?.response?.data?.message || 'C� l?i x?y ra khi x? l�!';
+            const msg = e?.response?.data?.message || 'Error occurred during processing!';
             alert(msg);
         } finally {
             setIsProcessingBroken(false);
@@ -669,14 +669,14 @@ const FurnitureInventory = () => {
                                 <span style={{ marginLeft: '8px', fontWeight: 'bold' }}>Warehouse Fail</span>
                             </div>
                             <p className="text-muted small mt-2 mb-3">
-                                Qu?n l� c�c thi?t b? l?i/h?ng trong kho.
+                                Manage faulty and broken equipment in warehouse.
                             </p>
                             <button 
                                 className="filter-btn w-100" 
                                 style={{ backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '10px', borderRadius: '10px', fontWeight: 'bold' }}
                                 onClick={handleOpenWarehouseFail}
                             >
-                                <i className="bi bi-tools me-2"></i> M? kho thi?t b? l?i
+                                <i className="bi bi-tools me-2"></i> Warehouse Fail
                             </button>
                         </div>
                     </div>
@@ -1066,8 +1066,8 @@ const FurnitureInventory = () => {
                                                     <td className="px-4 py-3 text-muted">{new Date(item.importDate).toLocaleString('vi-VN')}</td>
                                                     <td className="px-4 py-3 fw-semibold">#{item.receiptId}</td>
                                                     <td className="px-4 py-3 text-end fw-bold">{item.quantity}</td>
-                                                    <td className="px-4 py-3 text-end">{(item.unitPrice || 0).toLocaleString()} d</td>
-                                                    <td className="px-4 py-3 text-end fw-bold text-danger">{((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString()} d</td>
+                                                    <td className="px-4 py-3 text-end">{(item.unitPrice || 0).toLocaleString()} VND</td>
+                                                    <td className="px-4 py-3 text-end fw-bold text-danger">{((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString()} VND</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -1185,7 +1185,7 @@ const FurnitureInventory = () => {
                                             />
                                               <input
                                                   type="text"
-                                                  placeholder="Lo?i (VD: �? chi?u s�ng...)"
+                                                  placeholder="Type (e.g. Lighting equipment...)"
                                                   value={row.type || ""}
                                                   onChange={(e) => handleImportChange(index, 'type', e.target.value)}
                                                   style={{
@@ -1458,7 +1458,7 @@ const FurnitureInventory = () => {
                         <button className="btn-close" style={{ position: 'absolute', top: '15px', right: '15px' }} onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}></button>
                         <h4 style={{ color: '#dc3545', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '1.25rem', fontWeight: 'bold' }}>
                             <i className="bi bi-exclamation-triangle-fill"></i>
-                            Chi ti?t d? h?ng
+                            Furniture Broken Details
                         </h4>
                         <div style={{ marginBottom: '20px', color: '#6c757d', fontSize: '0.9rem' }}>
                             <strong>{brokenDetailInfo.name}</strong> � #{brokenDetailInfo.id}
@@ -1467,14 +1467,14 @@ const FurnitureInventory = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                               <div style={{ padding: '16px', background: '#fff5f5', borderRadius: '12px', borderLeft: '4px solid #dc3545', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                      <div style={{ fontSize: '0.85rem', color: '#dc3545', fontWeight: 'bold' }}>TRONG KHO (Warehouse Fail)</div>
+                                      <div style={{ fontSize: '0.85rem', color: '#dc3545', fontWeight: 'bold' }}>Warehouse Fail</div>
                                       <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
-                                          {brokenDetailInfo.brokenInStock || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>c�i</span>
+                                          {brokenDetailInfo.brokenInStock || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>Pieces</span>
                                       </div>
                                   </div>
                                   {(brokenDetailInfo.brokenInStock > 0) && (
                                       <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #ffdcdc' }}>
-                                          <div className="mb-2" style={{ fontSize: '0.85rem', color: '#dc3545' }}><strong>X? l� d? trong kho:</strong></div>
+                                          <div className="mb-2" style={{ fontSize: '0.85rem', color: '#dc3545' }}><strong>Deal error furniture in stock</strong></div>
                                           <div className="d-flex align-items-center gap-2">
                                               <input
                                                   type="number"
@@ -1490,28 +1490,28 @@ const FurnitureInventory = () => {
                                                   className="btn btn-sm btn-success text-white px-3"
                                                   onClick={() => handleProcessBrokenItems('fix')}
                                                   disabled={isProcessingBroken}
-                                                  title="�� s?a xong, chuy?n v? Kho"
-                                              ><i className="bi bi-tools me-1"></i>S?a du?c</button>
+                                                  title="�� Fixed. Will be available in inventory again."
+                                              ><i className="bi bi-tools me-1"></i>Fixed</button>
                                               <button 
                                                   className="btn btn-sm btn-danger px-3 text-white"
                                                   onClick={() => handleProcessBrokenItems('discard')}
                                                   disabled={isProcessingBroken}
-                                                  title="Kh�ng th? s?a, ch?n v?t b?"
-                                              ><i className="bi bi-trash me-1"></i>Kh�ng th? s?a</button>
+                                                  title="Beyond Fixed --> Permanently remove from inventory"
+                                              ><i className="bi bi-trash me-1"></i>Beyond Fixed</button>
                                           </div>
                                       </div>
                                   )}
                               </div>
                             <div style={{ padding: '16px', background: '#f8f9fa', borderRadius: '12px', borderLeft: '4px solid #6c757d', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ fontSize: '0.85rem', color: '#495057', fontWeight: 'bold' }}>TRONG PH�NG</div>
+                                    <div style={{ fontSize: '0.85rem', color: '#495057', fontWeight: 'bold' }}>IN ROOM</div>
                                     <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#495057' }}>
-                                        {brokenDetailInfo.brokenInUse || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>c�i</span>
+                                        {brokenDetailInfo.brokenInUse || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>Piece</span>
                                     </div>
                                 </div>
                                 {brokenDetailInfo.roomsBroken && brokenDetailInfo.roomsBroken.length > 0 && (
                                     <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '4px', borderTop: '1px solid #e9ecef', paddingTop: '8px' }}>
-                                        <strong>Ph�ng:</strong> {formatRoomList(brokenDetailInfo.roomsBroken).join(', ')}
+                                        <strong>In Room:</strong> {formatRoomList(brokenDetailInfo.roomsBroken).join(', ')}
                                     </div>
                                 )}
                             </div>
