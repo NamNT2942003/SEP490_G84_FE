@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { roomManagementApi } from '@/features/roomManagement/api/roomManagementApi';
+import { furnitureApi } from '@/features/furniture/api/furnitureApi';
 import RoomDetailModal from '@/features/roomManagement/components/RoomDetailModal';
 import apiClient from '@/services/apiClient';
 import MainLayout from '@/components/layout/MainLayout';
@@ -67,7 +67,7 @@ const FurnitureInventory = () => {
         useEffect(() => {
         const fetchBranches = async () => {
             try {
-                const data = await roomManagementApi.listBranches();
+                const data = await furnitureApi.listBranches();
                 const branchOptions = [
                     { value: 'all', label: 'All branches' },
                     ...(Array.isArray(data) ? data.map(b => ({
@@ -103,7 +103,7 @@ const FurnitureInventory = () => {
         try {
             let response;
             if (searchKeyword.trim()) {
-                response = await roomManagementApi.searchFurnitureInventoryByBranch(
+                response = await furnitureApi.searchFurnitureInventoryByBranch(
                     branchId,
                     searchKeyword,
                     pageNum - 1,
@@ -111,7 +111,7 @@ const FurnitureInventory = () => {
                     typeId === 'all' ? null : typeId
                 );
             } else {
-                response = await roomManagementApi.listFurnitureInventoryByBranch(
+                response = await furnitureApi.listFurnitureInventoryByBranch(
                     branchId,
                     pageNum - 1,
                     pageSize,
@@ -255,7 +255,7 @@ const FurnitureInventory = () => {
     const handleOpenWarehouseFail = async () => {
         try {
             const branchParam = selectedBranch !== 'all' ? selectedBranch : '';
-            const data = await roomManagementApi.listRooms('WAREHOUSE_FAIL', '', 0, 10, branchParam);
+            const data = await furnitureApi.listRooms('WAREHOUSE_FAIL', '', 0, 10, branchParam);
             
             if (data && data.content && data.content.length > 0) {
                 const warehouseFail = data.content.find(r => r.roomName === 'WAREHOUSE_FAIL');
@@ -367,7 +367,7 @@ const FurnitureInventory = () => {
                 furnitureName: item.isNew ? item.furnitureName.trim() : null,
                 price: unitPrice,
                 quantity: parseInt(item.quantity),
-                unit: item.unit || 'Cái',
+                unit: item.unit || 'Cï¿½i',
                 type: item.isNew ? item.type || '' : null  // For existing furniture
             };
         });
@@ -401,26 +401,26 @@ const FurnitureInventory = () => {
     const handleProcessBrokenItems = async (action) => {
         try {
             if (!brokenActionQuantity || brokenActionQuantity <= 0 || brokenActionQuantity > (brokenDetailInfo?.brokenInStock || 0)) {
-                alert("S? lu?ng không h?p l?!");
+                alert("S? lu?ng khï¿½ng h?p l?!");
                 return;
             }
             setIsProcessingBroken(true);
             
             const branchIdParam = selectedBranch === 'all' ? "" : selectedBranch;
-            const data = await roomManagementApi.listRooms('WAREHOUSE_FAIL', '', 0, 10, { branchId: branchIdParam });
+            const data = await furnitureApi.listRooms('WAREHOUSE_FAIL', '', 0, 10, { branchId: branchIdParam });
             const warehouseFail = data?.content?.find(r => r.roomName === 'WAREHOUSE_FAIL');
             
             if (!warehouseFail) {
-                alert('Không tìm th?y kho d? h?ng cho chi nhánh này!');
+                alert('Khï¿½ng tï¿½m th?y kho d? h?ng cho chi nhï¿½nh nï¿½y!');
                 return;
             }
 
             if (action === 'fix') {
-                await roomManagementApi.fixWarehouseFailFurniture(warehouseFail.roomId, brokenDetailInfo.id, brokenActionQuantity);
-                alert("Ðã chuy?n d? t? Kho H?ng v? Kho thành công!");
+                await furnitureApi.fixWarehouseFailFurniture(warehouseFail.roomId, brokenDetailInfo.id, brokenActionQuantity);
+                alert("ï¿½ï¿½ chuy?n d? t? Kho H?ng v? Kho thï¿½nh cï¿½ng!");
             } else if (action === 'discard') {
-                await roomManagementApi.discardWarehouseFailFurniture(warehouseFail.roomId, brokenDetailInfo.id, brokenActionQuantity);
-                alert("Ðã v?t b? d? h?ng!");
+                await furnitureApi.discardWarehouseFailFurniture(warehouseFail.roomId, brokenDetailInfo.id, brokenActionQuantity);
+                alert("ï¿½ï¿½ v?t b? d? h?ng!");
             }
             
             setBrokenDetailInfo(null);
@@ -429,7 +429,7 @@ const FurnitureInventory = () => {
             
         } catch (e) {
             console.error(e);
-            const msg = e?.response?.data?.message || 'Có l?i x?y ra khi x? lý!';
+            const msg = e?.response?.data?.message || 'Cï¿½ l?i x?y ra khi x? lï¿½!';
             alert(msg);
         } finally {
             setIsProcessingBroken(false);
@@ -669,7 +669,7 @@ const FurnitureInventory = () => {
                                 <span style={{ marginLeft: '8px', fontWeight: 'bold' }}>Warehouse Fail</span>
                             </div>
                             <p className="text-muted small mt-2 mb-3">
-                                Qu?n lý các thi?t b? l?i/h?ng trong kho.
+                                Qu?n lï¿½ cï¿½c thi?t b? l?i/h?ng trong kho.
                             </p>
                             <button 
                                 className="filter-btn w-100" 
@@ -903,7 +903,7 @@ const FurnitureInventory = () => {
                             {/* Stat Cards Row */}
                             <div className="row g-3 mb-4">
                                 {[
-                                    { icon: "bi-building", label: "Branch / Area", value: detailItem.facility || detailItem.branch || "—", color: "#5C6F4E" },
+                                    { icon: "bi-building", label: "Branch / Area", value: detailItem.facility || detailItem.branch || "ï¿½", color: "#5C6F4E" },
                                     { icon: "bi-tags", label: "Total Quantity", value: `${detailItem.quantity} items`, color: "#0d6efd" },
                                     { icon: "bi-cash", label: "Unit Price", value: formatVND(detailItem.price), color: "#dc3545" },
                                     { icon: "bi-archive", label: "In Stock", value: `${detailItem.inStock} items`, color: "#198754" }
@@ -1185,7 +1185,7 @@ const FurnitureInventory = () => {
                                             />
                                               <input
                                                   type="text"
-                                                  placeholder="Lo?i (VD: Ð? chi?u sáng...)"
+                                                  placeholder="Lo?i (VD: ï¿½? chi?u sï¿½ng...)"
                                                   value={row.type || ""}
                                                   onChange={(e) => handleImportChange(index, 'type', e.target.value)}
                                                   style={{
@@ -1461,7 +1461,7 @@ const FurnitureInventory = () => {
                             Chi ti?t d? h?ng
                         </h4>
                         <div style={{ marginBottom: '20px', color: '#6c757d', fontSize: '0.9rem' }}>
-                            <strong>{brokenDetailInfo.name}</strong> • #{brokenDetailInfo.id}
+                            <strong>{brokenDetailInfo.name}</strong> ï¿½ #{brokenDetailInfo.id}
                         </div>
                         
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1469,12 +1469,12 @@ const FurnitureInventory = () => {
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                       <div style={{ fontSize: '0.85rem', color: '#dc3545', fontWeight: 'bold' }}>TRONG KHO (Warehouse Fail)</div>
                                       <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
-                                          {brokenDetailInfo.brokenInStock || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>cái</span>
+                                          {brokenDetailInfo.brokenInStock || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>cï¿½i</span>
                                       </div>
                                   </div>
                                   {(brokenDetailInfo.brokenInStock > 0) && (
                                       <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #ffdcdc' }}>
-                                          <div className="mb-2" style={{ fontSize: '0.85rem', color: '#dc3545' }}><strong>X? lý d? trong kho:</strong></div>
+                                          <div className="mb-2" style={{ fontSize: '0.85rem', color: '#dc3545' }}><strong>X? lï¿½ d? trong kho:</strong></div>
                                           <div className="d-flex align-items-center gap-2">
                                               <input
                                                   type="number"
@@ -1490,35 +1490,35 @@ const FurnitureInventory = () => {
                                                   className="btn btn-sm btn-success text-white px-3"
                                                   onClick={() => handleProcessBrokenItems('fix')}
                                                   disabled={isProcessingBroken}
-                                                  title="Ðã s?a xong, chuy?n v? Kho"
+                                                  title="ï¿½ï¿½ s?a xong, chuy?n v? Kho"
                                               ><i className="bi bi-tools me-1"></i>S?a du?c</button>
                                               <button 
                                                   className="btn btn-sm btn-danger px-3 text-white"
                                                   onClick={() => handleProcessBrokenItems('discard')}
                                                   disabled={isProcessingBroken}
-                                                  title="Không th? s?a, ch?n v?t b?"
-                                              ><i className="bi bi-trash me-1"></i>Không th? s?a</button>
+                                                  title="Khï¿½ng th? s?a, ch?n v?t b?"
+                                              ><i className="bi bi-trash me-1"></i>Khï¿½ng th? s?a</button>
                                           </div>
                                       </div>
                                   )}
                               </div>
                             <div style={{ padding: '16px', background: '#f8f9fa', borderRadius: '12px', borderLeft: '4px solid #6c757d', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ fontSize: '0.85rem', color: '#495057', fontWeight: 'bold' }}>TRONG PHÒNG</div>
+                                    <div style={{ fontSize: '0.85rem', color: '#495057', fontWeight: 'bold' }}>TRONG PHï¿½NG</div>
                                     <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#495057' }}>
-                                        {brokenDetailInfo.brokenInUse || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>cái</span>
+                                        {brokenDetailInfo.brokenInUse || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>cï¿½i</span>
                                     </div>
                                 </div>
                                 {brokenDetailInfo.roomsBroken && brokenDetailInfo.roomsBroken.length > 0 && (
                                     <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '4px', borderTop: '1px solid #e9ecef', paddingTop: '8px' }}>
-                                        <strong>Phòng:</strong> {formatRoomList(brokenDetailInfo.roomsBroken).join(', ')}
+                                        <strong>Phï¿½ng:</strong> {formatRoomList(brokenDetailInfo.roomsBroken).join(', ')}
                                     </div>
                                 )}
                             </div>
                         </div>
                         
                         <div style={{ marginTop: '24px', textAlign: 'right' }}>
-                            <button className="btn btn-secondary px-4 fw-semibold" style={{ borderRadius: '8px' }} onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}>Ðóng</button>
+                            <button className="btn btn-secondary px-4 fw-semibold" style={{ borderRadius: '8px' }} onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}>ï¿½ï¿½ng</button>
                         </div>
                     </div>
                 </div>
@@ -1529,6 +1529,7 @@ const FurnitureInventory = () => {
 };
 
 export default FurnitureInventory;
+
 
 
 
