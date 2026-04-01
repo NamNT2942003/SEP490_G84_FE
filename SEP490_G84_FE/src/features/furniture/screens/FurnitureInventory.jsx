@@ -84,7 +84,7 @@ const FurnitureInventory = () => {
 
         const fetchTypes = async () => {
             try {
-                const typeData = await apiClient.get('/inventoryandfurnitureTest/furniture/types');
+                const typeData = await apiClient.get('/furniture/furniture/types');
                 setFurnitureTypes(typeData.data || []);
             } catch (e) {
                 console.error('Failed to fetch types:', e);
@@ -1529,6 +1529,7 @@ const FurnitureInventory = () => {
 };
 
 export default FurnitureInventory;
+
 
 
 

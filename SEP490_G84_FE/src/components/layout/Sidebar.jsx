@@ -16,14 +16,14 @@ const Sidebar = () => {
         { path: "/services", label: "Services", icon: "bi-cup-hot" },
         { path: "/staff", label: "Staff Account", icon: "bi-people" },
         {
-            path: "/inventoryandfurnitureTest",
+            path: "/furniture",
             label: "Item Inventory",
             icon: "bi-box",
             // Khai báo menu con ở đây (Đã sửa đường dẫn cho khớp AppRouter)
             subItems: [
-                { path: "/inventoryandfurnitureTest/furniture", label: "Furniture Inventory" },
-                { path: "/inventoryandfurnitureTest/history", label: "Import History" },
-                { path: "/inventoryandfurnitureTest/report", label: "Inventory Report" }
+                { path: "/furniture/furniture", label: "Furniture Inventory" },
+                { path: "/furniture/history", label: "Import History" },
+                { path: "/furniture/report", label: "Inventory Report" }
             ]
         },
         { path: "/reports", label: "Reports", icon: "bi-bar-chart-line" },
@@ -63,7 +63,7 @@ const Sidebar = () => {
                                             <li className="nav-item mb-1" key={subIndex}>
                                                 <NavLink
                                                     to={sub.path}
-                                                    end={sub.path === "/inventoryandfurnitureTest"} // Đảm bảo trang gốc không bị highlight đè
+                                                    end={sub.path === "/furniture"} // Đảm bảo trang gốc không bị highlight đè
                                                     className={({ isActive }) =>
                                                         `nav-link text-white d-flex align-items-center ${isActive ? "active-menu" : ""}`
                                                     }
@@ -108,4 +108,5 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
 
