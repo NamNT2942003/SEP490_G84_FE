@@ -56,13 +56,13 @@ const normalizeInventory = (item = {}) => ({
 const toInventoryRequest = (payload = {}) => {
   const request = {
     roomTypeId: Number(payload.roomTypeId),
-    availability: payload.availability !== "" && payload.availability !== undefined ? Number(payload.availability) : undefined,
     // price is intentionally excluded — backend derives it from roomType.basePrice
     isClosed: Boolean(payload.isClosed),
     minStay: payload.minStay !== "" && payload.minStay !== undefined ? Number(payload.minStay) : undefined,
   };
 
-  if (payload.workDate) {
+  const isSingleDay = payload.dateMode === "single";
+  if (isSingleDay && payload.workDate) {
     request.workDate = payload.workDate;
   } else {
     if (payload.fromDate) request.fromDate = payload.fromDate;
