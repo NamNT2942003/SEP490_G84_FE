@@ -91,10 +91,10 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                             <div className="rc-badge urgent"><i className="bi bi-fire"></i> Chỉ còn {room.availableCount} phòng!</div>
                         )}
                         {room.availableCount > 3 && (
-                            <div className="rc-badge"><i className="bi bi-check-circle-fill" style={{color: '#9ae6b4'}}></i> Sẵn sàng: {room.availableCount} phòng</div>
+                            <div className="rc-badge"><i className="bi bi-check-circle-fill" style={{ color: '#9ae6b4' }}></i> Sẵn sàng: {room.availableCount} phòng</div>
                         )}
                     </div>
-                    
+
                     <div className="rc-info">
                         <div className="rc-name">{room.name}</div>
                         <div className="rc-tags">
@@ -104,7 +104,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                             {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile"></i> T.Em: {room.maxChildren}</span>}
                         </div>
                         <div className="rc-desc">{room.description}</div>
-                        
+
                         <button className="rc-side-btn" onClick={() => onViewDetail(room)}>
                             <i className="bi bi-info-circle me-1"></i> Xem thông tin chi tiết
                         </button>
@@ -113,14 +113,14 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                     <div className="rc-pricing">
                         <div className="rc-pricing-hd">
                             <span><i className="bi bi-tag-fill me-1"></i> Các Gói Giá</span>
-                            <span className="badge bg-secondary" style={{fontSize: '0.65rem'}}>{options.length} Lựa chọn</span>
+                            <span className="badge bg-secondary" style={{ fontSize: '0.65rem' }}>{options.length} Lựa chọn</span>
                         </div>
-                        
+
                         <div className="rc-pricing-options">
                             {options.length > 0 ? options.map((option, idx) => {
                                 const isRecommended = idx === 0 && options.length > 1; // Highlight first element
                                 const hasDiscount = option.delta < 0;
-                                
+
                                 return (
                                     <div className={`rc-opt ${isRecommended ? 'rc-opt-highlight' : ''}`} key={`${room.roomTypeId}-${option.mode}-${idx}`}>
                                         <div className="rc-opt-header">
@@ -128,7 +128,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                                                 {option.mode?.startsWith("POLICY_") ? "Gói Thanh Toán Chuẩn" : (option.mode || "Gói Tiêu Chuẩn")}
                                             </div>
                                         </div>
-                                        
+
                                         <div className="rc-opt-prices">
                                             <div>
                                                 {hasDiscount && <div className="rc-opt-base">{formatPrice(option.basePrice)}</div>}
@@ -141,14 +141,45 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
 
                                         {(option.modifiers && option.modifiers.length > 0) && (
                                             <div className="rc-opt-meta">
-                                                {option.modifiers.map((m, i) => (
-                                                    <div key={i}>
-                                                        <div className="rc-promo-badge">
-                                                            <i className="bi bi-check2-circle"></i> {m.name}
+                                                {option.modifiers.map((m, i) => {
+                                                    const rawAmountMatch = m.reason ? m.reason.match(/\[\s*(-?\d+)\s*\]$/) : null;
+                                                    let displayReason = m.reason || "";
+                                                    let formattedAmount = '';
+                                                    let isDiscount = false;
+                                                    let isSurcharge = false;
+
+                                                    if (rawAmountMatch) {
+                                                        const amt = parseInt(rawAmountMatch[1], 10);
+                                                        isDiscount = amt < 0;
+                                                        isSurcharge = amt > 0;
+                                                        formattedAmount = formatPrice(Math.abs(amt));
+                                                        displayReason = displayReason.replace(/\[\s*-?\d+\s*\]$/, "").trim();
+                                                    } else if (m.adjustmentValue) {
+                                                        isDiscount = m.adjustmentValue < 0;
+                                                        isSurcharge = m.adjustmentValue > 0;
+                                                        const suffixType = m.adjustmentType === 'PERCENT' ? '%' : ' VNĐ';
+                                                        formattedAmount = Math.abs(m.adjustmentValue) + suffixType;
+                                                    }
+
+                                                    return (
+                                                        <div key={i} className="mb-2 p-2 rounded" style={{ background: isDiscount ? '#f0fdf4' : (isSurcharge ? '#fff5f5' : '#f8fafc'), border: `1px solid ${isDiscount ? '#bbf7d0' : (isSurcharge ? '#fed7d7' : '#e2e8f0')}` }}>
+                                                            <div className="d-flex justify-content-between align-items-start gap-2">
+                                                                <div className="rc-promo-badge" style={{ background: isDiscount ? '#dcfce7' : (isSurcharge ? '#fed7d7' : '#ebf4ff'), color: isDiscount ? '#166534' : (isSurcharge ? '#9b2c2c' : '#3182ce'), margin: 0 }}>
+                                                                    <i className={isDiscount ? "bi bi-tag-fill" : (isSurcharge ? "bi bi-graph-up-arrow" : "bi bi-info-circle")}></i> {m.name}
+                                                                </div>
+                                                                {formattedAmount && (
+                                                                    <div className="fw-bold" style={{ fontSize: '0.8rem', color: isDiscount ? '#16a34a' : (isSurcharge ? '#e53e3e' : '#4a5568') }}>
+                                                                        {isDiscount ? '-' : (isSurcharge ? '+' : '')}{formattedAmount}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="rc-promo-reason mt-1 ms-1 d-flex gap-1" style={{ color: isDiscount ? '#15803d' : (isSurcharge ? '#c53030' : '#718096') }}>
+                                                                <i className="bi bi-arrow-return-right mt-1" style={{ fontSize: '0.7rem' }}></i>
+                                                                <span>{displayReason}</span>
+                                                            </div>
                                                         </div>
-                                                        <div className="rc-promo-reason mt-1"><i className="bi bi-arrow-return-right me-1 text-muted"></i>{m.reason}</div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         )}
 
