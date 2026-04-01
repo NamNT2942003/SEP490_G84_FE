@@ -28,7 +28,7 @@ import GuestBookingHistoryPage from "@/features/guest/screens/GuestBookingHistor
 // =====================================================================
 import SearchRoom from "@/features/booking/screens/SearchRoom.jsx";
 import BookingSummary from "@/features/booking/components/BookingSummary";
-import GuestInformation from "@/features/booking/screens/GuestInformation.jsx";
+import GuestInformation from "@/features/booking/screens/GuestInformation";
 import PaymentSelection from "@/features/payment/screens/PaymentSelection.jsx";
 import PaymentResult from "@/features/payment/screens/PaymentResult.jsx";
 
@@ -187,3 +187,6 @@ const AppRouter = () => {
 };
 
 export default AppRouter;
+
+
+

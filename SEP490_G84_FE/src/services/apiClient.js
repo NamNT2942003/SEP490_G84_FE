@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8081/api', // Đổi port 8081 nếu backend bạn chạy port khác
+  // Use explicit IPv6 loopback to avoid "ERR_CONNECTION_REFUSED" when backend is bound to ::1 only.
+  baseURL: 'http://[::1]:8081/api',
   headers: {
     'Content-Type': 'application/json',
   },
