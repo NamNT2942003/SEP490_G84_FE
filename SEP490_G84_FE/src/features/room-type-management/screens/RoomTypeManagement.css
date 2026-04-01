@@ -1,0 +1,52 @@
+.rt-page {
+  padding: 20px 16px;
+}
+
+.rt-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.rt-card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+}
+
+.rt-toolbar {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rt-toolbar .form-select {
+  min-width: 220px;
+}
+
+.rt-table thead th {
+  background: #f8f9fb;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: #6c757d;
+  border: none;
+  letter-spacing: 0.04em;
+}
+
+.rt-table tbody td {
+  border: none;
+  border-bottom: 1px solid #f2f4f7;
+  font-size: 0.875rem;
+}
+
+.rt-table tbody tr:last-child td {
+  border-bottom: none;
+}

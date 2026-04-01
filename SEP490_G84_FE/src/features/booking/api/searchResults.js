@@ -2,6 +2,18 @@
 
 const cleanRoomType = (room) => {
     if (!room) return room;
+
+    const pricingOptions = Array.isArray(room.pricingOptions)
+        ? room.pricingOptions.map((option) => ({
+            mode: option?.mode || "UNKNOWN",
+            finalPrice: Number(option?.finalPrice ?? 0),
+            delta: Number(option?.delta ?? 0),
+            modifierIds: Array.isArray(option?.modifierIds) ? option.modifierIds : [],
+            modifierNames: Array.isArray(option?.modifierNames) ? option.modifierNames : [],
+            reasons: Array.isArray(option?.reasons) ? option.reasons : [],
+        }))
+        : [];
+
     return {
         ...room, // Giữ lại tất cả các trường (bao gồm availableCount, branchId, branchName...)
         // ⚠️ TEMPORARY FIX: Nếu backend chưa có availableCount, set default
@@ -15,6 +27,14 @@ const cleanRoomType = (room) => {
                 branchName: room.branch.branchName,
                 address: room.branch.address,
                 contactNumber: room.branch.contactNumber,
+            }
+            : null,
+        pricingOptions,
+        pricingCombinationPolicy: room.pricingCombinationPolicy
+            ? {
+                maxCombinationSize: room.pricingCombinationPolicy.maxCombinationSize,
+                maxGeneratedOptions: room.pricingCombinationPolicy.maxGeneratedOptions,
+                rule: room.pricingCombinationPolicy.rule || "",
             }
             : null,
     };
@@ -37,17 +57,8 @@ export const cleanRoomTypeDetail = (data) => {
         category: amenity.category,
     }));
 
-    const ratePlans = (data.ratePlans || []).map((ratePlan) => ({
-        ratePlanId: ratePlan.ratePlanId,
-        name: ratePlan.name,
-        price: ratePlan.price,
-        cancellationType: ratePlan.cancellationType,
-        freeCancelBeforeDays: ratePlan.freeCancelBeforeDays,
-        paymentType: ratePlan.paymentType,
-    }));
-
     // Clean the main roomType object while keeping its extended properties
     const roomType = cleanRoomType(data.roomType);
 
-    return { ...data, roomType, amenities, ratePlans };
+    return { ...data, roomType, amenities };
 };

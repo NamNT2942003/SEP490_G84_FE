@@ -1,6 +1,6 @@
 const RoomCard = ({ room, onBooking, onViewDetail }) => {
     const formatPrice = (price) =>
-        new Intl.NumberFormat("en-US", { style: "currency", currency: "VND", minimumFractionDigits: 0 }).format(price);
+        new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", minimumFractionDigits: 0 }).format(price);
 
     const getPlaceholderImage = (roomName) => {
         const n = roomName?.toLowerCase() || "";
@@ -12,72 +12,163 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
 
     const imageSrc = room.image && !room.image.includes(".jpg") ? `/images/${room.image}` : getPlaceholderImage(room.name);
     const sold = room.availableCount <= 0;
+    const options = Array.isArray(room?.pricingOptions) ? room.pricingOptions : [];
+    const policy = room?.pricingCombinationPolicy;
+
+    const handleBookOption = (option) => {
+        onBooking({
+            ...room,
+            selectedPricingOption: option,
+            selectedPrice: option?.finalPrice ?? room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0,
+        });
+    };
 
     return (
         <>
             <style>{`
-        .rc{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.04);border:1px solid #eee;margin-bottom:16px;transition:box-shadow .25s,transform .25s}
-        .rc:hover{box-shadow:0 8px 28px rgba(0,0,0,.08);transform:translateY(-2px)}
-        .rc-row{display:flex}
-        .rc-img{flex:0 0 280px;position:relative;overflow:hidden}
-        .rc-img img{width:100%;height:100%;object-fit:cover;min-height:220px;transition:transform .4s}
-        .rc:hover .rc-img img{transform:scale(1.04)}
-        .rc-badge{position:absolute;top:12px;left:12px;background:rgba(92,111,78,.9);color:#fff;font-size:.7rem;font-weight:700;padding:4px 10px;border-radius:8px;backdrop-filter:blur(4px)}
-        .rc-info{flex:1;padding:22px 24px;display:flex;flex-direction:column;min-width:0}
-        .rc-name{font-weight:800;font-size:1.1rem;color:#222;margin-bottom:6px}
-        .rc-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-        .rc-tag{font-size:.72rem;font-weight:600;color:#5C6F4E;background:#f0f4ec;padding:3px 10px;border-radius:6px;display:flex;align-items:center;gap:3px}
-        .rc-tag i{font-size:.74rem}
-        .rc-desc{font-size:.84rem;color:#777;line-height:1.55;margin-bottom:auto;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-        .rc-left{margin-top:10px}
-        .rc-left span{font-size:.76rem;font-weight:700;color:#e67e22;background:#fef5eb;padding:3px 10px;border-radius:6px}
-        .rc-left span i{margin-right:3px}
-        .rc-price{flex:0 0 200px;background:#fafbf8;border-left:1px solid #f0f0f0;padding:22px 20px;display:flex;flex-direction:column;justify-content:space-between;text-align:right}
-        .rc-from{font-size:.72rem;color:#999;margin-bottom:2px}
-        .rc-amt{font-size:1.35rem;font-weight:800;color:#5C6F4E}
-        .rc-per{font-size:.72rem;color:#aaa}
-        .rc-btns{display:flex;flex-direction:column;gap:8px;margin-top:16px}
-        .rc-book{padding:10px 0;border:none;border-radius:10px;background:linear-gradient(135deg,#5C6F4E,#4a5b3f);color:#fff;font-weight:700;font-size:.84rem;cursor:pointer;transition:all .2s;box-shadow:0 3px 10px rgba(92,111,78,.25)}
-        .rc-book:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 5px 16px rgba(92,111,78,.35)}
-        .rc-book:disabled{opacity:.5;cursor:not-allowed}
-        .rc-detail{padding:9px 0;border:1.5px solid #ddd;border-radius:10px;background:#fff;color:#555;font-weight:600;font-size:.82rem;cursor:pointer;transition:all .2s}
-        .rc-detail:hover{border-color:#5C6F4E;color:#5C6F4E}
-        @media(max-width:768px){.rc-row{flex-direction:column}.rc-img{flex:none;height:200px}.rc-price{flex:none;border-left:none;border-top:1px solid #f0f0f0;flex-direction:row;align-items:center;gap:12px;text-align:left}.rc-btns{flex-direction:row}.rc-book,.rc-detail{flex:1}}
+        :root { --olive: #5C6F4E; --olive-dark: #4a5b3f; --gold: #D4AF37; --bg-light: #fafbf8; }
+        .rc { background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid rgba(92,111,78,0.1); margin-bottom: 24px; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        .rc:hover { box-shadow: 0 12px 30px rgba(92,111,78,0.12); transform: translateY(-4px); }
+        .rc-row { display: flex; flex-direction: row; }
+        .rc-img { flex: 0 0 320px; position: relative; overflow: hidden; }
+        .rc-img img { width: 100%; height: 100%; object-fit: cover; min-height: 260px; transition: transform 0.6s ease; }
+        .rc:hover .rc-img img { transform: scale(1.06); }
+        .rc-badge { position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.7); color: #fff; font-size: 0.75rem; font-weight: 700; padding: 6px 14px; border-radius: 20px; backdrop-filter: blur(8px); display: flex; align-items: center; gap: 6px; letter-spacing: 0.5px; }
+        .rc-badge.urgent { background: rgba(220, 53, 69, 0.9); }
+        .rc-info { flex: 1; padding: 28px 32px; display: flex; flex-direction: column; border-right: 1px solid #f0f0f0; }
+        .rc-name { font-weight: 800; font-size: 1.35rem; color: #2d3748; margin-bottom: 12px; font-family: 'Playfair Display', serif; }
+        .rc-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+        .rc-tag { font-size: 0.75rem; font-weight: 600; color: var(--olive); background: #f0f4ec; padding: 4px 12px; border-radius: 8px; display: flex; align-items: center; gap: 4px; }
+        .rc-desc { font-size: 0.9rem; color: #718096; line-height: 1.6; margin-bottom: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .rc-side-btn { margin-top: 20px; padding: 10px 0; border: 1.5px solid #e2e8f0; border-radius: 12px; background: transparent; color: #4a5568; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; width: max-content; padding: 8px 20px; }
+        .rc-side-btn:hover { border-color: var(--olive); color: var(--olive); background: #f0f4ec; }
+        
+        .rc-pricing { flex: 0 0 310px; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-light); border-left: 1px solid #f0f0f0; }
+        .rc-pricing-hd { font-size: 0.85rem; font-weight: 700; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; justify-content: space-between; }
+        .rc-pricing-options { display: flex; flex-direction: column; gap: 16px; }
+
+        .rc-opt { background: #fff; border: 1.5px solid #edf2f7; border-radius: 16px; padding: 18px; transition: all 0.2s; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .rc-opt:hover { border-color: var(--gold); box-shadow: 0 8px 16px rgba(212,175,55,0.08); }
+        .rc-opt-highlight { border-color: var(--olive); background: linear-gradient(to right, #ffffff, #f9fbf8); }
+        .rc-opt-highlight::before { content: 'GÓI ĐỀ XUẤT'; position: absolute; top: 0; right: 0; background: var(--gold); color: #fff; font-size: 0.6rem; font-weight: 800; padding: 3px 10px; border-bottom-left-radius: 10px; }
+        
+        .rc-opt-header { background: #f8fafc; padding: 8px 12px; border-radius: 10px; margin-bottom: 12px; display: inline-block; width: max-content; }
+        .rc-opt-mode { font-size: 0.85rem; font-weight: 800; color: var(--olive-dark); letter-spacing: 0.5px;}
+        
+        .rc-opt-prices { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+        .rc-opt-base { font-size: 0.85rem; color: #a0aec0; text-decoration: line-through; font-weight: 600; margin-bottom: 2px; }
+        .rc-opt-amt { font-size: 1.35rem; font-weight: 800; color: #2d3748; line-height: 1; display:flex; gap: 4px; align-items:baseline;}
+        .rc-opt-per { font-size: 0.8rem; color: #a0aec0; font-weight: 600; }
+        
+        .rc-opt-meta { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; flex-grow: 1; }
+        .rc-promo-badge { font-size: 0.75rem; background: #ebf4ff; color: #3182ce; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; width: max-content; }
+        .rc-promo-reason { font-size: 0.75rem; color: #718096; font-style: italic; }
+        
+        .rc-opt-book { width: 100%; padding: 12px; border: none; border-radius: 12px; background: var(--olive); color: #fff; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: auto; }
+        .rc-opt-book:hover:not(:disabled) { background: var(--olive-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(92,111,78,0.3); }
+        .rc-opt-book.highlight-btn { background: var(--gold); color: #2d3748;}
+        .rc-opt-book.highlight-btn:hover:not(:disabled) { background: #b8962c; }
+        .rc-opt-book:disabled { opacity: 0.5; cursor: not-allowed; background: #cbd5e0; color: #fff; box-shadow: none; transform: none; }
+        
+        .rc-pricing-empty { padding: 20px; border: 2px dashed #edf2f7; border-radius: 16px; font-size: 0.9rem; color: #a0aec0; text-align: center; }
+        
+        /* Thay vì 1100px cứng nhắc, tăng giới hạn chập khối lên 1399px vì màn hình chứa col-lg-9 hẹp hơn viewport thật */
+        @media(max-width:1399px) { 
+            .rc-row { flex-direction: column; } 
+            .rc-img { flex: auto; height: 300px; } 
+            .rc-pricing { flex: auto; border-left: none; border-top: 1px solid #f0f0f0; } 
+            .rc-pricing-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+        }
+        @media(max-width:768px) {
+            .rc-pricing-options { grid-template-columns: 1fr; }
+        }
       `}</style>
             <div className="rc">
                 <div className="rc-row">
                     <div className="rc-img">
                         <img src={imageSrc} alt={room.name} onError={(e) => { e.target.src = getPlaceholderImage(room.name); }} />
                         {room.availableCount > 0 && room.availableCount <= 3 && (
-                            <div className="rc-badge"><i className="bi bi-fire me-1"></i>Only {room.availableCount} left</div>
+                            <div className="rc-badge urgent"><i className="bi bi-fire"></i> Chỉ còn {room.availableCount} phòng!</div>
+                        )}
+                        {room.availableCount > 3 && (
+                            <div className="rc-badge"><i className="bi bi-check-circle-fill" style={{color: '#9ae6b4'}}></i> Sẵn sàng: {room.availableCount} phòng</div>
                         )}
                     </div>
+                    
                     <div className="rc-info">
                         <div className="rc-name">{room.name}</div>
                         <div className="rc-tags">
-                            <span className="rc-tag"><i className="bi bi-people-fill"></i>Max {room.maxAdult + (room.maxChildren || 0)} guests</span>
-                            <span className="rc-tag"><i className="bi bi-arrows-fullscreen"></i>{room.area} m²</span>
-                            <span className="rc-tag"><i className="bi bi-person-fill"></i>{room.maxAdult} adults</span>
-                            {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile"></i>{room.maxChildren} children</span>}
+                            <span className="rc-tag"><i className="bi bi-people-fill"></i> Tối đa {room.maxAdult + (room.maxChildren || 0)} khách</span>
+                            <span className="rc-tag"><i className="bi bi-arrows-fullscreen"></i> {room.area} m²</span>
+                            <span className="rc-tag"><i className="bi bi-person-fill"></i> N.Lớn: {room.maxAdult}</span>
+                            {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile"></i> T.Em: {room.maxChildren}</span>}
                         </div>
                         <div className="rc-desc">{room.description}</div>
-                        {room.availableCount > 0 && (
-                            <div className="rc-left"><span><i className="bi bi-clock-history"></i>Only {room.availableCount} rooms left!</span></div>
-                        )}
+                        
+                        <button className="rc-side-btn" onClick={() => onViewDetail(room)}>
+                            <i className="bi bi-info-circle me-1"></i> Xem thông tin chi tiết
+                        </button>
                     </div>
-                    <div className="rc-price">
-                        <div>
-                            <div className="rc-from">Start from</div>
-                            <div className="rc-amt">{formatPrice(room.basePrice)}</div>
-                            <div className="rc-per">/ night</div>
+
+                    <div className="rc-pricing">
+                        <div className="rc-pricing-hd">
+                            <span><i className="bi bi-tag-fill me-1"></i> Các Gói Giá</span>
+                            <span className="badge bg-secondary" style={{fontSize: '0.65rem'}}>{options.length} Lựa chọn</span>
                         </div>
-                        <div className="rc-btns">
-                            <button className="rc-book" onClick={() => onBooking(room)} disabled={sold}>
-                                {sold ? <><i className="bi bi-x-circle me-1"></i>Fully Booked</> : <><i className="bi bi-lightning-charge-fill me-1"></i>Book Now</>}
-                            </button>
-                            <button className="rc-detail" onClick={() => onViewDetail(room)}>
-                                <i className="bi bi-eye me-1"></i>View Detail
-                            </button>
+                        
+                        <div className="rc-pricing-options">
+                            {options.length > 0 ? options.map((option, idx) => {
+                                const isRecommended = idx === 0 && options.length > 1; // Highlight first element
+                                const hasDiscount = option.delta < 0;
+                                
+                                return (
+                                    <div className={`rc-opt ${isRecommended ? 'rc-opt-highlight' : ''}`} key={`${room.roomTypeId}-${option.mode}-${idx}`}>
+                                        <div className="rc-opt-header">
+                                            <div className="rc-opt-mode">
+                                                {option.mode?.startsWith("POLICY_") ? "Gói Thanh Toán Chuẩn" : (option.mode || "Gói Tiêu Chuẩn")}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="rc-opt-prices">
+                                            <div>
+                                                {hasDiscount && <div className="rc-opt-base">{formatPrice(option.basePrice)}</div>}
+                                                <div className="rc-opt-amt">
+                                                    {formatPrice(option.finalPrice || 0)}
+                                                    <span className="rc-opt-per">/ đêm</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {(option.modifiers && option.modifiers.length > 0) && (
+                                            <div className="rc-opt-meta">
+                                                {option.modifiers.map((m, i) => (
+                                                    <div key={i}>
+                                                        <div className="rc-promo-badge">
+                                                            <i className="bi bi-check2-circle"></i> {m.name}
+                                                        </div>
+                                                        <div className="rc-promo-reason mt-1"><i className="bi bi-arrow-return-right me-1 text-muted"></i>{m.reason}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <button
+                                            className={`rc-opt-book ${isRecommended ? 'highlight-btn' : ''}`}
+                                            onClick={() => handleBookOption(option)}
+                                            disabled={sold}
+                                        >
+                                            {sold
+                                                ? <><i className="bi bi-x-octagon-fill"></i> Đã Hết Phòng</>
+                                                : <><i className="bi bi-cart-plus-fill"></i> Chọn Gói Này</>}
+                                        </button>
+                                    </div>
+                                );
+                            }) : (
+                                <div className="rc-pricing-empty">
+                                    <i className="bi bi-calendar-x fs-1 text-muted d-block mb-2"></i>
+                                    Không tìm thấy mức giá áp dụng cho ngày này.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -85,5 +176,4 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
         </>
     );
 };
-
 export default RoomCard;

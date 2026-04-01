@@ -1,0 +1,112 @@
+.ri-page {
+  padding: 20px 16px;
+}
+
+.ri-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.ri-card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+}
+
+.ri-toolbar {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.ri-toolbar .btn {
+  white-space: nowrap;
+}
+
+.ri-table thead th {
+  background: #f8f9fb;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: #6c757d;
+  border: none;
+  letter-spacing: 0.04em;
+}
+
+.ri-table tbody td {
+  border: none;
+  border-bottom: 1px solid #f2f4f7;
+  font-size: 0.875rem;
+}
+
+.ri-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ri-badge-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ri-modifier-badge {
+  background: #eef4ff;
+  color: #34518c;
+  border: 1px solid #d7e5ff;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.ri-explain-row td {
+  background: #fafcff;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.ri-explain-box {
+  border-left: 3px solid #9fb4dd;
+  padding: 8px 12px;
+}
+
+.ri-explain-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #56637a;
+  margin-bottom: 4px;
+}
+
+.ri-explain-note {
+  font-size: 0.84rem;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.ri-steps-list {
+  display: grid;
+  gap: 6px;
+}
+
+.ri-step-item {
+  font-size: 0.82rem;
+  color: #334155;
+}
+
+@media (max-width: 1200px) {
+  .ri-toolbar {
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .ri-toolbar {
+    grid-template-columns: repeat(1, minmax(100%, 1fr));
+  }
+}

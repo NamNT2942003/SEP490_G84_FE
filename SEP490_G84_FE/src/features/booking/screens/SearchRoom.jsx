@@ -26,6 +26,72 @@ const SearchRoom = () => {
     const navigate = useNavigate();
     const [selectedCart, setSelectedCart] = useState([]); // Giỏ hàng chọn phòng
     const [isInitialized, setIsInitialized] = useState(false);
+    const [uiMessage, setUiMessage] = useState(null);
+
+    const safeNumber = (value, fallback = 0) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    };
+
+    const toPricingOption = (option = {}) => ({
+        mode: option?.mode || "UNKNOWN",
+        finalPrice: safeNumber(option?.finalPrice, 0),
+        delta: safeNumber(option?.delta, 0),
+        modifierIds: Array.isArray(option?.modifierIds) ? option.modifierIds : [],
+        modifierNames: Array.isArray(option?.modifierNames) ? option.modifierNames : [],
+        reasons: Array.isArray(option?.reasons) ? option.reasons : [],
+    });
+
+    const pricingOptionSignature = (option) => {
+        if (!option) return "";
+        return `${option.mode || ""}-${option.finalPrice || 0}-${(option.modifierIds || []).join("_")}`;
+    };
+
+    const withPricingState = (room, preferredOption = null) => {
+        if (!room) return room;
+
+        const options = (Array.isArray(room?.pricingOptions) ? room.pricingOptions : [])
+            .map(toPricingOption)
+            .sort((a, b) => a.finalPrice - b.finalPrice);
+
+        const selectedOption = options.find(
+            (opt) => pricingOptionSignature(opt) === pricingOptionSignature(preferredOption),
+        ) || options[0] || null;
+
+        const selectedPrice = selectedOption?.finalPrice
+            ?? safeNumber(room?.appliedPrice, NaN)
+            ?? safeNumber(room?.basePrice ?? room?.price, 0);
+
+        return {
+            ...room,
+            pricingOptions: options,
+            selectedPricingOption: selectedOption,
+            selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : safeNumber(room?.basePrice ?? room?.price, 0),
+            pricingCombinationPolicy: room?.pricingCombinationPolicy || null,
+        };
+    };
+
+    const syncCartWithLatestRooms = (prevCart, latestRooms) => {
+        if (!prevCart.length) return prevCart;
+
+        const roomMap = new Map(latestRooms.map((room) => [room.roomTypeId, room]));
+
+        return prevCart
+            .map((cartItem) => {
+                const latestRoom = roomMap.get(cartItem.roomTypeId);
+                if (!latestRoom) return null;
+
+                const mergedRoom = withPricingState(latestRoom, cartItem.selectedPricingOption);
+
+                return {
+                    ...cartItem,
+                    ...mergedRoom,
+                    quantity: Math.min(cartItem.quantity || 1, mergedRoom.availableCount || 999),
+                };
+            })
+            .filter(Boolean);
+    };
+
 
     const calculateNights = (checkIn, checkOut) => {
         if (!checkIn || !checkOut) return 1;
@@ -33,6 +99,10 @@ const SearchRoom = () => {
         const d2 = new Date(checkOut);
         const diffTime = Math.abs(d2 - d1);
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    const showUiMessage = (type, text) => {
+        setUiMessage({ type, text });
     };
 
     // fetch branches once
@@ -51,18 +121,24 @@ const SearchRoom = () => {
         setLoading(true); setError(null); setSearchParams(sp);
         try {
             if (sp.checkIn && sp.checkOut) {
-                if (new Date(sp.checkOut) < new Date(sp.checkIn)) {
+                if (new Date(sp.checkOut) <= new Date(sp.checkIn)) {
                     setError("Check-out date must be after check-in date.");
                     setLoading(false); return;
                 }
             }
             const params = { branchId: filters.branchId ?? 1, ...filters, ...sp };
             const res = await roomService.searchRooms(params);
-            setRooms(res.content || []);
+            const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
+            setRooms(fetchedRooms);
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
-            setError(err.message || "Failed to search rooms");
+            const apiError = err?.response?.data?.error;
+            const message = apiError && String(apiError).includes("yyyy-MM-dd")
+                ? "Ngay khong dung dinh dang yyyy-MM-dd"
+                : (apiError || err.message || "Failed to search rooms");
+            setError(message);
         } finally { setLoading(false); }
     }, [filters]);
 
@@ -70,45 +146,61 @@ const SearchRoom = () => {
         if (!searchParams) return;
         setLoading(true); setError(null);
         try {
-            if (searchParams.checkIn && searchParams.checkOut && new Date(searchParams.checkOut) < new Date(searchParams.checkIn)) {
+            if (searchParams.checkIn && searchParams.checkOut && new Date(searchParams.checkOut) <= new Date(searchParams.checkIn)) {
                 setError("Check-out date must be after check-in date.");
                 setLoading(false); return;
             }
             const params = { branchId: filters.branchId ?? 1, ...filters, ...searchParams };
             const res = await roomService.searchRooms(params);
-            setRooms(res.content || []);
+            const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
+            setRooms(fetchedRooms);
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
-            setError(err.message || "Failed to search rooms");
+            const apiError = err?.response?.data?.error;
+            const message = apiError && String(apiError).includes("yyyy-MM-dd")
+                ? "Ngay khong dung dinh dang yyyy-MM-dd"
+                : (apiError || err.message || "Failed to search rooms");
+            setError(message);
         } finally { setLoading(false); }
     }, [searchParams, filters]);
 
     const handleFilterChange = (nf) => setFilters(p => ({ ...p, ...nf, page: 0 }));
     const handleSortChange = (e) => setFilters(p => ({ ...p, sortPrice: e.target.value, page: 0 }));
     const handlePageChange = (page) => setFilters(p => ({ ...p, page }));
+
     const handleBooking = (room) => {
+        const roomForCart = withPricingState(room, room.selectedPricingOption);
+
         // Kiểm tra xem phòng này đã có trong cart chưa
         const existingIndex = selectedCart.findIndex(r => r.roomTypeId === room.roomTypeId);
 
         if (existingIndex >= 0) {
             // Nếu đã có → tăng quantity (nhưng không vượt quá availableCount)
             const currentQty = selectedCart[existingIndex].quantity || 1;
-            if (currentQty >= room.availableCount) {
-                alert(`Only ${room.availableCount} room(s) available for ${room.name}`);
+            if (currentQty >= roomForCart.availableCount) {
+                showUiMessage("warning", `Only ${roomForCart.availableCount} room(s) available for ${roomForCart.name}.`);
                 return;
             }
             setSelectedCart(prev => prev.map((r, idx) =>
-                idx === existingIndex ? { ...r, quantity: Math.min((r.quantity || 1) + 1, room.availableCount) } : r
+                idx === existingIndex
+                    ? {
+                        ...r,
+                        quantity: Math.min((r.quantity || 1) + 1, roomForCart.availableCount),
+                    }
+                    : r
             ));
         } else {
             // Nếu chưa → thêm vào cart với quantity = 1
-            if (room.availableCount <= 0) {
-                alert(`${room.name} is fully booked`);
+            if (roomForCart.availableCount <= 0) {
+                showUiMessage("warning", `${roomForCart.name} is fully booked.`);
                 return;
             }
-            setSelectedCart(prev => [...prev, { ...room, quantity: 1 }]);
+            setSelectedCart(prev => [...prev, { ...roomForCart, quantity: 1 }]);
         }
+
+        showUiMessage("success", `${roomForCart.name} has been added to your selection.`);
     };
 
     const handleRemoveFromCart = (roomTypeId) => {
@@ -126,7 +218,7 @@ const SearchRoom = () => {
         if (roomInCart) {
             const maxAvailable = roomInCart.availableCount || 999;
             if (newQuantity > maxAvailable) {
-                alert(`Only ${maxAvailable} room(s) available for ${roomInCart.name}`);
+                showUiMessage("warning", `Only ${maxAvailable} room(s) available for ${roomInCart.name}.`);
                 return;
             }
         }
@@ -138,13 +230,18 @@ const SearchRoom = () => {
 
     const handleCheckout = () => {
         if (selectedCart.length === 0) {
-            alert("Please select at least one room");
+            showUiMessage("warning", "Please select at least one room before continuing.");
+            return;
+        }
+
+        if (searchParams?.checkIn && searchParams?.checkOut && new Date(searchParams.checkOut) <= new Date(searchParams.checkIn)) {
+            showUiMessage("warning", "Check-out date must be after check-in date.");
             return;
         }
 
         const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
         const totalPrice = selectedCart.reduce((sum, room) =>
-            sum + ((room.basePrice || room.price) * (room.quantity || 1) * nights), 0
+            sum + ((room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0) * (room.quantity || 1) * nights), 0
         );
 
         navigate('/guest-information', {
@@ -171,7 +268,7 @@ const SearchRoom = () => {
             searchRooms({ checkIn: fmtYmd(now), checkOut: fmtYmd(tom), adults: 1, children: 0 });
             setIsInitialized(true);
         }
-    }, []);
+    }, [isInitialized, searchRooms]);
 
     useEffect(() => {
         if (searchParams && isInitialized) {
@@ -179,6 +276,23 @@ const SearchRoom = () => {
             refetchRooms();
         }
     }, [filters.branchId, filters.sortPrice, filters.page, searchParams, isInitialized, refetchRooms]);
+
+    useEffect(() => {
+        if (!uiMessage) return;
+        const timer = setTimeout(() => setUiMessage(null), 3500);
+        return () => clearTimeout(timer);
+    }, [uiMessage]);
+
+    const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
+    const totalSelectedRooms = selectedCart.reduce((sum, r) => sum + (r.quantity || 1), 0);
+    const cartTotal = selectedCart.reduce((sum, r) => {
+        const unitPrice = r.selectedPrice ?? r.appliedPrice ?? r.basePrice ?? r.price ?? 0;
+        return sum + (unitPrice * (r.quantity || 1) * nights);
+    }, 0);
+    const hasValidStayDates =
+        Boolean(searchParams?.checkIn) &&
+        Boolean(searchParams?.checkOut) &&
+        new Date(searchParams.checkOut) > new Date(searchParams.checkIn);
 
     return (
         <div style={{ background: '#f5f6f8', minHeight: '100vh' }}>
@@ -201,6 +315,11 @@ const SearchRoom = () => {
                 .bc-bar .breadcrumb{margin-bottom:0;font-size:.85rem}
                 .bc-bar .breadcrumb a{color:#5C6F4E;text-decoration:none;font-weight:500}
                 .bc-bar .breadcrumb a:hover{text-decoration:underline}
+                .ux-msg{margin-top:12px;border-radius:12px;padding:11px 14px;font-size:.88rem;font-weight:600;display:flex;align-items:center;gap:8px}
+                .ux-msg.warn{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
+                .ux-msg.success{background:#ecfdf3;color:#166534;border:1px solid #b7ebc6}
+                .cart-date-note{margin-top:10px;font-size:.78rem;color:rgba(255,255,255,.85);line-height:1.45}
+                .cart-date-note i{margin-right:4px}
             `}</style>
 
             <div className="hero">
@@ -226,6 +345,12 @@ const SearchRoom = () => {
                         <li className="breadcrumb-item active">Search Results</li>
                     </ol>
                 </nav>
+                {uiMessage && (
+                    <div className={`ux-msg ${uiMessage.type === "success" ? "success" : "warn"}`} role="alert" aria-live="polite">
+                        <i className={`bi ${uiMessage.type === "success" ? "bi-check-circle" : "bi-exclamation-triangle"}`}></i>
+                        <span>{uiMessage.text}</span>
+                    </div>
+                )}
             </div>
 
             <div className="container pb-5">
@@ -348,6 +473,43 @@ const SearchRoom = () => {
                                 font-size: 0.85rem;
                                 color: #666;
                             }
+                            .cart-plan-box {
+                                margin: 10px 0;
+                                padding: 8px;
+                                border: 1px solid #e8ece4;
+                                border-radius: 8px;
+                                background: #f8fbf6;
+                            }
+                            .cart-plan-label {
+                                font-size: 0.72rem;
+                                color: #6f7569;
+                                font-weight: 700;
+                                text-transform: uppercase;
+                                letter-spacing: 0.3px;
+                                margin-bottom: 6px;
+                            }
+                            .cart-plan-select {
+                                width: 100%;
+                                border: 1px solid #d6decd;
+                                border-radius: 7px;
+                                padding: 6px 8px;
+                                font-size: 0.8rem;
+                                background: #fff;
+                                color: #333;
+                            }
+                            .cart-plan-note {
+                                font-size: 0.75rem;
+                                color: #7a8271;
+                                margin-top: 6px;
+                            }
+                            .cart-policy {
+                                margin-top: 6px;
+                                font-size: 0.75rem;
+                                color: #657061;
+                                display: flex;
+                                flex-direction: column;
+                                gap: 2px;
+                            }
                             .cart-room-total-amount {
                                 font-weight: 700;
                                 color: #5C6F4E;
@@ -423,15 +585,20 @@ const SearchRoom = () => {
                                 <i className="bi bi-cart2"></i>
                                 <h5 className="fw-bold mb-0">Your Selection</h5>
                                 {selectedCart.length > 0 && (
-                                    <span className="badge bg-danger ms-auto">{selectedCart.reduce((sum, r) => sum + (r.quantity || 1), 0)}</span>
+                                    <span className="badge bg-danger ms-auto">{totalSelectedRooms}</span>
                                 )}
+                            </div>
+
+                            <div className="cart-date-note">
+                                <div><i className="bi bi-calendar3"></i>{searchParams?.checkIn || "--"} to {searchParams?.checkOut || "--"}</div>
+                                <div><i className="bi bi-moon-stars"></i>{nights} {nights > 1 ? "nights" : "night"}</div>
                             </div>
 
                             <div style={{marginTop: '15px', maxHeight: '450px', overflowY: 'auto', paddingRight: '8px'}}>
                                 {selectedCart.length > 0 ? (
                                     selectedCart.map((room, idx) => {
-                                        const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
-                                        const roomTotal = (room.basePrice || room.price) * (room.quantity || 1) * nights;
+                                        const roomUnitPrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+                                        const roomTotal = roomUnitPrice * (room.quantity || 1) * nights;
                                         return (
                                             <div key={idx} className="cart-room-item">
                                                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
@@ -441,7 +608,7 @@ const SearchRoom = () => {
                                                             {room.name}
                                                         </div>
                                                         <div className="cart-room-price">
-                                                            💰 {new Intl.NumberFormat('vi-VN').format(room.basePrice || room.price)}₫/night
+                                                            💰 {new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/night
                                                         </div>
                                                     </div>
                                                     <button
@@ -507,20 +674,21 @@ const SearchRoom = () => {
                                     <div className="cart-total-section">
                                         <span className="cart-total-label">💰 Total:</span>
                                         <span className="cart-total-amount">
-                                            {new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(
-                                                selectedCart.reduce((sum, r) => {
-                                                    const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
-                                                    return sum + ((r.basePrice || r.price) * (r.quantity || 1) * nights);
-                                                }, 0)
-                                            )}
+                                            {new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(cartTotal)}
                                         </span>
                                     </div>
                                     <button
                                         className="cart-continue-btn"
                                         onClick={handleCheckout}
+                                        disabled={!hasValidStayDates}
                                     >
                                         <i className="bi bi-arrow-right me-2"></i>Continue to Guest Info
                                     </button>
+                                    {!hasValidStayDates && (
+                                        <p className="mb-0 mt-2" style={{ fontSize: '0.78rem', opacity: 0.9 }}>
+                                            Please re-select valid stay dates before continuing.
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -570,7 +738,12 @@ const SearchRoom = () => {
                         {!loading && !error && rooms.length > 0 && (
                             <div>
                                 {rooms.map((rt) => (
-                                    <RoomCard key={rt.roomTypeId} room={rt} onBooking={handleBooking} onViewDetail={handleViewDetail} />
+                                    <RoomCard
+                                        key={rt.roomTypeId}
+                                        room={rt}
+                                        onBooking={handleBooking}
+                                        onViewDetail={handleViewDetail}
+                                    />
                                 ))}
                                 <SmartPagination
                                     currentPage={filters.page}

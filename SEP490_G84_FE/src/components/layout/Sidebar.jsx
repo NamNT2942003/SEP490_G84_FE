@@ -28,7 +28,7 @@ const Sidebar = ({ collapsed }) => {
         { path: "/manager-booking", label: "Check-in", icon: "bi-key", show: true },
         { path: "/stay", label: "In-house (Stay)", icon: "bi-house-door", show: true },
         { path: "/bookings", label: "Bookings", icon: "bi-calendar-check", show: true },
-        // Cập nhật: Ẩn Services đối với role Staff (tích hợp logic từ code dưới)
+        // Ẩn Services đối với role Staff
         { path: "/services", label: "Services", icon: "bi-cup-hot", show: !currentUser?.permissions?.isStaff },
       ],
     },
@@ -36,9 +36,27 @@ const Sidebar = ({ collapsed }) => {
       groupLabel: "Management",
       items: [
         {
+          path: "/admin/branches",
+          label: "Branches",
+          icon: "bi-building",
+          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+        },
+        {
           path: "/admin/rooms",
           label: "Rooms",
           icon: "bi-door-open",
+          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+        },
+        {
+          path: "/admin/room-types",
+          label: "Room Types",
+          icon: "bi-grid-1x2",
+          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+        },
+        {
+          path: "/admin/room-inventories",
+          label: "Room Inventories",
+          icon: "bi-calendar3-range",
           show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
         },
         {
@@ -113,7 +131,6 @@ const Sidebar = ({ collapsed }) => {
     color: "rgba(255,255,255,0.92)",
   });
 
-  // --- Logic xử lý Profile mang từ file dưới lên ---
   const initials =
     (currentUser?.fullName || currentUser?.username || "AN")
       .split(" ")
@@ -124,7 +141,7 @@ const Sidebar = ({ collapsed }) => {
 
   const handleViewProfile = () => navigate("/profile");
   const handleEditProfile = (e) => {
-    e.stopPropagation(); // Tránh bị trigger sự kiện click của thẻ cha
+    e.stopPropagation(); // Ngăn sự kiện bubble lên thẻ cha gây chuyển hướng sai
     navigate("/profile/edit");
   };
 
@@ -295,7 +312,7 @@ const Sidebar = ({ collapsed }) => {
         </nav>
       </div>
 
-      {/* TÍCH HỢP: User info & Profile Actions ở đáy Sidebar */}
+      {/* User info & Profile Actions ở đáy Sidebar */}
       {currentUser && (
         <div
           style={{

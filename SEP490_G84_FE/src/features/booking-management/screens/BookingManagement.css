@@ -1,0 +1,200 @@
+/* ── Page wrapper ── */
+.bm-page {
+    padding: 20px 16px;
+}
+@media (min-width: 576px) {
+    .bm-page { padding: 24px 20px; }
+}
+@media (min-width: 992px) {
+    .bm-page { padding: 28px 32px; }
+}
+
+/* ── Breadcrumb / Title row ── */
+.bm-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+.bm-title-row h4 {
+    font-size: 1.15rem;
+}
+@media (min-width: 576px) {
+    .bm-title-row h4 { font-size: 1.35rem; }
+}
+
+/* ── Stat Cards ── */
+.stat-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+.stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+@media (min-width: 768px) {
+    .stat-icon { width: 48px; height: 48px; font-size: 1.25rem; }
+}
+
+/* ── Table Card ── */
+.booking-table-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+    overflow: visible;
+}
+
+/* ── Toolbar ── */
+.bm-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    background: white;
+    border-bottom: 1px solid #f0f0f0;
+}
+@media (min-width: 576px) {
+    .bm-toolbar { padding: 14px 20px; }
+}
+.bm-toolbar-form {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+.bm-toolbar-form .input-group {
+    min-width: 160px;
+    flex: 1;
+}
+.bm-toolbar-form .form-select {
+    width: 130px;
+    flex-shrink: 0;
+}
+@media (max-width: 575px) {
+    .bm-toolbar-form .form-select {
+        width: 100%;
+    }
+    .bm-toolbar-form .bm-btn-group {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+    }
+    .bm-toolbar-form .bm-btn-group button {
+        flex: 1;
+    }
+}
+
+/* ── Table wrapper ── */
+.booking-table-card .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ── Table ── */
+.booking-table {
+    min-width: 760px;
+}
+.booking-table thead th {
+    background-color: #f8f9fb;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+    border: none;
+    padding: 11px 14px;
+    white-space: nowrap;
+}
+.booking-table tbody tr {
+    border-bottom: 1px solid #f2f4f7;
+    transition: background 0.15s;
+}
+.booking-table tbody tr:hover {
+    background-color: #fafbf8;
+}
+.booking-table tbody td {
+    padding: 11px 14px;
+    border: none;
+    vertical-align: middle;
+}
+
+/* ── Status Badge ── */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ── Action Buttons ── */
+.action-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    transition: opacity 0.15s, transform 0.15s;
+}
+.action-btn:hover:not(:disabled) {
+    opacity: 0.85;
+    transform: scale(1.08);
+}
+
+/* ── Pagination ── */
+.bm-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+    background: white;
+}
+@media (min-width: 576px) {
+    .bm-footer { padding: 12px 20px; }
+}
+.pagination-btn {
+    border-radius: 6px;
+    font-size: 0.82rem;
+    padding: 4px 12px;
+}
+
+/* ── Search bar ── */
+.search-input-group .input-group-text {
+    background: white;
+    border-right: none;
+    color: #adb5bd;
+}
+.search-input-group .form-control {
+    border-left: none;
+}
+.search-input-group .form-control:focus {
+    box-shadow: none;
+    border-color: #ced4da;
+}
