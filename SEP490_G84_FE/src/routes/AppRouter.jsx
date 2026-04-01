@@ -43,8 +43,8 @@ import StayScreen from "@/features/stay/screens/StayScreen";
 // =====================================================================
 // --- 6. ADMIN & MANAGEMENT PAGES ---
 // =====================================================================
-import RoomManagement from "@/features/admin/screens/RoomManagement";
-import FurnitureManagement from "@/features/admin/screens/FurnitureManagement";
+import RoomManagement from "@/features/roomManagement/screens/RoomManagement";
+import FurnitureManagement from "@/features/roomManagement/screens/FurnitureManagement";
 import BranchManagement from "@/features/branch-management/screens/BranchManagement.jsx";
 import RoomTypeManagement from "@/features/room-type-management/screens/RoomTypeManagement.jsx";
 import RoomInventoryManagement from "@/features/room-inventory-management/screens/RoomInventoryManagement.jsx";
