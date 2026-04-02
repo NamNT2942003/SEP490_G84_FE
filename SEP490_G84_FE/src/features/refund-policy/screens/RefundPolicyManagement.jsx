@@ -177,7 +177,7 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                         <div className="form-check form-switch">
                             <input className="form-check-input" type="checkbox" name="active" id="activeToggle" checked={form.active} onChange={handle} />
                             <label className="form-check-label fw-semibold" htmlFor="activeToggle">
-                                {form.active ? "✅ Đang kích hoạt" : "⏸ Tạm dừng"}
+                                {form.active ? <><i className="bi bi-toggle-on me-1"></i>Active</> : <><i className="bi bi-toggle-off me-1"></i>Paused</>}
                             </label>
                         </div>
                     </div>

@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
 
 export default function ImportReceiptUI() {
-  // Danh mục hàng hóa chuẩn (Master Data) để user chọn, không cho gõ linh tinh
+  // Standard catalog (master data) for selection only
   const masterData = [
-    { id: 1, name: 'Bim Bim', unit: 'Gói' },
-    { id: 2, name: 'Cafe gói G7', unit: 'Gói' },
-    { id: 3, name: 'Bàn chải', unit: 'Cái' }
+    { id: 1, name: 'Snack Pack', unit: 'Pack' },
+    { id: 2, name: 'G7 Coffee Pack', unit: 'Pack' },
+    { id: 3, name: 'Toothbrush', unit: 'Piece' }
   ];
 
-  // State quản lý các dòng nhập trong phiếu
+  // State for import receipt rows
   const [importLines, setImportLines] = useState([
-    { rowId: 1, itemId: 1, name: 'Bim Bim', unit: 'Gói', qty: 49, price: 5000 },
-    { rowId: 2, itemId: '', name: '', unit: '', qty: 1, price: 0 } // Dòng trống để nhập tiếp
+    { rowId: 1, itemId: 1, name: 'Snack Pack', unit: 'Pack', qty: 49, price: 5000 },
+    { rowId: 2, itemId: '', name: '', unit: '', qty: 1, price: 0 } // Empty row for continued entry
   ]);
 
-  // Handle khi chọn một mặt hàng từ Dropdown
+  // Handle selecting an item from the dropdown
   const handleSelectItem = (index, itemId) => {
     const selectedItem = masterData.find(item => item.id === Number(itemId));
     const newLines = [...importLines];
@@ -26,72 +26,72 @@ export default function ImportReceiptUI() {
     setImportLines(newLines);
   };
 
-  // Handle update số lượng / giá
+  // Handle quantity / price updates
   const handleUpdateLine = (index, field, value) => {
     const newLines = [...importLines];
     newLines[index][field] = Number(value);
     setImportLines(newLines);
   };
 
-  // Thêm dòng mới
+  // Add a new row
   const handleAddRow = () => {
     setImportLines([...importLines, { rowId: Date.now(), itemId: '', name: '', unit: '', qty: 1, price: 0 }]);
   };
 
-  // Xóa dòng
+  // Remove a row
   const handleRemoveRow = (index) => {
     const newLines = [...importLines];
     newLines.splice(index, 1);
     setImportLines(newLines);
   };
 
-  // Tính tổng tiền phiếu nhập
+  // Calculate total receipt amount
   const totalReceiptAmount = importLines.reduce((sum, line) => sum + (line.qty * line.price), 0);
 
   return (
     <div className="container-fluid py-4 bg-light min-vh-100">
       <div className="card shadow border-0">
-        {/* Header Phiếu Nhập */}
+        {/* Import receipt header */}
         <div className="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
-          <h5 className="mb-0 fw-bold">TẠO PHIẾU NHẬP KHO</h5>
+          <h5 className="mb-0 fw-bold">CREATE STOCK RECEIPT</h5>
           <div className="text-end">
-            <small className="d-block text-white-50">Ngày nhập: {new Date().toLocaleDateString('vi-VN')}</small>
-            <small className="d-block text-white-50">Người lập: Admin Khách sạn</small>
+            <small className="d-block text-white-50">Import date: {new Date().toLocaleDateString('vi-VN')}</small>
+            <small className="d-block text-white-50">Prepared by: Hotel Admin</small>
           </div>
         </div>
         
         <div className="card-body p-4">
           <div className="row mb-4">
             <div className="col-md-4">
-              <label className="form-label fw-bold text-muted">Nhà cung cấp / Ghi chú</label>
-              <input type="text" className="form-control" placeholder="VD: Đại lý tạp hóa Cô Ba giao đợt 1..." />
+              <label className="form-label fw-bold text-muted">Supplier / Notes</label>
+              <input type="text" className="form-control" placeholder="e.g. Co Ba grocery distributor, batch 1..." />
             </div>
           </div>
 
-          {/* Lưới chi tiết nhập hàng */}
+          {/* Import detail grid */}
           <div className="table-responsive border rounded mb-3">
             <table className="table table-hover align-middle mb-0">
               <thead className="table-light text-secondary">
                 <tr>
-                  <th style={{width: '30%'}}>Tên vật tư (Chọn từ danh mục)</th>
-                  <th style={{width: '10%'}}>ĐVT</th>
-                  <th style={{width: '15%'}}>Số lượng</th>
-                  <th style={{width: '20%'}}>Đơn giá nhập (VNĐ)</th>
-                  <th className="text-end" style={{width: '20%'}}>Thành tiền</th>
+                  <th style={{width: '30%'}}>Item Name (Select from catalog)</th>
+                  <th style={{width: '10%'}}>Unit</th>
+                  <th style={{width: '15%'}}>Quantity</th>
+                  <th style={{width: '20%'}}>Import Unit Price (VND)</th>
+                  <th className="text-end" style={{width: '20%'}}>Amount</th>
                   <th style={{width: '5%'}}></th>
                 </tr>
               </thead>
               <tbody>
                 {importLines.map((line, index) => (
                   <tr key={line.rowId}>
-                    {/* Cột Tên Vật Tư: Ép dùng Dropdown để chuẩn hóa dữ liệu */}
+                    {/* Item name column: force dropdown to standardize data */}
                     <td>
                       <select 
                         className="form-select border-primary shadow-sm" 
                         value={line.itemId}
                         onChange={(e) => handleSelectItem(index, e.target.value)}
                       >
-                        <option value="">-- Chọn mặt hàng --</option>
+                        <option value="">-- Select an item --</option>
                         {masterData.map(item => (
                           <option key={item.id} value={item.id}>{item.name}</option>
                         ))}
@@ -130,7 +130,7 @@ export default function ImportReceiptUI() {
                     
                     <td className="text-center">
                       <button className="btn btn-outline-danger btn-sm" onClick={() => handleRemoveRow(index)}>
-                        <i className="bi bi-trash"></i> Xóa
+                        <i className="bi bi-trash"></i> Remove
                       </button>
                     </td>
                   </tr>
@@ -140,15 +140,15 @@ export default function ImportReceiptUI() {
           </div>
 
           <button className="btn btn-outline-primary mb-4" onClick={handleAddRow}>
-            + Thêm dòng mới
+            + Add new row
           </button>
 
-          {/* Tổng kết phiếu */}
+          {/* Receipt summary */}
           <div className="row justify-content-end">
             <div className="col-md-5">
               <div className="card bg-primary bg-opacity-10 border-primary border-opacity-25">
                 <div className="card-body d-flex justify-content-between align-items-center">
-                  <span className="fs-5 fw-bold text-primary">TỔNG CỘNG:</span>
+                  <span className="fs-5 fw-bold text-primary">GRAND TOTAL:</span>
                   <span className="fs-3 fw-bold text-danger">{totalReceiptAmount.toLocaleString()} VNĐ</span>
                 </div>
               </div>
@@ -157,9 +157,9 @@ export default function ImportReceiptUI() {
         </div>
         
         <div className="card-footer bg-white py-3 text-end">
-          <button className="btn btn-secondary me-2">Hủy bỏ</button>
+          <button className="btn btn-secondary me-2">Cancel</button>
           <button className="btn btn-primary px-4 fw-bold shadow-sm">
-            <i className="bi bi-check-circle me-2"></i> HOÀN TẤT NHẬP KHO
+            <i className="bi bi-check-circle me-2"></i> COMPLETE STOCK ENTRY
           </button>
         </div>
       </div>

@@ -194,7 +194,7 @@ function RoomManagement() {
     if (message.status && (message.status.toLowerCase().includes('maintenance') || 
                           message.status.toLowerCase().includes('broken') ||
                           message.status.toLowerCase().includes('broken'))) {
-      showToastNotification(`⚠️ Room ${message.roomId} equipment needs maintenance`, 'warning');
+      showToastNotification(`Room ${message.roomId} equipment needs maintenance`, 'warning');
       
       // Play maintenance sound
       if (audioEnabled) {

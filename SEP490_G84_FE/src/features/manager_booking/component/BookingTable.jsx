@@ -8,7 +8,7 @@ export default function BookingTable({ bookings, emptyMessage, onCheckInClick, o
   }
 
   const handleUndoCheckIn = async (booking) => {
-    const confirmMessage = `⚠️ WARNING: Are you sure you want to UNDO the check-in for booking ${booking.bookingCode}?\n\nAll check-in data and surcharges (if any) will be permanently deleted!`;
+    const confirmMessage = `WARNING: Are you sure you want to UNDO the check-in for booking ${booking.bookingCode}?\n\nAll check-in data and surcharges (if any) will be permanently deleted!`;
     if (window.confirm(confirmMessage)) {
       try {
         await checkInApi.undoCheckIn(booking.id);

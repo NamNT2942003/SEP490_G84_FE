@@ -234,9 +234,9 @@ function StepArrival({ applyEarlyCheckIn, setApplyEarlyCheckIn, earlyCheckInFee,
                 <div style={{ marginTop: '12px' }}>
                   <Field label="Payment Method">
                     <select style={S.select(false)} value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} disabled={isSubmitting}>
-                      <option value="CASH">💵 Cash</option>
-                      <option value="CARD">💳 Card</option>
-                      <option value="TRANSFER">🏦 Bank Transfer</option>
+                      <option value="CASH">Cash</option>
+                      <option value="CARD">Card</option>
+                      <option value="TRANSFER">Bank Transfer</option>
                     </select>
                   </Field>
                 </div>
@@ -366,7 +366,7 @@ function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee,
                 background: payNow ? '#eaf5ee' : '#fdf5e0',
                 padding: '2px 10px', borderRadius: '20px', fontSize: '12px',
               }}>
-                {payNow ? `✓ Paid at counter (${paymentMethod === 'CARD' ? 'Card' : paymentMethod === 'TRANSFER' ? 'Bank Transfer' : 'Cash'})` : '⏳ To be paid at checkout'}
+                {payNow ? <><i className="bi bi-check-circle-fill me-1"></i>Paid at counter ({paymentMethod === 'CARD' ? 'Card' : paymentMethod === 'TRANSFER' ? 'Bank Transfer' : 'Cash'})</> : <><i className="bi bi-hourglass-split me-1"></i>To be paid at checkout</>}
               </span>
             </div>
           </>

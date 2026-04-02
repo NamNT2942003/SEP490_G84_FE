@@ -57,7 +57,7 @@ function StepBar({ step }) {
                     border: `1.5px solid ${step >= 1 ? C.primary : C.border}`,
                     color: step >= 1 ? "#fff" : C.textMuted,
                 }}>
-                    {step > 1 ? "✓" : "1"}
+                    {step > 1 ? <i className="bi bi-check-lg"></i> : "1"}
                 </div>
                 <span style={{ fontSize: 12, letterSpacing: "1px", textTransform: "uppercase", color: step === 1 ? C.primary : C.textMuted }}>Email</span>
             </div>
@@ -298,7 +298,7 @@ export default function GuestAccessPage() {
                                         {/* Resend success msg */}
                                         {resendMsg && (
                                             <div style={{ ...S.errorBox, background: C.greenBg, borderColor: "rgba(39,174,96,0.3)", color: C.green, marginBottom: 16 }}>
-                                                ✓ {resendMsg}
+                                                <i className="bi bi-check-circle-fill me-1"></i>{resendMsg}
                                             </div>
                                         )}
 

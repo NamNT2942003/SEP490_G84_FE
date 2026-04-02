@@ -2,45 +2,45 @@ import React, { useState } from 'react';
 // Yêu cầu: Đã import 'bootstrap/dist/css/bootstrap.min.css' trong file index/App.
 
 export default function ImportInventoryBootstrap() {
-  // 1. Dữ liệu Fix cứng (Mock DB) - Tượng trưng cho hàng đã có trong kho
+  // 1. Fixed mock data representing items already in stock
   const mockDbItems = [
-    { id: 1, name: 'Dầu gội dây (Clear)', unit: 'Dây', currentStock: 50 },
-    { id: 2, name: 'Khăn tắm trắng lớn', unit: 'Cái', currentStock: 120 }
+    { id: 1, name: 'Clear Shampoo Sachet', unit: 'Sachet', currentStock: 50 },
+    { id: 2, name: 'Large White Towel', unit: 'Piece', currentStock: 120 }
   ];
 
   // State quản lý
   const [searchTerm, setSearchTerm] = useState('');
   const [cartItems, setCartItems] = useState([
-    // Mình fix cứng sẵn 2 dòng này vào lưới để bạn thấy rõ 2 luồng đang chạy song song
+    // Seed two rows so both flows are visible in the grid
     { 
       id: 1, 
-      name: 'Dầu gội dây (Clear)', 
-      unit: 'Dây', 
-      isNew: false, // Luồng 1: Hàng Cũ (Đã có trong DB)
+      name: 'Clear Shampoo Sachet', 
+      unit: 'Sachet', 
+      isNew: false, // Flow 1: existing item (already in DB)
       importQuantity: 100, 
       unitPrice: 5000 
     },
     { 
       id: null, // ID null báo hiệu Backend phải Insert mới
-      name: 'Bàn chải tre bảo vệ môi trường', 
-      unit: 'Cái', 
-      isNew: true, // Luồng 2: Hàng Mới (Chưa có trong DB)
+      name: 'Eco bamboo toothbrush', 
+      unit: 'Piece', 
+      isNew: true, // Flow 2: new item (not yet in DB)
       importQuantity: 200, 
       unitPrice: 3500 
     }
   ]);
 
-  // Logic tính toán tổng tiền
+  // Total amount calculation
   const totalAmount = cartItems.reduce((sum, item) => sum + (item.importQuantity * item.unitPrice), 0);
 
-  // Xử lý thay đổi số lượng/đơn giá
+  // Handle quantity / unit price changes
   const handleUpdateItem = (index, field, value) => {
     const newCart = [...cartItems];
     newCart[index][field] = Number(value);
     setCartItems(newCart);
   };
 
-  // Xóa khỏi lưới
+  // Remove from the grid
   const handleRemoveItem = (index) => {
     const newCart = [...cartItems];
     newCart.splice(index, 1);
@@ -51,61 +51,61 @@ export default function ImportInventoryBootstrap() {
     <div className="container py-4">
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="text-primary mb-0">Tạo Phiếu Nhập Kho</h2>
-        <span className="text-muted">Ngày nhập: {new Date().toLocaleDateString('vi-VN')}</span>
+        <h2 className="text-primary mb-0">Create Stock Receipt</h2>
+        <span className="text-muted">Import date: {new Date().toLocaleDateString('vi-VN')}</span>
       </div>
 
       <div className="row">
-        {/* Cột trái: Tìm kiếm & Gợi ý (Mô phỏng thao tác) */}
+        {/* Left column: search and suggestions */}
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm h-100">
             <div className="card-header bg-light fw-bold">
-              1. Tìm hoặc Tạo vật tư
+              1. Find or Create Item
             </div>
             <div className="card-body">
               <div className="input-group mb-3">
                 <input 
                   type="text" 
                   className="form-control" 
-                  placeholder="Gõ tên vật tư..." 
+                  placeholder="Type item name..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <button className="btn btn-outline-secondary" type="button">Tìm</button>
+                <button className="btn btn-outline-secondary" type="button">Search</button>
               </div>
               
-              <div className="text-muted small mb-2">Gợi ý thao tác (Demo):</div>
+              <div className="text-muted small mb-2">Suggested actions (Demo):</div>
               <ul className="list-group">
                 <li className="list-group-item list-group-item-action d-flex justify-content-between align-items-center" style={{cursor: 'pointer'}}>
                   <div>
-                    <strong>Khăn tắm trắng lớn</strong> <br/>
-                    <small className="text-muted">Tồn kho: 120 Cái</small>
+                    <strong>Large White Towel</strong> <br/>
+                    <small className="text-muted">Stock: 120 pieces</small>
                   </div>
-                  <span className="badge bg-secondary rounded-pill">+ Chọn</span>
+                  <span className="badge bg-secondary rounded-pill">+ Select</span>
                 </li>
                 <li className="list-group-item list-group-item-action list-group-item-primary text-primary" style={{cursor: 'pointer'}}>
-                  <strong>+ Tạo mới: "{searchTerm || 'Sản phẩm gõ vào'}"</strong>
+                  <strong>+ Create new: "{searchTerm || 'Typed item'}"</strong>
                 </li>
               </ul>
             </div>
           </div>
         </div>
 
-        {/* Cột phải: Lưới dữ liệu (Data Grid) */}
+        {/* Right column: data grid */}
         <div className="col-md-8">
           <div className="card shadow-sm">
             <div className="card-header bg-light fw-bold">
-              2. Chi tiết nhập kho
+              2. Stock Entry Details
             </div>
             <div className="card-body p-0">
               <div className="table-responsive">
                 <table className="table table-hover table-bordered mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
-                      <th>Tên vật tư</th>
-                      <th width="15%">Số lượng</th>
-                      <th width="20%">Đơn giá (VNĐ)</th>
-                      <th width="20%">Thành tiền</th>
+                      <th>Item Name</th>
+                      <th width="15%">Quantity</th>
+                      <th width="20%">Unit Price (VND)</th>
+                      <th width="20%">Amount</th>
                       <th width="5%"></th>
                     </tr>
                   </thead>
@@ -114,11 +114,11 @@ export default function ImportInventoryBootstrap() {
                       <tr key={index}>
                         <td>
                           <div className="fw-medium">{item.name}</div>
-                          {/* ĐÂY LÀ ĐIỂM ĂN TIỀN: Phân biệt 2 luồng bằng UI */}
+                          {/* Distinguish the two flows in the UI */}
                           {item.isNew ? (
-                            <span className="badge bg-success">Hàng mới (Sẽ tạo)</span>
+                            <span className="badge bg-success">New item (will create)</span>
                           ) : (
-                            <span className="badge bg-info text-dark">Hàng cũ (Cộng dồn)</span>
+                            <span className="badge bg-info text-dark">Existing item (accumulate)</span>
                           )}
                         </td>
                         <td>
@@ -142,7 +142,7 @@ export default function ImportInventoryBootstrap() {
                           {(item.importQuantity * item.unitPrice).toLocaleString()}
                         </td>
                         <td>
-                          <button className="btn btn-sm btn-outline-danger" onClick={() => handleRemoveItem(index)}>X</button>
+                          <button className="btn btn-sm btn-outline-danger" onClick={() => handleRemoveItem(index)}>Remove</button>
                         </td>
                       </tr>
                     ))}
@@ -151,13 +151,13 @@ export default function ImportInventoryBootstrap() {
               </div>
             </div>
             
-            {/* Footer Form: Tổng kết */}
+            {/* Footer summary */}
             <div className="card-footer bg-white d-flex justify-content-between align-items-center p-3">
               <div className="fs-5">
-                Tổng cộng: <span className="fw-bold text-danger fs-4">{totalAmount.toLocaleString()} VNĐ</span>
+                Total: <span className="fw-bold text-danger fs-4">{totalAmount.toLocaleString()} VNĐ</span>
               </div>
-              <button className="btn btn-primary btn-lg px-4" onClick={() => alert('Đã gửi payload API: ' + JSON.stringify(cartItems))}>
-                Chốt Nhập Kho
+              <button className="btn btn-primary btn-lg px-4" onClick={() => alert('API payload sent: ' + JSON.stringify(cartItems))}>
+                Submit Stock Entry
               </button>
             </div>
           </div>
