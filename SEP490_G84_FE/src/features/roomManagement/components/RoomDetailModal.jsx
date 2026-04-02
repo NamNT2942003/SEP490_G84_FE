@@ -91,7 +91,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
     } catch (error) {
       console.error(`Error performing ${action} on equipment:`, error);
       if (onShowNotification) {
-        onShowNotification({ type: 'error', message: `❌ Thao tác thất bại`, timestamp: Date.now() });
+        onShowNotification({ type: 'error', message: `Operation failed`, timestamp: Date.now() });
       }
     } finally {
       setActionLoading(null);
@@ -111,7 +111,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
       if (onShowNotification) {
         onShowNotification({
           type: 'warning',
-          message: `🔧 Equipment marked as broken in room ${room.roomName}`,
+          message: `Equipment marked as broken in room ${room.roomName}`,
           timestamp: Date.now()
         });
       }
@@ -123,7 +123,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
       if (onShowNotification) {
         onShowNotification({
           type: 'error',
-          message: `❌ Failed to mark equipment as broken`,
+          message: `Failed to mark equipment as broken`,
           timestamp: Date.now()
         });
       }
@@ -611,7 +611,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
             if (onShowNotification) {
               onShowNotification({
                 type: 'success',
-                message: `✅ Equipment replaced successfully`,
+                message: `Equipment replaced successfully`,
                 timestamp: Date.now()
               });
             }

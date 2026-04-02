@@ -98,12 +98,12 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
     try {
       await stayApi.addServiceToStay(payload);
       const names = serviceItems.map(i => i.description).join(', ');
-      alert(`✅ Đã thêm ${serviceItems.length} dịch vụ thành công: ${names}`);
+      alert(`Added ${serviceItems.length} service(s) successfully: ${names}`);
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       console.error(error);
-      alert('❌ Lỗi khi thêm dịch vụ. Vui lòng thử lại!');
+      alert('Failed to add service. Please try again!');
     } finally {
       setLoading(false);
     }
@@ -117,7 +117,7 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
           {/* Header */}
           <div className="modal-header" style={{ backgroundColor: COLORS.PRIMARY, color: COLORS.TEXT_LIGHT, borderRadius: '12px 12px 0 0' }}>
             <div>
-              <h5 className="modal-title mb-0">🛎️ Thêm Dịch Vụ</h5>
+              <h5 className="modal-title mb-0"><i className="bi bi-bell-fill me-2"></i>Add Service</h5>
               <small style={{ opacity: 0.85 }}>
                 Phòng: <strong>{stayInfo.roomName}</strong> — {stayInfo.primaryGuestName}
               </small>
@@ -257,14 +257,14 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
                       className="form-check-input" type="radio" name="paymentOption" value="pay_later"
                       checked={paymentOption === 'pay_later'} onChange={e => setPaymentOption(e.target.value)}
                     />
-                    <label className="form-check-label">💳 Ghi nợ – thu khi Checkout</label>
+                    <label className="form-check-label"><i className="bi bi-credit-card me-1"></i>Charge at checkout</label>
                   </div>
                   <div className="form-check">
                     <input
                       className="form-check-input" type="radio" name="paymentOption" value="pay_now"
                       checked={paymentOption === 'pay_now'} onChange={e => setPaymentOption(e.target.value)}
                     />
-                    <label className="form-check-label">💵 Thanh toán ngay</label>
+                    <label className="form-check-label"><i className="bi bi-cash-coin me-1"></i>Pay now</label>
                   </div>
                 </div>
                 {paymentOption === 'pay_now' && (
@@ -274,9 +274,9 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
                     onChange={e => setPaymentMethod(e.target.value)}
                     style={{ maxWidth: 220, borderColor: COLORS.PRIMARY }}
                   >
-                    <option value="CASH">💵 Tiền mặt</option>
-                    <option value="CARD">💳 Thẻ</option>
-                    <option value="TRANSFER">🏦 Chuyển khoản</option>
+                    <option value="CASH">Cash</option>
+                    <option value="CARD">Card</option>
+                    <option value="TRANSFER">Bank transfer</option>
                   </select>
                 )}
               </div>
@@ -285,7 +285,7 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
             {/* Footer */}
             <div className="modal-footer border-0 px-4 pb-3">
               <button type="button" className="btn btn-outline-secondary" onClick={onClose} disabled={loading}>
-                Huỷ
+                Cancel
               </button>
               <button
                 type="submit"
@@ -293,7 +293,7 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
                 style={{ backgroundColor: isValid ? COLORS.PRIMARY : '#6c757d', minWidth: 160 }}
                 disabled={!isValid || loading}
               >
-                {loading ? '⏳ Đang xử lý...' : `✅ Xác nhận (${items.length} dịch vụ)`}
+                {loading ? <><i className="bi bi-hourglass-split me-2"></i>Processing...</> : <><i className="bi bi-check-circle-fill me-2"></i>Confirm ({items.length} services)</>}
               </button>
             </div>
           </form>

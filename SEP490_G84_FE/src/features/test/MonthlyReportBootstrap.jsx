@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 
 export default function MonthlyReportBootstrap() {
-  // Mock data: Hệ thống đã tự động tính sẵn Tồn đầu và Tổng nhập trong tháng
+  // Mock data: the system has already calculated opening stock and monthly imports
   const [reportItems, setReportItems] = useState([
     { 
       id: 1, 
       name: 'Dầu gội dây (Clear)', 
       unit: 'Dây', 
-      openingStock: 50,  // Tồn từ tháng trước chuyển sang
-      importQuantity: 100, // Tổng đã nhập trong tháng này
-      closingStock: 40   // Số liệu nhân viên kho thực tế đếm được trên kệ
+      openingStock: 50,  // Opening stock carried over from the previous month
+      importQuantity: 100, // Total imports for this month
+      closingStock: 40   // Actual count on the shelf
     },
     { 
       id: 2, 
@@ -17,11 +17,11 @@ export default function MonthlyReportBootstrap() {
       unit: 'Cái', 
       openingStock: 120, 
       importQuantity: 0, 
-      closingStock: 150  // Cố tình nhập sai: Tồn đầu 120, không nhập thêm mà đếm ra 150 -> Vô lý!
+      closingStock: 150  // Intentional invalid value: opening stock 120, no imports, but counted 150
     }
   ]);
 
-  // Cập nhật số liệu Tồn cuối do nhân viên gõ vào
+  // Update closing stock entered by staff
   const handleUpdateClosingStock = (index, value) => {
     const newItems = [...reportItems];
     newItems[index].closingStock = Number(value);
@@ -33,34 +33,34 @@ export default function MonthlyReportBootstrap() {
       {/* Header & Filter */}
       <div className="d-flex justify-content-between align-items-end mb-4 border-bottom pb-3">
         <div>
-          <h2 className="text-primary mb-1">Kiểm Kê & Chốt Kho Tháng</h2>
-          <span className="text-muted">Chi nhánh: Khách sạn Trung tâm | Kỳ báo cáo: Tháng 3/2026</span>
+          <h2 className="text-primary mb-1">Monthly Inventory Check & Close</h2>
+          <span className="text-muted">Branch: Central Hotel | Reporting period: March 2026</span>
         </div>
         <button className="btn btn-outline-secondary">
-          <i className="bi bi-printer"></i> In danh sách đi đếm
+          <i className="bi bi-printer"></i> Print Count List
         </button>
       </div>
 
       {/* Lưới dữ liệu (Bảng tính tự động) */}
       <div className="card shadow-sm mb-4">
         <div className="card-header bg-light d-flex justify-content-between align-items-center fw-bold">
-          <span>Bảng kê chi tiết vật tư</span>
-          <span className="badge bg-warning text-dark">Lưu ý: Chỉ điền vào cột Tồn Cuối Kỳ</span>
+          <span>Item Detail Sheet</span>
+          <span className="badge bg-warning text-dark">Note: Only fill the Closing Stock column</span>
         </div>
         <div className="card-body p-0">
           <div className="table-responsive">
             <table className="table table-hover table-bordered mb-0 align-middle text-center">
               <thead className="table-light">
                 <tr>
-                  <th className="text-start">Tên vật tư</th>
-                  <th>ĐVT</th>
-                  <th className="bg-light">Tồn đầu kỳ (1)</th>
-                  <th className="bg-light">Nhập trong tháng (2)</th>
+                  <th className="text-start">Item Name</th>
+                  <th>Unit</th>
+                  <th className="bg-light">Opening Stock (1)</th>
+                  <th className="bg-light">Imports (2)</th>
                   <th className="bg-info bg-opacity-10 text-primary w-25">
-                    TỒN CUỐI KỲ (3) <br/><small className="text-muted fw-normal">(Thực tế đếm trên kệ)</small>
+                    CLOSING STOCK (3) <br/><small className="text-muted fw-normal">(Actual shelf count)</small>
                   </th>
                   <th className="bg-light">
-                    SỐ LƯỢNG ĐÃ DÙNG <br/><small className="text-muted fw-normal">=(1) + (2) - (3)</small>
+                    USED QUANTITY <br/><small className="text-muted fw-normal">=(1) + (2) - (3)</small>
                   </th>
                 </tr>
               </thead>
@@ -94,7 +94,7 @@ export default function MonthlyReportBootstrap() {
                         />
                         {isError && (
                           <div className="invalid-feedback d-block text-start" style={{fontSize: '0.75rem'}}>
-                            ⚠ Tồn cuối không thể lớn hơn (Đầu + Nhập)
+                            ⚠ Closing stock cannot exceed (Opening + Imports)
                           </div>
                         )}
                       </td>
@@ -102,7 +102,7 @@ export default function MonthlyReportBootstrap() {
                       {/* Cột hiển thị kết quả tiêu hao */}
                       <td>
                         {isError ? (
-                          <span className="badge bg-danger">Lỗi số liệu</span>
+                          <span className="badge bg-danger">Data error</span>
                         ) : (
                           <span className="fs-5 fw-bold text-danger">{usedQuantity}</span>
                         )}
@@ -118,12 +118,12 @@ export default function MonthlyReportBootstrap() {
 
       {/* Footer Form: Action */}
       <div className="d-flex justify-content-end gap-3">
-        <button className="btn btn-secondary px-4">Lưu nháp</button>
+        <button className="btn btn-secondary px-4">Save Draft</button>
         <button 
           className="btn btn-success btn-lg px-5 shadow" 
-          onClick={() => alert('Chốt sổ thành công! Số liệu tháng này sẽ bị khóa.')}
+          onClick={() => alert('Month closed successfully! This month\'s data will be locked.')}
         >
-          🔒 CHỐT SỔ THÁNG NÀY
+          <i className="bi bi-lock-fill me-2"></i>Close This Month
         </button>
       </div>
     </div>

@@ -132,7 +132,7 @@ export default function RevenueDashboard() {
                 fontWeight: 700,
               }}
             >
-              Báo cáo tháng
+              Monthly Report
             </div>
             <h1
               style={{
@@ -145,7 +145,7 @@ export default function RevenueDashboard() {
                 letterSpacing: -0.5,
               }}
             >
-              DOANH THU PHÒNG
+              ROOM REVENUE
             </h1>
           </div>
 
@@ -181,7 +181,7 @@ export default function RevenueDashboard() {
                   boxShadow: view === v ? "0 4px 12px rgba(99,102,241,0.25)" : "none",
                 }}
               >
-                {v === "chart" ? "📊 Biểu đồ" : "📋 Chi tiết"}
+                {v === "chart" ? <><i className="bi bi-bar-chart-line me-2"></i>Chart</> : <><i className="bi bi-list-ul me-2"></i>Details</>}
               </button>
             ))}
           </div>
@@ -189,11 +189,11 @@ export default function RevenueDashboard() {
 
         {/* Stat Cards */}
         <div style={{ display: "flex", gap: 14, marginBottom: 28, flexWrap: "wrap" }}>
-          <StatCard icon="💰" label="Tổng doanh thu" value={`${fmt(totalRevenue)} ₫`} color="#4f46e5" />
-          <StatCard icon="📈" label="So tháng trước" value={`+${growthRate}%`} color="#10b981" sub="Tăng trưởng" />
-          <StatCard icon="🏨" label="Tỉ lệ lấp kín" value={`${occupancyRate}%`} color="#f59e0b" />
-          <StatCard icon="💎" label="Giá TB/đêm" value={`${fmt(avgPrice)} ₫`} color="#d946ef" />
-          <StatCard icon="👥" label="Tổng khách" value={fmt(totalGuests)} color="#ef4444" sub="lượt khách" />
+          <StatCard icon={<i className="bi bi-currency-dollar"></i>} label="Total Revenue" value={`${fmt(totalRevenue)} ₫`} color="#4f46e5" />
+          <StatCard icon={<i className="bi bi-graph-up-arrow"></i>} label="vs Previous Month" value={`+${growthRate}%`} color="#10b981" sub="Growth" />
+          <StatCard icon={<i className="bi bi-building"></i>} label="Occupancy Rate" value={`${occupancyRate}%`} color="#f59e0b" />
+          <StatCard icon={<i className="bi bi-gem"></i>} label="Avg Price/Night" value={`${fmt(avgPrice)} ₫`} color="#d946ef" />
+          <StatCard icon={<i className="bi bi-people-fill"></i>} label="Total Guests" value={fmt(totalGuests)} color="#ef4444" sub="guest visits" />
         </div>
 
         {/* CHART VIEW */}
@@ -217,7 +217,7 @@ export default function RevenueDashboard() {
                   color: "#4f46e5",
                 }}
               >
-                Doanh thu theo loại phòng
+                Revenue by Room Type
               </h3>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={roomData} margin={{ left: 10 }}>
@@ -258,7 +258,7 @@ export default function RevenueDashboard() {
                     color: "#4f46e5",
                   }}
                 >
-                  Tỉ trọng doanh thu
+                  Revenue Share
                 </h3>
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
@@ -377,7 +377,7 @@ export default function RevenueDashboard() {
                 color: "#fff",
               }}
             >
-              DOANH THU PHÒNG
+              ROOM REVENUE
             </div>
 
             <div style={{ padding: 20, overflowX: "auto" }}>
@@ -389,7 +389,7 @@ export default function RevenueDashboard() {
                   marginBottom: 16,
                 }}
               >
-                Tổng doanh thu: {fmt(totalRevenue)}
+                Total revenue: {fmt(totalRevenue)}
               </div>
 
               <table
@@ -408,10 +408,10 @@ export default function RevenueDashboard() {
                       "Deluxe Double",
                       "Deluxe Twin",
                       "Deluxe Triple",
-                      "So sánh tháng trước (tăng/giảm %)",
-                      "Tỉ lệ lấp kín phòng (%)",
-                      "Trung bình giá phòng/đêm",
-                      "Tổng số lượng khách trong tháng",
+                      "vs Previous Month (up/down %)",
+                      "Room Occupancy Rate (%)",
+                      "Average Price/Night",
+                      "Total Guests This Month",
                     ].map((h, i) => (
                       <th
                         key={i}
@@ -461,7 +461,7 @@ export default function RevenueDashboard() {
                         background: "#f0fdf4",
                       }}
                     >
-                      ▲ Tăng {growthRate}%
+                      ▲ Up {growthRate}%
                     </td>
                     <td
                       style={{
@@ -510,7 +510,7 @@ export default function RevenueDashboard() {
                     fontWeight: 600,
                   }}
                 >
-                  Phân bổ doanh thu theo loại phòng
+                  Revenue Allocation by Room Type
                 </div>
                 {roomData.map((r, i) => (
                   <div
@@ -588,7 +588,7 @@ export default function RevenueDashboard() {
             color: "#94a3b8",
           }}
         >
-          Dữ liệu cập nhật theo tháng • Tỉ lệ lấp kín: {occupancyRate}% • {fmt(totalGuests)} lượt khách
+          Monthly data updated • Occupancy rate: {occupancyRate}% • {fmt(totalGuests)} guest visits
         </div>
       </div>
     </div>

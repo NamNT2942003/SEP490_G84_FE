@@ -50,7 +50,7 @@ const ReportIssueModal = ({ show, room, onHide, onSuccess, onShowNotification })
       if (onShowNotification) {
         onShowNotification({
           type: 'warning',
-          message: `⚠️ Issue reported for room ${room.roomName || room.roomNumber}`,
+          message: `Issue reported for room ${room.roomName || room.roomNumber}`,
           timestamp: Date.now()
         });
       }

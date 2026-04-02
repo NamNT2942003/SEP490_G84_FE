@@ -442,7 +442,7 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
                   {booking?.stays?.length > 0 ? (
                     booking.stays.map((stay) => (
                       <tr key={stay.stayId}>
-                        <td><span className="room-badge">🏠 {stay.roomName}</span></td>
+                        <td><span className="room-badge"><i className="bi bi-house-door me-1"></i>{stay.roomName}</span></td>
                         <td style={{ fontWeight: 600 }}>{stay.primaryGuestName}</td>
                         <td style={{ color: '#666', fontSize: 13 }}>{formatTime(stay.checkInTime)}</td>
                         <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
