@@ -241,7 +241,7 @@ const FurnitureInventory = () => {
 
     const renderPagination = (cur, total, onChange) => {
         const safe = Math.max(1, total);
-        const MAX = 5;
+        const MAX = 6;
         let start = Math.max(1, cur - Math.floor(MAX / 2));
         let end = Math.min(safe, start + MAX - 1);
         if (end - start + 1 < MAX) start = Math.max(1, end - MAX + 1);

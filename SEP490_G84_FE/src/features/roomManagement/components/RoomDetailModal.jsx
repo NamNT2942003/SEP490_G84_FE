@@ -12,9 +12,11 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // equipmentId being actioned
   const [replaceFor, setReplaceFor] = useState(null); // furniture item to replace
+  const [currentRoomStatus, setCurrentRoomStatus] = useState(room?.status);
 
   useEffect(() => {
     if (show && room && (room.roomId || room.id)) {
+      setCurrentRoomStatus(room.status);
       fetchRoomDetails();
     }
   }, [show, room]);
@@ -33,6 +35,11 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
       const detail = await roomManagementApi.getRoomDetailFull(roomId);
       const eqList = detail?.furnitureList || detail?.equipment || [];
       setEquipmentList(eqList);
+      
+      // Sync the true status from the backend
+      if (detail && detail.status) {
+        setCurrentRoomStatus(detail.status);
+      }
 
       // Fetch issues separately (may not exist yet)
       try {
@@ -43,7 +50,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
       }
 
       // Auto-update room status: Maintenance → Available when all equipment is fixed
-      if (room.status === "MAINTENANCE" && eqList.length > 0) {
+      if (currentRoomStatus?.toUpperCase() === "MAINTENANCE" && eqList.length > 0) {
         const brokenCount = eqList.filter(e => {
           const s = (e.status || e.condition || "").toLowerCase();
           return s.includes("broken") || s.includes("failed") || s.includes("need") || s.includes("repair") || s.includes("maintenance") || s.includes("bảo trì");
@@ -52,6 +59,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
         if (brokenCount === 0) {
           try {
             await roomManagementApi.updateRoomStatus(roomId, "AVAILABLE");
+            setCurrentRoomStatus("AVAILABLE");
             if (onRoomUpdated) onRoomUpdated();
           } catch (err) {
             console.warn("Auto-update room status failed:", err);
@@ -212,9 +220,9 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                   <span
                     className="badge px-3 py-2 rounded-pill d-flex align-items-center gap-1"
                     style={{
-                      backgroundColor: `${getStatusColor(room.status)}20`,
-                      color: getStatusColor(room.status),
-                      border: `1px solid ${getStatusColor(room.status)}40`,
+                      backgroundColor: `${getStatusColor(currentRoomStatus)}20`,
+                      color: getStatusColor(currentRoomStatus),
+                      border: `1px solid ${getStatusColor(currentRoomStatus)}40`,
                       fontSize: "0.85rem",
                     }}
                   >
@@ -223,10 +231,10 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                       style={{
                         width: "6px",
                         height: "6px",
-                        backgroundColor: getStatusColor(room.status),
+                        backgroundColor: getStatusColor(currentRoomStatus),
                       }}
                     ></span>
-                    {getStatusText(room.status)}
+                    {getStatusText(currentRoomStatus)}
                   </span>
                 </div>
 
