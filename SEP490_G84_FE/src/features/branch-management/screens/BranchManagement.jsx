@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
 import "./BranchManagement.css";
 
@@ -19,6 +20,7 @@ const FORM_FIELDS = [
 ];
 
 export default function BranchManagement() {
+  const navigate = useNavigate();
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -289,6 +291,14 @@ export default function BranchManagement() {
                   <td className="branch-value">{branch.contactNumber || "-"}</td>
                   <td className="text-end">
                     <div className="btn-group">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-success"
+                        onClick={() => navigate(`/admin/branches/${branch.branchId}/refund-policies`)}
+                        title="Quản lý chính sách hoàn tiền"
+                      >
+                        <i className="bi bi-shield-check me-1"></i>Hoàn tiền
+                      </button>
                       <button
                         type="button"
                         className="btn btn-sm btn-outline-primary"
