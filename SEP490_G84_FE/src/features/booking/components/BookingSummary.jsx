@@ -40,7 +40,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
     const nights = calculateNights(checkIn, checkOut);
     const totalRooms = selectedRooms.reduce((sum, r) => sum + (r.quantity || 1), 0);
     const subtotal = selectedRooms.reduce(
-        (sum, room) => sum + (getUnitPrice(room) * (room.quantity || 1) * nights),
+        (sum, room) => sum + (getUnitPrice(room) * (room.quantity || 1)),
         0,
     );
 
@@ -71,7 +71,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                                 <p className="fw-semibold text-dark mb-0 small">{room.quantity}x {room.name}</p>
                                 {room.selectedPricingOption?.mode && <p className="text-muted mb-0" style={{ fontSize: '11px' }}>Mode: {room.selectedPricingOption.mode}</p>}
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
-                                    {(room.quantity || 1)} room x {nights} {nights > 1 ? 'nights' : 'night'}
+                                    {(room.quantity || 1)} room(s) for selected stay
                                 </p>
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                     {getCancellationText(room.cancellationType, room.freeCancelBeforeDays)} · {getPaymentText(room.paymentType)}
@@ -107,7 +107,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                 <div className="mt-2">
                     <p className="text-muted small mb-1">
                         <i className="fa-solid fa-info-circle me-1"></i>
-                        {nights} {nights > 1 ? 'nights' : 'night'} x {totalRooms} {totalRooms > 1 ? 'rooms' : 'room'}
+                        {nights} {nights > 1 ? 'nights' : 'night'} stay · {totalRooms} {totalRooms > 1 ? 'rooms' : 'room'}
                     </p>
                 </div>
                 <small className="text-muted" style={{ fontSize: '11px' }}>*Taxes and fees included</small>

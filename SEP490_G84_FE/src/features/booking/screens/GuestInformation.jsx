@@ -7,12 +7,6 @@ import './GuestInformation.css';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-const calculateNights = (start, end) => {
-    if (!start || !end) return 1;
-    const diffMs = Math.abs(new Date(end) - new Date(start));
-    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-};
-
 const formatVND = (amount) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
@@ -75,8 +69,7 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut) => ({
 
 // ─── RoomItem ──────────────────────────────────────────────────────────────
 
-const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove, onSelectPromo }) => {
-    const nights = calculateNights(checkIn, checkOut);
+const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
     const unitPrice = calculateRoomUnitPrice(room);
     const qty = room.quantity || 1;
     const maxQty = room.availableCount || 999;
@@ -105,7 +98,7 @@ const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove, onSelec
                     <div>
                         <div className="room-name fs-5 fw-bold text-dark mb-1" style={{fontFamily: "'Playfair Display', serif"}}>{room.name}</div>
                         <div className="room-price fw-semibold text-secondary mb-2" style={{fontSize: '0.9rem'}}>
-                            💵 {new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ đêm</span>
+                            💵 {new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ kỳ ở</span>
                         </div>
                         <div className="d-flex gap-3">
                             <div className="small px-2 py-1 rounded" style={{background: '#ebf4ff', color: '#3182ce', fontWeight: 600}}>
@@ -160,7 +153,7 @@ const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove, onSelec
                         </button>
                     </div>
                     <div className="room-total fs-4 fw-bold" style={{color: '#5C6F4E'}}>
-                        {formatVND(unitPrice * qty * nights)}
+                        {formatVND(unitPrice * qty)}
                     </div>
                 </div>
             </div>
@@ -253,9 +246,8 @@ const GuestInformation = () => {
     };
 
     const calculateTotalPrice = () => {
-        const nights = calculateNights(checkIn, checkOut);
         return rooms.reduce(
-            (sum, room) => sum + calculateRoomUnitPrice(room) * (room.quantity || 1) * nights,
+                (sum, room) => sum + calculateRoomUnitPrice(room) * (room.quantity || 1),
             0
         );
     };
@@ -333,8 +325,6 @@ const GuestInformation = () => {
                                     <RoomItem
                                         key={room.roomTypeId}
                                         room={room}
-                                        checkIn={checkIn}
-                                        checkOut={checkOut}
                                         onQuantityChange={handleQuantityChange}
                                         onRemove={handleRemoveRoom}
                                         onSelectPromo={handleSelectPromo}

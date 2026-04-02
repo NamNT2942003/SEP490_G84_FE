@@ -177,20 +177,18 @@ const SearchRoom = () => {
         const existingIndex = selectedCart.findIndex(r => r.roomTypeId === room.roomTypeId);
 
         if (existingIndex >= 0) {
-            // Nếu đã có → tăng quantity (nhưng không vượt quá availableCount)
-            const currentQty = selectedCart[existingIndex].quantity || 1;
-            if (currentQty >= roomForCart.availableCount) {
-                showUiMessage("warning", `Only ${roomForCart.availableCount} room(s) available for ${roomForCart.name}.`);
-                return;
-            }
+            // Nếu đã có → cập nhật gói giá đang chọn, giữ nguyên số lượng để tránh cộng dồn ngoài ý muốn
             setSelectedCart(prev => prev.map((r, idx) =>
                 idx === existingIndex
                     ? {
                         ...r,
-                        quantity: Math.min((r.quantity || 1) + 1, roomForCart.availableCount),
+                        ...roomForCart,
+                        quantity: Math.min(r.quantity || 1, roomForCart.availableCount || (r.quantity || 1)),
                     }
                     : r
             ));
+            showUiMessage("success", `${roomForCart.name} pricing has been updated.`);
+            return;
         } else {
             // Nếu chưa → thêm vào cart với quantity = 1
             if (roomForCart.availableCount <= 0) {
@@ -239,9 +237,8 @@ const SearchRoom = () => {
             return;
         }
 
-        const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
         const totalPrice = selectedCart.reduce((sum, room) =>
-            sum + ((room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0) * (room.quantity || 1) * nights), 0
+            sum + ((room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0) * (room.quantity || 1)), 0
         );
 
         navigate('/guest-information', {
@@ -287,7 +284,7 @@ const SearchRoom = () => {
     const totalSelectedRooms = selectedCart.reduce((sum, r) => sum + (r.quantity || 1), 0);
     const cartTotal = selectedCart.reduce((sum, r) => {
         const unitPrice = r.selectedPrice ?? r.appliedPrice ?? r.basePrice ?? r.price ?? 0;
-        return sum + (unitPrice * (r.quantity || 1) * nights);
+        return sum + (unitPrice * (r.quantity || 1));
     }, 0);
     const hasValidStayDates =
         Boolean(searchParams?.checkIn) &&
@@ -598,7 +595,7 @@ const SearchRoom = () => {
                                 {selectedCart.length > 0 ? (
                                     selectedCart.map((room, idx) => {
                                         const roomUnitPrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
-                                        const roomTotal = roomUnitPrice * (room.quantity || 1) * nights;
+                                        const roomTotal = roomUnitPrice * (room.quantity || 1);
                                         return (
                                             <div key={idx} className="cart-room-item">
                                                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
@@ -608,7 +605,7 @@ const SearchRoom = () => {
                                                             {room.name}
                                                         </div>
                                                         <div className="cart-room-price">
-                                                            💰 {new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/night
+                                                            💰 {new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/stay
                                                         </div>
                                                     </div>
                                                     <button
@@ -651,7 +648,7 @@ const SearchRoom = () => {
                                                 <div className="cart-room-total">
                                                     <span>
                                                         <span className="me-2">📊</span>
-                                                        {room.quantity} × {nights}N
+                                                        {room.quantity} room(s)
                                                     </span>
                                                     <span className="cart-room-total-amount">
                                                         {new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(roomTotal)}
