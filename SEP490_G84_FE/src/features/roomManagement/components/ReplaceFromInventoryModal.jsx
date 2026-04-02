@@ -96,10 +96,10 @@ export default function ReplaceFromInventoryModal({
         <div className="d-flex align-items-center justify-content-between px-4 py-3 border-bottom">
           <div>
             <div className="fw-bold" style={{ color: "#1a1a2e" }}>
-              Thay thế từ kho
+              Replace from stock
             </div>
             <div className="text-muted small">
-              Đang thay:{" "}
+              Replacing:{" "}
               <span className="fw-semibold" style={{ color: "#dc3545" }}>
                 {oldItem?.furnitorName || "—"}
               </span>
@@ -117,7 +117,7 @@ export default function ReplaceFromInventoryModal({
             </span>
             <input
               className="form-control border-start-0"
-              placeholder="Tìm trong kho..."
+              placeholder="Search in stock..."
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={(e) => {
@@ -136,7 +136,7 @@ export default function ReplaceFromInventoryModal({
                 fetchList();
               }}
             >
-              Tìm
+              Search
             </button>
           </div>
         </div>
@@ -157,7 +157,7 @@ export default function ReplaceFromInventoryModal({
               Loading inventory...
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-muted text-center py-5">Không có item trong kho.</div>
+            <div className="text-muted text-center py-5">No items in stock.</div>
           ) : (
             <div className="d-flex flex-column gap-2">
               {filtered.map((it) => {
@@ -199,14 +199,14 @@ export default function ReplaceFromInventoryModal({
                         {it.type && <span className="badge bg-secondary" style={{ fontSize: "0.65rem", padding: "3px 6px" }}>{it.type}</span>}
                       </div>
                       <div className="text-muted small">
-                        Mã TB: {it.furnitureCode} {branchId ? `• Chi nhánh: ${branchId}` : ""}
+                        Code: {it.furnitureCode} {branchId ? `• Branch: ${branchId}` : ""}
                       </div>
                     </div>
                     <div className="text-end">
                       <div className="fw-bold" style={{ color: it.inStock > 0 ? "#198754" : "#dc3545" }}>
                         {it.inStock}
                       </div>
-                      <div className="text-muted small">trong kho</div>
+                      <div className="text-muted small">in stock</div>
                     </div>
                   </label>
                 );
@@ -217,11 +217,11 @@ export default function ReplaceFromInventoryModal({
 
         <div className="px-4 py-3 border-top d-flex align-items-center justify-content-between">
           <span className="text-muted small">
-            {selected ? "Đã chọn" : "Chưa chọn"}
+            {selected ? "Selected" : "Not selected"}
           </span>
           <div className="d-flex gap-2">
             <button className="btn btn-outline-secondary px-4" onClick={onClose}>
-              Huỷ
+              Cancel
             </button>
             <button
               className="btn px-4"
@@ -229,7 +229,7 @@ export default function ReplaceFromInventoryModal({
               onClick={submitReplace}
               style={{ backgroundColor: BRAND, color: "#fff", border: "none" }}
             >
-              {submitting ? "Đang thay..." : "Thay thế"}
+              {submitting ? "Replacing..." : "Replace"}
             </button>
           </div>
         </div>

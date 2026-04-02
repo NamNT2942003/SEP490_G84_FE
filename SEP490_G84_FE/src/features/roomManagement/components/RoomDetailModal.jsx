@@ -432,12 +432,12 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                             <div className="spinner-border spinner-border-sm me-1" role="status">
                                               <span className="visually-hidden">Loading...</span>
                                             </div>
-                                            Đang xử lý...
+                                            Processing...
                                           </>
                                         ) : (
                                           <>
                                             <i className="bi bi-x-circle me-1"></i>
-                                            Báo hỏng
+                                            Report Damage
                                           </>
                                         )}
                                       </button>
@@ -453,12 +453,12 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                             <div className="spinner-border spinner-border-sm me-1" role="status">
                                               <span className="visually-hidden">Loading...</span>
                                             </div>
-                                            Đang thay thế...
+                                            Replacing...
                                           </>
                                         ) : (
                                           <>
                                             <i className="bi bi-arrow-repeat me-1"></i>
-                                            Thay thế từ kho
+                                            Replace from stock
                                           </>
                                         )}
                                       </button>
@@ -593,7 +593,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
               }}
               onClick={onHide}
             >
-              Đóng
+              Close
             </button>
           </div>
         </div>
