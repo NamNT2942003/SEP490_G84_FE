@@ -7,20 +7,15 @@ import apiClient from '@/services/apiClient';
 import MainLayout from '@/components/layout/MainLayout';
 import '../css/InventoryManagement.css';
 
+const BRAND = '#5C6F4E';
+
 const FurnitureInventory = () => {
     const navigate = useNavigate();
     const currentUser = useCurrentUser();
 
-    // Permission Check
     useEffect(() => {
-        if (!currentUser) {
-            navigate('/login');
-            return;
-        }
-        // Only ADMIN and MANAGER can access furniture inventory
-        if (!currentUser.permissions?.isAdmin && !currentUser.permissions?.isManager) {
-            navigate('/dashboard');
-        }
+        if (!currentUser) { navigate('/login'); return; }
+        if (!currentUser.permissions?.isAdmin && !currentUser.permissions?.isManager) navigate('/dashboard');
     }, [currentUser, navigate]);
 
     const [rows, setRows] = useState([]);
@@ -31,54 +26,46 @@ const FurnitureInventory = () => {
     const [furnitureTypes, setFurnitureTypes] = useState([]);
     const [nameApplied, setNameApplied] = useState('');
     const [page, setPage] = useState(1);
-    const [pageInput, setPageInput] = useState('1');
-    const [viewMode, setViewMode] = useState('list'); // 'list' | 'grid'
-    const pageSize = viewMode === 'grid' ? 6 : 5; // Adjust page size for grid if desired
+    const [viewMode, setViewMode] = useState('list');
+    const pageSize = viewMode === 'grid' ? 6 : 5;
     const [detailItem, setDetailItem] = useState(null);
     const [brokenDetailInfo, setBrokenDetailInfo] = useState(null);
     const [brokenActionQuantity, setBrokenActionQuantity] = useState(1);
     const [isProcessingBroken, setIsProcessingBroken] = useState(false);
     const [branches, setBranches] = useState([]);
-
-    // ========== WAREHOUSE FAIL STATES ==========
     const [showWarehouseFailModal, setShowWarehouseFailModal] = useState(false);
     const [warehouseFailRoom, setWarehouseFailRoom] = useState(null);
 
-    // ========== IMPORT STATES ==========
+    // Import states
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [importDate, setImportDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [availableItems, setAvailableItems] = useState([]);
     const [importList, setImportList] = useState([
         { isNew: false, furnitureId: '', furnitureName: '', price: '', quantity: 1, unit: '', type: '' }
     ]);
 
-    // ========== IMPORT HISTORY STATES ==========
+    // Import history states
     const [showImportHistory, setShowImportHistory] = useState(false);
     const [importHistory, setImportHistory] = useState([]);
     const [historyPage, setHistoryPage] = useState(1);
-    const [historyPageInput, setHistoryPageInput] = useState('1');
     const [historySelectedReceipt, setHistorySelectedReceipt] = useState(null);
     const historyPageSize = 5;
 
-    // ========== ITEM HISTORY STATES ==========
-    const [showItemHistoryModal, setShowItemHistoryModal] = useState(false);
+    // Item-specific history panel (slide-in side panel from detail modal)
+    const [showItemHistoryPanel, setShowItemHistoryPanel] = useState(false);
     const [itemHistoryData, setItemHistoryData] = useState([]);
 
-    // Fetch branches
-        useEffect(() => {
+    /* ─── Data Fetching ────────────────────────────────────────────── */
+
+    useEffect(() => {
         const fetchBranches = async () => {
             try {
                 const data = await furnitureApi.listBranches();
-                const branchOptions = [
+                setBranches([
                     { value: 'all', label: 'All branches' },
-                    ...(Array.isArray(data) ? data.map(b => ({
-                        value: String(b.branchId),
-                        label: b.branchName
-                    })) : [])
-                ];
-                setBranches(branchOptions);
-            } catch (err) {
-                console.error('Failed to fetch branches:', err);
-            }
+                    ...(Array.isArray(data) ? data.map(b => ({ value: String(b.branchId), label: b.branchName })) : [])
+                ]);
+            } catch (err) { console.error('Failed to fetch branches:', err); }
         };
         fetchBranches();
 
@@ -86,1353 +73,1039 @@ const FurnitureInventory = () => {
             try {
                 const typeData = await apiClient.get('/furniture/types');
                 setFurnitureTypes(typeData.data || []);
-            } catch (e) {
-                console.error('Failed to fetch types:', e);
-            }
+            } catch (e) { console.error('Failed to fetch types:', e); }
         };
         fetchTypes();
     }, []);
 
-    // Fetch furniture inventory data
     const fetchFurnitureData = useCallback(async (branchId, searchKeyword = '', typeId = 'all', pageNum = 1) => {
-        if (branchId === 'all') {
-            setRows([]);
-            return;
-        }
-
+        if (branchId === 'all') { setRows([]); return; }
         try {
             let response;
             if (searchKeyword.trim()) {
-                response = await furnitureApi.searchFurnitureInventoryByBranch(
-                    branchId,
-                    searchKeyword,
-                    pageNum - 1,
-                    pageSize,
-                    typeId === 'all' ? null : typeId
-                );
+                response = await furnitureApi.searchFurnitureInventoryByBranch(branchId, searchKeyword, pageNum - 1, pageSize, typeId === 'all' ? null : typeId);
             } else {
-                response = await furnitureApi.listFurnitureInventoryByBranch(
-                    branchId,
-                    pageNum - 1,
-                    pageSize,
-                    typeId === 'all' ? null : typeId
-                );
+                response = await furnitureApi.listFurnitureInventoryByBranch(branchId, pageNum - 1, pageSize, typeId === 'all' ? null : typeId);
             }
-
-            // Transform API response to table format
             const data = response.content || response || [];
-            const transformedData = Array.isArray(data) ? data.map((item) => ({
-                id: item.furnitureId,
-                furnitureId: item.furnitureId,
+            setRows(Array.isArray(data) ? data.map(item => ({
+                id: item.furnitureId, furnitureId: item.furnitureId,
                 name: item.furnitorName,
                 facility: `${branches.find(b => b.value === branchId)?.label || 'Branch'} - ${item.condition || 'Area'}`,
                 branch: branches.find(b => b.value === branchId)?.label || 'Unknown',
-                quantity: item.quantity || 0,
-                price: item.price || 0,
-                inUse: item.inUse || 0,
-                inStock: item.inStock || 0,
-                broken: item.broken || 0,
-                brokenInUse: item.brokenInUse || 0,
+                quantity: item.quantity || 0, price: item.price || 0,
+                inUse: item.inUse || 0, inStock: item.inStock || 0,
+                broken: item.broken || 0, brokenInUse: item.brokenInUse || 0,
                 brokenInStock: item.brokenInStock || 0,
-                roomsUsing: item.roomsUsing || [],
-                roomsBroken: item.roomsBroken || [],
-                type: item.type,
-                code: item.furnitureCode,
-            })) : [];
-            
-            setRows(transformedData);
-        } catch (err) {
-            console.error('Failed to fetch furniture inventory:', err);
-            setRows([]);
-        }
+                roomsUsing: item.roomsUsing || [], roomsBroken: item.roomsBroken || [],
+                type: item.type, code: item.furnitureCode,
+            })) : []);
+        } catch (err) { console.error('Failed to fetch furniture:', err); setRows([]); }
     }, [branches]);
 
-    // Load data when branch or search changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        // Reset to page 1 and fetch when branch/search changes
-        setPage(1);
-    }, [selectedBranch, nameApplied]);
+    useEffect(() => { setPage(1); }, [selectedBranch, nameApplied]);
+    useEffect(() => { fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page); }, [page, fetchFurnitureData, selectedBranch, nameApplied, typeFilterApplied]);
 
-    // Fetch data when page changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page);
-    }, [page, fetchFurnitureData, selectedBranch, nameApplied, typeFilterApplied]);
+    /* ─── Computed ────────────────────────────────────────────────── */
 
-    const formatVND = (value) =>
-        new Intl.NumberFormat('vi-VN').format(value) + ' d';
+    const filteredRows = useMemo(() => rows, [rows]);
+    const totalPages = useMemo(() => Math.max(1, Math.ceil((filteredRows.length || 0) / pageSize)), [filteredRows.length, pageSize]);
+    const pagedRows = useMemo(() => { const s = (page - 1) * pageSize; return filteredRows.slice(s, s + pageSize); }, [filteredRows, page, pageSize]);
 
-    const filteredRows = useMemo(() => {
-        return rows; // Already filtered by API
-    }, [rows]);
-
-    const totalPages = useMemo(() => {
-        return Math.max(1, Math.ceil((filteredRows.length || 0) / pageSize));
-    }, [filteredRows.length]);
-
-    const pagedRows = useMemo(() => {
-        const start = (page - 1) * pageSize;
-        return filteredRows.slice(start, start + pageSize);
-    }, [filteredRows, page]);
-
-    // Import history grouping and pagination
     const groupedHistory = useMemo(() => {
-        return importHistory.reduce((acc, current) => {
-            const existingReceipt = acc.find(r => r.receiptId === current.receiptId);
-            const itemTotal = (current.unitPrice || 0) * (current.quantity || 0);
-            if (existingReceipt) {
-                existingReceipt.details.push({ ...current, itemTotal });
-                existingReceipt.totalReceiptAmount += itemTotal;
-            } else {
-                acc.push({
-                    receiptId: current.receiptId,
-                    importDate: current.importDate,
-                    totalReceiptAmount: itemTotal,
-                    details: [{ ...current, itemTotal }]
-                });
-            }
+        return importHistory.reduce((acc, cur) => {
+            const ex = acc.find(r => r.receiptId === cur.receiptId);
+            const itemTotal = (cur.unitPrice || 0) * (cur.quantity || 0);
+            if (ex) { ex.details.push({ ...cur, itemTotal }); ex.totalReceiptAmount += itemTotal; }
+            else acc.push({ receiptId: cur.receiptId, importDate: cur.importDate, totalReceiptAmount: itemTotal, details: [{ ...cur, itemTotal }] });
             return acc;
         }, []);
     }, [importHistory]);
 
-    const totalHistoryPages = useMemo(() => {
-        return Math.max(1, Math.ceil((groupedHistory.length || 0) / historyPageSize));
-    }, [groupedHistory.length]);
+    const totalHistoryPages = useMemo(() => Math.max(1, Math.ceil((groupedHistory.length || 0) / historyPageSize)), [groupedHistory.length]);
+    const pagedHistory = useMemo(() => { const s = (historyPage - 1) * historyPageSize; return groupedHistory.slice(s, s + historyPageSize); }, [groupedHistory, historyPage]);
 
-    const pagedHistory = useMemo(() => {
-        const start = (historyPage - 1) * historyPageSize;
-        return groupedHistory.slice(start, start + historyPageSize);
-    }, [groupedHistory, historyPage]);
+    const formatVND = v => new Intl.NumberFormat('vi-VN').format(v) + ' d';
+    const formatRoomList = (arr = []) => Array.isArray(arr) ? arr : [];
 
-    const onChangeBranch = (val) => {
-        setSelectedBranch(val);
-        setPage(1);
-        setPageInput('1');
-    };
+    /* ─── Handlers ────────────────────────────────────────────────── */
 
-    const onChangeName = (val) => {
-        setNameDraft(val);
-        setPage(1);
-        setPageInput('1');
-    };
+    const applyFilters = () => { setNameApplied(nameDraft.trim()); setPage(1); };
+    const onChangeBranch = v => { setSelectedBranch(v); setPage(1); };
+    const onChangeName = v => setNameDraft(v);
+    const changePage = next => setPage(Math.max(1, Math.min(totalPages, next)));
+    const changeHistoryPage = next => setHistoryPage(Math.max(1, Math.min(totalHistoryPages, next)));
 
-    const applyFilters = () => {
-        setNameApplied(nameDraft.trim());
-        setPage(1);
-        setPageInput('1');
-    };
-
-    const changePage = (nextPage) => {
-        const target = Math.max(1, Math.min(totalPages, nextPage));
-        setPage(target);
-        setPageInput(String(target));
-    };
-
-    const commitPageInput = () => {
-        const raw = pageInput?.trim?.() ?? '';
-        if (!raw) return setPageInput(String(page));
-        const parsed = parseInt(raw, 10);
-        if (!Number.isFinite(parsed)) return setPageInput(String(page));
-        changePage(parsed);
-    };
-
-    const changeHistoryPage = (nextPage) => {
-        const target = Math.max(1, Math.min(totalHistoryPages, nextPage));
-        setHistoryPage(target);
-        setHistoryPageInput(String(target));
-    };
-
-    const commitHistoryPageInput = () => {
-        const raw = historyPageInput?.trim?.() ?? '';
-        if (!raw) return setHistoryPageInput(String(historyPage));
-        const parsed = parseInt(raw, 10);
-        if (!Number.isFinite(parsed)) return setHistoryPageInput(String(historyPage));
-        changeHistoryPage(parsed);
-    };
-
-    // ========== WAREHOUSE FAIL HANDLERS ==========
     const handleOpenWarehouseFail = async () => {
         try {
             const branchParam = selectedBranch !== 'all' ? selectedBranch : '';
             const data = await furnitureApi.listRooms('WAREHOUSE_FAIL', '', 0, 10, branchParam);
-            
-            if (data && data.content && data.content.length > 0) {
-                const warehouseFail = data.content.find(r => r.roomName === 'WAREHOUSE_FAIL');
-                if (warehouseFail) {
-                    setWarehouseFailRoom(warehouseFail);
-                    setShowWarehouseFailModal(true);
-                } else {
-                    alert('No Warehouse Fail room found.');
-                }
-            } else {
-                alert('No Warehouse Fail found for this branch.');
-            }
-        } catch (error) {
-            console.error('Failed to load Warehouse Fail room:', error);
-            alert('Cannot load Warehouse Fail room.');
-        }
+            const wf = data?.content?.find(r => r.roomName === 'WAREHOUSE_FAIL');
+            if (wf) { setWarehouseFailRoom(wf); setShowWarehouseFailModal(true); }
+            else alert('No Warehouse Fail room found.');
+        } catch { alert('Cannot load Warehouse Fail room.'); }
     };
 
-    // ========== IMPORT HANDLERS ==========
     const openImportModal = async () => {
         try {
-            // Load furniture list from Furniture table
             const res = await apiClient.get(`/inventory/furniture/branch/${selectedBranch}/list`);
             setAvailableItems(res.data);
+            setImportDate(new Date().toISOString().split('T')[0]);
             setImportList([{ isNew: false, furnitureId: '', furnitureName: '', price: '', quantity: 1, unit: '', type: '' }]);
             setIsImportModalOpen(true);
-        } catch (error) {
-            console.error('Failed to load available furniture:', error);
-            alert('Failed to load furniture list!');
-        }
+        } catch { alert('Failed to load furniture list!'); }
     };
 
     const openImportHistory = async () => {
         try {
-            const res = await apiClient.get(`/inventory/history`, {
-                params: { branchId: parseInt(selectedBranch) }
-            });
-            // Filter for furniture imports only (those with furnitureId)
-            const furnitureImports = res.data.filter(item => item.furnitureId);
-            setImportHistory(furnitureImports);
+            const res = await apiClient.get(`/inventory/history`, { params: { branchId: parseInt(selectedBranch) } });
+            setImportHistory(res.data.filter(item => item.furnitureId));
             setShowImportHistory(true);
             setHistoryPage(1);
-            setHistoryPageInput('1');
-        } catch (error) {
-            console.error('Failed to load import history:', error);
-            alert('Failed to load import history!');
-        }
+            setHistorySelectedReceipt(null);
+        } catch { alert('Failed to load import history!'); }
     };
 
     const openItemSpecificHistory = async () => {
         if (!detailItem) return;
         try {
-            const res = await apiClient.get(`/inventory/history`, {
-                params: { branchId: parseInt(selectedBranch) }
-            });
-            const specificItemHistory = res.data.filter(item => item.furnitureName === detailItem.name);
-            setItemHistoryData(specificItemHistory);
-            setShowItemHistoryModal(true);
-        } catch (error) {
-            console.error('Failed to load item specific history:', error);
-            alert('Failed to load history!');
-        }
+            const res = await apiClient.get(`/inventory/history`, { params: { branchId: parseInt(selectedBranch) } });
+            setItemHistoryData(res.data.filter(item => item.furnitureName === detailItem.name));
+            setShowItemHistoryPanel(true);
+        } catch { alert('Failed to load history!'); }
     };
 
     const handleImportChange = (index, field, value) => {
         const newList = [...importList];
         newList[index][field] = value;
-
-        // Auto-fill price & unit when selecting existing furniture
         if (field === 'furnitureId' && !newList[index].isNew) {
-            const selected = availableItems.find(i => i.furnitureId === parseInt(value));
-            if (selected) {
-                newList[index].furnitureName = selected.furnitorName || '';
-                newList[index].price = selected.price || '';
-            }
+            const sel = availableItems.find(i => i.furnitureId === parseInt(value));
+            if (sel) { newList[index].furnitureName = sel.furnitorName || ''; newList[index].price = sel.price || ''; }
         }
         setImportList(newList);
     };
 
-    const addImportRow = () => {
-        setImportList([
-            ...importList,
-            { isNew: false, furnitureId: '', furnitureName: '', price: '', quantity: 1, unit: '', type: '' }
-        ]);
-    };
-
-    const removeImportRow = (index) => {
-        if (importList.length === 1) return;
-        setImportList(importList.filter((_, i) => i !== index));
-    };
+    const addImportRow = () => setImportList([...importList, { isNew: false, furnitureId: '', furnitureName: '', price: '', quantity: 1, unit: '', type: '' }]);
+    const removeImportRow = idx => { if (importList.length > 1) setImportList(importList.filter((_, i) => i !== idx)); };
 
     const submitImport = async () => {
-        // Validate items
-        const validItems = importList.filter(item =>
+        const valid = importList.filter(item =>
             (item.isNew && item.furnitureName.trim() !== '' && Number(item.price) > 0 && item.quantity > 0) ||
             (!item.isNew && item.furnitureId !== '' && Number(item.price) > 0 && item.quantity > 0)
         );
-
-        if (validItems.length === 0) {
-            alert('Please fill in Item Name, Unit Price (>0) and Quantity!');
-            return;
-        }
-
-        // Normalize payload
-        const payloadItems = validItems.map(item => {
-            const unitPrice = Number(item.price);
-            return {
-                furnitureId: item.isNew ? null : parseInt(item.furnitureId),
-                furnitureName: item.isNew ? item.furnitureName.trim() : null,
-                price: unitPrice,
-                quantity: parseInt(item.quantity),
-                unit: item.unit || 'Piece',
-                type: item.isNew ? item.type || '' : null  // For existing furniture
-            };
-        });
-
-        console.log('Furniture import payload:', { branchId: parseInt(selectedBranch), items: payloadItems });
-
+        if (valid.length === 0) { alert('Please fill in Item, Unit Price (>0) and Quantity!'); return; }
+        const payload = valid.map(item => ({
+            furnitureId: item.isNew ? null : parseInt(item.furnitureId),
+            furnitureName: item.isNew ? item.furnitureName.trim() : null,
+            price: Number(item.price), quantity: parseInt(item.quantity),
+            unit: item.unit || 'Piece', type: item.isNew ? item.type || '' : null
+        }));
         try {
-            await apiClient.post(`/inventory/furniture/import`, {
-                branchId: parseInt(selectedBranch),
-                items: payloadItems
-            });
-            alert('Import successfully! Furniture imported to stock.');
+            await apiClient.post(`/inventory/furniture/import`, { branchId: parseInt(selectedBranch), importDate, items: payload });
+            alert('Import successful!');
             setIsImportModalOpen(false);
-            // Refresh furniture data
             fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page);
         } catch (error) {
-            console.error('Furniture import error:', error);
-            const msg = error?.response?.data?.message || 'Import failed! Please check your data.';
-            alert(msg);
+            alert(error?.response?.data?.message || 'Import failed! Please check your data.');
         }
-    };
-
-    // Format room ID list to display
-    const formatRoomList = (roomNames = []) => {
-        if (!Array.isArray(roomNames) || roomNames.length === 0) {
-            return [];
-        }
-        return roomNames;
     };
 
     const handleProcessBrokenItems = async (action) => {
+        if (!brokenActionQuantity || brokenActionQuantity <= 0 || brokenActionQuantity > (brokenDetailInfo?.brokenInStock || 0)) {
+            alert("Invalid quantity!"); return;
+        }
         try {
-            if (!brokenActionQuantity || brokenActionQuantity <= 0 || brokenActionQuantity > (brokenDetailInfo?.brokenInStock || 0)) {
-                alert("Invalid quantity!");
-                return;
-            }
             setIsProcessingBroken(true);
-            
             const branchIdParam = selectedBranch === 'all' ? "" : selectedBranch;
             const data = await furnitureApi.listRooms('WAREHOUSE_FAIL', '', 0, 10, branchIdParam);
-            const warehouseFail = data?.content?.find(r => r.roomName === 'WAREHOUSE_FAIL');
-            
-            if (!warehouseFail) {
-                alert('No warehouse fail room found for this branch!');
-                return;
-            }
-
-            if (action === 'fix') {
-                await furnitureApi.fixWarehouseFailFurniture(warehouseFail.roomId, brokenDetailInfo.id, brokenActionQuantity);
-                alert("Successfully moved items from warehouse fail to normal warehouse!");
-            } else if (action === 'discard') {
-                await furnitureApi.discardWarehouseFailFurniture(warehouseFail.roomId, brokenDetailInfo.id, brokenActionQuantity);
-                alert("Successfully discarded broken items!");
-            }
-            
-            setBrokenDetailInfo(null);
-            setBrokenActionQuantity(1);
+            const wf = data?.content?.find(r => r.roomName === 'WAREHOUSE_FAIL');
+            if (!wf) { alert('No warehouse fail room found!'); return; }
+            if (action === 'fix') await furnitureApi.fixWarehouseFailFurniture(wf.roomId, brokenDetailInfo.id, brokenActionQuantity);
+            else await furnitureApi.discardWarehouseFailFurniture(wf.roomId, brokenDetailInfo.id, brokenActionQuantity);
+            setBrokenDetailInfo(null); setBrokenActionQuantity(1);
             fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page);
-            
         } catch (e) {
-            console.error(e);
-            const msg = e?.response?.data?.message || 'Error occurred during processing!';
-            alert(msg);
-        } finally {
-            setIsProcessingBroken(false);
-        }
+            alert(e?.response?.data?.message || 'Error during processing!');
+        } finally { setIsProcessingBroken(false); }
     };
 
-    const renderPagination = (currentPage, total, onPageChange) => {
-        const safeTotal = Math.max(1, total);
-        const nodes = [];
-        const maxVisible = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-        let endPage = startPage + maxVisible - 1;
+    /* ─── Pagination Renderer ─────────────────────────────────────── */
 
-        if (endPage > safeTotal) {
-            endPage = safeTotal;
-            startPage = Math.max(1, endPage - maxVisible + 1);
-        }
-
-        nodes.push(
-            <button
-                key="prev"
-                className="btn-page nav-btn"
-                disabled={currentPage <= 1}
-                onClick={() => onPageChange(currentPage - 1)}
-            >
-                <i className="bi bi-chevron-left"></i>
+    const renderPagination = (cur, total, onChange) => {
+        const safe = Math.max(1, total);
+        const MAX = 5;
+        let start = Math.max(1, cur - Math.floor(MAX / 2));
+        let end = Math.min(safe, start + MAX - 1);
+        if (end - start + 1 < MAX) start = Math.max(1, end - MAX + 1);
+        const btn = (key, label, page, disabled, active) => (
+            <button key={key} className={`btn-page${active ? ' active' : ''}${disabled ? '' : ''}`} disabled={disabled} onClick={() => onChange(page)}>
+                {label}
             </button>
         );
-
-        if (startPage > 1) {
-            nodes.push(<button key={1} className={`btn-page ${currentPage === 1 ? 'active' : ''}`} onClick={() => onPageChange(1)}>1</button>);
-            if (startPage > 2) nodes.push(<span key="dots1" className="page-dots">...</span>);
-        }
-
-        for (let i = startPage; i <= endPage; i++) {
-            nodes.push(
-                <button
-                    key={i}
-                    className={`btn-page ${currentPage === i ? 'active' : ''}`}
-                    onClick={() => onPageChange(i)}
-                >
-                    {i}
-                </button>
-            );
-        }
-
-        if (endPage < safeTotal) {
-            if (endPage < safeTotal - 1) nodes.push(<span key="dots2" className="page-dots">...</span>);
-            nodes.push(<button key={safeTotal} className={`btn-page ${currentPage === safeTotal ? 'active' : ''}`} onClick={() => onPageChange(safeTotal)}>{safeTotal}</button>);
-        }
-
-        nodes.push(
-            <button
-                key="next"
-                className="btn-page nav-btn"
-                disabled={currentPage >= safeTotal}
-                onClick={() => onPageChange(currentPage + 1)}
-            >
-                <i className="bi bi-chevron-right"></i>
-            </button>
+        return (
+            <div className="pagination-controls">
+                {btn('prev', <i className="bi bi-chevron-left"></i>, cur - 1, cur <= 1)}
+                {start > 1 && <><button className="btn-page" onClick={() => onChange(1)}>1</button>{start > 2 && <span className="page-dots">…</span>}</>}
+                {Array.from({ length: end - start + 1 }, (_, i) => start + i).map(p => btn(p, p, p, false, cur === p))}
+                {end < safe && <>{end < safe - 1 && <span className="page-dots">…</span>}<button className="btn-page" onClick={() => onChange(safe)}>{safe}</button></>}
+                {btn('next', <i className="bi bi-chevron-right"></i>, cur + 1, cur >= safe)}
+            </div>
         );
-
-        return <div className="pagination-controls">{nodes}</div>;
     };
 
+    /* ─── Receipt Summary Computed for Import History side panel ── */
+    const historyReceiptStats = useMemo(() => {
+        if (!historySelectedReceipt) return null;
+        const totalQty = historySelectedReceipt.details.reduce((s, d) => s + (d.quantity || 0), 0);
+        const avgPrice = historySelectedReceipt.details.length
+            ? Math.round(historySelectedReceipt.totalReceiptAmount / historySelectedReceipt.details.reduce((s, d) => s + (d.quantity || 0), 0))
+            : 0;
+        return { totalQty, avgPrice };
+    }, [historySelectedReceipt]);
+
+    /* ─── Item History Summary ──────────────────────────────────── */
+    const groupedItemHistory = useMemo(() => {
+        return itemHistoryData.reduce((acc, cur) => {
+            const ex = acc.find(r => r.receiptId === cur.receiptId);
+            const itemTotal = (cur.unitPrice || 0) * (cur.quantity || 0);
+            if (ex) { ex.details.push({ ...cur, itemTotal }); ex.totalAmount += itemTotal; ex.totalQty += (cur.quantity || 0); }
+            else acc.push({ receiptId: cur.receiptId, importDate: cur.importDate, totalAmount: itemTotal, totalQty: cur.quantity || 0, details: [{ ...cur, itemTotal }] });
+            return acc;
+        }, []);
+    }, [itemHistoryData]);
+
+    const itemHistorySummary = useMemo(() => ({
+        times: groupedItemHistory.length,
+        totalQty: groupedItemHistory.reduce((s, r) => s + r.totalQty, 0),
+        totalAmount: groupedItemHistory.reduce((s, r) => s + r.totalAmount, 0),
+        avgPrice: groupedItemHistory.length
+            ? Math.round(groupedItemHistory.reduce((s, r) => s + r.totalAmount, 0) / Math.max(1, groupedItemHistory.reduce((s, r) => s + r.totalQty, 0)))
+            : 0,
+    }), [groupedItemHistory]);
+
+    /* ─── Render ──────────────────────────────────────────────────── */
     return (
-
-        <div style={{ background: '#f5f6f8', minHeight: '100vh', paddingBottom: '40px' }}>
+        <div style={{ background: '#F2F3EE', minHeight: '100vh', paddingBottom: 40 }}>
             <style>{`
-                .hero { background: linear-gradient(135deg, #5C6F4E 0%, #3d4a33 100%); padding: 36px 0 48px; position: relative; z-index: 10; margin-bottom: -22px; }
-                .hero::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 36px; background: #f5f6f8; border-radius: 20px 20px 0 0; z-index: -1; pointer-events: none; }
-                .hero-txt { text-align: center; color: #fff; margin-bottom: 20px; }
-                .hero-txt h2 { font-weight: 800; font-size: 1.5rem; margin-bottom: 4px; }
-                .hero-txt p { color: rgba(255, 255, 255, .7); font-size: .9rem; margin: 0; }
-                
-                .filter-box { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,.03); border: 1px solid #eee; position: sticky; top: 20px; }
-                .filter-title { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.1rem; color: #222; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed #eee; }
-                .filter-group { margin-bottom: 20px; }
-                .filter-label { display: block; font-size: .8rem; font-weight: 700; color: #777; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
-                .filter-input-group { position: relative; display: flex; align-items: center; }
-                .filter-input-group input, .filter-input-group select { width: 100%; border: 1.5px solid #e8e8e8; border-radius: 10px; padding: 10px 14px; font-size: .9rem; background: #fafbfc; transition: all .2s; }
-                .filter-input-group input { padding-left: 38px; }
-                .filter-input-group input:focus, .filter-input-group select:focus { outline: none; border-color: #5C6F4E; background: #fff; box-shadow: 0 0 0 3px rgba(92,111,78,.1); }
-                .filter-icon { position: absolute; left: 14px; color: #aaa; font-size: 1rem; pointer-events: none; }
-                .filter-actions { display: flex; gap: 10px; margin-top: 24px; }
-                .filter-btn { flex: 1; padding: 10px; border-radius: 10px; font-size: .9rem; font-weight: 600; cursor: pointer; transition: all .2s; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; }
-                .filter-btn-search { background: #5C6F4E; color: #fff; box-shadow: 0 4px 12px rgba(92,111,78,.2); }
-                .filter-btn-search:hover { background: #4a5d4e; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(92,111,78,.25); }
-                
-                .res-hdr { background: #fff; border-radius: 14px; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.04); border: 1px solid #eee; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-                .res-cnt { font-size: .95rem; font-weight: 700; color: #333; display: flex; align-items: center; }
-                .res-cnt span { color: #5C6F4E; font-weight: 800; margin: 0 4px; }
-                
-                .btn-action { padding: 9px 16px; border-radius: 8px; font-weight: 600; font-size: .85rem; border: none; cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 6px; }
-                .btn-import { background: #FFA500; color: #fff; box-shadow: 0 2px 8px rgba(255, 165, 0, 0.2); }
-                .btn-import:hover:not(:disabled) { background: #e69500; transform: translateY(-1px); }
-                .btn-history { background: #6c757d; color: #fff; box-shadow: 0 2px 8px rgba(108, 117, 125, 0.2); }
-                .btn-history:hover:not(:disabled) { background: #5a6268; transform: translateY(-1px); }
-                .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+                @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+                .fi-root * { font-family: 'DM Sans', sans-serif; }
 
-                .table-card { background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.04); border: 1px solid #eee; overflow: hidden; }
-                .custom-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-                .custom-table th { background: #f8f9fa; padding: 14px 16px; text-align: center; color: #555; font-weight: 700; border-bottom: 2px solid #eee; white-space: nowrap; }
-                .custom-table td { padding: 14px 16px; border-bottom: 1px solid #eee; vertical-align: middle; }
-                .custom-table tr:last-child td { border-bottom: none; }
-                .custom-table tbody tr:hover { background: #fafbfc; }
-                
-                .badge-status { padding: 4px 10px; border-radius: 6px; font-size: .75rem; font-weight: 700; display: inline-block; text-align: center; min-width: 40px; }
-                .badge-stock { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-                .badge-use { background: rgba(79, 70, 229, 0.1); color: #4f46e5; }
-                .badge-broken { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-                
-                .btn-detail-table { background: #f0f2f5; color: #555; border: none; padding: 6px 12px; border-radius: 6px; font-size: .8rem; font-weight: 600; cursor: pointer; transition: all .2s; }
-                .btn-detail-table:hover:not(:disabled) { background: #e4e6e9; color: #333; }
-                .btn-detail-table:disabled { opacity: 0.5; cursor: not-allowed; }
+                /* Hero */
+                .fi-hero { background: linear-gradient(135deg, ${BRAND} 0%, #3d4a33 100%); padding: 32px 0 52px; position: relative; z-index: 10; margin-bottom: -24px; }
+                .fi-hero::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 32px; background: #F2F3EE; border-radius: 20px 20px 0 0; z-index: -1; pointer-events: none; }
 
-                .empty-st { background: #fff; border-radius: 16px; padding: 50px 30px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.04); border: 1px solid #eee; }
-                .empty-st i { font-size: 3.5rem; color: #ddd; margin-bottom: 12px; }
+                /* Sidebar */
+                .fi-filter-box { background: #fff; border-radius: 16px; padding: 22px; box-shadow: 0 2px 12px rgba(0,0,0,.04); border: 1px solid #eee; position: sticky; top: 20px; }
+                .fi-filter-title { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1rem; color: #222; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px dashed #eee; }
+                .fi-filter-group { margin-bottom: 18px; }
+                .fi-filter-label { display: block; font-size: .72rem; font-weight: 700; color: #888; margin-bottom: 7px; text-transform: uppercase; letter-spacing: .5px; }
+                .fi-filter-input { width: 100%; border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 9px 12px; font-size: .88rem; background: #FAFAF7; transition: all .2s; }
+                .fi-filter-input:focus { outline: none; border-color: ${BRAND}; background: #fff; box-shadow: 0 0 0 3px rgba(92,111,78,.1); }
 
-                .pagination-box { display: flex; align-items: center; justify-content: center; padding: 20px; background: #fff; border-top: 1px solid #eee; }
-                .pagination-controls { display: flex; gap: 8px; align-items: center; }
-                .btn-page { background: #fff; border: 1px solid #eee; min-width: 36px; height: 36px; padding: 0 10px; border-radius: 8px; font-size: .95rem; font-weight: 500; color: #4a90e2; cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; justify-content: center; }
-                .btn-page:hover:not(:disabled) { background: #f0f7ff; border-color: #d0e3f7; }
-                .btn-page.active { background: #4a90e2; border-color: #4a90e2; color: #fff; box-shadow: 0 2px 6px rgba(74, 144, 226, 0.3); }
-                .btn-page.nav-btn { color: #888; }
-                .btn-page:disabled { opacity: 0.4; cursor: not-allowed; background: #fafafa; }
-                .page-dots { color: #888; padding: 0 4px; font-weight: 600; letter-spacing: 1px; }
+                /* Header bar */
+                .fi-res-hdr { background: #fff; border-radius: 14px; padding: 14px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.04); border: 1px solid #eee; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+                .fi-res-cnt { font-size: .9rem; font-weight: 700; color: #333; display: flex; align-items: center; }
+                .fi-res-cnt span { color: ${BRAND}; font-weight: 800; margin: 0 4px; }
 
-                /* View Toggle */
-                .view-toggle { display: flex; background: #f0f2f5; border-radius: 8px; padding: 4px; gap: 4px; }
-                .vt-btn { background: transparent; border: none; padding: 6px 12px; border-radius: 6px; color: #666; cursor: pointer; transition: all .2s; }
-                .vt-btn.active { background: #fff; color: #5C6F4E; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,.05); }
+                /* Action buttons */
+                .fi-btn-action { padding: 9px 16px; border-radius: 8px; font-weight: 600; font-size: .82rem; border: none; cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 6px; }
+                .fi-btn-import { background: #F0A500; color: #fff; }
+                .fi-btn-import:hover:not(:disabled) { background: #d99200; }
+                .fi-btn-history { background: #5a6268; color: #fff; }
+                .fi-btn-history:hover:not(:disabled) { background: #4a5258; }
+                .fi-btn-action:disabled { opacity: .45; cursor: not-allowed; }
 
-                /* Grid Layout */
-                .furn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-                .fc { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.04); border: 1px solid #eee; transition: all .25s; }
-                .fc:hover { box-shadow: 0 6px 16px rgba(0,0,0,.08); transform: translateY(-2px); border-color: #e0e0e0; }
-                .fc-body { padding: 16px; display: flex; align-items: center; gap: 16px; }
-                .fc-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; background: rgba(108,117,125,0.1); color: #6c757d; }
-                .fc-info { flex: 1; min-width: 0; }
-                .fc-code { font-size: .75rem; color: #999; font-weight: 600; text-transform: uppercase; margin-bottom: 2px; }
-                .fc-name { font-weight: 700; font-size: .95rem; color: #222; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                .fc-branch { font-size: .8rem; color: #666; }
-                .fc-actions { flex-shrink: 0; }
-                .fc-btn { background: #f0f2f5; color: #555; border: none; padding: 6px 12px; border-radius: 6px; font-size: .8rem; font-weight: 600; cursor: pointer; transition: all .2s; }
-                .fc-btn:hover:not(:disabled) { background: #e4e6e9; color: #333; }
-                .fc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-                .fc-footer { border-top: 1px dashed #eee; padding: 12px 16px; display: flex; justify-content: space-between; font-size: 0.85rem; background: #fafbfc; }
-                .fc-stat { text-align: center; }
-                .fc-stat-lbl { color: #888; margin-bottom: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+                /* Table */
+                .fi-table-card { background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.04); border: 1px solid #eee; overflow: hidden; }
+                .fi-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+                .fi-table th { background: #F8F8F5; padding: 13px 16px; text-align: center; color: #666; font-weight: 700; border-bottom: 2px solid #eee; white-space: nowrap; font-size: .78rem; text-transform: uppercase; letter-spacing: .4px; }
+                .fi-table td { padding: 13px 16px; border-bottom: 1px solid #f0f0ea; vertical-align: middle; }
+                .fi-table tr:last-child td { border-bottom: none; }
+                .fi-table tbody tr:hover { background: #FAFAF7; }
+
+                /* Badges */
+                .fi-badge { padding: 4px 10px; border-radius: 6px; font-size: .75rem; font-weight: 700; display: inline-block; text-align: center; min-width: 36px; }
+                .fi-badge-stock { background: rgba(16,185,129,.1); color: #10b981; }
+                .fi-badge-use { background: rgba(79,70,229,.1); color: #4f46e5; }
+                .fi-badge-broken { background: rgba(239,68,68,.1); color: #ef4444; cursor: pointer; }
+                .fi-badge-broken:hover { background: rgba(239,68,68,.18); }
+
+                /* Detail button */
+                .fi-btn-detail { background: #f0f2f5; color: #555; border: none; padding: 6px 12px; border-radius: 6px; font-size: .78rem; font-weight: 600; cursor: pointer; transition: all .2s; }
+                .fi-btn-detail:hover:not(:disabled) { background: #e4e6e9; }
+                .fi-btn-detail:disabled { opacity: .45; cursor: not-allowed; }
+
+                /* Empty state */
+                .fi-empty { background: #fff; border-radius: 16px; padding: 48px 24px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.04); border: 1px solid #eee; }
+                .fi-empty i { font-size: 3rem; color: #ddd; display: block; margin-bottom: 12px; }
+
+                /* Pagination */
+                .fi-pagination { display: flex; align-items: center; justify-content: center; padding: 18px; background: #fff; border-top: 1px solid #eee; }
+                .pagination-controls { display: flex; gap: 6px; align-items: center; }
+                .btn-page { background: #fff; border: 1px solid #eee; min-width: 34px; height: 34px; padding: 0 9px; border-radius: 8px; font-size: .88rem; font-weight: 500; color: ${BRAND}; cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; justify-content: center; }
+                .btn-page:hover:not(:disabled) { background: #f0f4f0; }
+                .btn-page.active { background: ${BRAND}; border-color: ${BRAND}; color: #fff; font-weight: 700; }
+                .btn-page:disabled { opacity: .35; cursor: not-allowed; }
+                .page-dots { color: #aaa; padding: 0 4px; font-weight: 600; }
+
+                /* View toggle */
+                .fi-view-toggle { display: flex; background: #f0f2f5; border-radius: 8px; padding: 4px; gap: 4px; }
+                .fi-vt-btn { background: transparent; border: none; padding: 6px 12px; border-radius: 6px; color: #666; cursor: pointer; transition: all .2s; font-size: .82rem; }
+                .fi-vt-btn.active { background: #fff; color: ${BRAND}; font-weight: 700; box-shadow: 0 2px 4px rgba(0,0,0,.06); }
+
+                /* Grid */
+                .fi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(285px, 1fr)); gap: 18px; padding: 20px; }
+                .fi-card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.04); border: 1px solid #eee; transition: all .25s; }
+                .fi-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.09); transform: translateY(-2px); }
+                .fi-card-header { padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
+                .fi-card-icon { width: 46px; height: 46px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; background: rgba(92,111,78,.1); color: ${BRAND}; }
+                .fi-card-info { flex: 1; min-width: 0; }
+                .fi-card-code { font-size: .7rem; color: #aaa; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; letter-spacing: .5px; }
+                .fi-card-name { font-weight: 700; font-size: .93rem; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .fi-card-branch { font-size: .78rem; color: #888; margin-top: 2px; }
+
+                /* Grid footer stats — FIXED alignment */
+                .fi-card-footer { border-top: 1px solid #F0F0EA; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); background: #FAFAF7; }
+                .fi-card-stat { padding: 12px 8px; text-align: center; border-right: 1px solid #F0F0EA; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+                .fi-card-stat:last-child { border-right: none; }
+                .fi-card-stat-lbl { color: #aaa; font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
+                .fi-card-stat-val { font-size: .9rem; font-weight: 700; color: #333; line-height: 1; display: flex; align-items: center; justify-content: center; min-height: 24px; }
+
+                /* Modals */
+                .fi-overlay { position: fixed; inset: 0; background: rgba(15,20,40,.55); backdrop-filter: blur(2px); z-index: 1050; display: flex; align-items: center; justify-content: center; }
+
+                /* Import Modal */
+                .fi-import-modal { background: #fff; border-radius: 18px; width: min(680px, 95vw); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,.2); }
+                .fi-import-modal-hdr { padding: 22px 28px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+                .fi-import-modal-body { padding: 24px 28px; overflow-y: auto; flex: 1; }
+                .fi-import-modal-ftr { padding: 16px 28px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; background: #FAFAF7; border-radius: 0 0 18px 18px; }
+                .fi-form-label { display: block; font-size: .72rem; font-weight: 700; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+                .fi-form-input { width: 100%; border: 1.5px solid #e5e5e0; border-radius: 9px; padding: 9px 12px; font-size: .88rem; background: #FAFAF7; transition: all .2s; }
+                .fi-form-input:focus { outline: none; border-color: ${BRAND}; background: #fff; box-shadow: 0 0 0 3px rgba(92,111,78,.1); }
+                .fi-form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+                .fi-item-row { background: #FAFAF7; border-radius: 10px; border: 1.5px solid #eee; padding: 14px 16px; margin-bottom: 10px; }
+                .fi-item-row-new { border-color: rgba(92,111,78,.3); background: rgba(92,111,78,.03); }
+                .fi-item-grid { display: grid; grid-template-columns: 2fr 80px 100px 70px 28px; gap: 8px; align-items: end; }
+                .fi-add-row-btn { width: 100%; padding: 10px; background: transparent; border: 2px dashed #ccc; border-radius: 10px; color: #888; font-size: .85rem; font-weight: 600; cursor: pointer; margin-top: 6px; transition: all .2s; }
+                .fi-add-row-btn:hover { border-color: ${BRAND}; color: ${BRAND}; background: rgba(92,111,78,.03); }
+
+                /* Import History Modal - full page with side panel */
+                .fi-history-modal { background: #fff; border-radius: 18px; width: min(960px, 96vw); height: 85vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,.2); }
+                .fi-history-layout { display: flex; flex: 1; overflow: hidden; }
+                .fi-history-main { flex: 1; overflow-y: auto; }
+                .fi-history-panel { width: 320px; flex-shrink: 0; border-left: 1px solid #eee; background: #FAFAF7; overflow-y: auto; transition: all .3s; display: flex; flex-direction: column; }
+                .fi-history-panel-hdr { padding: 20px; border-bottom: 1px solid #eee; background: #fff; }
+                .fi-panel-stat { padding: 12px 20px; border-bottom: 1px solid #f0f0ea; }
+                .fi-panel-stat-row { display: flex; justify-content: space-between; align-items: baseline; }
+                .fi-receipt-row { padding: 12px 20px; border-bottom: 1px solid #f0f0ea; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: background .15s; }
+                .fi-receipt-row:hover { background: rgba(92,111,78,.04); }
+                .fi-receipt-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; flex-shrink: 0; margin-top: 5px; }
+                .fi-receipt-dot.active { background: ${BRAND}; }
+
+                /* Side Panel (Broken + Item History) */
+                .fi-side-panel { position: fixed; top: 0; right: 0; height: 100vh; width: 360px; background: #fff; box-shadow: -8px 0 32px rgba(0,0,0,.12); z-index: 1080; display: flex; flex-direction: column; animation: slideFromRight .25s ease; }
+                @keyframes slideFromRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+                .fi-side-panel-hdr { padding: 22px 24px; border-bottom: 1px solid #eee; }
+                .fi-side-panel-body { flex: 1; overflow-y: auto; padding: 0; }
+                .fi-side-stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 1px solid #eee; }
+                .fi-side-stat { padding: 16px 12px; text-align: center; border-right: 1px solid #eee; }
+                .fi-side-stat:last-child { border-right: none; }
+                .fi-side-stat-lbl { font-size: .65rem; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+                .fi-side-stat-val { font-size: 1.15rem; font-weight: 700; color: #111; }
+                .fi-side-entry { padding: 14px 20px; border-bottom: 1px solid #f0f0ea; display: flex; gap: 10px; align-items: flex-start; }
+                .fi-side-entry-dot { width: 8px; height: 8px; border-radius: 50%; background: ${BRAND}; flex-shrink: 0; margin-top: 5px; }
+                .fi-side-entry-content { flex: 1; }
+
+                /* Warehouse fail card */
+                .fi-wf-card { background: #fff; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 12px rgba(0,0,0,.03); border: 1px solid #eee; border-left: 4px solid #dc3545; margin-top: 16px; }
+
+                /* Broken modal */
+                .fi-broken-modal { background: #fff; border-radius: 18px; width: min(480px, 92vw); box-shadow: 0 24px 64px rgba(0,0,0,.2); overflow: hidden; }
+                .fi-broken-section { padding: 16px 20px; border-bottom: 1px solid #f0f0ea; }
+
+                /* Buttons */
+                .fi-btn-primary { background: ${BRAND}; color: #fff; border: none; border-radius: 10px; padding: 10px 22px; font-weight: 700; font-size: .88rem; cursor: pointer; transition: all .2s; }
+                .fi-btn-primary:hover { opacity: .88; }
+                .fi-btn-secondary { background: #f0f2f5; color: #555; border: none; border-radius: 10px; padding: 10px 22px; font-weight: 600; font-size: .88rem; cursor: pointer; transition: all .2s; }
+                .fi-btn-secondary:hover { background: #e4e6e9; }
+                .fi-btn-save { background: #F0A500; color: #fff; border: none; border-radius: 10px; padding: 10px 22px; font-weight: 700; font-size: .88rem; cursor: pointer; transition: all .2s; }
+                .fi-btn-save:hover { background: #d99200; }
+                .fi-close-btn { background: none; border: none; cursor: pointer; color: #aaa; font-size: 1.3rem; padding: 2px 6px; border-radius: 6px; transition: all .2s; line-height: 1; }
+                .fi-close-btn:hover { background: #f0f2f5; color: #555; }
+
+                /* Type toggle in import row */
+                .fi-type-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
+                .fi-type-toggle-btn { padding: 5px 12px; border-radius: 20px; border: 1.5px solid #eee; font-size: .78rem; font-weight: 600; cursor: pointer; transition: all .2s; background: transparent; color: #888; }
+                .fi-type-toggle-btn.active { border-color: ${BRAND}; color: ${BRAND}; background: rgba(92,111,78,.07); }
             `}</style>
 
-            <div className="hero">
-                <div className="container position-relative" style={{ zIndex: 2 }}>
-                    <div className="hero-txt">
-                        <h2><i className="bi bi-box-seam me-2" style={{ fontSize: '1.2rem' }}></i>Furniture Inventory</h2>
-                        <p>Manage and track all furniture items efficiently</p>
+            <div className="fi-root">
+                {/* Hero */}
+                <div className="fi-hero">
+                    <div className="container" style={{ position: 'relative', zIndex: 2 }}>
+                        <div style={{ textAlign: 'center', color: '#fff' }}>
+                            <h2 style={{ fontWeight: 800, fontSize: '1.45rem', margin: 0 }}><i className="bi bi-box-seam me-2"></i>Furniture Inventory</h2>
+                            <p style={{ color: 'rgba(255,255,255,.7)', fontSize: '.88rem', margin: '4px 0 0' }}>Manage and track all furniture items efficiently</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="container pb-5">
-                <div className="row g-4">
-                    {/* Left Sidebar Filters */}
-                    <div className="col-lg-3 col-md-4">
-                        <div className="filter-box">
-                            <div className="filter-title">
-                                <i className="bi bi-funnel"></i>
-                                <span>Filters</span>
-                            </div>
-                            
-                            <div className="filter-group">
-                                <label className="filter-label">
-                                    <i className="bi bi-shop me-1"></i>Branch
-                                </label>
-                                <div className="filter-input-group">
-                                    <select
-                                        value={selectedBranch}
-                                        onChange={(e) => onChangeBranch(e.target.value)}
-                                        style={{ paddingLeft: '14px' }}
-                                    >
-                                        {branches.map((b) => (
-                                            <option key={b.value} value={b.value}>{b.label}</option>
-                                        ))}
+                <div className="container pb-5">
+                    <div className="row g-4">
+                        {/* Sidebar */}
+                        <div className="col-lg-3 col-md-4">
+                            <div className="fi-filter-box">
+                                <div className="fi-filter-title"><i className="bi bi-funnel"></i><span>Filters</span></div>
+
+                                <div className="fi-filter-group">
+                                    <label className="fi-filter-label"><i className="bi bi-shop me-1"></i>Branch</label>
+                                    <select className="fi-filter-input fi-form-select" value={selectedBranch} onChange={e => onChangeBranch(e.target.value)}>
+                                        {branches.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
                                     </select>
                                 </div>
-                                                        </div>
 
-                            <div className="filter-group">
-                                <label className="filter-label">
-                                    <i className="bi bi-tag me-1"></i>Type
-                                </label>
-                                <div className="filter-input-group">
-                                    <select
-                                        value={typeFilterDraft}
-                                        onChange={(e) => setTypeFilterDraft(e.target.value)}
-                                        style={{ paddingLeft: "14px", appearance: 'auto', width: '100%' }}
-                                    >
+                                <div className="fi-filter-group">
+                                    <label className="fi-filter-label"><i className="bi bi-tag me-1"></i>Type</label>
+                                    <select className="fi-filter-input fi-form-select" value={typeFilterDraft} onChange={e => setTypeFilterDraft(e.target.value)}>
                                         <option value="all">All Types</option>
-                                        {furnitureTypes.map(t => (
-                                            <option key={t.typeId} value={t.typeId}>{t.typeName}</option>
-                                        ))}
+                                        {furnitureTypes.map(t => <option key={t.typeId} value={t.typeId}>{t.typeName}</option>)}
                                     </select>
                                 </div>
-                            </div>
 
-                            <div className="filter-group">
-                                <label className="filter-label">
-                                    <i className="bi bi-search me-1"></i>By Name
-                                </label>
-                                <form onSubmit={(e) => { e.preventDefault(); applyFilters(); }} className="filter-input-group">
-                                    <i className="filter-icon bi bi-search"></i>
-                                    <input
-                                        type="text"
-                                        placeholder="Search by name..."
-                                        value={nameDraft}
-                                        onChange={(e) => onChangeName(e.target.value)}
-                                    />
-                                </form>
-                            </div>
-
-                            <div className="filter-actions">
-                                <button
-                                    type="button"
-                                    className="filter-btn filter-btn-search"
-                                    onClick={applyFilters}
-                                >
-                                    <i className="bi bi-search"></i> Search
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Action Box for Warehouse Fail */}
-                        <div className="filter-box mt-4" style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,.03)', border: '1px solid #eee', borderLeft: '4px solid #dc3545' }}>
-                            <div className="filter-title" style={{ color: '#dc3545', borderBottom: 'none', marginBottom: '0', paddingBottom: '0' }}>
-                                <i className="bi bi-exclamation-triangle-fill"></i>
-                                <span style={{ marginLeft: '8px', fontWeight: 'bold' }}>Warehouse Fail</span>
-                            </div>
-                            <p className="text-muted small mt-2 mb-3">
-                                Manage faulty and broken equipment in warehouse.
-                            </p>
-                            <button 
-                                className="filter-btn w-100" 
-                                style={{ backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '10px', borderRadius: '10px', fontWeight: 'bold' }}
-                                onClick={handleOpenWarehouseFail}
-                            >
-                                <i className="bi bi-tools me-2"></i> Warehouse Fail
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Main Content */}
-                    <div className="col-lg-9 col-md-8">
-                        {/* Header Bar */}
-                        <div className="res-hdr">
-                            <div className="res-cnt">
-                                <i className="bi bi-boxes me-2" style={{ fontSize: '1.2rem', color: '#5C6F4E' }}></i>
-                                Found <span>{filteredRows.length}</span> items
-                            </div>
-                            
-                            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                                <div className="view-toggle">
-                                    <button className={`vt-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} title="List View"><i className="bi bi-list-ul"></i></button>
-                                    <button className={`vt-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')} title="Grid View"><i className="bi bi-grid-fill"></i></button>
+                                <div className="fi-filter-group">
+                                    <label className="fi-filter-label"><i className="bi bi-search me-1"></i>By Name</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <i className="bi bi-search" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: '.85rem', pointerEvents: 'none' }}></i>
+                                        <form onSubmit={e => { e.preventDefault(); applyFilters(); }}>
+                                            <input className="fi-filter-input" style={{ paddingLeft: 36 }} type="text" placeholder="Search by name..." value={nameDraft} onChange={e => onChangeName(e.target.value)} />
+                                        </form>
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={openImportHistory}
-                                    disabled={selectedBranch === 'all'}
-                                    className="btn-action btn-history"
-                                    title={selectedBranch === 'all' ? 'Please select a branch first' : 'View import history'}
-                                >
-                                    <i className="bi bi-clock-history"></i> History
+
+                                <button className="fi-btn-primary w-100" onClick={applyFilters} style={{ borderRadius: 10, padding: '10px' }}>
+                                    <i className="bi bi-search me-2"></i>Search
                                 </button>
-                                <button
-                                    onClick={openImportModal}
-                                    disabled={selectedBranch === 'all'}
-                                    className="btn-action btn-import"
-                                    title={selectedBranch === 'all' ? 'Please select a branch first' : 'Import furniture'}
-                                >
-                                    <i className="bi bi-download"></i> Import
-                                </button>
+
+                                {/* Warehouse Fail */}
+                                <div className="fi-wf-card">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#dc3545', marginBottom: 6 }}>
+                                        <i className="bi bi-exclamation-triangle-fill"></i> Warehouse Fail
+                                    </div>
+                                    <p style={{ color: '#888', fontSize: '.8rem', margin: '0 0 12px' }}>Manage faulty and broken equipment in warehouse.</p>
+                                    <button onClick={handleOpenWarehouseFail} style={{ width: '100%', background: '#dc3545', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 0', fontWeight: 700, fontSize: '.85rem', cursor: 'pointer' }}>
+                                        <i className="bi bi-tools me-2"></i>Warehouse Fail
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Data Area */}
-                        {pagedRows.length === 0 ? (
-                            <div className="empty-st">
-                                <i className="bi bi-inboxes d-block"></i>
-                                <h4 className="mt-3 text-secondary">No furniture found</h4>
-                                <p className="text-muted mb-0">Try changing your filters or select a different branch.</p>
+                        {/* Main */}
+                        <div className="col-lg-9 col-md-8">
+                            {/* Header */}
+                            <div className="fi-res-hdr">
+                                <div className="fi-res-cnt"><i className="bi bi-boxes me-2" style={{ fontSize: '1.1rem', color: BRAND }}></i>Found <span>{filteredRows.length}</span> items</div>
+                                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                    <div className="fi-view-toggle">
+                                        <button className={`fi-vt-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}><i className="bi bi-list-ul"></i></button>
+                                        <button className={`fi-vt-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}><i className="bi bi-grid-fill"></i></button>
+                                    </div>
+                                    <button onClick={openImportHistory} disabled={selectedBranch === 'all'} className="fi-btn-action fi-btn-history">
+                                        <i className="bi bi-clock-history"></i> History
+                                    </button>
+                                    <button onClick={openImportModal} disabled={selectedBranch === 'all'} className="fi-btn-action fi-btn-import">
+                                        <i className="bi bi-download"></i> Import
+                                    </button>
+                                </div>
                             </div>
-                        ) : (
-                            <div className="table-card">
-                                {viewMode === 'list' ? (
-                                    <div className="table-responsive">
-                                        <table className="custom-table">
-                                            <thead>
-                                            <tr>
-                                                <th style={{ width: '50px' }}>ID</th>
-                                                <th style={{ textAlign: 'left' }}>Furniture</th>
-                                                <th>Branch</th>
-                                                <th>Quantity</th>
-                                                <th>Price</th>
-                                                <th>In use</th>
-                                                <th>In stock</th>
-                                                <th>Broken</th>
-                                                <th>Action</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            {pagedRows.map((row) => (
-                                                <tr key={row.id}>
-                                                    <td className="text-center text-muted fw-bold">#{row.id}</td>
-                                                    <td className="fw-bold">{row.name} {row.type && <span style={{fontSize:"0.8rem", color:"#6c757d", fontWeight:"normal", display:"block", marginTop:"2px"}}>{row.type}</span>}</td>
-                                                    <td className="text-center">{row.branch}</td>
-                                                    <td className="text-center fw-bold">{row.quantity}</td>
-                                                    <td className="text-center text-danger fw-bold">{formatVND(row.price)}</td>
-                                                    <td className="text-center">
-                                                        {row.inUse > 0 ? <span className="badge-status badge-use">{row.inUse}</span> : <span className="text-muted">-</span>}
-                                                    </td>
-                                                    <td className="text-center">
-                                                        {row.inStock > 0 ? <span className="badge-status badge-stock">{row.inStock}</span> : <span className="text-muted">-</span>}
-                                                    </td>
-                                                    <td className="text-center">
-                                                        {row.broken > 0 ? (
-                                                            <span 
-                                                                className="badge-status badge-broken"
-                                                                title={`Rooms: ${row.brokenInUse || 0} | Warehouse Fail: ${row.brokenInStock || 0}`}
-                                                                style={{ cursor: "pointer" }}
-                                                                onClick={(e) => { e.stopPropagation(); setBrokenDetailInfo(row); }}
-                                                            >
-                                                                {row.broken}
-                                                            </span>
-                                                        ) : <span className="text-muted">-</span>}
-                                                    </td>
-                                                    <td className="text-center">
-                                                        <button
-                                                            className="btn-detail-table"
-                                                            onClick={() => setDetailItem(row)}
-                                                            disabled={selectedBranch === 'all'}
-                                                        >
-                                                            Details
-                                                        </button>
-                                                    </td>
+
+                            {/* Data */}
+                            {pagedRows.length === 0 ? (
+                                <div className="fi-empty">
+                                    <i className="bi bi-inboxes"></i>
+                                    <h5 className="text-secondary">No furniture found</h5>
+                                    <p className="text-muted mb-0" style={{ fontSize: '.88rem' }}>Try changing your filters or select a different branch.</p>
+                                </div>
+                            ) : (
+                                <div className="fi-table-card">
+                                    {viewMode === 'list' ? (
+                                        <div className="table-responsive">
+                                            <table className="fi-table">
+                                                <thead>
+                                                <tr>
+                                                    <th style={{ width: 50 }}>ID</th>
+                                                    <th style={{ textAlign: 'left' }}>Furniture</th>
+                                                    <th>Branch</th>
+                                                    <th>Qty</th>
+                                                    <th>Price</th>
+                                                    <th>In Use</th>
+                                                    <th>In Stock</th>
+                                                    <th>Broken</th>
+                                                    <th>Action</th>
                                                 </tr>
+                                                </thead>
+                                                <tbody>
+                                                {pagedRows.map(row => (
+                                                    <tr key={row.id}>
+                                                        <td style={{ textAlign: 'center', color: '#aaa', fontWeight: 700, fontFamily: 'monospace', fontSize: '.8rem' }}>#{row.id}</td>
+                                                        <td>
+                                                            <div style={{ fontWeight: 700, color: '#111', fontSize: '.88rem' }}>{row.name}</div>
+                                                            {row.type && <div style={{ fontSize: '.75rem', color: '#aaa', marginTop: 2 }}>{row.type}</div>}
+                                                        </td>
+                                                        <td style={{ textAlign: 'center', fontSize: '.83rem', color: '#555' }}>{row.branch}</td>
+                                                        <td style={{ textAlign: 'center', fontWeight: 700 }}>{row.quantity}</td>
+                                                        <td style={{ textAlign: 'center', color: '#dc3545', fontWeight: 700 }}>{formatVND(row.price)}</td>
+                                                        <td style={{ textAlign: 'center' }}>{row.inUse > 0 ? <span className="fi-badge fi-badge-use">{row.inUse}</span> : <span style={{ color: '#ccc' }}>—</span>}</td>
+                                                        <td style={{ textAlign: 'center' }}>{row.inStock > 0 ? <span className="fi-badge fi-badge-stock">{row.inStock}</span> : <span style={{ color: '#ccc' }}>—</span>}</td>
+                                                        <td style={{ textAlign: 'center' }}>
+                                                            {row.broken > 0 ? (
+                                                                <span className="fi-badge fi-badge-broken" onClick={e => { e.stopPropagation(); setBrokenDetailInfo(row); }}>{row.broken}</span>
+                                                            ) : <span style={{ color: '#ccc' }}>—</span>}
+                                                        </td>
+                                                        <td style={{ textAlign: 'center' }}>
+                                                            <button className="fi-btn-detail" onClick={() => setDetailItem(row)} disabled={selectedBranch === 'all'}>Details</button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="fi-grid">
+                                            {pagedRows.map(row => (
+                                                <div key={row.id} className="fi-card">
+                                                    <div className="fi-card-header">
+                                                        <div className="fi-card-icon"><i className="bi bi-box-seam"></i></div>
+                                                        <div className="fi-card-info">
+                                                            <div className="fi-card-code">#{row.id}</div>
+                                                            <div className="fi-card-name">{row.name}{row.type && <span style={{ fontSize: '.73rem', color: '#aaa', fontWeight: 400 }}> ({row.type})</span>}</div>
+                                                            <div className="fi-card-branch">{row.branch}</div>
+                                                        </div>
+                                                        <button className="fi-btn-detail" onClick={() => setDetailItem(row)} disabled={selectedBranch === 'all'}>Details</button>
+                                                    </div>
+                                                    <div className="fi-card-footer">
+                                                        <div className="fi-card-stat">
+                                                            <div className="fi-card-stat-lbl">Qty</div>
+                                                            <div className="fi-card-stat-val" style={{ fontWeight: 700 }}>{row.quantity}</div>
+                                                        </div>
+                                                        <div className="fi-card-stat">
+                                                            <div className="fi-card-stat-lbl">In Stock</div>
+                                                            <div className="fi-card-stat-val">{row.inStock > 0 ? <span className="fi-badge fi-badge-stock">{row.inStock}</span> : <span style={{ color: '#ccc', fontSize: '1rem' }}>—</span>}</div>
+                                                        </div>
+                                                        <div className="fi-card-stat">
+                                                            <div className="fi-card-stat-lbl">In Use</div>
+                                                            <div className="fi-card-stat-val">{row.inUse > 0 ? <span className="fi-badge fi-badge-use">{row.inUse}</span> : <span style={{ color: '#ccc', fontSize: '1rem' }}>—</span>}</div>
+                                                        </div>
+                                                        <div className="fi-card-stat">
+                                                            <div className="fi-card-stat-lbl">Broken</div>
+                                                            <div className="fi-card-stat-val">{row.broken > 0 ? <span className="fi-badge fi-badge-broken" onClick={e => { e.stopPropagation(); setBrokenDetailInfo(row); }}>{row.broken}</span> : <span style={{ color: '#ccc', fontSize: '1rem' }}>—</span>}</div>
+                                                        </div>
+                                                        <div className="fi-card-stat">
+                                                            <div className="fi-card-stat-lbl">Price</div>
+                                                            <div className="fi-card-stat-val" style={{ fontSize: '.78rem', color: '#dc3545', fontWeight: 700, whiteSpace: 'nowrap' }}>{formatVND(row.price)}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                ) : (
-                                    <div className="furn-grid" style={{ padding: '20px', background: '#f5f6f8' }}>
-                                        {pagedRows.map((row) => (
-                                            <div key={row.id} className="fc">
-                                                <div className="fc-body">
-                                                    <div className="fc-icon">
-                                                        <i className="bi bi-box-seam"></i>
-                                                    </div>
-                                                    <div className="fc-info">
-                                                        <div className="fc-code">#{row.id}</div>
-                                                        <div className="fc-name">{row.name} {row.type && <span style={{fontSize:"0.75rem", color:"#6c757d", fontWeight:"normal"}}>({row.type})</span>}</div>
-                                                        <div className="fc-branch">{row.branch}</div>
-                                                    </div>
-                                                    <div className="fc-actions">
-                                                        <button
-                                                            className="fc-btn"
-                                                            onClick={() => setDetailItem(row)}
-                                                            disabled={selectedBranch === 'all'}
-                                                            title="Details"
-                                                        >
-                                                            Details
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div className="fc-footer">
-                                                    <div className="fc-stat">
-                                                        <div className="fc-stat-lbl">Quantity</div>
-                                                        <div style={{ fontWeight: 'bold' }}>{row.quantity}</div>
-                                                    </div>
-                                                    <div className="fc-stat">
-                                                        <div className="fc-stat-lbl">In Stock</div>
-                                                        <div>{row.inStock > 0 ? <span className="badge-status badge-stock">{row.inStock}</span> : '-'}</div>
-                                                    </div>
-                                                    <div className="fc-stat">
-                                                        <div className="fc-stat-lbl">In Use</div>
-                                                        <div>{row.inUse > 0 ? <span className="badge-status badge-use">{row.inUse}</span> : '-'}</div>
-                                                    </div>
-                                                    <div className="fc-stat">
-                                                        <div className="fc-stat-lbl">Broken</div>
-                                                        <div>{row.broken > 0 ? (
-                                                            <span 
-                                                                className="badge-status badge-broken"
-                                                                title={`Rooms: ${row.brokenInUse || 0} | Warehouse Fail: ${row.brokenInStock || 0}`}
-                                                                style={{ cursor: "pointer" }}
-                                                                onClick={(e) => { e.stopPropagation(); setBrokenDetailInfo(row); }}
-                                                            >
-                                                                {row.broken}
-                                                            </span>
-                                                        ) : '-'}</div>
-                                                    </div>
-                                                    <div className="fc-stat">
-                                                        <div className="fc-stat-lbl">Price</div>
-                                                        <div style={{ fontWeight: 'bold', color: '#dc3545' }}>{formatVND(row.price)}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                
-                                {/* Pagination */}
-                                <div className="pagination-box">
-                                    {renderPagination(page, totalPages, changePage)}
+                                        </div>
+                                    )}
+                                    <div className="fi-pagination">{renderPagination(page, totalPages, changePage)}</div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {/* ═══════════════════════════════════════════════════════════
+                DETAIL MODAL
+            ═══════════════════════════════════════════════════════════ */}
             {detailItem && (
-                <div
-                    className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-                    style={{ zIndex: 1055, backgroundColor: "rgba(15,20,40,0.55)", backdropFilter: "blur(2px)" }}
-                    onClick={() => setDetailItem(null)}
-                >
-                    <div
-                        className="d-flex flex-column"
-                        style={{
-                            width: "min(900px, 95vw)",
-                            maxHeight: "92vh",
-                            backgroundColor: "#fff",
-                            borderRadius: 16,
-                            boxShadow: "0 24px 64px rgba(0,0,0,0.22)",
-                            overflow: "hidden",
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
+                <div className="fi-overlay" onClick={() => { setDetailItem(null); setShowItemHistoryPanel(false); }}>
+                    <div style={{ width: 'min(900px, 95vw)', maxHeight: '92vh', background: '#fff', borderRadius: 18, boxShadow: '0 24px 64px rgba(0,0,0,.22)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
                         {/* Header */}
-                        <div
-                            className="d-flex justify-content-between align-items-start px-5 py-4 flex-shrink-0"
-                            style={{ background: `linear-gradient(135deg, #5C6F4E 0%, #3d4f32 100%)`, color: "#fff" }}
-                        >
-                            <div className="d-flex align-items-center gap-3">
-                                <div
-                                    className="d-flex align-items-center justify-content-center rounded-3 flex-shrink-0"
-                                    style={{ width: 48, height: 48, backgroundColor: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)" }}
-                                >
-                                    <i className="bi bi-box-seam fs-4"></i>
+                        <div style={{ background: `linear-gradient(135deg, ${BRAND} 0%, #3d4f32 100%)`, padding: '22px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                                <div style={{ width: 46, height: 46, borderRadius: 12, background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <i className="bi bi-box-seam" style={{ color: '#fff', fontSize: '1.2rem' }}></i>
                                 </div>
                                 <div>
-                                    <h5 className="mb-1 fw-bold" style={{ letterSpacing: "-0.3px" }}>
-                                        {detailItem.name}
-                                    </h5>
-                                    <div className="d-flex align-items-center gap-2 flex-wrap">
-                                        <span className="px-2 py-0 rounded small" style={{ backgroundColor: "rgba(255,255,255,0.15)", fontSize: "0.75rem" }}>
-                                            #{detailItem.id}
-                                        </span>
-                                        <span className="d-inline-flex align-items-center gap-1 px-2 py-0 rounded-pill small fw-semibold" style={{ backgroundColor: "rgba(25,135,84,0.1)", color: "#198754", fontSize: "0.72rem" }}>
-                                            <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#198754", display: "inline-block" }} />
-                                            {detailItem.facility || detailItem.branch}
-                                        </span>
+                                    <h5 style={{ color: '#fff', fontWeight: 700, margin: 0, fontSize: '1.05rem' }}>{detailItem.name}</h5>
+                                    <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                                        <span style={{ background: 'rgba(255,255,255,.15)', color: '#fff', padding: '2px 10px', borderRadius: 20, fontSize: '.72rem', fontWeight: 600 }}>#{detailItem.id}</span>
+                                        <span style={{ background: 'rgba(25,135,84,.15)', color: '#a8ffcf', padding: '2px 10px', borderRadius: 20, fontSize: '.72rem', fontWeight: 600 }}>{detailItem.facility || detailItem.branch}</span>
                                     </div>
                                 </div>
                             </div>
-                            <button className="btn-close btn-close-white mt-1" onClick={() => setDetailItem(null)} aria-label="Close" />
+                            <button className="fi-close-btn" style={{ color: 'rgba(255,255,255,.7)' }} onClick={() => { setDetailItem(null); setShowItemHistoryPanel(false); }}>✕</button>
                         </div>
 
                         {/* Body */}
-                        <div className="overflow-auto flex-grow-1 p-4" style={{ backgroundColor: "#f8f9fb" }}>
-                            
-                            {/* Stat Cards Row */}
-                            <div className="row g-3 mb-4">
+                        <div style={{ flex: 1, overflow: 'auto', padding: '22px 28px', background: '#F8F9F5' }}>
+                            {/* Stat cards */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 18 }}>
                                 {[
-                                    { icon: "bi-building", label: "Branch / Area", value: detailItem.facility || detailItem.branch || "�", color: "#5C6F4E" },
-                                    { icon: "bi-tags", label: "Total Quantity", value: `${detailItem.quantity} items`, color: "#0d6efd" },
-                                    { icon: "bi-cash", label: "Unit Price", value: formatVND(detailItem.price), color: "#dc3545" },
-                                    { icon: "bi-archive", label: "In Stock", value: `${detailItem.inStock} items`, color: "#198754" }
-                                ].map((info) => (
-                                    <div className="col-6 col-md-3" key={info.label}>
-                                        <div className="card border-0 h-100" style={{ borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-                                            <div className="card-body d-flex align-items-center gap-3 py-3 px-3">
-                                                <div className="d-flex align-items-center justify-content-center rounded-3 flex-shrink-0"
-                                                    style={{ width: 38, height: 38, backgroundColor: "rgba(92,111,78,0.08)" }}>
-                                                    <i className={`bi ${info.icon}`} style={{ color: "#5C6F4E", fontSize: "0.95rem" }}></i>
-                                                </div>
-                                                <div>
-                                                    <div className="text-muted" style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>{info.label}</div>
-                                                    <div className="fw-semibold" style={{ fontSize: "0.88rem", color: "#1a1a2e" }}>{info.value}</div>
-                                                </div>
-                                            </div>
+                                    { icon: 'bi-building', label: 'Branch', value: detailItem.branch, color: BRAND },
+                                    { icon: 'bi-tags', label: 'Total Qty', value: `${detailItem.quantity}`, color: '#0d6efd' },
+                                    { icon: 'bi-cash', label: 'Unit Price', value: formatVND(detailItem.price), color: '#dc3545' },
+                                    { icon: 'bi-archive', label: 'In Stock', value: `${detailItem.inStock}`, color: '#198754' },
+                                ].map(info => (
+                                    <div key={info.label} style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,.06)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <div style={{ width: 36, height: 36, borderRadius: 9, background: `${info.color}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <i className={`bi ${info.icon}`} style={{ color: info.color, fontSize: '.9rem' }}></i>
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '.65rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '.5px' }}>{info.label}</div>
+                                            <div style={{ fontWeight: 700, fontSize: '.88rem', color: '#111' }}>{info.value}</div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
 
-                            {/* Usage summary */}
-                            <div className="card border-0 mb-4" style={{ borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-                                <div className="card-header bg-white border-bottom py-3 px-4" style={{ borderRadius: "12px 12px 0 0" }}>
-                                    <div className="d-flex align-items-center gap-2">
-                                        <i className="bi bi-pie-chart" style={{ color: "#5C6F4E" }}></i>
-                                        <span className="fw-semibold small" style={{ color: "#1a1a2e", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: "0.75rem" }}>Usage Condition</span>
-                                    </div>
+                            {/* Usage condition */}
+                            <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,.06)', marginBottom: 16, overflow: 'hidden' }}>
+                                <div style={{ padding: '13px 18px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <i className="bi bi-pie-chart" style={{ color: BRAND }}></i>
+                                    <span style={{ fontWeight: 700, fontSize: '.75rem', textTransform: 'uppercase', letterSpacing: '.5px', color: '#333' }}>Usage Condition</span>
                                 </div>
-                                <div className="card-body px-4 py-3">
-                                    <div className="row g-3">
-                                        {[
-                                            { label: "Good / In Use", val: detailItem.inUse, color: "#0d6efd", icon: "bi-check-circle-fill" },
-                                            { label: "In Stock", val: detailItem.inStock, color: "#198754", icon: "bi-box-seam" },
-                                            { label: "Broken", val: detailItem.broken, color: "#dc3545", icon: "bi-exclamation-triangle-fill" },
-                                        ].map((c, i) => {
-                                            const pct = detailItem.quantity ? Math.round((c.val / detailItem.quantity) * 100) : 0;
-                                            return (
-                                                <div className="col-4" key={i}>
-                                                    <div className="d-flex align-items-center justify-content-between mb-1">
-                                                        <span className="d-flex align-items-center gap-1 small fw-semibold" style={{ color: c.color, fontSize: "0.78rem" }}>
-                                                            <i className={`bi ${c.icon}`} style={{ fontSize: "0.7rem" }}></i> {c.label}
-                                                        </span>
-                                                        <span className="fw-bold" style={{ color: c.color, fontSize: "0.88rem" }}>{c.val}</span>
-                                                    </div>
-                                                    <div className="rounded-pill overflow-hidden" style={{ height: 6, backgroundColor: "#eee" }}>
-                                                        <div className="h-100 rounded-pill" style={{ width: `${pct}%`, backgroundColor: c.color, transition: "width 0.4s ease" }} />
-                                                    </div>
-                                                    <div className="text-muted mt-1" style={{ fontSize: "0.68rem" }}>{pct}%</div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Rooms Using This Item */}
-                            <div className="row g-4">
-                                <div className="col-md-6">
-                                    <div className="card border-0 h-100" style={{ borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-                                        <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2" style={{ borderRadius: "12px 12px 0 0" }}>
-                                            <i className="bi bi-door-open" style={{ color: "#5C6F4E" }}></i>
-                                            <span className="fw-semibold small" style={{ color: "#1a1a2e", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: "0.75rem" }}>Rooms using this item</span>
-                                            <span className="badge rounded-pill px-2" style={{ backgroundColor: "rgba(92,111,78,0.12)", color: "#5C6F4E", fontWeight: 600 }}>
-                                            {detailItem.roomsUsing?.length || 0}
-                                            </span>
-                                        </div>
-                                        <div className="card-body px-4 py-3">
-                                            <div className="d-flex flex-wrap gap-2">
-                                                {(detailItem.roomsUsing || []).length ? (
-                                                    formatRoomList(detailItem.roomsUsing).map((roomName) => (
-                                                        <div key={roomName} className="px-3 py-1 rounded-pill small fw-semibold" style={{ backgroundColor: "#f0f2f5", color: "#444" }}>
-                                                            {roomName}
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className="text-muted small">No rooms</div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="col-md-6">
-                                    <div className="card border-0 h-100" style={{ borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-                                        <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2" style={{ borderRadius: "12px 12px 0 0" }}>
-                                            <i className="bi bi-tools" style={{ color: "#dc3545" }}></i>
-                                            <span className="fw-semibold small" style={{ color: "#dc3545", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: "0.75rem" }}>Rooms with broken items</span>
-                                            <span className="badge rounded-pill px-2" style={{ backgroundColor: "rgba(220,53,69,0.12)", color: "#dc3545", fontWeight: 600 }}>
-                                            {detailItem.roomsBroken?.length || 0}
-                                            </span>
-                                        </div>
-                                        <div className="card-body px-4 py-3">
-                                            {(detailItem.brokenInStock && detailItem.brokenInStock > 0) ? (
-                                                <div className="mb-3">
-                                                    <span className="badge rounded-pill" style={{ backgroundColor: "#dc3545", color: "#fff", padding: "6px 12px", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                                                        <i className="bi bi-box-seam"></i> Warehouse Fail: {detailItem.brokenInStock} items
-                                                    </span>
-                                                </div>
-                                            ) : null}
-                                            <div className="d-flex flex-wrap gap-2">
-                                                {(detailItem.roomsBroken || []).length ? (
-                                                    formatRoomList(detailItem.roomsBroken).map((roomName) => (
-                                                        <div key={roomName} className="px-3 py-1 rounded-pill small fw-semibold" style={{ backgroundColor: "rgba(220,53,69,0.1)", color: "#dc3545" }}>
-                                                            {roomName}
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className="text-muted small">No broken rooms</div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {/* Action Bar (Footer) */}
-                        <div className="p-3 border-top d-flex justify-content-between align-items-center bg-white" style={{ borderRadius: "0 0 16px 16px" }}>
-                            <span className="text-muted small">System Record #{detailItem.id}</span>
-                            <div className="d-flex gap-2">
-                                <button
-                                    className="btn px-4 fw-semibold"
-                                    style={{ backgroundColor: "#8eb64b", color: "white" }}
-                                    onClick={openItemSpecificHistory}
-                                >
-                                    Import History
-                                </button>
-                                <button className="btn btn-secondary px-4 fw-semibold" onClick={() => setDetailItem(null)}>Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ITEM SPECIFIC HISTORY MODAL */}
-            {showItemHistoryModal && (
-                <div className="modal-overlay" style={{ zIndex: 1060, backgroundColor: 'rgba(15,20,40,0.55)' }} onClick={() => setShowItemHistoryModal(false)}>
-                    <div className="modal-content" style={{ maxWidth: '700px', width: '95%', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-                        <div className="modal-header d-flex justify-content-between align-items-center py-3 px-4" style={{ backgroundColor: '#f8f9fa', borderBottom: '1px solid #dee2e6' }}>
-                            <h5 className="mb-0 fw-bold" style={{ color: '#2c3e50' }}>
-                                Import History: <span style={{ color: '#5C6F4E' }}>{detailItem?.name}</span>
-                            </h5>
-                            <button className="btn-close" onClick={() => setShowItemHistoryModal(false)}></button>
-                        </div>
-                        <div className="modal-body p-0">
-                            {itemHistoryData.length > 0 ? (
-                                <div className="table-responsive m-0">
-                                    <table className="table table-hover mb-0" style={{ fontSize: '0.9rem' }}>
-                                        <thead className="table-light">
-                                            <tr>
-                                                <th className="px-4 py-3">Date</th>
-                                                <th className="px-4 py-3">Receipt No.</th>
-                                                <th className="px-4 py-3 text-end">Quantity</th>
-                                                <th className="px-4 py-3 text-end">Unit Price</th>
-                                                <th className="px-4 py-3 text-end">Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {itemHistoryData.map((item, idx) => (
-                                                <tr key={idx}>
-                                                    <td className="px-4 py-3 text-muted">{new Date(item.importDate).toLocaleString('vi-VN')}</td>
-                                                    <td className="px-4 py-3 fw-semibold">#{item.receiptId}</td>
-                                                    <td className="px-4 py-3 text-end fw-bold">{item.quantity}</td>
-                                                    <td className="px-4 py-3 text-end">{(item.unitPrice || 0).toLocaleString()} VND</td>
-                                                    <td className="px-4 py-3 text-end fw-bold text-danger">{((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString()} VND</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="text-center py-5 text-muted">
-                                    <i className="bi bi-clock-history fs-1 mb-3 d-block text-secondary opacity-50"></i>
-                                    <h5>No Import History found</h5>
-                                    <p className="mb-0">This item has not been imported yet.</p>
-                                </div>
-                            )}
-                        </div>
-                        <div className="modal-footer px-4 py-3 bg-light border-top">
-                            <h6 className="mb-0 me-auto">Total Imports: <strong>{itemHistoryData.reduce((acc, curr) => acc + curr.quantity, 0)}</strong></h6>
-                            <button className="btn btn-secondary px-4" onClick={() => setShowItemHistoryModal(false)}>Close</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* IMPORT FURNITURE MODAL */}
-            {isImportModalOpen && (
-                <div className="modal-overlay" style={{ zIndex: 1050, backgroundColor: 'rgba(15,20,40,0.55)' }}>
-                    <div className="modal-content" style={{ maxWidth: '850px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div className="modal-header">
-                            <h3 style={{ margin: 0 }}>Import Furniture</h3>
-                            <button 
-                                className="close-btn" 
-                                onClick={() => setIsImportModalOpen(false)}
-                                style={{ cursor: 'pointer', fontSize: '20px' }}
-                            >
-                                ?
-                            </button>
-                        </div>
-
-                        <div style={{ padding: '20px' }}>
-                            {importList.map((row, index) => (
-                                <div 
-                                    key={index} 
-                                    style={{ 
-                                        marginBottom: '15px', 
-                                        padding: '15px', 
-                                        border: '1px solid #ddd', 
-                                        borderRadius: '8px', 
-                                        backgroundColor: '#f9f9f9' 
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                                            <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                <input 
-                                                    type="radio" 
-                                                    checked={!row.isNew} 
-                                                    onChange={() => handleImportChange(index, 'isNew', false)} 
-                                                />
-                                                Existing item
-                                            </label>
-                                            <label style={{ color: '#007bff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                <input 
-                                                    type="radio" 
-                                                    checked={row.isNew} 
-                                                    onChange={() => handleImportChange(index, 'isNew', true)} 
-                                                />
-                                                + New item
-                                            </label>
-                                        </div>
-                                        <button 
-                                            onClick={() => removeImportRow(index)} 
-                                            style={{ 
-                                                color: '#d9534f', 
-                                                border: 'none', 
-                                                background: 'none', 
-                                                cursor: 'pointer', 
-                                                fontWeight: 'bold',
-                                                fontSize: '14px'
-                                            }}
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                        {!row.isNew ? (
-                                            <select
-                                                value={row.furnitureId}
-                                                onChange={(e) => handleImportChange(index, 'furnitureId', e.target.value)}
-                                                style={{ 
-                                                    flex: '1', 
-                                                    minWidth: '200px',
-                                                    padding: '10px', 
-                                                    borderRadius: '4px',
-                                                    border: '1px solid #ccc'
-                                                }}
+                                <div style={{ padding: '16px 18px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                                    {[
+                                        { label: 'Good / In Use', val: detailItem.inUse, color: '#0d6efd', icon: 'bi-check-circle-fill', clickable: false },
+                                        { label: 'In Stock', val: detailItem.inStock, color: '#198754', icon: 'bi-box-seam', clickable: false },
+                                        { label: 'Broken', val: detailItem.broken, color: '#dc3545', icon: 'bi-exclamation-triangle-fill', clickable: true },
+                                    ].map((c, i) => {
+                                        const pct = detailItem.quantity ? Math.round((c.val / detailItem.quantity) * 100) : 0;
+                                        return (
+                                            <div key={i}
+                                                 onClick={c.clickable && c.val > 0 ? () => setBrokenDetailInfo(detailItem) : undefined}
+                                                 style={{ cursor: c.clickable && c.val > 0 ? 'pointer' : 'default', borderRadius: 10, padding: c.clickable && c.val > 0 ? '8px 10px' : '0', background: c.clickable && c.val > 0 ? 'rgba(220,53,69,.04)' : 'transparent', border: c.clickable && c.val > 0 ? '1.5px dashed rgba(220,53,69,.25)' : '1.5px solid transparent', transition: 'all .2s' }}
+                                                 title={c.clickable && c.val > 0 ? 'Click to view broken details' : undefined}
                                             >
-                                                <option value="">-- Select furniture --</option>
-                                                {availableItems.map(i => (
-                                                    <option key={i.furnitureId} value={i.furnitureId}>
-                                                        {i.furnitorName} ({i.type})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        ) : (<div style={{ display: 'flex', gap: '10px', flex: 1 }}><input
-                                                type="text"
-                                                placeholder="Furniture name..."
-                                                value={row.furnitureName}
-                                                onChange={(e) => handleImportChange(index, 'furnitureName', e.target.value)}
-                                                style={{ 
-                                                    flex: '1',
-                                                    minWidth: '200px',
-                                                    padding: '10px', 
-                                                    borderRadius: '4px', 
-                                                    border: '1px solid #007bff'
-                                                }}
-                                            />
-                                              <input
-                                                  type="text"
-                                                  placeholder="Type (e.g. Lighting equipment...)"
-                                                  value={row.type || ""}
-                                                  onChange={(e) => handleImportChange(index, 'type', e.target.value)}
-                                                  style={{
-                                                      flex: '1',
-                                                      minWidth: '200px',
-                                                      padding: '10px',
-                                                      borderRadius: '4px',
-                                                      border: '1px solid #007bff'
-                                                  }}
-                                              /></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '.78rem', fontWeight: 700, color: c.color }}><i className={`bi ${c.icon}`} style={{ fontSize: '.7rem' }}></i>{c.label}</span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                        <span style={{ fontWeight: 700, color: c.color, fontSize: '.88rem' }}>{c.val}</span>
+                                                        {c.clickable && c.val > 0 && (
+                                                            <span style={{ fontSize: '.62rem', fontWeight: 700, color: '#dc3545', background: 'rgba(220,53,69,.1)', padding: '1px 6px', borderRadius: 10 }}>
+                                                                View →
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div style={{ height: 6, background: '#eee', borderRadius: 6, overflow: 'hidden' }}>
+                                                    <div style={{ width: `${pct}%`, height: '100%', background: c.color, borderRadius: 6, transition: 'width .4s ease' }}></div>
+                                                </div>
+                                                <div style={{ fontSize: '.68rem', color: '#aaa', marginTop: 3 }}>{pct}%</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Rooms */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                                {/* Rooms Using */}
+                                <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,.06)', overflow: 'hidden' }}>
+                                    <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <i className="bi bi-door-open" style={{ color: BRAND }}></i>
+                                        <span style={{ fontWeight: 700, fontSize: '.73rem', textTransform: 'uppercase', letterSpacing: '.5px', color: BRAND }}>Rooms Using This Item</span>
+                                        <span style={{ marginLeft: 'auto', background: `${BRAND}18`, color: BRAND, padding: '2px 8px', borderRadius: 20, fontSize: '.7rem', fontWeight: 700 }}>{detailItem.roomsUsing?.length || 0}</span>
+                                    </div>
+                                    <div style={{ padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                        {(detailItem.roomsUsing || []).length ? formatRoomList(detailItem.roomsUsing).map(r => (
+                                            <span key={r} style={{ background: '#f0f2f5', color: '#444', padding: '4px 12px', borderRadius: 20, fontSize: '.78rem', fontWeight: 600 }}>{r}</span>
+                                        )) : <span style={{ color: '#ccc', fontSize: '.83rem' }}>None</span>}
+                                    </div>
+                                </div>
+
+                                {/* Rooms With Broken — clickable to open broken panel */}
+                                <div
+                                    style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,.06)', overflow: 'hidden', cursor: detailItem.broken > 0 ? 'pointer' : 'default', border: detailItem.broken > 0 ? '1.5px solid rgba(220,53,69,.2)' : '1px solid transparent', transition: 'all .2s' }}
+                                    onClick={detailItem.broken > 0 ? () => setBrokenDetailInfo(detailItem) : undefined}
+                                    title={detailItem.broken > 0 ? 'Click to manage broken items' : undefined}
+                                >
+                                    <div style={{ padding: '12px 16px', borderBottom: '1px solid #fde8e8', display: 'flex', alignItems: 'center', gap: 8, background: detailItem.broken > 0 ? 'rgba(220,53,69,.03)' : '#fff' }}>
+                                        <i className="bi bi-tools" style={{ color: '#dc3545' }}></i>
+                                        <span style={{ fontWeight: 700, fontSize: '.73rem', textTransform: 'uppercase', letterSpacing: '.5px', color: '#dc3545' }}>Rooms With Broken Items</span>
+                                        <span style={{ marginLeft: 'auto', background: 'rgba(220,53,69,.1)', color: '#dc3545', padding: '2px 8px', borderRadius: 20, fontSize: '.7rem', fontWeight: 700 }}>{detailItem.roomsBroken?.length || 0}</span>
+                                        {detailItem.broken > 0 && (
+                                            <span style={{ background: '#dc3545', color: '#fff', padding: '2px 8px', borderRadius: 20, fontSize: '.65rem', fontWeight: 700 }}>
+                                                {detailItem.broken} broken · Manage →
+                                            </span>
                                         )}
+                                    </div>
+                                    <div style={{ padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                        {(detailItem.roomsBroken || []).length ? formatRoomList(detailItem.roomsBroken).map(r => (
+                                            <span key={r} style={{ background: 'rgba(220,53,69,.1)', color: '#dc3545', padding: '4px 12px', borderRadius: 20, fontSize: '.78rem', fontWeight: 600 }}>{r}</span>
+                                        )) : <span style={{ color: '#ccc', fontSize: '.83rem' }}>None</span>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                                        <input
-                                            type="text" 
-                                            placeholder="Unit (Piece, Kg...)"
-                                            value={row.unit}
-                                            onChange={(e) => handleImportChange(index, 'unit', e.target.value)}
-                                            style={{ 
-                                                width: '100px', 
-                                                padding: '10px', 
-                                                borderRadius: '4px', 
-                                                border: '1px solid #ccc' 
-                                            }}
-                                        />
+                        {/* Footer */}
 
-                                        <input
-                                            type="number" 
-                                            placeholder="Unit price"
-                                            value={row.price}
-                                            onChange={(e) => handleImportChange(index, 'price', e.target.value)}
-                                            style={{ 
-                                                width: '130px', 
-                                                padding: '10px', 
-                                                border: '2px solid #28a745', 
-                                                borderRadius: '4px', 
-                                                fontWeight: 'bold'
-                                            }}
-                                        />
+                        <div style={{ padding: '14px 24px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', flexShrink: 0 }}>
+                            <span style={{ color: '#bbb', fontSize: '.8rem' }}>Record #{detailItem.id}</span>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <button className="fi-btn-save" onClick={openItemSpecificHistory}><i className="bi bi-clock-history me-2"></i>Import History</button>
+                                <button className="fi-btn-secondary" onClick={() => { setDetailItem(null); setShowItemHistoryPanel(false); }}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                                        <input
-                                            type="number" 
-                                            placeholder="Qty"
-                                            min="1"
-                                            value={row.quantity}
-                                            onChange={(e) => handleImportChange(index, 'quantity', e.target.value)}
-                                            style={{ 
-                                                width: '80px', 
-                                                padding: '10px', 
-                                                borderRadius: '4px', 
-                                                border: '1px solid #ccc'
-                                            }}
-                                        />
+            {/* ═══════════════════════════════════════════════════════════
+                ITEM IMPORT HISTORY — SIDE PANEL (slides over detail modal)
+            ═══════════════════════════════════════════════════════════ */}
+            {showItemHistoryPanel && detailItem && (
+                <>
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 1075 }} onClick={() => setShowItemHistoryPanel(false)}></div>
+                    <div className="fi-side-panel">
+                        <div className="fi-side-panel-hdr">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <div style={{ fontWeight: 700, fontSize: '1rem', color: '#111' }}>Import History — <span style={{ color: BRAND }}>{detailItem.name}</span></div>
+                                    <div style={{ color: '#aaa', fontSize: '.78rem', marginTop: 3 }}>{itemHistorySummary.times} import records</div>
+                                </div>
+                                <button className="fi-close-btn" onClick={() => setShowItemHistoryPanel(false)}>✕</button>
+                            </div>
+                            {/* Summary stats */}
+                            <div className="fi-side-stat-row" style={{ marginTop: 14, border: '1px solid #eee', borderRadius: 10, overflow: 'hidden' }}>
+                                <div className="fi-side-stat">
+                                    <div className="fi-side-stat-lbl">Times</div>
+                                    <div className="fi-side-stat-val">{itemHistorySummary.times}</div>
+                                </div>
+                                <div className="fi-side-stat">
+                                    <div className="fi-side-stat-lbl">Total Qty</div>
+                                    <div className="fi-side-stat-val">{itemHistorySummary.totalQty}</div>
+                                </div>
+                                <div className="fi-side-stat">
+                                    <div className="fi-side-stat-lbl">Avg Price</div>
+                                    <div className="fi-side-stat-val" style={{ fontSize: '.88rem', color: '#F0A500', fontWeight: 700 }}>{formatVND(itemHistorySummary.avgPrice)}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="fi-side-panel-body">
+                            {groupedItemHistory.length === 0 ? (
+                                <div style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>
+                                    <i className="bi bi-clock-history" style={{ fontSize: '2rem', display: 'block', marginBottom: 10 }}></i>
+                                    No import history found.
+                                </div>
+                            ) : groupedItemHistory.map(r => (
+                                <div key={r.receiptId} className="fi-side-entry">
+                                    <div className="fi-side-entry-dot" style={{ marginTop: 6 }}></div>
+                                    <div className="fi-side-entry-content">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                            <div>
+                                                <div style={{ fontWeight: 700, fontSize: '.85rem', color: '#111' }}>Receipt #{r.receiptId}</div>
+                                                <div style={{ fontSize: '.75rem', color: '#aaa', marginTop: 2 }}>{new Date(r.importDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontWeight: 700, fontSize: '.88rem', color: '#F0A500' }}>+{r.totalQty} pcs</div>
+                                                <div style={{ fontSize: '.72rem', color: '#aaa' }}>{formatVND(r.details[0]?.unitPrice || 0)}/pc</div>
+                                                <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#dc3545' }}>= {formatVND(r.totalAmount)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ padding: '14px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '.8rem', color: '#aaa' }}>Total cost: <strong style={{ color: '#dc3545' }}>{formatVND(itemHistorySummary.totalAmount)}</strong></span>
+                            <button className="fi-btn-secondary" style={{ padding: '7px 16px', fontSize: '.82rem' }} onClick={() => setShowItemHistoryPanel(false)}>Close</button>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════
+                BROKEN DETAIL — SIDE PANEL
+            ═══════════════════════════════════════════════════════════ */}
+            {brokenDetailInfo && (
+                <>
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,20,40,.25)', zIndex: 1074 }} onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}></div>
+                    <div className="fi-side-panel" style={{ zIndex: 1076 }}>
+                        <div className="fi-side-panel-hdr" style={{ borderBottom: '1px solid #eee' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: '1rem', color: '#dc3545' }}>
+                                        <i className="bi bi-exclamation-triangle-fill"></i> Broken Details
+                                    </div>
+                                    <div style={{ fontWeight: 600, fontSize: '.9rem', color: '#111', marginTop: 4 }}>{brokenDetailInfo.name}</div>
+                                    <div style={{ fontSize: '.75rem', color: '#aaa' }}>#{brokenDetailInfo.id}</div>
+                                </div>
+                                <button className="fi-close-btn" onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}>✕</button>
+                            </div>
+
+                            {/* Summary stats */}
+                            <div className="fi-side-stat-row" style={{ marginTop: 14, border: '1px solid #eee', borderRadius: 10, overflow: 'hidden' }}>
+                                <div className="fi-side-stat">
+                                    <div className="fi-side-stat-lbl">Total Broken</div>
+                                    <div className="fi-side-stat-val" style={{ color: '#dc3545' }}>{brokenDetailInfo.broken}</div>
+                                </div>
+                                <div className="fi-side-stat">
+                                    <div className="fi-side-stat-lbl">In Warehouse</div>
+                                    <div className="fi-side-stat-val" style={{ color: '#dc3545' }}>{brokenDetailInfo.brokenInStock}</div>
+                                </div>
+                                <div className="fi-side-stat">
+                                    <div className="fi-side-stat-lbl">In Rooms</div>
+                                    <div className="fi-side-stat-val" style={{ color: '#888' }}>{brokenDetailInfo.brokenInUse}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="fi-side-panel-body">
+                            {/* Warehouse Fail section */}
+                            <div className="fi-broken-section">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc3545' }}></div>
+                                        <span style={{ fontWeight: 700, fontSize: '.82rem', color: '#dc3545', textTransform: 'uppercase', letterSpacing: '.3px' }}>Warehouse Fail</span>
+                                    </div>
+                                    <span style={{ fontSize: '1.3rem', fontWeight: 700, color: '#dc3545' }}>{brokenDetailInfo.brokenInStock || 0} <span style={{ fontSize: '.82rem', color: '#aaa', fontWeight: 400 }}>pcs</span></span>
+                                </div>
+                                {(brokenDetailInfo.brokenInStock > 0) && (
+                                    <div style={{ background: '#fff5f5', borderRadius: 10, padding: '12px 14px', marginTop: 10 }}>
+                                        <div style={{ fontSize: '.78rem', color: '#dc3545', fontWeight: 700, marginBottom: 10 }}>Deal with broken items in stock:</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <input
+                                                type="number" min={1} max={brokenDetailInfo.brokenInStock}
+                                                value={brokenActionQuantity}
+                                                onChange={e => setBrokenActionQuantity(Number(e.target.value))}
+                                                disabled={isProcessingBroken}
+                                                style={{ width: 68, padding: '7px 10px', border: '1.5px solid #eee', borderRadius: 8, fontSize: '.88rem', fontWeight: 600 }}
+                                            />
+                                            <button onClick={() => handleProcessBrokenItems('fix')} disabled={isProcessingBroken}
+                                                    style={{ flex: 1, padding: '7px 0', background: '#198754', color: '#fff', border: 'none', borderRadius: 8, fontSize: '.8rem', fontWeight: 700, cursor: 'pointer' }}>
+                                                <i className="bi bi-tools me-1"></i>Fixed
+                                            </button>
+                                            <button onClick={() => handleProcessBrokenItems('discard')} disabled={isProcessingBroken}
+                                                    style={{ flex: 1, padding: '7px 0', background: '#dc3545', color: '#fff', border: 'none', borderRadius: 8, fontSize: '.8rem', fontWeight: 700, cursor: 'pointer' }}>
+                                                <i className="bi bi-trash me-1"></i>Discard
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* In Room section */}
+                            <div className="fi-broken-section">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c757d' }}></div>
+                                        <span style={{ fontWeight: 700, fontSize: '.82rem', color: '#6c757d', textTransform: 'uppercase', letterSpacing: '.3px' }}>In Room</span>
+                                    </div>
+                                    <span style={{ fontSize: '1.3rem', fontWeight: 700, color: '#6c757d' }}>{brokenDetailInfo.brokenInUse || 0} <span style={{ fontSize: '.82rem', color: '#aaa', fontWeight: 400 }}>pcs</span></span>
+                                </div>
+                                {brokenDetailInfo.roomsBroken?.length > 0 ? (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                                        {formatRoomList(brokenDetailInfo.roomsBroken).map(r => (
+                                            <span key={r} style={{ background: 'rgba(108,117,125,.1)', color: '#555', padding: '4px 10px', borderRadius: 20, fontSize: '.78rem', fontWeight: 600 }}>{r}</span>
+                                        ))}
+                                    </div>
+                                ) : <div style={{ fontSize: '.8rem', color: '#ccc', marginTop: 6 }}>No rooms</div>}
+                            </div>
+                        </div>
+
+                        <div style={{ padding: '14px 20px', borderTop: '1px solid #eee' }}>
+                            <button className="fi-btn-secondary" style={{ width: '100%' }} onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}>Close</button>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════
+                IMPORT MODAL — redesigned form
+            ═══════════════════════════════════════════════════════════ */}
+            {isImportModalOpen && (
+                <div className="fi-overlay" onClick={() => setIsImportModalOpen(false)}>
+                    <div className="fi-import-modal" onClick={e => e.stopPropagation()}>
+                        <div className="fi-import-modal-hdr">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(92,111,78,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <i className="bi bi-box-seam" style={{ color: BRAND }}></i>
+                                </div>
+                                <h5 style={{ margin: 0, fontWeight: 700, fontSize: '1rem' }}>Add Import Receipt</h5>
+                            </div>
+                            <button className="fi-close-btn" onClick={() => setIsImportModalOpen(false)}>✕</button>
+                        </div>
+
+                        <div className="fi-import-modal-body">
+                            {/* Import Date */}
+                            <div style={{ marginBottom: 22 }}>
+                                <label className="fi-form-label">Import Date</label>
+                                <input type="date" className="fi-form-input" value={importDate} onChange={e => setImportDate(e.target.value)} style={{ maxWidth: 200 }} />
+                            </div>
+
+                            {/* Item List */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <label className="fi-form-label" style={{ margin: 0 }}>Item List</label>
+                                <button className="fi-btn-secondary" style={{ padding: '5px 14px', fontSize: '.78rem', borderRadius: 8 }} onClick={addImportRow}>+ Add Row</button>
+                            </div>
+
+                            {/* Column headers */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '2fr 80px 110px 70px 28px', gap: 8, padding: '0 0 6px', borderBottom: '1px solid #eee', marginBottom: 8 }}>
+                                {['Item', 'Unit', 'Unit Price', 'Qty', ''].map((h, i) => (
+                                    <div key={i} style={{ fontSize: '.68rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '.4px' }}>{h}</div>
+                                ))}
+                            </div>
+
+                            {importList.map((row, index) => (
+                                <div key={index} className={`fi-item-row ${row.isNew ? 'fi-item-row-new' : ''}`}>
+                                    {/* Type toggle */}
+                                    <div className="fi-type-toggle" style={{ marginBottom: 8 }}>
+                                        <button className={`fi-type-toggle-btn ${!row.isNew ? 'active' : ''}`} onClick={() => handleImportChange(index, 'isNew', false)}>Existing item</button>
+                                        <button className={`fi-type-toggle-btn ${row.isNew ? 'active' : ''}`} onClick={() => handleImportChange(index, 'isNew', true)}>+ New item</button>
+                                    </div>
+
+                                    {/* Fields row */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 80px 110px 70px 28px', gap: 8, alignItems: 'center' }}>
+                                        {/* Item selector/input */}
+                                        <div>
+                                            {!row.isNew ? (
+                                                <select className="fi-form-input fi-form-select" value={row.furnitureId} onChange={e => handleImportChange(index, 'furnitureId', e.target.value)}>
+                                                    <option value="">-- Select item --</option>
+                                                    {availableItems.map(i => <option key={i.furnitureId} value={i.furnitureId}>{i.furnitorName} ({i.type})</option>)}
+                                                    <option value="__new__">+ Add new item</option>
+                                                </select>
+                                            ) : (
+                                                <div style={{ display: 'flex', gap: 6 }}>
+                                                    <input className="fi-form-input" placeholder="Item name..." value={row.furnitureName} onChange={e => handleImportChange(index, 'furnitureName', e.target.value)} />
+                                                    <input className="fi-form-input" placeholder="Type..." value={row.type || ''} onChange={e => handleImportChange(index, 'type', e.target.value)} style={{ width: 110, flexShrink: 0 }} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        {/* Unit */}
+                                        <input className="fi-form-input" placeholder="Piece" value={row.unit} onChange={e => handleImportChange(index, 'unit', e.target.value)} />
+                                        {/* Price */}
+                                        <input className="fi-form-input" type="number" placeholder="Price" value={row.price} onChange={e => handleImportChange(index, 'price', e.target.value)} style={{ borderColor: '#28a745', fontWeight: 700 }} />
+                                        {/* Qty */}
+                                        <input className="fi-form-input" type="number" min="1" placeholder="1" value={row.quantity} onChange={e => handleImportChange(index, 'quantity', e.target.value)} />
+                                        {/* Remove */}
+                                        <button onClick={() => removeImportRow(index)} style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '1rem', padding: 0, lineHeight: 1 }} title="Remove">
+                                            <i className="bi bi-x-circle-fill"></i>
+                                        </button>
                                     </div>
                                 </div>
                             ))}
 
-                            <button
-                                onClick={addImportRow}
-                                style={{
-                                    width: '100%',
-                                    marginTop: '10px',
-                                    padding: '10px',
-                                    backgroundColor: '#f0f0f0',
-                                    border: '2px dashed #ccc',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontWeight: '500',
-                                    color: '#666'
-                                }}
-                            >
-                                + Add another item
-                            </button>
+                            <button className="fi-add-row-btn" onClick={addImportRow}>+ Add Row</button>
+                        </div>
 
-                            <div style={{ 
-                                textAlign: 'right', 
-                                gap: '10px', 
-                                display: 'flex', 
-                                justifyContent: 'flex-end', 
-                                borderTop: '1px solid #eee', 
-                                paddingTop: '15px',
-                                marginTop: '15px'
-                            }}>
-                                <button 
-                                    onClick={() => setIsImportModalOpen(false)} 
-                                    className="btn btn-secondary"
-                                    style={{ marginRight: '10px' }}
-                                >
-                                    Cancel
-                                </button>
-                                <button 
-                                    onClick={submitImport} 
-                                    className="btn btn-success"
-                                    style={{ backgroundColor: '#28a745', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}
-                                >
-                                    Confirm Import
-                                </button>
-                            </div>
+                        <div className="fi-import-modal-ftr">
+                            <button className="fi-btn-secondary" onClick={() => setIsImportModalOpen(false)}>Cancel</button>
+                            <button className="fi-btn-primary" onClick={submitImport} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                                <i className="bi bi-floppy"></i> Save Import
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
-            {/* IMPORT HISTORY MODAL */}
+
+            {/* ═══════════════════════════════════════════════════════════
+                IMPORT HISTORY MODAL — dashboard + side panel
+            ═══════════════════════════════════════════════════════════ */}
             {showImportHistory && (
-                <div className="modal-overlay" style={{ zIndex: 1100, backgroundColor: 'rgba(15,20,40,0.55)' }}>
-                    <div className="modal-content" style={{ maxWidth: '900px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div className="modal-header">
-                            <h3 style={{ margin: 0 }}>Import History - Furniture</h3>
-                            <button 
-                                className="close-btn" 
-                                onClick={() => setShowImportHistory(false)}
-                                style={{ cursor: 'pointer', fontSize: '20px' }}
-                            >
-                                ?
-                            </button>
+                <div className="fi-overlay" onClick={() => { setShowImportHistory(false); setHistorySelectedReceipt(null); }}>
+                    <div className="fi-history-modal" onClick={e => e.stopPropagation()}>
+                        {/* Modal header */}
+                        <div style={{ padding: '18px 24px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                            <div>
+                                <h5 style={{ margin: 0, fontWeight: 700, fontSize: '1rem' }}>Import History — Furniture</h5>
+                                <div style={{ fontSize: '.78rem', color: '#aaa', marginTop: 2 }}>{groupedHistory.length} receipt(s)</div>
+                            </div>
+                            <button className="fi-close-btn" onClick={() => { setShowImportHistory(false); setHistorySelectedReceipt(null); }}>✕</button>
                         </div>
 
-                        <div className="table-responsive" style={{ padding: '20px' }}>
-                            <table className="inventory-table">
-                                <thead>
-                                    <tr>
-                                        <th className="text-center">Receipt No.</th>
-                                        <th className="text-center">Imported At</th>
-                                        <th className="text-center">Total Amount</th>
-                                        <th className="text-center">Action</th>
+                        <div className="fi-history-layout">
+                            {/* Left: receipt list */}
+                            <div className="fi-history-main">
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.88rem' }}>
+                                    <thead>
+                                    <tr style={{ background: '#F8F8F5' }}>
+                                        {['Receipt No.', 'Imported At', 'Total Amount', 'Action'].map(h => (
+                                            <th key={h} style={{ padding: '12px 18px', textAlign: 'center', color: '#888', fontWeight: 700, fontSize: '.72rem', textTransform: 'uppercase', letterSpacing: '.4px', borderBottom: '2px solid #eee' }}>{h}</th>
+                                        ))}
                                     </tr>
-                                </thead>
-                                <tbody>
+                                    </thead>
+                                    <tbody>
                                     {pagedHistory.length > 0 ? pagedHistory.map(receipt => (
-                                        <tr key={receipt.receiptId}>
-                                            <td className="font-semibold text-center">#{receipt.receiptId}</td>
-                                            <td className="date-text text-center">
-                                                {new Date(receipt.importDate).toLocaleString('vi-VN')}
-                                            </td>
-                                            <td className="text-center font-semibold" style={{ color: '#d9534f' }}>
-                                                {receipt.totalReceiptAmount.toLocaleString()} d
-                                            </td>
-                                            <td className="text-center">
-                                                <button
-                                                    onClick={() => setHistorySelectedReceipt(receipt)}
-                                                    className="btn-detail"
-                                                >
-                                                    View details
-                                                </button>
+                                        <tr key={receipt.receiptId} style={{ borderBottom: '1px solid #f0f0ea', background: historySelectedReceipt?.receiptId === receipt.receiptId ? 'rgba(92,111,78,.04)' : '#fff' }}>
+                                            <td style={{ padding: '13px 18px', textAlign: 'center', fontWeight: 700, color: '#111', fontFamily: 'monospace' }}>#{receipt.receiptId}</td>
+                                            <td style={{ padding: '13px 18px', textAlign: 'center', color: '#888', fontSize: '.83rem' }}>{new Date(receipt.importDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                            <td style={{ padding: '13px 18px', textAlign: 'center', fontWeight: 700, color: '#dc3545' }}>{receipt.totalReceiptAmount.toLocaleString()} d</td>
+                                            <td style={{ padding: '13px 18px', textAlign: 'center' }}>
+                                                <button className="fi-btn-detail" onClick={() => setHistorySelectedReceipt(receipt)}>View details</button>
                                             </td>
                                         </tr>
                                     )) : (
-                                        <tr>
-                                            <td colSpan="4" className="text-center" style={{ padding: '20px', color: '#999' }}>
-                                                No import history found
-                                            </td>
-                                        </tr>
+                                        <tr><td colSpan={4} style={{ padding: 40, textAlign: 'center', color: '#ccc' }}>No import history found</td></tr>
                                     )}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </tbody>
+                                </table>
+                                <div className="fi-pagination">{renderPagination(historyPage, totalHistoryPages, changeHistoryPage)}</div>
+                            </div>
 
-                        {/* History Pagination */}
-                        <div className="pagination-box" style={{ padding: '15px 20px', borderTop: 'none', background: 'transparent' }}>
-                            {renderPagination(historyPage, totalHistoryPages, changeHistoryPage)}
-                            <button
-                                onClick={() => setShowImportHistory(false)}
-                                className="btn btn-secondary"
-                                style={{ marginLeft: '20px' }}
-                            >
-                                Close
-                            </button>
-                        </div>
+                            {/* Right: receipt detail side panel */}
+                            {historySelectedReceipt ? (
+                                <div className="fi-history-panel">
+                                    <div className="fi-history-panel-hdr">
+                                        <div style={{ fontWeight: 700, fontSize: '.92rem', color: '#111' }}>Receipt #{historySelectedReceipt.receiptId}</div>
+                                        <div style={{ fontSize: '.75rem', color: '#aaa', marginTop: 2 }}>{new Date(historySelectedReceipt.importDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
 
-                        {/* Receipt Detail Modal Inside History Modal */}
-                        {historySelectedReceipt && (
-                            <div style={{
-                                position: 'fixed',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                backgroundColor: 'rgba(0,0,0,0.3)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                zIndex: 1101
-                            }}>
-                                <div style={{
-                                    backgroundColor: '#fff',
-                                    borderRadius: '8px',
-                                    padding: '30px',
-                                    maxWidth: '600px',
-                                    maxHeight: '80vh',
-                                    overflowY: 'auto',
-                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                        <h4 style={{ margin: 0 }}>Receipt #{historySelectedReceipt.receiptId} Details</h4>
-                                        <button 
-                                            onClick={() => setHistorySelectedReceipt(null)}
-                                            style={{
-                                                background: 'none',
-                                                border: 'none',
-                                                fontSize: '24px',
-                                                cursor: 'pointer',
-                                                color: '#666'
-                                            }}
-                                        >
-                                            ?
-                                        </button>
+                                        {/* Summary stats */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', marginTop: 12, border: '1px solid #eee', borderRadius: 10, overflow: 'hidden' }}>
+                                            <div style={{ padding: '10px 8px', textAlign: 'center', borderRight: '1px solid #eee' }}>
+                                                <div style={{ fontSize: '.62rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 3 }}>Imports</div>
+                                                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#111' }}>{historySelectedReceipt.details.length}</div>
+                                            </div>
+                                            <div style={{ padding: '10px 8px', textAlign: 'center', borderRight: '1px solid #eee' }}>
+                                                <div style={{ fontSize: '.62rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 3 }}>Total Qty</div>
+                                                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#111' }}>{historyReceiptStats?.totalQty || 0}</div>
+                                            </div>
+                                            <div style={{ padding: '10px 8px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '.62rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 3 }}>Avg Price</div>
+                                                <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#F0A500' }}>{formatVND(historyReceiptStats?.avgPrice || 0)}</div>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div style={{ marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #eee' }}>
-                                        <p><strong>Import Date:</strong> {new Date(historySelectedReceipt.importDate).toLocaleString('vi-VN')}</p>
-                                        <p><strong>Total Amount:</strong> <span style={{ color: '#d9534f', fontWeight: 'bold' }}>{historySelectedReceipt.totalReceiptAmount.toLocaleString()} d</span></p>
+                                    {/* Receipt line items */}
+                                    <div style={{ flex: 1, overflowY: 'auto' }}>
+                                        {historySelectedReceipt.details.map((item, idx) => (
+                                            <div key={idx} className="fi-receipt-row">
+                                                <div className={`fi-receipt-dot ${idx === 0 ? 'active' : ''}`}></div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontWeight: 700, fontSize: '.85rem', color: '#111' }}>{item.furnitureName || item.inventoryName || 'N/A'}</div>
+                                                    <div style={{ fontSize: '.72rem', color: '#aaa', marginTop: 2 }}>{new Date(historySelectedReceipt.importDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</div>
+                                                </div>
+                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                    <div style={{ fontWeight: 700, fontSize: '.85rem', color: '#198754' }}>+{item.quantity} pcs</div>
+                                                    <div style={{ fontSize: '.72rem', color: '#aaa' }}>{(item.unitPrice || 0).toLocaleString()}d/pc</div>
+                                                    <div style={{ fontSize: '.8rem', fontWeight: 700, color: '#dc3545' }}>= {formatVND(item.itemTotal || 0)}</div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
 
-                                    <div>
-                                        <h5 style={{ marginTop: 0, marginBottom: '15px' }}>Items:</h5>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                                            <thead>
-                                                <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd' }}>
-                                                    <th style={{ padding: '8px', textAlign: 'left' }}>Furniture</th>
-                                                    <th style={{ padding: '8px', textAlign: 'center' }}>Quantity</th>
-                                                    <th style={{ padding: '8px', textAlign: 'right' }}>Unit Price</th>
-                                                    <th style={{ padding: '8px', textAlign: 'right' }}>Total</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {(historySelectedReceipt.details || []).map((item, idx) => (
-                                                    <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                                                        <td style={{ padding: '8px' }}>{item.furnitureName || item.inventoryName || 'N/A'}</td>
-                                                        <td style={{ padding: '8px', textAlign: 'center' }}>{item.quantity}</td>
-                                                        <td style={{ padding: '8px', textAlign: 'right' }}>{(item.unitPrice || 0).toLocaleString()} d</td>
-                                                        <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{(item.itemTotal || 0).toLocaleString()} d</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    <div style={{ marginTop: '20px', textAlign: 'right' }}>
-                                        <button 
-                                            onClick={() => setHistorySelectedReceipt(null)}
-                                            className="btn btn-secondary"
-                                        >
-                                            Close
-                                        </button>
+                                    {/* Total */}
+                                    <div style={{ padding: '14px 20px', borderTop: '1px solid #eee', background: '#fff' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '.8rem', color: '#888', fontWeight: 600 }}>Total import cost</span>
+                                            <span style={{ fontWeight: 700, fontSize: '1rem', color: '#F0A500' }}>{formatVND(historySelectedReceipt.totalReceiptAmount)}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            ) : (
+                                <div className="fi-history-panel" style={{ alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: '.85rem', textAlign: 'center', padding: 24 }}>
+                                    <i className="bi bi-arrow-left" style={{ fontSize: '1.4rem', display: 'block', marginBottom: 8, color: '#ddd' }}></i>
+                                    Select a receipt to view details
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
@@ -1445,103 +1118,12 @@ const FurnitureInventory = () => {
                     onHide={() => {
                         setShowWarehouseFailModal(false);
                         setWarehouseFailRoom(null);
-                        // Refresh inventory data optionally to update stock
                         fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page);
                     }}
                 />
             )}
-
-            {/* BROKEN DETAIL MODAL */}
-            {brokenDetailInfo && (
-                <div className="modal-overlay" style={{ zIndex: 1070, backgroundColor: 'rgba(15,20,40,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}>
-                    <div className="modal-content" style={{ maxWidth: '400px', width: '90%', borderRadius: '16px', padding: '24px', position: 'relative', background: '#fff' }} onClick={e => e.stopPropagation()}>
-                        <button className="btn-close" style={{ position: 'absolute', top: '15px', right: '15px' }} onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}></button>
-                        <h4 style={{ color: '#dc3545', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '1.25rem', fontWeight: 'bold' }}>
-                            <i className="bi bi-exclamation-triangle-fill"></i>
-                            Furniture Broken Details
-                        </h4>
-                        <div style={{ marginBottom: '20px', color: '#6c757d', fontSize: '0.9rem' }}>
-                            <strong>{brokenDetailInfo.name}</strong> � #{brokenDetailInfo.id}
-                        </div>
-                        
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                              <div style={{ padding: '16px', background: '#fff5f5', borderRadius: '12px', borderLeft: '4px solid #dc3545', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                      <div style={{ fontSize: '0.85rem', color: '#dc3545', fontWeight: 'bold' }}>Warehouse Fail</div>
-                                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
-                                          {brokenDetailInfo.brokenInStock || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>Pieces</span>
-                                      </div>
-                                  </div>
-                                  {(brokenDetailInfo.brokenInStock > 0) && (
-                                      <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #ffdcdc' }}>
-                                          <div className="mb-2" style={{ fontSize: '0.85rem', color: '#dc3545' }}><strong>Deal error furniture in stock</strong></div>
-                                          <div className="d-flex align-items-center gap-2">
-                                              <input
-                                                  type="number"
-                                                  className="form-control form-control-sm"
-                                                  style={{ width: '80px' }}
-                                                  value={brokenActionQuantity}
-                                                  onChange={(e) => setBrokenActionQuantity(Number(e.target.value))}
-                                                  min={1}
-                                                  max={brokenDetailInfo.brokenInStock}
-                                                  disabled={isProcessingBroken}
-                                              />
-                                              <button 
-                                                  className="btn btn-sm btn-success text-white px-3"
-                                                  onClick={() => handleProcessBrokenItems('fix')}
-                                                  disabled={isProcessingBroken}
-                                                  title="�� Fixed. Will be available in inventory again."
-                                              ><i className="bi bi-tools me-1"></i>Fixed</button>
-                                              <button 
-                                                  className="btn btn-sm btn-danger px-3 text-white"
-                                                  onClick={() => handleProcessBrokenItems('discard')}
-                                                  disabled={isProcessingBroken}
-                                                  title="Beyond Fixed --> Permanently remove from inventory"
-                                              ><i className="bi bi-trash me-1"></i>Beyond Fixed</button>
-                                          </div>
-                                      </div>
-                                  )}
-                              </div>
-                            <div style={{ padding: '16px', background: '#f8f9fa', borderRadius: '12px', borderLeft: '4px solid #6c757d', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ fontSize: '0.85rem', color: '#495057', fontWeight: 'bold' }}>IN ROOM</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#495057' }}>
-                                        {brokenDetailInfo.brokenInUse || 0} <span style={{fontSize: '0.85rem', fontWeight: 'normal'}}>Piece</span>
-                                    </div>
-                                </div>
-                                {brokenDetailInfo.roomsBroken && brokenDetailInfo.roomsBroken.length > 0 && (
-                                    <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '4px', borderTop: '1px solid #e9ecef', paddingTop: '8px' }}>
-                                        <strong>In Room:</strong> {formatRoomList(brokenDetailInfo.roomsBroken).join(', ')}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        
-                        <div style={{ marginTop: '24px', textAlign: 'right' }}>
-                            <button className="btn btn-secondary px-4 fw-semibold" style={{ borderRadius: '8px' }} onClick={() => { setBrokenDetailInfo(null); setBrokenActionQuantity(1); }}>��ng</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
-
     );
 };
 
 export default FurnitureInventory;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
