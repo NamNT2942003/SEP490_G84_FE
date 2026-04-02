@@ -71,7 +71,7 @@ const FurnitureInventory = () => {
 
         const fetchTypes = async () => {
             try {
-                const typeData = await apiClient.get('/furniture/types');
+                const typeData = await apiClient.get('/inventory/furniture/types');
                 setFurnitureTypes(typeData.data || []);
             } catch (e) { console.error('Failed to fetch types:', e); }
         };
@@ -130,7 +130,11 @@ const FurnitureInventory = () => {
 
     /* ─── Handlers ────────────────────────────────────────────────── */
 
-    const applyFilters = () => { setNameApplied(nameDraft.trim()); setPage(1); };
+    const applyFilters = () => { 
+        setNameApplied(nameDraft.trim()); 
+        setTypeFilterApplied(typeFilterDraft);
+        setPage(1); 
+    };
     const onChangeBranch = v => { setSelectedBranch(v); setPage(1); };
     const onChangeName = v => setNameDraft(v);
     const changePage = next => setPage(Math.max(1, Math.min(totalPages, next)));
@@ -198,7 +202,7 @@ const FurnitureInventory = () => {
             furnitureId: item.isNew ? null : parseInt(item.furnitureId),
             furnitureName: item.isNew ? item.furnitureName.trim() : null,
             price: Number(item.price), quantity: parseInt(item.quantity),
-            unit: item.unit || 'Piece', type: item.isNew ? item.type || '' : null
+            unit: item.unit || 'Piece', type: item.isNew ? (item.type === '__add_new_type__' ? (item.newType || '') : (item.type || '')) : null
         }));
         try {
             await apiClient.post(`/inventory/furniture/import`, { branchId: parseInt(selectedBranch), importDate, items: payload });
@@ -969,12 +973,28 @@ const FurnitureInventory = () => {
                                                 <select className="fi-form-input fi-form-select" value={row.furnitureId} onChange={e => handleImportChange(index, 'furnitureId', e.target.value)}>
                                                     <option value="">-- Select item --</option>
                                                     {availableItems.map(i => <option key={i.furnitureId} value={i.furnitureId}>{i.furnitorName} ({i.type})</option>)}
-                                                    <option value="__new__">+ Add new item</option>
+                                                    
                                                 </select>
                                             ) : (
                                                 <div style={{ display: 'flex', gap: 6 }}>
                                                     <input className="fi-form-input" placeholder="Item name..." value={row.furnitureName} onChange={e => handleImportChange(index, 'furnitureName', e.target.value)} />
-                                                    <input className="fi-form-input" placeholder="Type..." value={row.type || ''} onChange={e => handleImportChange(index, 'type', e.target.value)} style={{ width: 110, flexShrink: 0 }} />
+                                                    {row.type === '__add_new_type__' ? (
+                                                        <div style={{ display: 'flex', gap: 4, width: 120, flexShrink: 0 }}>
+                                                            <input className="fi-form-input" placeholder="Type..." value={row.newType || ''} onChange={e => handleImportChange(index, 'newType', e.target.value)} style={{ padding: '9px 6px' }} />
+                                                            <button onClick={() => {
+                                                                handleImportChange(index, 'type', '');
+                                                                handleImportChange(index, 'newType', undefined);
+                                                            }} style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', padding: '0 4px' }} title="Cancel">
+                                                                <i className="bi bi-x"></i>
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <select className="fi-form-input fi-form-select" value={row.type || ''} onChange={e => handleImportChange(index, 'type', e.target.value)} style={{ width: 120, flexShrink: 0 }}>
+                                                            <option value="">Type...</option>
+                                                            {furnitureTypes.map(t => <option key={t.typeId} value={t.typeName}>{t.typeName}</option>)}
+                                                            <option value="__add_new_type__" style={{ fontWeight: 'bold', color: BRAND }}>+ Add new type</option>
+                                                        </select>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
