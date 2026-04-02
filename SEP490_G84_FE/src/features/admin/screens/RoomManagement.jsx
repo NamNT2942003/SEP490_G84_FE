@@ -987,7 +987,7 @@ function RoomManagement() {
                         <div className="d-flex align-items-center text-muted smallest mb-4">
                           <i className="bi bi-layers-fill me-1"></i> Floor {room.floor}
                           <span className="mx-2">•</span>
-                          <i className="bi bi-geo-alt-fill me-1"></i> Central Branch
+                          <i className="bi bi-geo-alt-fill me-1"></i> {room.branchName || room.branch?.branchName || room.branch?.name || "Central Branch"}
                         </div>
 
                         {/* Visual Metrics */}
@@ -1169,7 +1169,7 @@ function RoomManagement() {
                                 <div className="d-flex align-items-center text-muted smallest mb-4">
                                   <i className="bi bi-layers-fill me-1"></i> Floor {room.floor}
                                   <span className="mx-2">•</span>
-                                  <i className="bi bi-geo-alt-fill me-1"></i> Central Branch
+                                  <i className="bi bi-geo-alt-fill me-1"></i> {room.branchName || room.branch?.branchName || room.branch?.name || "Central Branch"}
                                 </div>
 
                                 {/* Visual Metrics */}

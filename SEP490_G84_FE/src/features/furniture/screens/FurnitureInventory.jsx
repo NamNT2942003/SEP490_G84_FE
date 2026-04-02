@@ -26,6 +26,7 @@ const FurnitureInventory = () => {
     const [furnitureTypes, setFurnitureTypes] = useState([]);
     const [nameApplied, setNameApplied] = useState('');
     const [page, setPage] = useState(1);
+    const [totalElements, setTotalElements] = useState(0);
     const [viewMode, setViewMode] = useState('list');
     const pageSize = viewMode === 'grid' ? 6 : 5;
     const [detailItem, setDetailItem] = useState(null);
@@ -73,7 +74,9 @@ const FurnitureInventory = () => {
             try {
                 const typeData = await apiClient.get('/inventory/furniture/types');
                 setFurnitureTypes(typeData.data || []);
-            } catch (e) { console.error('Failed to fetch types:', e); }
+            } catch (e) {
+                console.error('Failed to fetch types:', e);
+            }
         };
         fetchTypes();
     }, []);
@@ -88,6 +91,7 @@ const FurnitureInventory = () => {
                 response = await furnitureApi.listFurnitureInventoryByBranch(branchId, pageNum - 1, pageSize, typeId === 'all' ? null : typeId);
             }
             const data = response.content || response || [];
+            setTotalElements(response.totalElements || data.length);
             setRows(Array.isArray(data) ? data.map(item => ({
                 id: item.furnitureId, furnitureId: item.furnitureId,
                 name: item.furnitorName,
@@ -103,14 +107,14 @@ const FurnitureInventory = () => {
         } catch (err) { console.error('Failed to fetch furniture:', err); setRows([]); }
     }, [branches]);
 
-    useEffect(() => { setPage(1); }, [selectedBranch, nameApplied]);
+    useEffect(() => { setPage(1); }, [selectedBranch, nameApplied, typeFilterApplied]);
     useEffect(() => { fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page); }, [page, fetchFurnitureData, selectedBranch, nameApplied, typeFilterApplied]);
 
     /* ─── Computed ────────────────────────────────────────────────── */
 
     const filteredRows = useMemo(() => rows, [rows]);
-    const totalPages = useMemo(() => Math.max(1, Math.ceil((filteredRows.length || 0) / pageSize)), [filteredRows.length, pageSize]);
-    const pagedRows = useMemo(() => { const s = (page - 1) * pageSize; return filteredRows.slice(s, s + pageSize); }, [filteredRows, page, pageSize]);
+    const totalPages = useMemo(() => Math.max(1, Math.ceil((totalElements || 0) / pageSize)), [totalElements, pageSize]);
+    const pagedRows = useMemo(() => filteredRows, [filteredRows]);
 
     const groupedHistory = useMemo(() => {
         return importHistory.reduce((acc, cur) => {
@@ -130,10 +134,10 @@ const FurnitureInventory = () => {
 
     /* ─── Handlers ────────────────────────────────────────────────── */
 
-    const applyFilters = () => { 
-        setNameApplied(nameDraft.trim()); 
+    const applyFilters = () => {
+        setNameApplied(nameDraft.trim());
         setTypeFilterApplied(typeFilterDraft);
-        setPage(1); 
+        setPage(1);
     };
     const onChangeBranch = v => { setSelectedBranch(v); setPage(1); };
     const onChangeName = v => setNameDraft(v);
@@ -202,7 +206,7 @@ const FurnitureInventory = () => {
             furnitureId: item.isNew ? null : parseInt(item.furnitureId),
             furnitureName: item.isNew ? item.furnitureName.trim() : null,
             price: Number(item.price), quantity: parseInt(item.quantity),
-            unit: item.unit || 'Piece', type: item.isNew ? (item.type === '__add_new_type__' ? (item.newType || '') : (item.type || '')) : null
+            unit: item.unit || 'Piece', type: item.isNew ? (item.type === '__add_new_type__' ? item.customType || '' : item.type || '') : null
         }));
         try {
             await apiClient.post(`/inventory/furniture/import`, { branchId: parseInt(selectedBranch), importDate, items: payload });
@@ -445,14 +449,7 @@ const FurnitureInventory = () => {
 
             <div className="fi-root">
                 {/* Hero */}
-                <div className="fi-hero">
-                    <div className="container" style={{ position: 'relative', zIndex: 2 }}>
-                        <div style={{ textAlign: 'center', color: '#fff' }}>
-                            <h2 style={{ fontWeight: 800, fontSize: '1.45rem', margin: 0 }}><i className="bi bi-box-seam me-2"></i>Furniture Inventory</h2>
-                            <p style={{ color: 'rgba(255,255,255,.7)', fontSize: '.88rem', margin: '4px 0 0' }}>Manage and track all furniture items efficiently</p>
-                        </div>
-                    </div>
-                </div>
+                <div className="container" style={{ paddingTop: '28px', paddingBottom: '16px' }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, flexWrap: "wrap", gap: 16 }}><div><nav style={{ fontSize: "0.75rem", color: "#999", marginBottom: 8 }}><span>Admin Panel</span><span style={{ margin: "0 8px", color: "#ccc" }}>/</span><span style={{ color: BRAND, fontWeight: 600 }}>Furniture Inventory</span></nav><h1 style={{ fontSize: "1.65rem", fontWeight: 700, color: "#111", margin: 0, letterSpacing: "-0.5px" }}>Furniture Inventory</h1><div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}><p style={{ color: "#888", fontSize: "0.85rem", margin: 0 }}>Manage and track all furniture items efficiently.</p></div></div></div></div>
 
                 <div className="container pb-5">
                     <div className="row g-4">
@@ -507,7 +504,7 @@ const FurnitureInventory = () => {
                         <div className="col-lg-9 col-md-8">
                             {/* Header */}
                             <div className="fi-res-hdr">
-                                <div className="fi-res-cnt"><i className="bi bi-boxes me-2" style={{ fontSize: '1.1rem', color: BRAND }}></i>Found <span>{filteredRows.length}</span> items</div>
+                                <div className="fi-res-cnt"><i className="bi bi-boxes me-2" style={{ fontSize: '1.1rem', color: BRAND }}></i>Found <span>{totalElements}</span> items</div>
                                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                                     <div className="fi-view-toggle">
                                         <button className={`fi-vt-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}><i className="bi bi-list-ul"></i></button>
@@ -979,20 +976,15 @@ const FurnitureInventory = () => {
                                                 <div style={{ display: 'flex', gap: 6 }}>
                                                     <input className="fi-form-input" placeholder="Item name..." value={row.furnitureName} onChange={e => handleImportChange(index, 'furnitureName', e.target.value)} />
                                                     {row.type === '__add_new_type__' ? (
-                                                        <div style={{ display: 'flex', gap: 4, width: 120, flexShrink: 0 }}>
-                                                            <input className="fi-form-input" placeholder="Type..." value={row.newType || ''} onChange={e => handleImportChange(index, 'newType', e.target.value)} style={{ padding: '9px 6px' }} />
-                                                            <button onClick={() => {
-                                                                handleImportChange(index, 'type', '');
-                                                                handleImportChange(index, 'newType', undefined);
-                                                            }} style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', padding: '0 4px' }} title="Cancel">
-                                                                <i className="bi bi-x"></i>
-                                                            </button>
+                                                        <div style={{ display: 'flex', gap: 4, width: 140, flexShrink: 0 }}>
+                                                            <input className="fi-form-input" placeholder="Type name..." value={row.customType || ''} onChange={e => handleImportChange(index, 'customType', e.target.value)} style={{ flex: 1, padding: '4px 8px' }} />
+                                                            <button title="Select existing type" onClick={() => handleImportChange(index, 'type', '')} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: '0 4px' }}><i className="bi bi-x-circle"></i></button>
                                                         </div>
                                                     ) : (
-                                                        <select className="fi-form-input fi-form-select" value={row.type || ''} onChange={e => handleImportChange(index, 'type', e.target.value)} style={{ width: 120, flexShrink: 0 }}>
-                                                            <option value="">Type...</option>
+                                                        <select className="fi-form-input fi-form-select" value={row.type || ''} onChange={e => handleImportChange(index, 'type', e.target.value)} style={{ width: 140, flexShrink: 0, padding: '4px 20px 4px 8px' }}>
+                                                            <option value="" disabled hidden>Type</option>
                                                             {furnitureTypes.map(t => <option key={t.typeId} value={t.typeName}>{t.typeName}</option>)}
-                                                            <option value="__add_new_type__" style={{ fontWeight: 'bold', color: BRAND }}>+ Add new type</option>
+                                                            <option value="__add_new_type__" style={{ fontWeight: 'bold' }}>+ Add new type</option>
                                                         </select>
                                                     )}
                                                 </div>
@@ -1147,3 +1139,4 @@ const FurnitureInventory = () => {
 };
 
 export default FurnitureInventory;
+

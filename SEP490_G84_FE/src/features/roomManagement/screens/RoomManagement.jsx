@@ -715,7 +715,7 @@ function RoomManagement() {
                                   <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: "0.78rem", color: "#aaa", marginBottom: 16 }}>
                                     <span><i className="bi bi-layers-fill me-1"></i>Floor {room.floor}</span>
                                     <span>·</span>
-                                    <span><i className="bi bi-geo-alt-fill me-1"></i>Central Branch</span>
+                                    <span><i className="bi bi-geo-alt-fill me-1"></i>{room.branchName || room.branch?.branchName || room.branch?.name || "Central Branch"}</span>
                                   </div>
 
                                   {/* Metrics */}

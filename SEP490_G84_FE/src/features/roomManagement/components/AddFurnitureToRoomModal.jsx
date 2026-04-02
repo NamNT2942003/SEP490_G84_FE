@@ -47,8 +47,17 @@ export default function AddFurnitureToRoomModal({ isOpen, onClose, selectedBranc
   if (!isOpen) return null;
 
   return (
-    <div style={{position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060, display: "flex", justifyContent: "center", alignItems: "center"}}>
-      <div style={{backgroundColor: "white", padding: "20px", borderRadius: "8px", width: "600px", position: "relative"}}>
+    <div 
+        style={{position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1070, display: "flex", justifyContent: "center", alignItems: "center"}}
+        onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+        }}
+    >
+      <div 
+          style={{backgroundColor: "white", padding: "20px", borderRadius: "8px", width: "600px", position: "relative"}}
+          onClick={(e) => e.stopPropagation()}
+      >
         <h2 style={{fontSize:"20px", marginBottom:"15px"}}>Select furniture to room <span style={{float:"right", fontSize:"14px", background:"#ddd", padding:"2px 10px"}}>Branch-WareHouse</span></h2>
 
         {!selectedBranchId ? (
@@ -79,8 +88,8 @@ export default function AddFurnitureToRoomModal({ isOpen, onClose, selectedBranc
         )}
 
         <div style={{textAlign: "center"}}>
-          <button onClick={handleConfirm} disabled={!selectedBranchId} className="btn" style={{backgroundColor: "#FFA500", color: "white", width: "100px", marginRight: "10px"}}>Add</button>
-          <button onClick={onClose} className="btn" style={{backgroundColor:"#FF6B6B", color:"white", width:"100px"}}>Cancel</button>
+          <button type="button" onClick={handleConfirm} disabled={!selectedBranchId} className="btn" style={{backgroundColor: "#FFA500", color: "white", width: "100px", marginRight: "10px"}}>Add</button>
+          <button type="button" onClick={() => onClose()} className="btn" style={{backgroundColor:"#FF6B6B", color:"white", width:"100px"}}>Cancel</button>
         </div>
       </div>
     </div>
