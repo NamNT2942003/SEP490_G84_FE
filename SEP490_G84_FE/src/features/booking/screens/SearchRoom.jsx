@@ -136,7 +136,7 @@ const SearchRoom = () => {
         } catch (err) {
             const apiError = err?.response?.data?.error;
             const message = apiError && String(apiError).includes("yyyy-MM-dd")
-                ? "Ngay khong dung dinh dang yyyy-MM-dd"
+                ? "Date format must be yyyy-MM-dd"
                 : (apiError || err.message || "Failed to search rooms");
             setError(message);
         } finally { setLoading(false); }
@@ -160,7 +160,7 @@ const SearchRoom = () => {
         } catch (err) {
             const apiError = err?.response?.data?.error;
             const message = apiError && String(apiError).includes("yyyy-MM-dd")
-                ? "Ngay khong dung dinh dang yyyy-MM-dd"
+                ? "Date format must be yyyy-MM-dd"
                 : (apiError || err.message || "Failed to search rooms");
             setError(message);
         } finally { setLoading(false); }
@@ -605,7 +605,7 @@ const SearchRoom = () => {
                                                             {room.name}
                                                         </div>
                                                         <div className="cart-room-price">
-                                                            💰 {new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/stay
+                                                                    <i className="bi bi-currency-dollar me-1"></i>{new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/stay
                                                         </div>
                                                     </div>
                                                     <button
@@ -647,7 +647,7 @@ const SearchRoom = () => {
 
                                                 <div className="cart-room-total">
                                                     <span>
-                                                        <span className="me-2">📊</span>
+                                                        <i className="bi bi-bar-chart-line me-2"></i>
                                                         {room.quantity} room(s)
                                                     </span>
                                                     <span className="cart-room-total-amount">
@@ -669,7 +669,7 @@ const SearchRoom = () => {
                             {selectedCart.length > 0 && (
                                 <div className="cart-footer">
                                     <div className="cart-total-section">
-                                        <span className="cart-total-label">💰 Total:</span>
+                                        <span className="cart-total-label"><i className="bi bi-wallet2 me-1"></i>Total:</span>
                                         <span className="cart-total-amount">
                                             {new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(cartTotal)}
                                         </span>
@@ -679,7 +679,7 @@ const SearchRoom = () => {
                                         onClick={handleCheckout}
                                         disabled={!hasValidStayDates}
                                     >
-                                        <i className="bi bi-arrow-right me-2"></i>Continue to Guest Info
+                                        <i className="bi bi-arrow-right me-2"></i>Continue to guest information
                                     </button>
                                     {!hasValidStayDates && (
                                         <p className="mb-0 mt-2" style={{ fontSize: '0.78rem', opacity: 0.9 }}>
@@ -693,12 +693,12 @@ const SearchRoom = () => {
 
                     <div className="col-lg-9 col-md-8" style={{ position: 'relative', zIndex: 0 }}>
                         <div className="res-hdr d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div className="res-cnt"><i className="bi bi-building me-2" style={{ color: '#5C6F4E' }}></i>Available Rooms: <span>{totalElements}</span></div>
+                            <div className="res-cnt"><i className="bi bi-building me-2" style={{ color: '#5C6F4E' }}></i>Available rooms: <span>{totalElements}</span></div>
                             <div className="d-flex align-items-center gap-2">
                                 <span className="text-muted" style={{ fontSize: '.82rem' }}><i className="bi bi-sort-down me-1"></i>Sort by:</span>
                                 <select className="sort-sel" value={filters.sortPrice} onChange={handleSortChange}>
-                                    <option value="priceAsc">Price: Low → High</option>
-                                    <option value="priceDesc">Price: High → Low</option>
+                                    <option value="priceAsc">Price: low to high</option>
+                                    <option value="priceDesc">Price: high to low</option>
                                 </select>
                             </div>
                         </div>

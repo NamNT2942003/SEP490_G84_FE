@@ -674,15 +674,15 @@ const DateRangePicker = ({
                                 const ci = parseYmdToLocalMidnight(checkIn);
                                 const co = parseYmdToLocalMidnight(checkOut);
                                 if (co < ci) {
-                                    return "Invalid date range";
+                                  return "Invalid date range";
                                 }
                                 const nights = Math.ceil((co - ci) / (1000 * 60 * 60 * 24));
-                                return `${nights} nights selected`;
+                                return `${nights} night(s) selected`;
                             })()
                         ) : selectingState === "end" && checkIn ? (
-                            "Select your check-out date"
+                              "Select your check-out date"
                         ) : (
-                            "Select your check-in date"
+                              "Select your check-in date"
                         )}
                     </div>
                 </div>

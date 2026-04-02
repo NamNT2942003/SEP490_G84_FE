@@ -11,18 +11,18 @@ const formatVND = (amount) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
 const getCancellationText = (cancellationType, freeCancelBeforeDays) => {
-    if (cancellationType === 'NON_REFUNDABLE') return 'Khong hoan tien';
+    if (cancellationType === 'NON_REFUNDABLE') return 'Non-refundable';
     if (cancellationType === 'REFUNDABLE' && freeCancelBeforeDays > 0) {
-        return `Mien phi huy truoc ${freeCancelBeforeDays} ngay`;
+        return `Free cancellation before ${freeCancelBeforeDays} days`;
     }
-    if (cancellationType === 'REFUNDABLE') return 'Mien phi huy';
-    return 'Chinh sach huy theo phong';
+    if (cancellationType === 'REFUNDABLE') return 'Free cancellation';
+    return 'Cancellation policy by room';
 };
 
 const getPaymentText = (paymentType) => {
-    if (paymentType === 'PREPAID') return 'Thanh toan truoc';
-    if (paymentType === 'PAY_AT_HOTEL') return 'Thanh toan tai khach san';
-    return 'Hinh thuc thanh toan theo phong';
+    if (paymentType === 'PREPAID') return 'Prepaid';
+    if (paymentType === 'PAY_AT_HOTEL') return 'Pay at hotel';
+    return 'Room-based payment method';
 };
 
 const calculateRoomUnitPrice = (room) => {
@@ -98,7 +98,7 @@ const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
                     <div>
                         <div className="room-name fs-5 fw-bold text-dark mb-1" style={{fontFamily: "'Playfair Display', serif"}}>{room.name}</div>
                         <div className="room-price fw-semibold text-secondary mb-2" style={{fontSize: '0.9rem'}}>
-                            💵 {new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ kỳ ở</span>
+                            <i className="bi bi-currency-dollar me-1"></i>{new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ stay</span>
                         </div>
                         <div className="d-flex gap-3">
                             <div className="small px-2 py-1 rounded" style={{background: '#ebf4ff', color: '#3182ce', fontWeight: 600}}>
@@ -160,7 +160,7 @@ const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
 
             {room.manualSelectPromotions?.length > 0 && (
                 <div className="promo-container">
-                    <h6 className="promo-title mb-3"><i className="bi bi-gift-fill me-2" style={{color: '#D4AF37'}}></i>Khuyến Mãi Đặc Quyền</h6>
+                    <h6 className="promo-title mb-3"><i className="bi bi-gift-fill me-2" style={{color: '#D4AF37'}}></i>Exclusive Promotions</h6>
                     <div className="promo-list">
                         {room.manualSelectPromotions.map((promo, idx) => {
                             const isChecked = room.selectedManualPromotion?.priceModifierId === promo.priceModifierId;
@@ -184,7 +184,7 @@ const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
                                 <i className={`bi ${!room.selectedManualPromotion ? 'bi-check-circle-fill text-secondary' : 'bi-circle'}`} style={{color: !room.selectedManualPromotion ? '' : '#cbd5e0'}}></i>
                             </div>
                             <div className="promo-content justify-content-center">
-                                <span className="text-secondary fw-semibold">Không sử dụng ưu đãi ngay lúc này</span>
+                                <span className="text-secondary fw-semibold">Do not use a promotion right now</span>
                             </div>
                         </div>
                     </div>
@@ -227,7 +227,7 @@ const GuestInformation = () => {
         }
         const room = rooms.find((r) => r.roomTypeId === roomTypeId);
         if (room && newQty > (room.availableCount || 999)) {
-            alert(`Only ${room.availableCount} room(s) available for ${room.name}`);
+            alert(`Only ${room.availableCount} room(s) left for ${room.name}`);
             return;
         }
         setRooms((prev) =>
@@ -254,16 +254,16 @@ const GuestInformation = () => {
 
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
-            alert('Vui lòng điền đầy đủ thông tin khách hàng.');
+            alert('Please fill in all guest information.');
             return;
         }
         if (rooms.length === 0) {
-            alert('Vui lòng chọn ít nhất một phòng.');
+            alert('Please select at least one room.');
             return;
         }
 
         if (!checkIn || !checkOut || new Date(checkOut) <= new Date(checkIn)) {
-            alert('Ngay khong hop le. Vui long chon check-out sau check-in (yyyy-MM-dd).');
+            alert('Invalid date. Please select a check-out date after check-in (yyyy-MM-dd).');
             return;
         }
 
@@ -274,7 +274,7 @@ const GuestInformation = () => {
             const createdBookingId = data?.bookingId ?? data?.id;
 
             if (!createdBookingId) {
-                alert('Lỗi đặt phòng: Không nhận được mã đặt phòng từ server.');
+                alert('Booking error: Did not receive a booking ID from the server.');
                 return;
             }
 
@@ -290,8 +290,8 @@ const GuestInformation = () => {
             });
         } catch (error) {
             console.error('Booking error:', error);
-            const message = error?.response?.data?.message || error?.friendlyMessage || error.message || 'Không thể tạo booking';
-            alert('Lỗi đặt phòng: ' + message);
+            const message = error?.response?.data?.message || error?.friendlyMessage || error.message || 'Unable to create booking';
+            alert('Booking error: ' + message);
         }
     };
 
@@ -421,7 +421,7 @@ const GuestInformation = () => {
                         onClick={handleContinue}
                         disabled={rooms.length === 0}
                     >
-                        Continue to Payment <i className="bi bi-arrow-right ms-2" />
+                        Continue to payment <i className="bi bi-arrow-right ms-2" />
                     </button>
                 </div>
             </footer>
