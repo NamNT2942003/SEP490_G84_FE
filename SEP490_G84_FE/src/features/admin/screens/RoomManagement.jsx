@@ -422,30 +422,30 @@ function RoomManagement() {
   };
 
   const renderPagination = () => {
-    if (totalPages <= 1) return null;
+    if (totalPagesFiltered <= 1) return null;
 
     const pages = [];
     const maxVisiblePages = 5;
-    let startPage = Math.max(0, page - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
+    let startPage = Math.max(0, validPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPagesFiltered - 1, startvalidPage + maxVisiblePages - 1);
 
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(0, endPage - maxVisiblePages + 1);
+    if (endvalidPage - startvalidPage + 1 < maxVisiblePages) {
+      startPage = Math.max(0, endvalidPage - maxVisiblePages + 1);
     }
 
     return (
         <nav aria-label="Room navigation" className="mt-4">
           <ul className="pagination pagination-sm justify-content-center gap-1 mb-0">
             {/* First Page */}
-            <li className={`page-item ${page === 0 ? 'disabled' : ''}`}>
+            <li className={`page-item ${validPage === 0 ? 'disabled' : ''}`}>
               <button className="page-link border-0 rounded-3 px-3" onClick={() => handlePageChange(0)}>
                 <i className="bi bi-chevron-double-left"></i>
               </button>
             </li>
 
             {/* Previous Page */}
-            <li className={`page-item ${page === 0 ? 'disabled' : ''}`}>
-              <button className="page-link border-0 rounded-3 px-3" onClick={() => handlePageChange(page - 1)}>
+            <li className={`page-item ${validPage === 0 ? 'disabled' : ''}`}>
+              <button className="page-link border-0 rounded-3 px-3" onClick={() => handlePageChange(validPage - 1)}>
                 <i className="bi bi-chevron-left"></i>
               </button>
             </li>
@@ -453,11 +453,11 @@ function RoomManagement() {
             {/* Page Numbers */}
             {startPage > 0 && <li className="page-item disabled"><span className="page-link border-0">...</span></li>}
 
-            {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(p => (
-                <li key={p} className={`page-item ${page === p ? 'active' : ''}`}>
+            {Array.from({ length: endvalidPage - startvalidPage + 1 }, (_, i) => startvalidPage + i).map(p => (
+                <li key={p} className={`page-item ${validPage === p ? 'active' : ''}`}>
                   <button
                       className="page-link border-0 rounded-3 px-3 fw-bold"
-                      style={page === p ? { backgroundColor: BRAND, color: 'white' } : { color: BRAND }}
+                      style={validPage === p ? { backgroundColor: BRAND, color: 'white' } : { color: BRAND }}
                       onClick={() => handlePageChange(p)}
                   >
                     {p + 1}
@@ -465,18 +465,18 @@ function RoomManagement() {
                 </li>
             ))}
 
-            {endPage < totalPages - 1 && <li className="page-item disabled"><span className="page-link border-0">...</span></li>}
+            {endPage < totalPagesFiltered - 1 && <li className="page-item disabled"><span className="page-link border-0">...</span></li>}
 
             {/* Next Page */}
-            <li className={`page-item ${page === totalPages - 1 ? 'disabled' : ''}`}>
-              <button className="page-link border-0 rounded-3 px-3" onClick={() => handlePageChange(page + 1)}>
+            <li className={`page-item ${validPage === totalPagesFiltered - 1 ? 'disabled' : ''}`}>
+              <button className="page-link border-0 rounded-3 px-3" onClick={() => handlePageChange(validPage + 1)}>
                 <i className="bi bi-chevron-right"></i>
               </button>
             </li>
 
             {/* Last Page */}
-            <li className={`page-item ${page === totalPages - 1 ? 'disabled' : ''}`}>
-              <button className="page-link border-0 rounded-3 px-3" onClick={() => handlePageChange(totalPages - 1)}>
+            <li className={`page-item ${validPage === totalPagesFiltered - 1 ? 'disabled' : ''}`}>
+              <button className="page-link border-0 rounded-3 px-3" onClick={() => handlePageChange(totalPagesFiltered - 1)}>
                 <i className="bi bi-chevron-double-right"></i>
               </button>
             </li>
@@ -569,6 +569,12 @@ function RoomManagement() {
         return 0;
     }
   });
+
+  const totalElementsFiltered = displayedRooms.length;
+  const totalPagesFiltered = Math.max(1, Math.ceil(totalElementsFiltered / pageSize)); // default or pageSize if variable is used
+  const validPage = Math.min(page, totalPagesFiltered - 1 >= 0 ? totalPagesFiltered - 1 : 0);
+  const pageSizeForCalc = typeof pageSize !== 'undefined' ? pageSize : 12; // ensure pageSize is known, fallback to 12
+  const displayedRooms = sortedRooms.slice(validPage * pageSizeForCalc, (validPage + 1) * pageSizeForCalc);
 
   const statValues = {
     total: statistics.totalRooms,
@@ -920,7 +926,7 @@ function RoomManagement() {
         )}
 
         {/* LOADING & ERROR - MODERN OVERLAY */}
-        {loading && page === 0 && (
+        {loading && validPage === 0 && (
           <div className="d-flex flex-column align-items-center justify-content-center py-5">
             <div className="spinner-grow text-primary mb-3" style={{ color: BRAND }} role="status">
               <span className="visually-hidden">Loading rooms...</span>
@@ -933,7 +939,7 @@ function RoomManagement() {
         {/* ROOM CARDS GRID - PREMIUM DESIGN */}
         {!loading && (
           <>
-            {sortedRooms.length === 0 ? (
+            {displayedRooms.length === 0 ? (
               <div className="text-center py-5 bg-white shadow-sm rounded-4">
                 <i className="bi bi-inbox text-muted display-1 mb-3"></i>
                 <h4 className="text-muted">No rooms found</h4>
@@ -955,7 +961,7 @@ function RoomManagement() {
               </div>
             ) : (
               <div className="row g-4">
-                {sortedRooms.map((room, index) => (
+                {displayedRooms.map((room, index) => (
                   <div key={room.roomId || room.id || `room-${index}`} className="col-12 col-md-6 col-lg-4 col-xl-3">
                     <div className="card border-0 shadow-sm h-100 room-card position-relative" 
                          style={{ borderRadius: "20px", overflow: "hidden", transition: "all 0.3s ease" }}>
@@ -1119,7 +1125,7 @@ function RoomManagement() {
           </div>
 
           {/* LOADING & ERROR - MODERN OVERLAY */}
-          {loading && page === 0 && (
+          {loading && validPage === 0 && (
               <div className="d-flex flex-column align-items-center justify-content-center py-5">
                 <div className="spinner-grow text-primary mb-3" style={{ color: BRAND }} role="status"></div>
                 <h6 className="text-muted fw-medium">Syncing Room Data...</h6>
@@ -1129,7 +1135,7 @@ function RoomManagement() {
           {/* ROOM CARDS GRID - PREMIUM DESIGN */}
           {!loading && (
               <>
-                {sortedRooms.length === 0 ? (
+                {displayedRooms.length === 0 ? (
                     <div className="text-center py-5 bg-white shadow-sm rounded-4">
                       <i className="bi bi-inbox text-muted display-1 mb-3"></i>
                       <h4 className="text-muted">No rooms found matching your criteria</h4>
@@ -1137,7 +1143,7 @@ function RoomManagement() {
                     </div>
                 ) : (
                     <div className="row g-4">
-                      {sortedRooms.map((room, index) => (
+                      {displayedRooms.map((room, index) => (
                           <div key={room.roomId || room.id || `room-${index}`} className="col-12 col-md-6 col-lg-4 col-xl-3">
                             <div className="card border-0 shadow-sm h-100 room-card position-relative"
                                  style={{ borderRadius: "20px", overflow: "hidden", transition: "all 0.3s ease" }}>
@@ -1211,10 +1217,10 @@ function RoomManagement() {
                 )}
 
                 {/* FOOTER & PAGINATION */}
-                {sortedRooms.length > 0 && (
+                {displayedRooms.length > 0 && (
                     <div className="d-flex flex-column align-items-center mt-5 mb-5">
                       <p className="text-muted small">
-                        Showing <strong>{sortedRooms.length}</strong> of <strong>{totalElements}</strong> rooms
+                        Showing <strong>{displayedRooms.length}</strong> of <strong>{totalElementsFiltered}</strong> rooms rooms
                       </p>
                       {renderPagination()}
                     </div>

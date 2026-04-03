@@ -58,10 +58,8 @@ function RoomManagement() {
     try {
       setLoading(true);
       setError(null);
-      const data = await roomManagementApi.listRooms(search, "", page, pageSize, branchFilter);
+      const data = await roomManagementApi.listRooms(search, "", 0, 1000, branchFilter);
       setRooms(data.content || []);
-      setTotalPages(data.totalPages || 0);
-      setTotalElements(data.totalElements || 0);
       setApiStatus((prev) => ({ ...prev, rooms: "available" }));
     } catch (err) {
       setError(
@@ -155,30 +153,13 @@ function RoomManagement() {
   useEffect(() => {
     fetchRooms();
     fetchStatistics();
-  }, [page, search, branchFilter]);
+  }, [search, branchFilter]);
 
   useEffect(() => {
     fetchAllData().catch(console.error);
     const interval = setInterval(() => fetchStatistics(branchFilter), 30000);
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    const fetchCurrentPageRooms = async () => {
-      try {
-        setLoading(true);
-        const data = await roomManagementApi.listRooms(search, "", page, 12, branchFilter);
-        setRooms(data.content || []);
-        setTotalElements(data.totalElements || 0);
-        setTotalPages(data.totalPages || 0);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCurrentPageRooms();
-  }, [page, search, branchFilter]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -244,7 +225,10 @@ function RoomManagement() {
       default:       return 0;
     }
   });
-
+  const totalElementsFiltered = sortedRooms.length;
+  const totalPagesFiltered = Math.max(1, Math.ceil(totalElementsFiltered / pageSize));
+  const validPage = Math.min(page, totalPagesFiltered - 1);
+  const displayedRooms = sortedRooms.slice(validPage * pageSize, (validPage + 1) * pageSize);
   /* ─── Handlers ──────────────────────────────────────────────────────── */
 
   const handleSearch = (e) => {
@@ -308,31 +292,31 @@ function RoomManagement() {
   /* ─── Pagination ────────────────────────────────────────────────────── */
 
   const renderPagination = () => {
-    if (totalPages <= 1) return null;
+    if (totalPagesFiltered <= 1) return null;
     const maxVisible = 5;
-    let start = Math.max(0, page - Math.floor(maxVisible / 2));
-    let end = Math.min(totalPages - 1, start + maxVisible - 1);
+    let start = Math.max(0, validPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPagesFiltered - 1, start + maxVisible - 1);
     if (end - start + 1 < maxVisible) start = Math.max(0, end - maxVisible + 1);
 
     const btnBase = { border: "none", background: "transparent", borderRadius: "8px", padding: "6px 12px", fontSize: "0.85rem", cursor: "pointer", transition: "all 0.2s" };
 
     return (
         <nav aria-label="Room pagination">
-          <ul className="pagination justify-content-center gap-1 mb-0" style={{ listStyle: "none", padding: 0, display: "flex", alignItems: "center" }}>
-            <li><button style={{ ...btnBase, opacity: page === 0 ? 0.3 : 1 }} disabled={page === 0} onClick={() => handlePageChange(0)}><i className="bi bi-chevron-double-left"></i></button></li>
-            <li><button style={{ ...btnBase, opacity: page === 0 ? 0.3 : 1 }} disabled={page === 0} onClick={() => handlePageChange(page - 1)}><i className="bi bi-chevron-left"></i></button></li>
+          <ul className="pagination justify-content-center gap-1 mb-0" style={{ listStyle: "none", padding: 0, display: "flex", alignItems: "center" }}>        
+            <li><button style={{ ...btnBase, opacity: validPage === 0 ? 0.3 : 1 }} disabled={validPage === 0} onClick={() => handlePageChange(0)}><i className="bi bi-chevron-double-left"></i></button></li>
+            <li><button style={{ ...btnBase, opacity: validPage === 0 ? 0.3 : 1 }} disabled={validPage === 0} onClick={() => handlePageChange(validPage - 1)}><i className="bi bi-chevron-left"></i></button></li>
             {start > 0 && <li><span style={{ padding: "6px 4px", color: "#aaa" }}>…</span></li>}
             {Array.from({ length: end - start + 1 }, (_, i) => start + i).map((p) => (
                 <li key={p}>
                   <button
-                      style={{ ...btnBase, backgroundColor: page === p ? BRAND : "transparent", color: page === p ? "#fff" : BRAND, fontWeight: page === p ? 700 : 400 }}
+                      style={{ ...btnBase, backgroundColor: validPage === p ? BRAND : "transparent", color: validPage === p ? "#fff" : BRAND, fontWeight: validPage === p ? 700 : 400 }}
                       onClick={() => handlePageChange(p)}
                   >{p + 1}</button>
                 </li>
             ))}
-            {end < totalPages - 1 && <li><span style={{ padding: "6px 4px", color: "#aaa" }}>…</span></li>}
-            <li><button style={{ ...btnBase, opacity: page === totalPages - 1 ? 0.3 : 1 }} disabled={page === totalPages - 1} onClick={() => handlePageChange(page + 1)}><i className="bi bi-chevron-right"></i></button></li>
-            <li><button style={{ ...btnBase, opacity: page === totalPages - 1 ? 0.3 : 1 }} disabled={page === totalPages - 1} onClick={() => handlePageChange(totalPages - 1)}><i className="bi bi-chevron-double-right"></i></button></li>
+            {end < totalPagesFiltered - 1 && <li><span style={{ padding: "6px 4px", color: "#aaa" }}>…</span></li>}
+            <li><button style={{ ...btnBase, opacity: validPage === totalPagesFiltered - 1 ? 0.3 : 1 }} disabled={validPage === totalPagesFiltered - 1} onClick={() => handlePageChange(validPage + 1)}><i className="bi bi-chevron-right"></i></button></li>
+            <li><button style={{ ...btnBase, opacity: validPage === totalPagesFiltered - 1 ? 0.3 : 1 }} disabled={validPage === totalPagesFiltered - 1} onClick={() => handlePageChange(totalPagesFiltered - 1)}><i className="bi bi-chevron-double-right"></i></button></li>     
           </ul>
         </nav>
     );
@@ -674,7 +658,7 @@ function RoomManagement() {
             {/* ── Room Grid / List ── */}
             {!loading && (
                 <>
-                  {sortedRooms.length === 0 ? (
+                  {displayedRooms.length === 0 ? (
                       <div style={{ background: "#fff", borderRadius: 18, border: "1px solid rgba(0,0,0,0.06)", padding: "60px 24px", textAlign: "center" }}>
                         <i className="bi bi-inbox" style={{ fontSize: "3rem", color: "#ccc", display: "block", marginBottom: 16 }}></i>
                         <h5 style={{ color: "#888", fontWeight: 600, marginBottom: 12 }}>No rooms match your filters</h5>
@@ -687,7 +671,7 @@ function RoomManagement() {
                       </div>
                   ) : viewMode === "grid" ? (
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
-                        {sortedRooms.map((room, index) => {
+                        {displayedRooms.map((room, index) => {
                           const st = getStatus(room.status);
                           return (
                               <div key={room.roomId || room.id || `room-${index}`} className="rm-room-card" style={{ animationDelay: `${index * 40}ms` }}>
@@ -766,15 +750,15 @@ function RoomManagement() {
                         })}
                       </div>
                   ) : (
-                      <RoomList rooms={sortedRooms} onRefresh={fetchAllData} />
+                      <RoomList rooms={displayedRooms} onRefresh={fetchAllData} />
                   )}
 
                   {/* ── Footer / Pagination ── */}
-                  {sortedRooms.length > 0 && (
+                  {displayedRooms.length > 0 && (
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginTop: 40, marginBottom: 32 }}>
                         <p style={{ color: "#aaa", fontSize: "0.83rem", margin: 0 }}>
-                          Showing <strong style={{ color: "#555" }}>{sortedRooms.length}</strong> of{" "}
-                          <strong style={{ color: "#555" }}>{totalElements}</strong> rooms
+                          Showing <strong style={{ color: "#555" }}>{displayedRooms.length}</strong> of{" "}
+                          <strong style={{ color: "#555" }}>{totalElementsFiltered}</strong> rooms
                         </p>
                         {renderPagination()}
                       </div>
@@ -822,3 +806,5 @@ function RoomManagement() {
 }
 
 export default RoomManagement;
+
+

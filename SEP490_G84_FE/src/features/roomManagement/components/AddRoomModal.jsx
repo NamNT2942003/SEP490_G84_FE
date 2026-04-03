@@ -26,17 +26,17 @@ export default function AddRoomModal({ isOpen, onClose, onRoomAdded, branches, r
   }, [isOpen]);
 
   useEffect(() => {
-    if (formData.branchId && formData.floor) {
-      apiClient.get(`/admin/rooms/next-name`, {
-        params: { branchId: formData.branchId, floor: formData.floor }
-      }).then(res => {
-        setFormData(prev => ({ ...prev, roomName: res.data.nextRoomName }));    
-      }).catch(err => console.error(err));
+    if (isOpen) {
+      setFormData(prev => ({ ...prev, roomTypeId: "" }));
     }
-  }, [formData.branchId, formData.floor]);
+  }, [formData.branchId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.roomName || formData.roomName.trim() === "") {
+        alert("Vui lòng nhập tên phòng");
+        return;
+    }
     try {
       const payload = {
         branchId: parseInt(formData.branchId),
@@ -54,7 +54,8 @@ export default function AddRoomModal({ isOpen, onClose, onRoomAdded, branches, r
       onClose();
     } catch (err) {
       console.error("Failed to add room", err);
-      alert("Error adding room: " + (err.response?.data?.message || err.message));
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      alert("Error adding room: " + errorMsg);
     }
   };
 
@@ -90,14 +91,14 @@ export default function AddRoomModal({ isOpen, onClose, onRoomAdded, branches, r
 
             <div style={{marginBottom: "10px"}}>
               <label>Room Name</label>
-              <input required type="text" className="form-control" value={formData.roomName} readOnly />
+              <input required type="text" className="form-control" value={formData.roomName} onChange={e => setFormData({ ...formData, roomName: e.target.value })} placeholder="Enter Room Name" />
             </div>
 
             <div style={{marginBottom: "10px"}}>
               <label>Room Type</label>
               <select required className="form-select" value={formData.roomTypeId} onChange={e => setFormData({ ...formData, roomTypeId: e.target.value })}>
                 <option value="">Select Room Type</option>
-                {roomTypes?.map(rt => (
+                {roomTypes?.filter(rt => !formData.branchId || rt.branchId === parseInt(formData.branchId)).map(rt => (
                   <option key={rt.roomTypeId || rt.id} value={rt.roomTypeId || rt.id}>{rt.name}</option>
                 ))}
               </select>
