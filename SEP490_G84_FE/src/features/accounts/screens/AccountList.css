@@ -219,6 +219,13 @@
   border-spacing: 0;
 }
 
+/* All body/header cells: horizontal + vertical center */
+.account-table-centered thead th,
+.account-table-centered tbody td {
+  text-align: center;
+  vertical-align: middle;
+}
+
 .account-table thead th {
   background-color: #f8f9fa;
   color: #495057;
@@ -226,7 +233,6 @@
   font-size: 13px;
   text-transform: uppercase;
   padding: 16px;
-  text-align: left;
   border-bottom: 1px solid #dee2e6;
   white-space: nowrap;
 }
@@ -236,7 +242,6 @@
   font-size: 14px;
   color: #212529;
   border-bottom: 1px solid #f1f3f5;
-  vertical-align: middle;
 }
 
 .account-table tbody tr:last-child td {
@@ -247,7 +252,12 @@
   background-color: #f8f9fa;
 }
 
-/* Avatar */
+/* Avatar — centered in cell */
+.account-table-centered .avatar-img {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .avatar-img {
   width: 40px;
   height: 40px;
@@ -260,6 +270,10 @@
 .fw-semibold {
   font-weight: 600;
   color: #212529;
+}
+
+.account-table-centered tbody td .fw-semibold {
+  text-align: center;
 }
 
 .text-muted {
@@ -283,6 +297,11 @@
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.account-table-centered .additional-branches {
+  justify-content: center;
+  align-items: center;
 }
 
 .badge-branch-sm {
@@ -321,6 +340,7 @@
 .status-toggle-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 6px 12px;
   border: none;
@@ -363,6 +383,11 @@
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.account-table-centered .action-icons {
+  justify-content: center;
+  width: 100%;
 }
 
 .action-btn {

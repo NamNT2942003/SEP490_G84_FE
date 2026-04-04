@@ -56,7 +56,6 @@ import UserDetail from '@/features/accounts/screens/UserDetail';
 import EditStaff from '@/features/accounts/screens/EditStaff';
 import CreateAccount from '@/features/accounts/screens/CreateAccount';
 import UserProfile from '@/features/profile/screens/UserProfile';
-import UpdateProfile from '@/features/profile/screens/UpdateProfile';
 
 // --- TEST / BOOTSTRAP PAGES ---
 import ImportInventoryBootstrap from "@/features/test/ImportInventoryBootstrap.jsx";
@@ -120,9 +119,9 @@ const AppRouter = () => {
             <Route path="/inventory" element={<MainLayout><InventoryScreen /></MainLayout>} />
             <Route path="/finance/cashflow" element={<MainLayout><CashflowScreen /></MainLayout>} />
 
-            {/* 5.4 Profile */}
+            {/* 5.4 Profile (cũ /profile/edit → gộp vào User Profile) */}
             <Route path="/profile" element={<MainLayout><UserProfile /></MainLayout>} />
-            <Route path="/profile/edit" element={<MainLayout><UpdateProfile /></MainLayout>} />
+            <Route path="/profile/edit" element={<Navigate to="/profile" replace />} />
 
             {/* 5.5 Reports */}
             <Route path="/report/revenue" element={<MainLayout><RevenueReportScreen /></MainLayout>} />

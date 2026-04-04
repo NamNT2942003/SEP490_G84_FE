@@ -106,3 +106,30 @@
   opacity: 0.65;
   cursor: not-allowed;
 }
+
+/* Primary confirm (create / update / status — same card, brand green) */
+.delete-confirm-btn-confirm-primary {
+  min-width: 120px;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  background: #56785e;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.delete-confirm-btn-confirm-primary:hover:not(:disabled) {
+  background: #4a6652;
+}
+
+.delete-confirm-btn-confirm-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.delete-confirm-btn-confirm-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

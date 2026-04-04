@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { accountAPI, branchAPI } from '@/features/accounts/api/accountApi';
+import { fetchRoleOptionsForAccountForm } from '@/features/accounts/utils/roleOptions';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import SuccessNoticeModal from '@/features/accounts/components/SuccessNoticeModal';
+import AccountConfirmModal from '@/features/accounts/components/AccountConfirmModal';
 import './EditStaff.css';
 
 const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
@@ -32,6 +34,9 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
     title: '',
     message: '',
   });
+  const [pendingSuccessMeta, setPendingSuccessMeta] = useState(null);
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  const [submitConfirming, setSubmitConfirming] = useState(false);
 
   useEffect(() => {
     if (!currentUser) {
@@ -61,15 +66,12 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
       setBranches(branchesList);
 
       let assignableList = [];
-      if (currentUser?.userId) {
-        try {
-          const rolesRes = await accountAPI.getAssignableRoles(currentUser.userId);
-          assignableList = rolesRes.data || [];
-          setAssignableRoles(assignableList);
-        } catch (e) {
-          console.warn('Assignable roles not loaded:', e);
-          setAssignableRoles([]);
-        }
+      try {
+        assignableList = await fetchRoleOptionsForAccountForm(currentUser);
+        setAssignableRoles(assignableList);
+      } catch (e) {
+        console.warn('Role options not loaded:', e);
+        setAssignableRoles([]);
       }
 
       const params = currentUser?.userId != null ? { currentUserId: currentUser.userId } : {};
@@ -132,21 +134,28 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
+    setSubmitConfirmOpen(true);
+  };
 
+  const closeSubmitConfirm = () => {
+    if (submitConfirming) return;
+    setSubmitConfirmOpen(false);
+  };
+
+  const performUpdateAccount = async () => {
+    setSubmitConfirming(true);
+    setSaving(true);
     try {
-      setSaving(true);
-
-      // Map branch names to IDs
       const additionalBranchIds = branches
-        .filter(b => formData.additionalBranches.includes(b.branchName))
-        .map(b => b.branchId);
+        .filter((b) => formData.additionalBranches.includes(b.branchName))
+        .map((b) => b.branchId);
 
       const updateData = {
         role: formData.role,
         primaryBranchId: formData.primaryBranchId || null,
-        additionalBranchIds: additionalBranchIds
+        additionalBranchIds: additionalBranchIds,
       };
       if (currentUser?.permissions?.canEditUsername) {
         updateData.username = formData.username;
@@ -155,20 +164,25 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
 
       await accountAPI.updateAccount(id, updateData, currentUser?.userId);
 
-      if (isModal && onSuccess) {
-        onSuccess({ username: formData.username });
-      } else {
-        setSuccessNotice({
-          open: true,
-          title: 'Updated successfully!',
-          message: `Account "${formData.username}" has been saved.`,
-        });
+      setSubmitConfirmOpen(false);
+      const meta = { username: formData.username };
+      if (isModal) {
+        setPendingSuccessMeta(meta);
       }
+      setSuccessNotice({
+        open: true,
+        title: 'Updated successfully!',
+        message: `Account "${formData.username}" has been saved.`,
+      });
     } catch (error) {
       console.error('Error updating user:', error);
-      const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response?.data : JSON.stringify(error.response?.data));
+      const msg =
+        error.response?.data?.message ||
+        (typeof error.response?.data === 'string' ? error.response?.data : JSON.stringify(error.response?.data));
       alert('Could not update user.' + (msg ? '\n' + msg : ''));
+      setSubmitConfirmOpen(false);
     } finally {
+      setSubmitConfirming(false);
       setSaving(false);
     }
   };
@@ -186,6 +200,14 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
 
   const handleCloseSuccessNotice = () => {
     setSuccessNotice((prev) => ({ ...prev, open: false }));
+    if (isModal) {
+      if (pendingSuccessMeta && onSuccess) {
+        onSuccess(pendingSuccessMeta);
+      }
+      setPendingSuccessMeta(null);
+      onClose?.();
+      return;
+    }
     navigate('/accounts', { state: { refreshList: true } });
   };
 
@@ -372,6 +394,31 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
           </div>
         </div>
       </form>
+
+      <AccountConfirmModal
+        open={submitConfirmOpen}
+        title="Save changes to this account?"
+        message={
+          <p style={{ margin: 0 }}>
+            Are you sure you want to update account <strong>&quot;{formData.username}&quot;</strong>?
+            <br />
+            Role: <strong>{formData.role}</strong>
+            {formData.primaryBranchName ? (
+              <>
+                {' '}
+                · Primary branch: <strong>{formData.primaryBranchName}</strong>
+              </>
+            ) : null}
+            <br />
+            Branch access and other edits will be saved to the server.
+          </p>
+        }
+        confirmLabel="Update account"
+        onCancel={closeSubmitConfirm}
+        onConfirm={performUpdateAccount}
+        confirming={submitConfirming}
+        variant="primary"
+      />
 
       <SuccessNoticeModal
         open={successNotice.open}

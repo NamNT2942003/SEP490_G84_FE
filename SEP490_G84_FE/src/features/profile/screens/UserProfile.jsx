@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { profileAPI } from '@/features/profile/api/profileApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import SuccessNoticeModal from '@/features/accounts/components/SuccessNoticeModal';
 import './UserProfile.css';
 
 const UserProfile = () => {
@@ -13,7 +14,6 @@ const UserProfile = () => {
   const [fullName, setFullName] = useState('');
   const [nameSaving, setNameSaving] = useState(false);
   const [nameError, setNameError] = useState('');
-  const [nameSuccess, setNameSuccess] = useState('');
 
   // Change password
   const [pwForm, setPwForm] = useState({
@@ -23,7 +23,12 @@ const UserProfile = () => {
   });
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState('');
-  const [pwSuccess, setPwSuccess] = useState('');
+
+  const [successNotice, setSuccessNotice] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -46,7 +51,6 @@ const UserProfile = () => {
   const handleSaveName = async (e) => {
     e.preventDefault();
     setNameError('');
-    setNameSuccess('');
 
     if (!fullName.trim()) {
       setNameError('Full name is required');
@@ -57,7 +61,12 @@ const UserProfile = () => {
       setNameSaving(true);
       const res = await profileAPI.updateMyProfile({ fullName: fullName.trim() });
       setProfile(res.data);
-      setNameSuccess('Full name updated successfully');
+      const saved = fullName.trim();
+      setSuccessNotice({
+        open: true,
+        title: 'Full name saved',
+        message: `Your display name has been updated to "${saved}".`,
+      });
     } catch (err) {
       setNameError(err?.response?.data?.message || 'Failed to update full name');
     } finally {
@@ -73,7 +82,6 @@ const UserProfile = () => {
   const handleSavePassword = async (e) => {
     e.preventDefault();
     setPwError('');
-    setPwSuccess('');
 
     if (!pwForm.currentPassword) {
       setPwError('Current password is required');
@@ -91,8 +99,12 @@ const UserProfile = () => {
     try {
       setPwSaving(true);
       await profileAPI.changePassword(pwForm);
-      setPwSuccess('Password changed successfully');
       setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setSuccessNotice({
+        open: true,
+        title: 'Password updated',
+        message: 'Your password has been changed successfully. Use the new password next time you sign in.',
+      });
     } catch (err) {
       setPwError(err?.response?.data?.message || 'Failed to change password');
     } finally {
@@ -191,7 +203,6 @@ const UserProfile = () => {
           <h2>Update Personal Details</h2>
 
           {nameError && <div className="alert alert-danger mb-2">{nameError}</div>}
-          {nameSuccess && <div className="alert alert-success mb-2">{nameSuccess}</div>}
 
           <form onSubmit={handleSaveName} className="profile-form mb-4">
             <div className="form-group">
@@ -219,7 +230,6 @@ const UserProfile = () => {
           <h3 className="mt-3 mb-2">Change Password</h3>
 
           {pwError && <div className="alert alert-danger mb-2">{pwError}</div>}
-          {pwSuccess && <div className="alert alert-success mb-2">{pwSuccess}</div>}
 
           <form onSubmit={handleSavePassword} className="profile-form">
             <div className="form-group">
@@ -269,6 +279,13 @@ const UserProfile = () => {
           </form>
         </div>
       </div>
+
+      <SuccessNoticeModal
+        open={successNotice.open}
+        title={successNotice.title}
+        message={successNotice.message}
+        onClose={() => setSuccessNotice((prev) => ({ ...prev, open: false }))}
+      />
     </div>
   );
 };

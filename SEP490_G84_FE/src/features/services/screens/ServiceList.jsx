@@ -201,14 +201,14 @@ const ServiceList = () => {
           </div>
 
           <div className="service-list-table-wrap card">
-            <table className="table table-hover service-list-table">
+            <table className="table table-hover service-list-table service-list-table-centered">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Service Name</th>
-                  <th>Price</th>
-                  <th>Category</th>
-                  <th>Actions</th>
+                  <th scope="col">ID</th>
+                  <th scope="col">Service Name</th>
+                  <th scope="col">Price</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>

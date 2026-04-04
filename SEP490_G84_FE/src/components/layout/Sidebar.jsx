@@ -125,7 +125,7 @@ const Sidebar = ({ collapsed }) => {
   const handleViewProfile = () => navigate("/profile");
   const handleEditProfile = (e) => {
     e.stopPropagation(); // Tránh bị trigger sự kiện click của thẻ cha
-    navigate("/profile/edit");
+    navigate("/profile");
   };
 
   return (
@@ -361,7 +361,7 @@ const Sidebar = ({ collapsed }) => {
             <button
               type="button"
               onClick={handleEditProfile}
-              title="Update Profile"
+              title="Profile"
               style={{
                 flexShrink: 0,
                 width: 32,

@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { serviceAPI } from '@/features/services/api/serviceApi';
+import AccountConfirmModal from '@/features/accounts/components/AccountConfirmModal';
 import './EditService.css';
 
 const CreateService = ({ onClose, onSuccess, isModal }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [form, setForm] = useState({ serviceName: '', basePrice: '', category: '' });
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  const [submitConfirming, setSubmitConfirming] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setError(null);
     const name = form.serviceName.trim();
@@ -35,6 +38,20 @@ const CreateService = ({ onClose, onSuccess, isModal }) => {
       setError('Category is required.');
       return;
     }
+    setSubmitConfirmOpen(true);
+  };
+
+  const closeSubmitConfirm = () => {
+    if (submitConfirming) return;
+    setSubmitConfirmOpen(false);
+  };
+
+  const performCreateService = async () => {
+    const name = form.serviceName.trim();
+    const cat = form.category.trim();
+    const bp = form.basePrice.trim();
+    const num = parseFloat(bp.replace(/,/g, '.'));
+    setSubmitConfirming(true);
     setSaving(true);
     try {
       const payload = {
@@ -43,6 +60,7 @@ const CreateService = ({ onClose, onSuccess, isModal }) => {
         basePrice: num,
       };
       await serviceAPI.createService(payload);
+      setSubmitConfirmOpen(false);
       if (onSuccess) {
         onSuccess({ serviceName: name });
       } else {
@@ -52,7 +70,9 @@ const CreateService = ({ onClose, onSuccess, isModal }) => {
       const data = e.response?.data;
       const msg = (data && typeof data === 'object' && data.message) || (typeof data === 'string' ? data : null) || e.message || 'Create failed.';
       setError(msg);
+      setSubmitConfirmOpen(false);
     } finally {
+      setSubmitConfirming(false);
       setSaving(false);
     }
   };
@@ -111,6 +131,25 @@ const CreateService = ({ onClose, onSuccess, isModal }) => {
           </button>
         </div>
       </form>
+
+      <AccountConfirmModal
+        open={submitConfirmOpen}
+        title="Create this service?"
+        message={
+          <p style={{ margin: 0 }}>
+            Are you sure you want to add <strong>&quot;{form.serviceName.trim()}&quot;</strong>?
+            <br />
+            Price: <strong>{form.basePrice.trim()}</strong> VND · Category: <strong>{form.category.trim()}</strong>
+            <br />
+            This will create a new service in the catalog.
+          </p>
+        }
+        confirmLabel="Create"
+        onCancel={closeSubmitConfirm}
+        onConfirm={performCreateService}
+        confirming={submitConfirming}
+        variant="primary"
+      />
     </div>
   );
 };
