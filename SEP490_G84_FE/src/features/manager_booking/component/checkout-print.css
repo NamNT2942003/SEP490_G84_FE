@@ -1,0 +1,30 @@
+/* checkout-print.css */
+@media print {
+  /* Giấu toàn bộ web, dashboard, nền modal đi */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Chỉ hiện thị duy nhất khối có id="printable-receipt" */
+  #printable-receipt, #printable-receipt * {
+    visibility: visible;
+  }
+  
+  /* Căn chỉnh khối bill ra góc trên cùng bên trái của máy in */
+  #printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm; /* KHỔ GIẤY CHUẨN K80 */
+    padding: 0;
+    margin: 0;
+    font-family: 'Courier New', Courier, monospace; /* Font chữ máy in bill hay dùng */
+    font-size: 12px;
+    color: #000;
+  }
+
+  /* Ẩn các nút bấm bên trong bill khi in (như nút In, nút Đóng) */
+  .no-print {
+    display: none !important;
+  }
+}

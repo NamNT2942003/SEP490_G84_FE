@@ -89,6 +89,14 @@
   margin: 0;
 }
 
+/* Center all body/header cells (ID, name, price, category, actions) */
+.service-list-table-centered thead th,
+.service-list-table-centered tbody td {
+  text-align: center;
+  vertical-align: middle;
+  word-break: break-word;
+}
+
 .service-list-table thead th {
   background: #f9fafb;
   font-weight: 600;
@@ -99,7 +107,61 @@
 
 .service-list-table tbody td {
   padding: 0.75rem 1rem;
-  vertical-align: middle;
+}
+
+/* Row actions — centered, even spacing (aligned with Account List pattern) */
+.service-list-table-wrap .action-icons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.service-list-table-wrap .action-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  color: #6c757d;
+  font-size: 1rem;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.service-list-table-wrap .action-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.service-list-table-wrap .action-btn.view {
+  color: #0d6efd;
+}
+
+.service-list-table-wrap .action-btn.view:hover {
+  background-color: #e7f1ff;
+}
+
+.service-list-table-wrap .action-btn.edit {
+  color: #d97706;
+}
+
+.service-list-table-wrap .action-btn.edit:hover {
+  background-color: #fffbeb;
+}
+
+.service-list-table-wrap .action-btn.delete {
+  color: #dc3545;
+}
+
+.service-list-table-wrap .action-btn.delete:hover {
+  background-color: #ffe6e6;
 }
 
 .service-list-table tbody tr:hover {

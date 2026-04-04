@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { serviceAPI } from '@/features/services/api/serviceApi';
+import AccountConfirmModal from '@/features/accounts/components/AccountConfirmModal';
 import './EditService.css';
 
 const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) => {
@@ -11,6 +12,8 @@ const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [form, setForm] = useState({ serviceName: '', basePrice: '', category: '' });
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  const [submitConfirming, setSubmitConfirming] = useState(false);
 
   useEffect(() => {
     if (!serviceId) return;
@@ -40,7 +43,7 @@ const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) 
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setError(null);
     const name = form.serviceName.trim();
@@ -63,6 +66,20 @@ const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) 
       setError('Category is required.');
       return;
     }
+    setSubmitConfirmOpen(true);
+  };
+
+  const closeSubmitConfirm = () => {
+    if (submitConfirming) return;
+    setSubmitConfirmOpen(false);
+  };
+
+  const performUpdateService = async () => {
+    const name = form.serviceName.trim();
+    const cat = form.category.trim();
+    const bp = form.basePrice.trim();
+    const num = parseFloat(bp.replace(/,/g, '.'));
+    setSubmitConfirming(true);
     setSaving(true);
     try {
       const payload = {
@@ -71,6 +88,7 @@ const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) 
         basePrice: num,
       };
       await serviceAPI.updateService(serviceId, payload);
+      setSubmitConfirmOpen(false);
       if (isModal && onSuccess) {
         onSuccess({ serviceName: name });
       } else {
@@ -80,7 +98,9 @@ const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) 
       const data = e.response?.data;
       const msg = (data && typeof data === 'object' && data.message) || (typeof data === 'string' ? data : null) || e.message || 'Update failed.';
       setError(msg);
+      setSubmitConfirmOpen(false);
     } finally {
+      setSubmitConfirming(false);
       setSaving(false);
     }
   };
@@ -162,6 +182,25 @@ const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) 
           </button>
         </div>
       </form>
+
+      <AccountConfirmModal
+        open={submitConfirmOpen}
+        title="Save changes to this service?"
+        message={
+          <p style={{ margin: 0 }}>
+            Are you sure you want to update <strong>&quot;{form.serviceName.trim()}&quot;</strong>?
+            <br />
+            Price: <strong>{form.basePrice.trim()}</strong> VND · Category: <strong>{form.category.trim()}</strong>
+            <br />
+            Changes will be saved to the server.
+          </p>
+        }
+        confirmLabel="Save changes"
+        onCancel={closeSubmitConfirm}
+        onConfirm={performUpdateService}
+        confirming={submitConfirming}
+        variant="primary"
+      />
     </div>
   );
 };

@@ -8,6 +8,7 @@ import CreateAccount from './CreateAccount';
 import EditStaff from './EditStaff';
 import SuccessNoticeModal from '@/features/accounts/components/SuccessNoticeModal';
 import DeleteAccountConfirmModal from '@/features/accounts/components/DeleteAccountConfirmModal';
+import AccountConfirmModal from '@/features/accounts/components/AccountConfirmModal';
 import './AccountList.css';
 
 /** Fallback khi API /accounts/roles lỗi hoặc rỗng — giống các trang khác */
@@ -47,6 +48,14 @@ const AccountList = () => {
     username: '',
   });
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [statusConfirm, setStatusConfirm] = useState({
+    open: false,
+    userId: null,
+    username: '',
+    currentStatus: '',
+    nextStatus: '',
+  });
+  const [statusSubmitting, setStatusSubmitting] = useState(false);
   const accountsPerPage = 5;
 
   const showSuccessNotice = (title, message) => {
@@ -142,19 +151,66 @@ const AccountList = () => {
     fetchAccounts();
   };
 
-  const handleToggleStatus = async (userId, currentStatus) => {
+  const getNextStatusForToggle = (currentStatus) => {
+    const list = Array.isArray(statusesList) ? statusesList.filter((s) => typeof s === 'string' && String(s).trim()) : [];
+    const cur = (currentStatus && String(currentStatus).trim()) || '';
+    const other = list.find((s) => String(s).trim().toLowerCase() !== cur.toLowerCase());
+    const nextStatus =
+      other != null
+        ? String(other).trim()
+        : list[0] && cur.toLowerCase() !== String(list[0]).trim().toLowerCase()
+          ? String(list[0]).trim()
+          : list[1]
+            ? String(list[1]).trim()
+            : null;
+    if (!nextStatus || nextStatus === cur) return null;
+    return nextStatus;
+  };
+
+  const openStatusToggleConfirm = (account) => {
+    const nextStatus = getNextStatusForToggle(account.status);
+    if (nextStatus == null) return;
+    setStatusConfirm({
+      open: true,
+      userId: account.userId,
+      username: account.username || '',
+      currentStatus: String(account.status || '').trim(),
+      nextStatus,
+    });
+  };
+
+  const closeStatusConfirm = () => {
+    if (statusSubmitting) return;
+    setStatusConfirm({
+      open: false,
+      userId: null,
+      username: '',
+      currentStatus: '',
+      nextStatus: '',
+    });
+  };
+
+  const confirmStatusToggle = async () => {
+    const { userId, nextStatus } = statusConfirm;
+    if (userId == null || !nextStatus) return;
     try {
-      const list = Array.isArray(statusesList) ? statusesList.filter(s => typeof s === 'string' && String(s).trim()) : [];
-      const cur = (currentStatus && String(currentStatus).trim()) || '';
-      const other = list.find(s => String(s).trim().toLowerCase() !== cur.toLowerCase());
-      const nextStatus = other != null ? String(other).trim() : (list[0] && cur.toLowerCase() !== String(list[0]).trim().toLowerCase() ? String(list[0]).trim() : list[1] ? String(list[1]).trim() : null);
-      if (!nextStatus || nextStatus === cur) return;
+      setStatusSubmitting(true);
       await accountAPI.updateAccountStatus(userId, nextStatus, currentUser?.userId);
+      setStatusConfirm({
+        open: false,
+        userId: null,
+        username: '',
+        currentStatus: '',
+        nextStatus: '',
+      });
       fetchAccounts();
+      showSuccessNotice('Status updated', `Account is now ${nextStatus}.`);
     } catch (error) {
       const msg = error.response?.data?.message || error.response?.data || error.message;
       const status = error.response?.status;
       alert('Could not update account status!' + (status ? ` (${status})` : '') + (msg ? `\n${msg}` : ''));
+    } finally {
+      setStatusSubmitting(false);
     }
   };
 
@@ -215,28 +271,12 @@ const AccountList = () => {
   const closeViewModal = () => setViewModalId(null);
   const closeEditModal = () => setEditModalId(null);
   const closeCreateModal = () => setCreateModalOpen(false);
-  const onEditSuccess = (meta) => {
+  /** Chỉ refresh bảng; thông báo thành công nằm trong EditStaff / CreateAccount (SuccessNoticeModal). */
+  const onEditSuccess = () => {
     fetchAccounts();
-    setEditModalId(null);
-    const u = meta?.username;
-    showSuccessNotice(
-      'Updated successfully!',
-      u
-        ? `Account "${u}" has been saved.`
-        : 'The account has been updated successfully.'
-    );
   };
   const onCreateSuccess = (meta) => {
     fetchAccounts();
-    setCreateModalOpen(false);
-    const u = meta?.username;
-    const fn = meta?.fullName;
-    showSuccessNotice(
-      'Account created!',
-      u
-        ? `Account "${u}"${fn ? ` (${fn})` : ''} has been created.`
-        : 'The new account has been created successfully.'
-    );
   };
 
   if (!currentUser || !currentUser.permissions?.canAccessAccountList) return null;
@@ -253,6 +293,7 @@ const AccountList = () => {
           <div className="d-flex gap-2 align-items-center">
             <button
                 className="btn-add-account"
+                type="button"
                 onClick={() => setCreateModalOpen(true)}
             >
               <i className="bi bi-person-plus-fill"></i>
@@ -337,18 +378,18 @@ const AccountList = () => {
           ) : (
               <>
                 <div className="table-responsive">
-                  <table className="table account-table">
+                  <table className="table account-table account-table-centered">
                     <thead>
                     <tr>
-                      <th>User ID</th>
-                      <th>Avatar</th>
-                      <th>Username</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Main Branch</th>
-                      <th>Additional Branches</th>
-                      <th>Status</th>
-                      <th>Actions</th>
+                      <th scope="col">User ID</th>
+                      <th scope="col">Avatar</th>
+                      <th scope="col">Username</th>
+                      <th scope="col">Email</th>
+                      <th scope="col">Role</th>
+                      <th scope="col">Main Branch</th>
+                      <th scope="col">Additional Branches</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -396,8 +437,9 @@ const AccountList = () => {
                               </td>
                               <td>
                                 <button
+                                    type="button"
                                     className={`status-toggle-btn ${account.status.toLowerCase()}`}
-                                    onClick={() => handleToggleStatus(account.userId, account.status)}
+                                    onClick={() => openStatusToggleConfirm(account)}
                                     title={`Click to ${account.status === statusesList?.[0] ? 'deactivate' : 'activate'}`}
                                 >
                                   <i className={`bi ${account.status === statusesList?.[0] ? 'bi-toggle-on' : 'bi-toggle-off'}`}></i>
@@ -417,6 +459,7 @@ const AccountList = () => {
 
                                   {/* Edit & Delete */}
                                   <button
+                                      type="button"
                                       className="action-btn edit"
                                       title="Edit"
                                       onClick={() => setEditModalId(account.userId)}
@@ -528,6 +571,23 @@ const AccountList = () => {
           onCancel={closeDeleteConfirm}
           onConfirm={confirmDeleteAccount}
           confirming={deleteSubmitting}
+        />
+
+        <AccountConfirmModal
+          open={statusConfirm.open}
+          title="Change account status?"
+          message={
+            <p style={{ margin: 0 }}>
+              Are you sure you want to change status for <strong>&quot;{statusConfirm.username}&quot;</strong> from{' '}
+              <strong>{statusConfirm.currentStatus}</strong> to <strong>{statusConfirm.nextStatus}</strong>?<br />
+              This action takes effect immediately and cannot be undone from this dialog.
+            </p>
+          }
+          confirmLabel="Change status"
+          onCancel={closeStatusConfirm}
+          onConfirm={confirmStatusToggle}
+          confirming={statusSubmitting}
+          variant="primary"
         />
 
         <SuccessNoticeModal
