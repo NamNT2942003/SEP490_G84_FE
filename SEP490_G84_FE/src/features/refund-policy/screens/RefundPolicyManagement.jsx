@@ -5,25 +5,150 @@ import branchManagementApi from "@/features/branch-management/api/branchManageme
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const POLICY_TYPES = [
-    { value: "FREE_CANCEL",    label: "Huỷ miễn phí",      color: "#16a34a", bg: "#dcfce7", icon: "bi-check-circle-fill" },
-    { value: "PARTIAL_REFUND", label: "Hoàn tiền một phần", color: "#d97706", bg: "#fef3c7", icon: "bi-arrow-left-right" },
-    { value: "NON_REFUND",     label: "Không hoàn tiền",    color: "#dc2626", bg: "#fee2e2", icon: "bi-x-circle-fill" },
-    { value: "PREPAID",        label: "Thanh toán trước",   color: "#7c3aed", bg: "#ede9fe", icon: "bi-credit-card-fill" },
+    { value: "FREE_CANCEL", label: "Free cancellation", color: "#16a34a", bg: "#dcfce7", icon: "bi-check-circle-fill" },
+    { value: "PARTIAL_REFUND", label: "Partial refund", color: "#d97706", bg: "#fef3c7", icon: "bi-arrow-left-right" },
+    { value: "NON_REFUND", label: "Non-refundable", color: "#dc2626", bg: "#fee2e2", icon: "bi-x-circle-fill" },
+    { value: "PAY_AT_HOTEL", label: "Pay at hotel", color: "#0f766e", bg: "#ccfbf1", icon: "bi-building-check" },
 ];
 
 const EMPTY_FORM = {
     name: "",
-    type: "FREE_CANCEL",
     branchId: null,
-    dateRange: "",
+    daysBeforeCheckIn: "",
     prepaidRate: 0,
     refunRate: 100,
     activeTimeStart: "",
     activeTimeEnd: "",
+    seasonalStartMonth: "",
+    seasonalStartDay: "",
+    seasonalEndMonth: "",
+    seasonalEndDay: "",
     active: true,
 };
 
+const MONTH_OPTIONS = [
+    { value: "01", label: "Jan" },
+    { value: "02", label: "Feb" },
+    { value: "03", label: "Mar" },
+    { value: "04", label: "Apr" },
+    { value: "05", label: "May" },
+    { value: "06", label: "Jun" },
+    { value: "07", label: "Jul" },
+    { value: "08", label: "Aug" },
+    { value: "09", label: "Sep" },
+    { value: "10", label: "Oct" },
+    { value: "11", label: "Nov" },
+    { value: "12", label: "Dec" },
+];
+
+const DAYS_BY_MONTH = {
+    "01": 31,
+    "02": 29,
+    "03": 31,
+    "04": 30,
+    "05": 31,
+    "06": 30,
+    "07": 31,
+    "08": 31,
+    "09": 30,
+    "10": 31,
+    "11": 30,
+    "12": 31,
+};
+
 const getPolicyType = (value) => POLICY_TYPES.find(t => t.value === value) || POLICY_TYPES[0];
+
+const derivePolicyType = (prepaidRate, refunRate) => {
+    const prepaid = Math.max(0, Math.min(100, Number(prepaidRate) || 0));
+    const refund = Math.max(0, Math.min(100, Number(refunRate) || 0));
+
+    if (prepaid === 0) return "PAY_AT_HOTEL";
+    if (refund >= 100) return "FREE_CANCEL";
+    if (refund <= 0) return "NON_REFUND";
+    return "PARTIAL_REFUND";
+};
+
+const parseDaysValue = (value) => {
+    if (value === null || value === undefined || value === "") return "";
+    const text = String(value).trim();
+    if (!text) return "";
+    if (/^\d+$/.test(text)) return text;
+    if (text.includes("-")) {
+        const parts = text.split("-").map(part => parseInt(part.trim(), 10));
+        const valid = parts.filter(Number.isFinite);
+        if (valid.length === 2) return String(Math.max(valid[0], valid[1]));
+    }
+    return "";
+};
+
+const parseSeasonalWindow = (value) => {
+    if (!value) return { start: "", end: "" };
+    const parts = String(value).split("->").map(part => part.trim());
+    if (parts.length !== 2) return { start: "", end: "" };
+    return {
+        start: parts[0] || "",
+        end: parts[1] || "",
+    };
+};
+
+const resolvePolicySeasonal = (policy) => {
+    const directStart = policy?.activeTimeStart || "";
+    const directEnd = policy?.activeTimeEnd || "";
+    if (directStart && directEnd) {
+        return { start: directStart, end: directEnd };
+    }
+    return parseSeasonalWindow(policy?.seasonalWindow);
+};
+
+const parseMonthDay = (value) => {
+    if (!value || typeof value !== "string" || !value.includes("-")) {
+        return { month: "", day: "" };
+    }
+    const [month, day] = value.split("-").map(part => part.trim());
+    if (!/^\d{2}$/.test(month) || !/^\d{2}$/.test(day)) {
+        return { month: "", day: "" };
+    }
+    return { month, day };
+};
+
+const toMonthDayString = (month, day) => {
+    if (!month || !day) {
+        return "";
+    }
+    return `${month}-${day}`;
+};
+
+const getDayOptions = (month) => {
+    const max = DAYS_BY_MONTH[month] || 31;
+    return Array.from({ length: max }, (_, index) => {
+        const day = String(index + 1).padStart(2, "0");
+        return { value: day, label: day };
+    });
+};
+
+const normalizePolicyForm = (initialData, branchId) => ({
+    ...EMPTY_FORM,
+    branchId,
+    ...(initialData || {}),
+    name: initialData?.name ?? "",
+    daysBeforeCheckIn: parseDaysValue(initialData?.daysBeforeCheckIn ?? initialData?.dateRange),
+    prepaidRate: Number.isFinite(Number(initialData?.prepaidRate)) ? Number(initialData.prepaidRate) : 0,
+    refunRate: Number.isFinite(Number(initialData?.refunRate)) ? Number(initialData.refunRate) : 100,
+    active: initialData?.active ?? true,
+    ...(() => {
+        const seasonal = parseSeasonalWindow(initialData?.seasonalWindow);
+        const start = parseMonthDay(initialData?.activeTimeStart ?? seasonal.start);
+        const end = parseMonthDay(initialData?.activeTimeEnd ?? seasonal.end);
+        return {
+            activeTimeStart: toMonthDayString(start.month, start.day),
+            activeTimeEnd: toMonthDayString(end.month, end.day),
+            seasonalStartMonth: start.month,
+            seasonalStartDay: start.day,
+            seasonalEndMonth: end.month,
+            seasonalEndDay: end.day,
+        };
+    })(),
+});
 
 // ─── PolicyTypeBadge ─────────────────────────────────────────────────────────
 const PolicyTypeBadge = ({ type }) => {
@@ -46,13 +171,16 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
 
     useEffect(() => {
         if (initialData) {
-            setForm({ ...EMPTY_FORM, branchId, ...initialData });
+            setForm(normalizePolicyForm(initialData, branchId));
         } else {
             setForm({ ...EMPTY_FORM, branchId });
         }
     }, [initialData, branchId, isOpen]);
 
     if (!isOpen) return null;
+
+    const previewType = derivePolicyType(form.prepaidRate, form.refunRate);
+    const previewTypeMeta = getPolicyType(previewType);
 
     const handle = (e) => {
         const { name, value, type: inputType, checked } = e.target;
@@ -64,6 +192,29 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
         setForm(prev => ({ ...prev, [name]: value === "" ? 0 : Math.min(100, Math.max(0, parseInt(value) || 0)) }));
     };
 
+    const handleSeasonalSelect = (field, value) => {
+        setForm(prev => {
+            const next = { ...prev, [field]: value };
+
+            const startDayOptions = getDayOptions(next.seasonalStartMonth).map(option => option.value);
+            const endDayOptions = getDayOptions(next.seasonalEndMonth).map(option => option.value);
+
+            if (next.seasonalStartDay && !startDayOptions.includes(next.seasonalStartDay)) {
+                next.seasonalStartDay = "";
+            }
+            if (next.seasonalEndDay && !endDayOptions.includes(next.seasonalEndDay)) {
+                next.seasonalEndDay = "";
+            }
+
+            next.activeTimeStart = toMonthDayString(next.seasonalStartMonth, next.seasonalStartDay);
+            next.activeTimeEnd = toMonthDayString(next.seasonalEndMonth, next.seasonalEndDay);
+            return next;
+        });
+    };
+
+    const seasonalPreviewStart = toMonthDayString(form.seasonalStartMonth, form.seasonalStartDay);
+    const seasonalPreviewEnd = toMonthDayString(form.seasonalEndMonth, form.seasonalEndDay);
+
     return (
         <>
             <style>{`
@@ -71,11 +222,10 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                 .rp-modal { background:#fff; border-radius:20px; padding:0; max-width:580px; width:95%; box-shadow:0 20px 60px rgba(0,0,0,0.2); overflow:hidden; }
                 .rp-modal-header { padding:20px 28px 16px; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,#5C6F4E 0%,#4a5b3f 100%); }
                 .rp-modal-body { padding:24px 28px; max-height:70vh; overflow-y:auto; }
-                .rp-type-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px; }
-                .rp-type-btn { border:2px solid #e2e8f0; border-radius:12px; padding:12px; cursor:pointer; transition:all 0.2s; text-align:center; background:#fff; }
-                .rp-type-btn.selected { border-color:var(--t-color); background:var(--t-bg); }
                 .rp-rate-row { display:flex; gap:16px; }
                 .rp-rate-row>div { flex:1; }
+                .rp-rate-row .form-label { min-height:44px; display:flex; align-items:flex-start; line-height:1.25; margin-bottom:8px; }
+                .rp-rate-help { min-height:32px; font-size:0.75rem; color:#6b7280; }
                 .rp-range-row { display:flex; gap:12px; align-items:center; }
                 .rp-range-row input { flex:1; }
                 .rp-slider { width:100%; accent-color:#5C6F4E; }
@@ -86,39 +236,45 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                     <div className="rp-modal-header">
                         <h5 style={{ color: "#fff", margin: 0, fontWeight: 700 }}>
                             <i className="bi bi-shield-check me-2"></i>
-                            {initialData ? "Cập nhật chính sách" : "Tạo chính sách hoàn tiền"}
+                            {initialData ? "Update Cancellation Policy" : "Create Cancellation Policy"}
                         </h5>
                         <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: "1rem" }}>×</button>
                     </div>
                     <div className="rp-modal-body">
                         {/* Name */}
                         <div className="mb-3">
-                            <label className="form-label fw-semibold">Tên chính sách <span className="text-danger">*</span></label>
+                            <label className="form-label fw-semibold">Policy name <span className="text-danger">*</span></label>
                             <input
                                 className="form-control"
                                 name="name"
                                 value={form.name}
                                 onChange={handle}
-                                placeholder="VD: Huỷ miễn phí trước 7 ngày"
+                                placeholder="Example: Free cancellation up to 7 days before check-in"
                                 required
                             />
                         </div>
 
-                        {/* Type selector */}
+                        {/* Auto-classified type */}
                         <div className="mb-3">
-                            <label className="form-label fw-semibold">Loại chính sách</label>
-                            <div className="rp-type-grid">
-                                {POLICY_TYPES.map(t => (
-                                    <div
-                                        key={t.value}
-                                        className={`rp-type-btn ${form.type === t.value ? "selected" : ""}`}
-                                        style={{ "--t-color": t.color, "--t-bg": t.bg }}
-                                        onClick={() => setForm(prev => ({ ...prev, type: t.value }))}
-                                    >
-                                        <i className={`bi ${t.icon} d-block mb-1`} style={{ color: t.color, fontSize: "1.2rem" }}></i>
-                                        <span style={{ fontSize: "0.8rem", fontWeight: 600, color: form.type === t.value ? t.color : "#4a5568" }}>{t.label}</span>
-                                    </div>
-                                ))}
+                            <label className="form-label fw-semibold">Policy type (auto-classified)</label>
+                            <div
+                                style={{
+                                    background: previewTypeMeta.bg,
+                                    color: previewTypeMeta.color,
+                                    border: `1px solid ${previewTypeMeta.color}33`,
+                                    borderRadius: 12,
+                                    padding: "10px 12px",
+                                    fontWeight: 700,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                }}
+                            >
+                                <i className={`bi ${previewTypeMeta.icon}`}></i>
+                                {previewTypeMeta.label}
+                            </div>
+                            <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>
+                                Automatically classified based on prepayment and refund rate.
                             </div>
                         </div>
 
@@ -127,49 +283,82 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                             <div>
                                 <label className="form-label fw-semibold">
                                     <i className="bi bi-cash-coin me-1 text-warning"></i>
-                                    Đặt cọc / Thanh toán trước (%)
+                                    Prepayment rate (%)
                                 </label>
                                 <input type="number" className="form-control" name="prepaidRate" value={form.prepaidRate} onChange={handleNum} min={0} max={100} />
                                 <input type="range" className="rp-slider mt-1" name="prepaidRate" value={form.prepaidRate} onChange={handleNum} min={0} max={100} />
-                                <div className="text-muted" style={{ fontSize: "0.75rem" }}>Khách phải thanh toán {form.prepaidRate}% khi đặt phòng</div>
+                                <div className="rp-rate-help">Guest must pay {form.prepaidRate}% when booking</div>
                             </div>
                             <div>
                                 <label className="form-label fw-semibold">
                                     <i className="bi bi-arrow-counterclockwise me-1 text-success"></i>
-                                    Tỷ lệ hoàn tiền khi huỷ (%)
+                                    Cancellation refund rate (%)
                                 </label>
                                 <input type="number" className="form-control" name="refunRate" value={form.refunRate} onChange={handleNum} min={0} max={100} />
                                 <input type="range" className="rp-slider mt-1" name="refunRate" value={form.refunRate} onChange={handleNum} min={0} max={100} />
-                                <div className="text-muted" style={{ fontSize: "0.75rem" }}>Hoàn lại {form.refunRate}% số tiền đã trả khi huỷ</div>
+                                <div className="rp-rate-help">Refund {form.refunRate}% of paid amount when cancelled</div>
                             </div>
                         </div>
 
-                        {/* Date range (N days before) */}
+                        {/* Days before check-in */}
                         <div className="mb-3">
                             <label className="form-label fw-semibold">
-                                <i className="bi bi-calendar-range me-1 text-primary"></i>
-                                Điều kiện áp dụng (VD: "0-7" = huỷ trong 7 ngày trước check-in)
+                                <i className="bi bi-calendar-event me-1 text-primary"></i>
+                                Condition (days before check-in)
                             </label>
                             <input
+                                type="number"
                                 className="form-control"
-                                name="dateRange"
-                                value={form.dateRange}
+                                name="daysBeforeCheckIn"
+                                value={form.daysBeforeCheckIn}
                                 onChange={handle}
-                                placeholder='VD: "0-2" hoặc "3-7" hoặc "8-30"'
+                                min={0}
+                                placeholder="Example: 7"
                             />
-                            <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>Nhập khoảng số ngày trước ngày check-in để chính sách này có hiệu lực</div>
+                            <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>
+                                Enter a single number. For example, 7 means the policy applies up to 7 days before check-in.
+                            </div>
                         </div>
 
                         {/* Active season */}
                         <div className="mb-3">
                             <label className="form-label fw-semibold">
                                 <i className="bi bi-calendar3 me-1 text-info"></i>
-                                Áp dụng theo mùa (MM-DD → MM-DD, để trống = cả năm)
+                                Seasonal window (month/day, no year)
                             </label>
+                            <div className="rp-range-row mb-2">
+                                <select className="form-select" value={form.seasonalStartMonth} onChange={(e) => handleSeasonalSelect("seasonalStartMonth", e.target.value)}>
+                                    <option value="">Start month</option>
+                                    {MONTH_OPTIONS.map(option => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                    ))}
+                                </select>
+                                <select className="form-select" value={form.seasonalStartDay} onChange={(e) => handleSeasonalSelect("seasonalStartDay", e.target.value)} disabled={!form.seasonalStartMonth}>
+                                    <option value="">Start day</option>
+                                    {getDayOptions(form.seasonalStartMonth).map(option => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div className="rp-range-row">
-                                <input className="form-control" name="activeTimeStart" value={form.activeTimeStart} onChange={handle} placeholder="01-01" />
-                                <span className="text-muted fw-bold">→</span>
-                                <input className="form-control" name="activeTimeEnd" value={form.activeTimeEnd} onChange={handle} placeholder="12-31" />
+                                <select className="form-select" value={form.seasonalEndMonth} onChange={(e) => handleSeasonalSelect("seasonalEndMonth", e.target.value)}>
+                                    <option value="">End month</option>
+                                    {MONTH_OPTIONS.map(option => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                    ))}
+                                </select>
+                                <select className="form-select" value={form.seasonalEndDay} onChange={(e) => handleSeasonalSelect("seasonalEndDay", e.target.value)} disabled={!form.seasonalEndMonth}>
+                                    <option value="">End day</option>
+                                    {getDayOptions(form.seasonalEndMonth).map(option => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="text-muted mt-2" style={{ fontSize: "0.75rem" }}>
+                                {seasonalPreviewStart && seasonalPreviewEnd
+                                    ? <>Current seasonal window: <strong>{seasonalPreviewStart} → {seasonalPreviewEnd}</strong></>
+                                    : <>Current seasonal window: <strong>Whole year</strong></>
+                                }
                             </div>
                         </div>
 
@@ -182,14 +371,14 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                         </div>
                     </div>
                     <div className="rp-modal-footer">
-                        <button className="btn btn-outline-secondary" onClick={onClose} disabled={saving}>Huỷ</button>
+                        <button className="btn btn-outline-secondary" onClick={onClose} disabled={saving}>Cancel</button>
                         <button
                             className="btn fw-bold px-4"
                             style={{ backgroundColor: "#5C6F4E", color: "#fff", borderRadius: 10 }}
                             onClick={() => onSave(form)}
                             disabled={saving || !form.name.trim()}
                         >
-                            {saving ? <><span className="spinner-border spinner-border-sm me-2"></span>Đang lưu...</> : <><i className="bi bi-floppy me-1"></i>{initialData ? "Cập nhật" : "Tạo mới"}</>}
+                            {saving ? <><span className="spinner-border spinner-border-sm me-2"></span>Saving...</> : <><i className="bi bi-floppy me-1"></i>{initialData ? "Update" : "Create"}</>}
                         </button>
                     </div>
                 </div>
@@ -227,7 +416,7 @@ const RefundPolicyManagement = () => {
                 setBranchInfo(b);
             } catch { /* ignore */ }
         } catch (err) {
-            showAlert("error", "Không thể tải dữ liệu: " + (err?.response?.data?.message || err.message));
+            showAlert("error", "Failed to load data: " + (err?.response?.data?.message || err.message));
         } finally {
             setLoading(false);
         }
@@ -236,21 +425,45 @@ const RefundPolicyManagement = () => {
     useEffect(() => { if (branchId) load(); }, [load]);
 
     const handleSave = async (form) => {
+        const seasonalStart = toMonthDayString(form.seasonalStartMonth, form.seasonalStartDay);
+        const seasonalEnd = toMonthDayString(form.seasonalEndMonth, form.seasonalEndDay);
+        const hasAnySeasonalPart = !!(form.seasonalStartMonth || form.seasonalStartDay || form.seasonalEndMonth || form.seasonalEndDay);
+        if (hasAnySeasonalPart && !(seasonalStart && seasonalEnd)) {
+            showAlert("error", "Please select both start and end month/day for Seasonal window.");
+            return;
+        }
+
         setSaving(true);
         try {
-            const dto = { ...form, branchId: parseInt(branchId, 10) };
+            const days = form.daysBeforeCheckIn === "" || form.daysBeforeCheckIn === null
+                ? null
+                : Math.max(0, parseInt(form.daysBeforeCheckIn, 10) || 0);
+            const dto = {
+                id: form.id,
+                name: form.name,
+                active: form.active,
+                branchId: parseInt(branchId, 10),
+                daysBeforeCheckIn: days,
+                dateRange: days !== null ? String(days) : null,
+                prepaidRate: Math.max(0, Math.min(100, Number(form.prepaidRate) || 0)),
+                refunRate: Math.max(0, Math.min(100, Number(form.refunRate) || 0)),
+                activeTimeStart: seasonalStart || null,
+                activeTimeEnd: seasonalEnd || null,
+                seasonalWindow: seasonalStart && seasonalEnd ? `${seasonalStart}->${seasonalEnd}` : null,
+                type: derivePolicyType(form.prepaidRate, form.refunRate),
+            };
             if (editing) {
                 await refundPolicyApi.update(editing.id, dto);
-                showAlert("success", "Cập nhật chính sách thành công!");
+                showAlert("success", "Policy updated successfully!");
             } else {
                 await refundPolicyApi.create(dto);
-                showAlert("success", "Tạo chính sách mới thành công!");
+                showAlert("success", "Policy created successfully!");
             }
             setModalOpen(false);
             setEditing(null);
             load();
         } catch (err) {
-            showAlert("error", "Lưu thất bại: " + (err?.response?.data?.message || err.message));
+            showAlert("error", "Save failed: " + (err?.response?.data?.message || err.message));
         } finally {
             setSaving(false);
         }
@@ -260,16 +473,16 @@ const RefundPolicyManagement = () => {
         try {
             await refundPolicyApi.toggle(id);
             load();
-        } catch { showAlert("error", "Không thể thay đổi trạng thái."); }
+        } catch { showAlert("error", "Unable to change status."); }
     };
 
     const handleDelete = async (p) => {
-        if (!window.confirm(`Xác nhận xoá chính sách "${p.name}"?`)) return;
+        if (!window.confirm(`Confirm deleting policy "${p.name}"?`)) return;
         try {
             await refundPolicyApi.delete(p.id);
-            showAlert("success", "Đã xoá chính sách.");
+            showAlert("success", "Policy deleted.");
             load();
-        } catch { showAlert("error", "Xoá thất bại."); }
+        } catch { showAlert("error", "Delete failed."); }
     };
 
     return (
@@ -311,18 +524,18 @@ const RefundPolicyManagement = () => {
                     <div className="d-flex justify-content-between align-items-start">
                         <div>
                             <button onClick={() => navigate(-1)} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: "0.85rem", marginBottom: 12 }}>
-                                <i className="bi bi-arrow-left me-1"></i> Quay lại
+                                <i className="bi bi-arrow-left me-1"></i> Back
                             </button>
                             <div className="rp-hero-title">
-                                <i className="bi bi-shield-check me-2"></i>Chính sách hoàn tiền
+                                <i className="bi bi-shield-check me-2"></i>Cancellation Policy
                             </div>
                             <div className="rp-hero-sub">
-                                Chi nhánh: <strong>{branchInfo?.branchName || `#${branchId}`}</strong>
+                                Branch: <strong>{branchInfo?.branchName || `#${branchId}`}</strong>
                                 {branchInfo?.address && <span className="ms-2 opacity-75">— {branchInfo.address}</span>}
                             </div>
                         </div>
                         <button className="rp-add-btn" onClick={() => { setEditing(null); setModalOpen(true); }}>
-                            <i className="bi bi-plus-lg"></i> Thêm chính sách
+                            <i className="bi bi-plus-lg"></i> Add Cancellation Policy
                         </button>
                     </div>
                 </div>
@@ -341,19 +554,19 @@ const RefundPolicyManagement = () => {
                     <div className="rp-stats">
                         <div className="rp-stat-card">
                             <div className="rp-stat-num" style={{ color: "#5C6F4E" }}>{policies.length}</div>
-                            <div className="rp-stat-label"><i className="bi bi-list-check me-1"></i>Tổng chính sách</div>
+                            <div className="rp-stat-label"><i className="bi bi-list-check me-1"></i>Total policies</div>
                         </div>
                         <div className="rp-stat-card">
                             <div className="rp-stat-num" style={{ color: "#16a34a" }}>{policies.filter(p => p.active).length}</div>
-                            <div className="rp-stat-label"><i className="bi bi-check-circle me-1"></i>Đang kích hoạt</div>
+                            <div className="rp-stat-label"><i className="bi bi-check-circle me-1"></i>Active</div>
                         </div>
                         <div className="rp-stat-card">
-                            <div className="rp-stat-num" style={{ color: "#7c3aed" }}>{policies.filter(p => p.type === "PREPAID").length}</div>
-                            <div className="rp-stat-label"><i className="bi bi-credit-card me-1"></i>Yêu cầu đặt cọc</div>
+                            <div className="rp-stat-num" style={{ color: "#0f766e" }}>{policies.filter(p => p.type === "PAY_AT_HOTEL").length}</div>
+                            <div className="rp-stat-label"><i className="bi bi-building-check me-1"></i>Pay at hotel</div>
                         </div>
                         <div className="rp-stat-card">
                             <div className="rp-stat-num" style={{ color: "#dc2626" }}>{policies.filter(p => p.type === "NON_REFUND").length}</div>
-                            <div className="rp-stat-label"><i className="bi bi-x-circle me-1"></i>Không hoàn</div>
+                            <div className="rp-stat-label"><i className="bi bi-x-circle me-1"></i>Non-refundable</div>
                         </div>
                     </div>
                 )}
@@ -362,23 +575,23 @@ const RefundPolicyManagement = () => {
                 <div className="rp-card">
                     <div className="rp-card-header">
                         <span className="fw-bold" style={{ color: "#5C6F4E" }}>
-                            <i className="bi bi-collection me-2"></i>Danh sách chính sách
+                            <i className="bi bi-collection me-2"></i>Policy list
                         </span>
-                        <span className="badge bg-secondary" style={{ fontSize: "0.7rem" }}>{policies.length} chính sách</span>
+                        <span className="badge bg-secondary" style={{ fontSize: "0.7rem" }}>{policies.length} policies</span>
                     </div>
 
                     {loading && (
                         <div className="text-center py-5">
                             <div className="spinner-border text-secondary" role="status"></div>
-                            <div className="text-muted mt-2">Đang tải chính sách...</div>
+                            <div className="text-muted mt-2">Loading policies...</div>
                         </div>
                     )}
 
                     {!loading && policies.length === 0 && (
                         <div className="text-center py-5 text-muted">
                             <i className="bi bi-shield-x fs-1 d-block mb-2 opacity-25"></i>
-                            Chưa có chính sách hoàn tiền nào.<br />
-                            <small>Nhấn <strong>+ Thêm chính sách</strong> để bắt đầu cấu hình.</small>
+                            No cancellation policies yet.<br />
+                            <small>Click <strong>+ Add Cancellation Policy</strong> to start configuring.</small>
                         </div>
                     )}
 
@@ -386,6 +599,7 @@ const RefundPolicyManagement = () => {
                         <div className="rp-policy-grid">
                             {policies.map(p => {
                                 const t = getPolicyType(p.type);
+                                const seasonal = resolvePolicySeasonal(p);
                                 return (
                                     <div key={p.id} className={`rp-policy-card ${!p.active ? "inactive" : ""}`}>
                                         {/* Header */}
@@ -394,7 +608,7 @@ const RefundPolicyManagement = () => {
                                                 <PolicyTypeBadge type={p.type} />
                                                 <div className="fw-bold mt-2" style={{ fontSize: "1rem", color: "#2d3748" }}>{p.name}</div>
                                             </div>
-                                            <div className="form-check form-switch mb-0" title="Bật/tắt chính sách">
+                                            <div className="form-check form-switch mb-0" title="Toggle policy status">
                                                 <input
                                                     className="form-check-input"
                                                     type="checkbox"
@@ -408,14 +622,14 @@ const RefundPolicyManagement = () => {
                                         {/* Rates */}
                                         <div className="row g-2 mb-3">
                                             <div className="col-6">
-                                                <div className="text-muted" style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Đặt cọc</div>
+                                                <div className="text-muted" style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Prepayment</div>
                                                 <div className="fw-bold" style={{ color: "#d97706", fontSize: "1.15rem" }}>{p.prepaidRate}%</div>
                                                 <div className="rp-rate-bar">
                                                     <div className="rp-rate-fill" style={{ width: `${p.prepaidRate}%`, background: "#d97706" }}></div>
                                                 </div>
                                             </div>
                                             <div className="col-6">
-                                                <div className="text-muted" style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Hoàn tiền</div>
+                                                <div className="text-muted" style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Cancellation</div>
                                                 <div className="fw-bold" style={{ color: "#16a34a", fontSize: "1.15rem" }}>{p.refunRate}%</div>
                                                 <div className="rp-rate-bar">
                                                     <div className="rp-rate-fill" style={{ width: `${p.refunRate}%`, background: "#16a34a" }}></div>
@@ -425,14 +639,14 @@ const RefundPolicyManagement = () => {
 
                                         {/* Meta info */}
                                         <div className="d-flex flex-column gap-1 mb-3" style={{ fontSize: "0.8rem", color: "#718096" }}>
-                                            {p.dateRange && (
-                                                <div><i className="bi bi-calendar-event me-1 text-primary"></i>Áp dụng: <strong>{p.dateRange}</strong> ngày trước check-in</div>
+                                            {(p.daysBeforeCheckIn !== null && p.daysBeforeCheckIn !== undefined) || p.dateRange ? (
+                                                <div><i className="bi bi-calendar-event me-1 text-primary"></i>Applies when cancelled within <strong>{p.daysBeforeCheckIn ?? p.dateRange}</strong> days before check-in</div>
+                                            ) : null}
+                                            {seasonal.start && seasonal.end && (
+                                                <div><i className="bi bi-calendar-range me-1 text-info"></i>Active Seasonal window: <strong>{seasonal.start} → {seasonal.end}</strong></div>
                                             )}
-                                            {p.activeTimeStart && p.activeTimeEnd && (
-                                                <div><i className="bi bi-calendar-range me-1 text-info"></i>Mùa: <strong>{p.activeTimeStart} → {p.activeTimeEnd}</strong></div>
-                                            )}
-                                            {!p.dateRange && !p.activeTimeStart && (
-                                                <div className="text-muted fst-italic"><i className="bi bi-infinity me-1"></i>Áp dụng mọi lúc</div>
+                                            {!p.dateRange && p.daysBeforeCheckIn == null && !p.activeTimeStart && (
+                                                <div className="text-muted fst-italic"><i className="bi bi-infinity me-1"></i>Always applicable</div>
                                             )}
                                         </div>
 
@@ -445,7 +659,7 @@ const RefundPolicyManagement = () => {
                                                 onMouseEnter={e => { e.target.style.background = "#5C6F4E"; e.target.style.color = "#fff"; }}
                                                 onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = "#5C6F4E"; }}
                                             >
-                                                <i className="bi bi-pencil me-1"></i>Sửa
+                                                <i className="bi bi-pencil me-1"></i>Edit
                                             </button>
                                             <button
                                                 className="rp-action-btn"
@@ -466,6 +680,7 @@ const RefundPolicyManagement = () => {
             </div>
 
             <PolicyFormModal
+                key={editing ? editing.id : "new-policy"}
                 isOpen={modalOpen}
                 onClose={() => { setModalOpen(false); setEditing(null); }}
                 onSave={handleSave}

@@ -173,7 +173,7 @@ const AppRouter = () => {
             <Route path="/admin/room-types" element={<MainLayout><RoomTypeManagement /></MainLayout>} />
             <Route path="/admin/room-types/:roomTypeId/price-modifiers" element={<MainLayout><PriceModifierManagement /></MainLayout>} />
             <Route path="/admin/room-inventories" element={<MainLayout><RoomInventoryManagement /></MainLayout>} />
-            <Route path="/admin/branches/:branchId/refund-policies" element={<MainLayout><RefundPolicyManagement /></MainLayout>} />
+            <Route path="/admin/branches/:branchId/cancellation-policies" element={<MainLayout><RefundPolicyManagement /></MainLayout>} />
             
             {/* 6.2 Services Management */}
             <Route path="/services" element={<MainLayout><RequireManagerOrAdmin><ServiceList /></RequireManagerOrAdmin></MainLayout>} />

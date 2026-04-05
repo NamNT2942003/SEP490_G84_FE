@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData }) => {
+const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOptions = [], loadingPolicies = false }) => {
     const [formData, setFormData] = useState({
         name: '',
         type: 'DATE_RANGE',
@@ -164,8 +164,26 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData }) => {
         if (t === 'POLICY') {
             return (
                 <div>
-                    <label className="form-label small text-muted">Policy ID</label>
-                    <input type="number" min="1" className="form-control" value={m.policyId || ''} onChange={(e) => handleMetaChange('policyId', parseInt(e.target.value))} required />
+                    <label className="form-label small text-muted">Cancellation Policy</label>
+                    <select
+                        className="form-select"
+                        value={m.policyId || ''}
+                        onChange={(e) => handleMetaChange('policyId', e.target.value ? parseInt(e.target.value, 10) : null)}
+                        required
+                        disabled={loadingPolicies || policyOptions.length === 0}
+                    >
+                        <option value="">
+                            {loadingPolicies ? 'Loading policies...' : 'Select cancellation policy'}
+                        </option>
+                        {policyOptions.map((policy) => (
+                            <option key={policy.id} value={policy.id}>
+                                {policy.name}
+                            </option>
+                        ))}
+                    </select>
+                    {!loadingPolicies && policyOptions.length === 0 && (
+                        <div className="form-text text-warning">No policy available for this branch. Create cancellation policy first.</div>
+                    )}
                 </div>
             );
         }

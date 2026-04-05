@@ -191,6 +191,23 @@
   padding: 8px 12px;
 }
 
+.branch-page .modal-body .branch-select__control {
+  min-height: 38px;
+  border-radius: 6px;
+  border-color: #dee2e6;
+  font-size: 0.875rem;
+}
+
+.branch-page .modal-body .branch-select__control--is-focused {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+
+.branch-page .modal-body .branch-select__menu {
+  z-index: 6;
+  font-size: 0.875rem;
+}
+
 .branch-system-field {
   background: #f8f9fb;
   border: 1px solid #e9ecef;

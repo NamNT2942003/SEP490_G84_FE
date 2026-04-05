@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Select from "react-select";
 import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
 import "./BranchManagement.css";
 
@@ -8,6 +9,7 @@ const EMPTY_FORM = {
   branchName: "",
   propertyType: "",
   address: "",
+  country: "VN",
   city: "",
   contactNumber: "",
 };
@@ -15,7 +17,6 @@ const EMPTY_FORM = {
 const FORM_FIELDS = [
   { key: "branchName", label: "Branch name", required: true },
   { key: "address", label: "Address" },
-  { key: "city", label: "City" },
   { key: "contactNumber", label: "Contact number" },
 ];
 
@@ -36,6 +37,11 @@ export default function BranchManagement() {
   const [propertyTypeOptions, setPropertyTypeOptions] = useState([]);
   const [loadingPropertyTypes, setLoadingPropertyTypes] = useState(false);
   const [propertyTypeError, setPropertyTypeError] = useState("");
+  const [countryOptions, setCountryOptions] = useState([]);
+  const [cityOptions, setCityOptions] = useState([]);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState("");
+  const [geoLib, setGeoLib] = useState(null);
 
   const fetchBranches = useCallback(async () => {
     try {
@@ -77,6 +83,47 @@ export default function BranchManagement() {
     fetchPropertyTypes();
   }, []);
 
+  React.useEffect(() => {
+    const loadGeoData = async () => {
+      if (!showFormModal || geoLib) return;
+      try {
+        setGeoLoading(true);
+        setGeoError("");
+        const module = await import("country-state-city");
+        const countries = module.Country.getAllCountries()
+          .map((country) => ({
+            value: country.isoCode,
+            label: country.name,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label));
+        setGeoLib(module);
+        setCountryOptions(countries);
+      } catch (err) {
+        setGeoError("Cannot load country/city data.");
+      } finally {
+        setGeoLoading(false);
+      }
+    };
+
+    loadGeoData();
+  }, [showFormModal, geoLib]);
+
+  React.useEffect(() => {
+    if (!geoLib || !formData.country) {
+      setCityOptions([]);
+      return;
+    }
+    const cities = geoLib.City.getCitiesOfCountry(formData.country) || [];
+    const options = cities
+      .map((city) => ({
+        value: city.name,
+        label: city.name,
+      }))
+      .filter((opt, idx, arr) => arr.findIndex((o) => o.value === opt.value) === idx)
+      .sort((a, b) => a.label.localeCompare(b.label));
+    setCityOptions(options);
+  }, [geoLib, formData.country]);
+
   const filteredBranches = useMemo(() => {
     const keyword = search.toLowerCase().trim();
     if (!keyword) return branches;
@@ -86,6 +133,7 @@ export default function BranchManagement() {
         branch.branchName,
         branch.address,
         branch.city,
+        branch.country,
         branch.contactNumber,
       ]
         .filter(Boolean)
@@ -108,6 +156,7 @@ export default function BranchManagement() {
       branchName: branch.branchName || "",
       propertyType: branch.propertyType || "",
       address: branch.address || "",
+      country: branch.country || "VN",
       city: branch.city || "",
       contactNumber: branch.contactNumber || "",
     });
@@ -123,8 +172,46 @@ export default function BranchManagement() {
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      if (name === "country") {
+        return { ...prev, country: value, city: "" };
+      }
+      return { ...prev, [name]: value };
+    });
   };
+
+  const selectedCountryOption = useMemo(
+    () => countryOptions.find((option) => option.value === formData.country) || null,
+    [countryOptions, formData.country]
+  );
+
+  const selectedCityOption = useMemo(
+    () => cityOptions.find((option) => option.value === formData.city) || null,
+    [cityOptions, formData.city]
+  );
+
+  const handleCountrySelect = (option) => {
+    setFormData((prev) => ({
+      ...prev,
+      country: option?.value || "",
+      city: "",
+    }));
+  };
+
+  const handleCitySelect = (option) => {
+    setFormData((prev) => ({
+      ...prev,
+      city: option?.value || "",
+    }));
+  };
+
+  const countryCodeToName = useMemo(() => {
+    const lookup = new Map();
+    countryOptions.forEach((option) => {
+      lookup.set(option.value, option.label);
+    });
+    return lookup;
+  }, [countryOptions]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -141,6 +228,16 @@ export default function BranchManagement() {
 
     if (!formData.branchName.trim()) {
       setFormError("Branch name is required.");
+      return;
+    }
+
+    if (!formData.country.trim()) {
+      setFormError("Country is required.");
+      return;
+    }
+
+    if (!formData.city.trim()) {
+      setFormError("City is required.");
       return;
     }
 
@@ -218,7 +315,7 @@ export default function BranchManagement() {
             <input
               type="text"
               className="form-control no-left-border"
-              placeholder="Search by name, city, address..."
+              placeholder="Search by name, city, country, address..."
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch(e)}
@@ -286,7 +383,7 @@ export default function BranchManagement() {
                   <td className="branch-value">{branch.propertyType || "-"}</td>
                   <td>
                     <div className="branch-value">{branch.address || "-"}</div>
-                    <div className="branch-meta">{branch.city || "-"}</div>
+                    <div className="branch-meta">{branch.city || "-"}{branch.country ? `, ${countryCodeToName.get(branch.country) || branch.country}` : ""}</div>
                   </td>
                   <td className="branch-value">{branch.contactNumber || "-"}</td>
                   <td className="text-end">
@@ -294,10 +391,10 @@ export default function BranchManagement() {
                       <button
                         type="button"
                         className="btn btn-sm btn-outline-success"
-                        onClick={() => navigate(`/admin/branches/${branch.branchId}/refund-policies`)}
-                        title="Quản lý chính sách hoàn tiền"
+                        onClick={() => navigate(`/admin/branches/${branch.branchId}/cancellation-policies`)}
+                        title="Cancellation Policy"
                       >
-                        <i className="bi bi-shield-check me-1"></i>Hoàn tiền
+                        <i className="bi bi-shield-check me-1"></i>Cancellation Policy
                       </button>
                       <button
                         type="button"
@@ -349,6 +446,12 @@ export default function BranchManagement() {
                       </div>
                     )}
 
+                    {geoError && (
+                      <div className="alert alert-warning py-2" role="alert">
+                        {geoError}
+                      </div>
+                    )}
+
                     {editingBranch && (
                       <div className="branch-system-field mb-3">
                         <div className="branch-system-label">Channel property ID</div>
@@ -386,6 +489,34 @@ export default function BranchManagement() {
                             </option>
                           ))}
                         </select>
+                      </div>
+
+                      <div className="col-md-6">
+                        <label className="form-label">Country *</label>
+                        <Select
+                          classNamePrefix="branch-select"
+                          options={countryOptions}
+                          value={selectedCountryOption}
+                          onChange={handleCountrySelect}
+                          isDisabled={submitLoading || geoLoading}
+                          isSearchable
+                          placeholder="Select country"
+                          noOptionsMessage={() => "No country found"}
+                        />
+                      </div>
+
+                      <div className="col-md-6">
+                        <label className="form-label">City *</label>
+                        <Select
+                          classNamePrefix="branch-select"
+                          options={cityOptions}
+                          value={selectedCityOption}
+                          onChange={handleCitySelect}
+                          isDisabled={submitLoading || geoLoading || !formData.country}
+                          isSearchable
+                          placeholder={formData.country ? "Select city" : "Select country first"}
+                          noOptionsMessage={() => "No city found"}
+                        />
                       </div>
 
                       {FORM_FIELDS.map((field) => (

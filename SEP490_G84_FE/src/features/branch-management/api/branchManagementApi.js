@@ -27,6 +27,7 @@ const toBranchRequest = (payload = {}) => ({
   propertyType: (payload.propertyType || "").trim(),
   address: (payload.address || "").trim(),
   city: (payload.city || "").trim(),
+  country: (payload.country || "").trim(),
   contactNumber: (payload.contactNumber || "").trim(),
 });
 
@@ -57,6 +58,18 @@ const branchManagementApi = {
 
   getPropertyTypeOptions: async () => {
     const response = await apiClient.get(`${ENUM_OPTIONS_API_BASE}/property-types`);
+    return Array.isArray(response.data) ? response.data.map(normalizeEnumOption) : [];
+  },
+
+  getCountryOptions: async () => {
+    const response = await apiClient.get(`${ENUM_OPTIONS_API_BASE}/countries`);
+    return Array.isArray(response.data) ? response.data.map(normalizeEnumOption) : [];
+  },
+
+  getCityOptions: async (countryCode = "VN") => {
+    const response = await apiClient.get(`${ENUM_OPTIONS_API_BASE}/cities`, {
+      params: { country: countryCode || "VN" },
+    });
     return Array.isArray(response.data) ? response.data.map(normalizeEnumOption) : [];
   },
 };
