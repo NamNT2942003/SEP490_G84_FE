@@ -4,30 +4,21 @@ import { COLORS } from '@/constants';
 
 /* ── Design tokens (project palette) ── */
 const C = {
-  primary:      COLORS.PRIMARY,        // #465c47 moss green
-  primaryHover: COLORS.PRIMARY_HOVER,  // #384a39
+  primary:      COLORS.PRIMARY,        
+  primaryHover: COLORS.PRIMARY_HOVER,  
   primaryLight: 'rgba(70,92,71,0.09)',
   accent:       COLORS.PRIMARY,
   accentLight:  'rgba(70,92,71,0.10)',
   danger:       COLORS.ERROR,          // #dc3545
   dangerLight:  'rgba(220,53,69,0.08)',
   border:       '#dde3dd',
-  surface:      COLORS.TEXT_LIGHT,     // #ffffff
-  bg:           COLORS.SECONDARY,      // #f0f2f0
+  surface:      COLORS.TEXT_LIGHT,     
+  bg:           COLORS.SECONDARY,      
   muted:        '#7a8a7b',
-  text:         COLORS.TEXT_DARK,      // #333333
+  text:         COLORS.TEXT_DARK,      
 };
 
 const R = { sm: '6px', md: '10px', lg: '14px' };
-
-/* ── Empty row factory ── */
-const emptyItem = () => ({
-  id: Date.now() + Math.random(),
-  selectedServiceId: '',
-  description: '',
-  unitPrice: 0,
-  quantity: 1,
-});
 
 const PAYMENT_OPTIONS = [
   {
@@ -51,84 +42,49 @@ const PAYMENT_METHODS = [
 ];
 
 /* ── Component ── */
-const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
-  const [items, setItems]               = useState([emptyItem()]);
+const ReportDamageModal = ({ show, onClose, stayInfo, onSuccess }) => {
+  const [damageItem, setDamageItem]     = useState('');
+  const [description, setDescription]   = useState('');
+  const [amount, setAmount]             = useState(0);
   const [paymentOption, setPaymentOption] = useState('pay_later');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
-  const [servicesList, setServicesList] = useState([]);
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState('');
 
   useEffect(() => {
     if (show) {
-      fetchServices();
-      setItems([emptyItem()]);
+      setDamageItem('');
+      setDescription('');
+      setAmount('');
       setPaymentOption('pay_later');
       setError('');
     }
   }, [show]);
 
-  const fetchServices = async () => {
-    try {
-      const data = await stayApi.getServices();
-      setServicesList(data);
-    } catch {
-      setError('Failed to load services list. Please try again.');
-    }
-  };
-
   if (!show || !stayInfo) return null;
 
-  const updateItem = (index, field, value) =>
-    setItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
-
-  const handleServiceChange = (index, value) => {
-    if (value === 'custom') {
-      setItems(prev => prev.map((item, i) =>
-        i === index ? { ...item, selectedServiceId: 'custom', description: '', unitPrice: 0 } : item
-      ));
-    } else if (value !== '') {
-      const srv = servicesList.find(s => s.serviceId === parseInt(value));
-      setItems(prev => prev.map((item, i) =>
-        i === index ? { ...item, selectedServiceId: value, description: srv?.serviceName || '', unitPrice: srv?.basePrice || 0 } : item
-      ));
-    } else {
-      setItems(prev => prev.map((item, i) =>
-        i === index ? { ...item, selectedServiceId: '', description: '', unitPrice: 0 } : item
-      ));
-    }
-  };
-
-  const addRow    = () => setItems(prev => [...prev, emptyItem()]);
-  const removeRow = (index) => { if (items.length > 1) setItems(prev => prev.filter((_, i) => i !== index)); };
-
-  const grandTotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const isValid    = items.every(item => item.selectedServiceId !== '' && item.description && item.unitPrice > 0 && item.quantity > 0);
+  const isValid    = damageItem.trim() !== '' && amount > 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isValid) return;
     setLoading(true);
     setError('');
-    const serviceItems = items.map(item => ({
-      serviceId:   item.selectedServiceId === 'custom' ? null : parseInt(item.selectedServiceId),
-      description: item.description,
-      quantity:    item.quantity,
-      orderPrice:  item.unitPrice,
-    }));
     const payload = {
       stayId:        stayInfo.stayId,
-      items:         serviceItems,
-      paymentOption,
+      damageItem:    damageItem,
+      description:   description,
+      amount:        parseFloat(amount),
+      payNow:        paymentOption === 'pay_now',
       paymentMethod: paymentOption === 'pay_now' ? paymentMethod : null,
     };
     try {
-      await stayApi.addServiceToStay(payload);
+      await stayApi.reportDamage(payload);
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || 'Failed to add services. Please try again.');
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to report damage. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -150,7 +106,7 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
       <div style={{
         background: C.surface,
         borderRadius: R.lg,
-        width: '100%', maxWidth: '720px',
+        width: '100%', maxWidth: '600px',
         maxHeight: '92vh',
         display: 'flex', flexDirection: 'column',
         boxShadow: '0 24px 64px rgba(0,0,0,.22)',
@@ -159,7 +115,7 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
 
         {/* ── Header ── */}
         <div style={{
-          background: C.primary,
+          background: C.danger,
           padding: '20px 28px',
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
           flexShrink: 0,
@@ -171,10 +127,10 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
                 background: 'rgba(255,255,255,0.15)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <i className="bi bi-bag-plus-fill" style={{ color: '#fff', fontSize: 16 }} />
+                <i className="bi bi-exclamation-triangle-fill" style={{ color: '#fff', fontSize: 16 }} />
               </div>
               <h5 style={{ margin: 0, color: '#fff', fontWeight: 700, fontSize: 17, letterSpacing: '-0.3px' }}>
-                Add Services
+                Report Damage
               </h5>
             </div>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -218,156 +174,62 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
             </div>
           )}
 
-          {/* Services table card */}
+          {/* Form */}
           <div style={{
             background: C.surface, borderRadius: R.md,
             border: `1px solid ${C.border}`,
-            overflow: 'hidden', marginBottom: 12,
+            padding: '20px', marginBottom: 20,
           }}>
-            {/* Table header */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '2fr 2fr 1.2fr 0.6fr 1.2fr 0.35fr',
-              padding: '10px 16px',
-              background: C.primaryLight,
-              borderBottom: `1px solid ${C.border}`,
-            }}>
-              {['Service', 'Description', 'Unit Price', 'Qty', 'Subtotal', ''].map((h, i) => (
-                <div key={i} style={{
-                  fontSize: 11, fontWeight: 700, color: C.muted,
-                  letterSpacing: '0.6px', textTransform: 'uppercase',
-                  textAlign: i >= 4 ? 'right' : 'left',
-                }}>
-                  {h}
-                </div>
-              ))}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+                Damaged Item <span style={{ color: C.danger }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={damageItem}
+                onChange={e => setDamageItem(e.target.value)}
+                placeholder="e.g., Broken glass, Stained sheet..."
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: R.sm,
+                  border: `1.5px solid ${C.border}`, fontSize: 14, outline: 'none'
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+                Detailed Description
+              </label>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="Optional details about the damage..."
+                rows="2"
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: R.sm,
+                  border: `1.5px solid ${C.border}`, fontSize: 14, outline: 'none',
+                  resize: 'none'
+                }}
+              />
             </div>
 
-            {/* Rows */}
-            {items.map((item, index) => (
-              <div key={item.id} style={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 2fr 1.2fr 0.6fr 1.2fr 0.35fr',
-                padding: '10px 16px',
-                alignItems: 'center',
-                borderBottom: index < items.length - 1 ? `1px solid ${C.border}` : 'none',
-                gap: 8,
-              }}>
-                {/* Service dropdown */}
-                <select
-                  value={item.selectedServiceId}
-                  onChange={e => handleServiceChange(index, e.target.value)}
-                  required
-                  style={{
-                    padding: '7px 10px', borderRadius: R.sm, fontSize: 13,
-                    border: `1.5px solid ${item.selectedServiceId ? C.primary : C.border}`,
-                    background: C.surface, color: C.text, outline: 'none',
-                    cursor: 'pointer', width: '100%',
-                  }}
-                >
-                  <option value="">— Select —</option>
-                  {servicesList.map(srv => (
-                    <option key={srv.serviceId} value={srv.serviceId}>{srv.serviceName}</option>
-                  ))}
-                  <option value="custom">✏️ Custom entry</option>
-                </select>
-
-                {/* Description */}
-                <input
-                  type="text"
-                  value={item.description}
-                  onChange={e => updateItem(index, 'description', e.target.value)}
-                  placeholder="Description…"
-                  required
-                  style={{
-                    padding: '7px 10px', borderRadius: R.sm, fontSize: 13,
-                    border: `1.5px solid ${C.border}`, background: C.surface,
-                    color: C.text, outline: 'none', width: '100%',
-                  }}
-                />
-
-                {/* Unit price */}
-                <input
-                  type="number" min="0"
-                  value={item.unitPrice}
-                  onChange={e => updateItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                  readOnly={item.selectedServiceId !== '' && item.selectedServiceId !== 'custom'}
-                  style={{
-                    padding: '7px 10px', borderRadius: R.sm, fontSize: 13,
-                    border: `1.5px solid ${C.border}`,
-                    background: (item.selectedServiceId !== '' && item.selectedServiceId !== 'custom') ? '#f5f5f5' : C.surface,
-                    color: C.text, outline: 'none', width: '100%',
-                  }}
-                />
-
-                {/* Quantity */}
-                <input
-                  type="number" min="1"
-                  value={item.quantity}
-                  onChange={e => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
-                  required
-                  style={{
-                    padding: '7px 8px', borderRadius: R.sm, fontSize: 13,
-                    border: `1.5px solid ${C.border}`, background: C.surface,
-                    color: C.text, outline: 'none', textAlign: 'center', width: '100%',
-                  }}
-                />
-
-                {/* Subtotal */}
-                <div style={{ textAlign: 'right', fontWeight: 700, fontSize: 13.5, color: C.primary }}>
-                  {(item.unitPrice * item.quantity).toLocaleString()} ₫
-                </div>
-
-                {/* Remove */}
-                <div style={{ textAlign: 'right' }}>
-                  <button
-                    type="button"
-                    onClick={() => removeRow(index)}
-                    disabled={items.length === 1}
-                    title="Remove row"
-                    style={{
-                      background: items.length === 1 ? 'transparent' : C.dangerLight,
-                      border: 'none', borderRadius: R.sm,
-                      width: 28, height: 28, cursor: items.length === 1 ? 'not-allowed' : 'pointer',
-                      color: items.length === 1 ? '#ccc' : C.danger,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 14,
-                    }}
-                  >
-                    <i className="bi bi-trash3" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Add row button */}
-          <button
-            type="button"
-            onClick={addRow}
-            style={{
-              background: 'transparent', border: `1.5px dashed ${C.primary}`,
-              borderRadius: R.sm, color: C.primary,
-              padding: '7px 16px', fontSize: 13, fontWeight: 600,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-              marginBottom: 20,
-            }}
-          >
-            <i className="bi bi-plus-circle" />
-            Add another service
-          </button>
-
-          {/* Grand total */}
-          <div style={{
-            display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
-            gap: 12, marginBottom: 20,
-          }}>
-            <span style={{ fontSize: 13.5, color: C.muted }}>
-              {items.length} service{items.length !== 1 ? 's' : ''} · Total:
-            </span>
-            <span style={{ fontSize: 20, fontWeight: 800, color: C.primary }}>
-              {grandTotal.toLocaleString()} ₫
-            </span>
+            <div style={{ marginBottom: 0 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+                Compensation Amount (VND) <span style={{ color: C.danger }}>*</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                placeholder="Enter amount..."
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: R.sm,
+                  border: `1.5px solid ${C.border}`, fontSize: 14, outline: 'none',
+                  fontWeight: 600, color: C.danger
+                }}
+              />
+            </div>
           </div>
 
           {/* Payment section */}
@@ -468,7 +330,7 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
             disabled={!isValid || loading}
             style={{
               padding: '9px 26px', borderRadius: R.sm, border: 'none',
-              background: isValid && !loading ? C.primary : '#b0bec5',
+              background: isValid && !loading ? C.danger : '#b0bec5',
               color: '#fff', fontSize: 13.5, fontWeight: 700,
               cursor: isValid && !loading ? 'pointer' : 'not-allowed',
               display: 'flex', alignItems: 'center', gap: 8,
@@ -482,8 +344,8 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
               </>
             ) : (
               <>
-                <i className="bi bi-check2-all" />
-                Confirm {items.length} Service{items.length !== 1 ? 's' : ''}
+                <i className="bi bi-exclamation-triangle" />
+                Report Damage
               </>
             )}
           </button>
@@ -493,4 +355,4 @@ const AddServiceModal = ({ show, onClose, stayInfo, onSuccess }) => {
   );
 };
 
-export default AddServiceModal;
+export default ReportDamageModal;

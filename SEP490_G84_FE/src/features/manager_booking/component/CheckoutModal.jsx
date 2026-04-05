@@ -3,55 +3,45 @@ import { QRCodeCanvas } from 'qrcode.react';
 import './checkout-print.css';
 import { checkoutApi } from '../api/checkoutApi';
 
-// TỪ ĐIỂN CHI NHÁNH (Tương lai có thể lấy từ API Backend trả về)
 const BRANCH_CONFIG = {
-  1: {
-    name: "AN HOTEL & RESORT - HANOI",
-    address: "123 Trang Tien, Hoan Kiem, Hanoi",
-    phone: "024.1234.5678"
-  },
-  2: {
-    name: "AN HOTEL & RESORT - DANANG",
-    address: "456 Vo Nguyen Giap, Son Tra, Danang",
-    phone: "0236.9876.5432"
-  }
+  1: { name: "AN HOTEL & RESORT - HANOI", address: "123 Trang Tien, Hoan Kiem, Hanoi", phone: "024.1234.5678" },
+  2: { name: "AN HOTEL & RESORT - DANANG", address: "456 Vo Nguyen Giap, Son Tra, Danang", phone: "0236.9876.5432" }
 };
+
+const PAYMENT_METHODS = [
+  { value: 'CASH', icon: 'bi-cash-coin', label: 'Tiền Mặt' },
+  { value: 'TRANSFER', icon: 'bi-bank', label: 'CK' },
+  { value: 'CARD', icon: 'bi-credit-card-2-front', label: 'Thẻ' },
+];
 
 export default function CheckoutModal({ show, onClose, booking, onSuccess, branchId }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [billDetails, setBillDetails] = useState(null);
+  const [roomBilling, setRoomBilling] = useState(null);
   const [loadingBill, setLoadingBill] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [activeRoomIdx, setActiveRoomIdx] = useState(0);
 
-  // Lấy thông tin chi nhánh hiện tại (Nếu không có thì lấy mặc định)
   const currentBranch = BRANCH_CONFIG[branchId] || {
-    name: "AN Nguyen HOTEL & RESORT",
-    address: "Ha Noi, Vietnam",
-    phone: "0123.456.789"
+    name: "AN Nguyen HOTEL & RESORT", address: "Ha Noi, Vietnam", phone: "0123.456.789"
   };
 
   useEffect(() => {
-    const fetchBillingInfo = async () => {
-      if (show && booking) {
-        setLoadingBill(true);
-        try {
-          // Gọi API thật lên Backend để lấy thông tin kết toán
-          const data = await checkoutApi.getBillingInfo(booking.id);
-          setBillDetails(data);
-        } catch (error) {
-          console.error("Lỗi lấy dữ liệu hóa đơn:", error);
-          alert("Không thể tải chi tiết hóa đơn. Vui lòng thử lại!");
-        } finally {
-          setLoadingBill(false);
-        }
-      }
-    };
-    fetchBillingInfo();
+    if (!show || !booking) return;
+    setPaymentMethod('');
+    setActiveRoomIdx(0);
+    setLoadingBill(true);
+    checkoutApi.getRoomBillingInfo(booking.id)
+      .then(data => setRoomBilling(data))
+      .catch(err => {
+        console.error("Lỗi lấy room billing:", err);
+        alert("Không thể tải chi tiết hóa đơn theo phòng!");
+      })
+      .finally(() => setLoadingBill(false));
   }, [show, booking]);
 
   if (!show || !booking) return null;
 
-  // Render màn hình Loading tạm trong lúc chờ API trả về
-  if (loadingBill || !billDetails) return (
+  if (loadingBill || !roomBilling) return (
     <>
       <div className="modal-backdrop fade show no-print" style={{ zIndex: 1040 }}></div>
       <div className="modal fade show d-block no-print" tabIndex="-1" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)' }}>
@@ -59,171 +49,304 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
           <div className="modal-content p-5 text-center border-0 shadow-lg">
             <div className="spinner-border text-primary mx-auto mb-3" role="status"></div>
             <h5 className="text-secondary">Loading Billing Details...</h5>
-            <small className="text-muted">Đang kết toán dịch vụ, vui lòng chờ!</small>
           </div>
         </div>
       </div>
     </>
   );
 
-  const roomCharge      = billDetails.roomCharge || 0;
-  const roomChargePaid  = billDetails.roomChargePaid || false;
-  const servicesList    = billDetails.services || [];
-  const discount        = billDetails.discount || 0;
-  const grandTotal      = billDetails.grandTotal || 0;
-  const alreadyPaid     = billDetails.alreadyPaidTotal || 0;
-  const amountDue       = billDetails.amountDue || 0;
+  const rooms = roomBilling.rooms || [];
+  const activeRoom = rooms[activeRoomIdx] || null;
+  const grandTotal = roomBilling.grandTotal || 0;
+  const alreadyPaid = roomBilling.alreadyPaidTotal || 0;
+  const amountDue = roomBilling.amountDue || 0;
+  const totalRoomCharge = roomBilling.totalRoomCharge || 0;
+  const roomChargePaid = roomBilling.roomChargePaid || false;
 
   const methodLabel = (m) => m === 'CARD' ? 'Card' : m === 'TRANSFER' ? 'Transfer' : 'Cash';
+  const fmtMoney = (v) => Number(v || 0).toLocaleString();
 
-  // Cấu hình VietQR
-  const BANK_BIN = "970436"; // Mã BIN ngân hàng (VD: Vietcombank)
-  const BANK_ACCOUNT = "0123456789"; 
-  const ACCOUNT_NAME = "KHACH SAN AN"; 
-  // Template gen VietQR theo chuẩn Napas
+  const BANK_BIN = "970436"; const BANK_ACCOUNT = "0123456789"; const ACCOUNT_NAME = "KHACH SAN AN";
   const qrString = `00020101021238580010A00000072701280006${BANK_BIN}0110${BANK_ACCOUNT}0208QRIBFTTA5303704540${amountDue.toString().length}${amountDue}5802VN59${ACCOUNT_NAME.length < 10 ? '0' + ACCOUNT_NAME.length : ACCOUNT_NAME.length}${ACCOUNT_NAME}62220818THANHTOAN ${booking.bookingCode}6304`;
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   const handleConfirmCheckout = async () => {
-    if (window.confirm("Xác nhận khách đã thanh toán đủ và tiến hành Trả phòng (Check-out)?")) {
-      setIsSubmitting(true);
-      try {
-        const response = await checkoutApi.processCheckout(booking.id);
-        alert(response.message || "Check-out thành công! Các phòng đã được chuyển sang trạng thái chờ dọn dẹp.");
-        if (onSuccess) onSuccess(); 
-        onClose();   
-      } catch (error) {
-        console.error("Lỗi Check-out:", error);
-        alert(error.response?.data?.error || "Có lỗi xảy ra khi Check-out!");
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
+    if (!paymentMethod) { alert('Vui lòng chọn phương thức thanh toán!'); return; }
+    setIsSubmitting(true);
+    try {
+      const response = await checkoutApi.processCheckout(booking.id, paymentMethod);
+      alert(response.message || 'Check-out thành công!');
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Có lỗi xảy ra khi Check-out!');
+    } finally { setIsSubmitting(false); }
   };
+
+  const hasRoomChange = activeRoom?.roomHistory?.length > 1;
 
   return (
     <>
       <div className="modal-backdrop fade show no-print" style={{ zIndex: 1040 }}></div>
-      <div className="modal fade show d-block no-print" tabIndex="-1" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)' }}>
-        <div className="modal-dialog modal-xl modal-dialog-centered">
-          <div className="modal-content border-0 shadow-lg overflow-hidden">
-            
-            <div className="modal-header bg-dark text-white border-0">
+      <div className="modal fade show d-block no-print" tabIndex="-1"
+        style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)' }}>
+        <div className="modal-dialog modal-dialog-centered"
+          style={{ maxWidth: 1200, margin: '1.5rem auto', maxHeight: 'calc(100vh - 3rem)', transform: 'translateX(150px)' }}>
+          <div className="modal-content border-0 shadow-lg d-flex flex-column"
+            style={{ maxHeight: 'calc(100vh - 3rem)', overflow: 'hidden' }}>
+
+            {/* HEADER */}
+            <div className="modal-header bg-dark text-white border-0 py-2 px-4" style={{ flexShrink: 0 }}>
               <div>
-                <h5 className="modal-title fw-bold"><i className="bi bi-receipt me-2"></i>Checkout & Billing</h5>
-                <small className="text-secondary">Booking: {booking.bookingCode} | Guest: {booking.guestName}</small>
+                <h5 className="modal-title fw-bold mb-0" style={{ fontSize: '1.05rem' }}>
+                  <i className="bi bi-receipt me-2"></i>Checkout & Billing
+                </h5>
+                <small className="text-secondary" style={{ fontSize: '0.78rem' }}>
+                  {booking.bookingCode} · {booking.guestName}
+                </small>
               </div>
               <button type="button" className="btn-close btn-close-white" onClick={onClose} disabled={isSubmitting}></button>
             </div>
 
-            <div className="modal-body bg-light p-0">
-              <div className="row g-0">
-                {/* CỘT TRÁI: CHI TIẾT HÓA ĐƠN */}
-                <div className="col-md-8 p-4">
-                  <h6 className="fw-bold text-secondary mb-3">BILLING SUMMARY</h6>
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-body p-0">
-                      <table className="table table-hover mb-0">
-                        <thead className="table-light text-muted small">
-                          <tr>
-                            <th>Description</th>
-                            <th className="text-center">Qty</th>
-                            <th className="text-center">Status</th>
-                            <th className="text-end">Amount (VND)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="fw-medium">Accommodation (Room Charge)</td>
-                            <td className="text-center">{booking.nights} nights</td>
-                            <td className="text-center">
-                              {roomChargePaid
-                                ? <span className="text-success fw-semibold" style={{fontSize:'12px'}}>Paid</span>
-                                : <span className="text-danger fw-semibold" style={{fontSize:'12px'}}>Unpaid</span>}
-                            </td>
-                            <td className="text-end">{Number(roomCharge).toLocaleString()}</td>
-                          </tr>
-                          {servicesList.map((svc, idx) => (
-                            <tr key={idx}>
-                              <td>
-                                <i className="bi bi-arrow-return-right me-2 text-muted"></i>
-                                {svc.name}
-                              </td>
-                              <td className="text-center">{svc.quantity || 1}</td>
-                              <td className="text-center">
-                                {svc.paid
-                                  ? <span className="text-success fw-semibold" style={{fontSize:'12px'}}>Paid ({methodLabel(svc.paymentMethod)})</span>
-                                  : <span className="text-danger fw-semibold" style={{fontSize:'12px'}}>Unpaid</span>
-                                }
-                              </td>
-                              <td className="text-end">{Number(svc.amount || 0).toLocaleString()}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot className="table-light">
-                          <tr>
-                            <td colSpan="3" className="text-end fw-bold text-dark">GRAND TOTAL:</td>
-                            <td className="text-end fw-bold text-dark fs-5">{Number(grandTotal).toLocaleString()}</td>
-                          </tr>
-                          <tr>
-                            <td colSpan="3" className="text-end fw-bold text-success">Already Paid (room + services):</td>
-                            <td className="text-end fw-bold text-success">- {Number(alreadyPaid).toLocaleString()}</td>
-                          </tr>
-                          <tr>
-                            <td colSpan="3" className="text-end fw-bold text-danger">AMOUNT DUE (CẦN THU):</td>
-                            <td className="text-end fw-bold text-danger fs-4">{amountDue > 0 ? Number(amountDue).toLocaleString() : '0'}</td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                  </div>
-                </div>
+            {/* BODY — scrollable */}
+            <div className="modal-body p-0" style={{ overflowY: 'auto', flex: '1 1 auto' }}>
+              <div className="row g-0" style={{ minHeight: '100%' }}>
 
-                {/* CỘT PHẢI: THANH TOÁN & NÚT ACTION */}
-                <div className="col-md-4 p-4 bg-white border-start d-flex flex-column align-items-center justify-content-center">
-                  <h6 className="fw-bold text-primary mb-1">SCAN TO PAY (VIETQR)</h6>
-                  <p className="small text-muted mb-4 text-center">Open your Banking App to scan</p>
-                  
-                  {amountDue > 0 ? (
-                    <div className="p-3 bg-white border rounded shadow-sm mb-4 text-center">
-                      <QRCodeCanvas value={qrString} size={200} level={"H"} />
-                      <div className="mt-3 fw-bold fs-5 text-danger">{amountDue.toLocaleString()} VND</div>
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-success bg-opacity-10 rounded text-center mb-4 border border-success w-100">
-                      <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '3rem' }}></i>
-                      <h5 className="text-success fw-bold mt-2 mb-0">FULLY PAID</h5>
-                      <div className="small text-success mt-1">No outstanding balance</div>
+                {/* ═══ CỘT TRÁI: BILL CHI TIẾT ═══ */}
+                <div className="col-lg-8 p-3" style={{ backgroundColor: '#f8f9fa' }}>
+
+                  {/* Room Tabs */}
+                  {rooms.length > 1 && (
+                    <div className="d-flex gap-2 mb-3 flex-wrap">
+                      {rooms.map((room, idx) => (
+                        <button key={idx}
+                          className={`btn btn-sm fw-semibold px-3 py-1 ${activeRoomIdx === idx ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
+                          onClick={() => setActiveRoomIdx(idx)}
+                          style={{ borderRadius: 8, fontSize: '0.8rem' }}>
+                          <i className="bi bi-door-open me-1"></i>
+                          {room.roomName}
+                          <span className="ms-1 opacity-75">· {room.guestName?.split(' ').pop()}</span>
+                        </button>
+                      ))}
                     </div>
                   )}
 
-                  <div className="d-grid gap-2 w-100 mt-auto">
-                    <button className="btn btn-outline-dark fw-bold py-2" onClick={handlePrint}>
-                      <i className="bi bi-printer-fill me-2"></i> Print K80 Receipt
-                    </button>
-                    <button 
-                      className="btn btn-danger fw-bold shadow-sm py-2" 
-                      onClick={handleConfirmCheckout} 
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processing...</>
-                      ) : (
-                        <><i className="bi bi-check2-all me-2"></i> Confirm Payment & Check-out</>
-                      )}
-                    </button>
+                  {/* Active room card */}
+                  {activeRoom && (
+                    <div className="card border-0 shadow-sm mb-3">
+                      {/* Room info */}
+                      <div className="card-header bg-white py-2 px-3 border-bottom">
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div>
+                            <span className="fw-bold" style={{ fontSize: '0.95rem' }}>
+                              <i className="bi bi-door-open me-1 text-primary"></i>
+                              {activeRoom.roomName}
+                            </span>
+                            <span className="text-muted ms-2" style={{ fontSize: '0.8rem' }}>
+                              {activeRoom.roomTypeName}
+                            </span>
+                            <div className="d-flex align-items-center gap-2 mt-1">
+                              <small className="text-muted" style={{ fontSize: '0.78rem' }}>
+                                <i className="bi bi-person me-1"></i>{activeRoom.guestName}
+                              </small>
+                              {hasRoomChange && (
+                                <span className="badge bg-warning text-dark" style={{ fontSize: '0.68rem' }}>
+                                  <i className="bi bi-arrow-left-right me-1"></i>
+                                  {activeRoom.roomHistory.join(' → ')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-end" style={{ whiteSpace: 'nowrap' }}>
+                            <div className="text-muted" style={{ fontSize: '0.7rem' }}>Giá phòng</div>
+                            <div className="fw-bold">{fmtMoney(activeRoom.roomPrice)}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Services table */}
+                      <div className="table-responsive">
+                        <table className="table table-hover mb-0" style={{ fontSize: '0.82rem' }}>
+                          <thead className="table-light text-muted">
+                            <tr>
+                              <th style={{ minWidth: 160 }}>Dịch vụ</th>
+                              <th className="text-center" style={{ width: 45 }}>SL</th>
+                              <th className="text-center" style={{ width: 65 }}>Status</th>
+                              {hasRoomChange && <th className="text-center" style={{ width: 55 }}>Phòng</th>}
+                              <th className="text-end" style={{ width: 100 }}>Thành tiền</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(!activeRoom.services || activeRoom.services.length === 0) ? (
+                              <tr>
+                                <td colSpan={hasRoomChange ? 5 : 4} className="text-center text-muted py-3">
+                                  <i className="bi bi-check-circle me-1"></i>Không có dịch vụ phát sinh
+                                </td>
+                              </tr>
+                            ) : activeRoom.services.map((svc, idx) => (
+                              <tr key={idx}>
+                                <td>
+                                  <span className="text-muted me-1">↳</span>
+                                  {svc.name}
+                                  {svc.orderTime && (
+                                    <small className="text-muted d-block" style={{ fontSize: '0.7rem' }}>
+                                      {svc.orderTime}
+                                    </small>
+                                  )}
+                                </td>
+                                <td className="text-center">{svc.quantity || 1}</td>
+                                <td className="text-center">
+                                  {svc.paid
+                                    ? <span className="badge bg-success-subtle text-success" style={{ fontSize: '0.7rem' }}>Paid</span>
+                                    : <span className="badge bg-danger-subtle text-danger" style={{ fontSize: '0.7rem' }}>Unpaid</span>
+                                  }
+                                </td>
+                                {hasRoomChange && (
+                                  <td className="text-center">
+                                    <small className="text-muted">{svc.roomName}</small>
+                                  </td>
+                                )}
+                                <td className="text-end fw-medium">{fmtMoney(svc.amount)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          {activeRoom.services?.length > 0 && (
+                            <tfoot className="table-light">
+                              <tr>
+                                <td colSpan={hasRoomChange ? 4 : 3} className="text-end text-muted small fw-bold">
+                                  Chưa trả / Đã trả:
+                                </td>
+                                <td className="text-end">
+                                  <span className="text-danger fw-bold">{fmtMoney(activeRoom.serviceTotal)}</span>
+                                  <span className="text-muted mx-1">/</span>
+                                  <span className="text-success">{fmtMoney(activeRoom.servicePaidTotal)}</span>
+                                </td>
+                              </tr>
+                            </tfoot>
+                          )}
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ═══ TỔNG KẾT ═══ */}
+                  <div className="card border-0 shadow-sm">
+                    <div className="card-body py-2 px-3">
+                      <div className="d-flex justify-content-between align-items-center py-1" style={{ fontSize: '0.88rem' }}>
+                        <span className="text-dark">
+                          Room Charge
+                          {roomChargePaid && <span className="badge bg-success ms-2" style={{ fontSize: '0.6rem' }}>Paid</span>}
+                        </span>
+                        <span className="fw-bold">{fmtMoney(totalRoomCharge)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center py-1 fw-bold" style={{ fontSize: '0.95rem', borderTop: '1px solid #eee' }}>
+                        <span>GRAND TOTAL</span>
+                        <span>{fmtMoney(grandTotal)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center py-1 text-success" style={{ fontSize: '0.85rem' }}>
+                        <span>Already Paid</span>
+                        <span>- {fmtMoney(alreadyPaid)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center py-1 text-danger fw-bold" style={{ fontSize: '1.1rem', borderTop: '2px solid #dc3545' }}>
+                        <span>CẦN THU</span>
+                        <span>{amountDue > 0 ? fmtMoney(amountDue) : '0'}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                {/* ═══ CỘT PHẢI: THANH TOÁN ═══ */}
+                <div className="col-lg-4 p-3 bg-white border-start d-flex flex-column">
+
+                  {/* Payment method selector */}
+                  <h6 className="fw-bold text-dark mb-2 text-center" style={{ fontSize: '0.85rem' }}>
+                    <i className="bi bi-wallet2 me-1"></i>THANH TOÁN
+                  </h6>
+                  <div className="d-flex gap-2 mb-3">
+                    {PAYMENT_METHODS.map(({ value, icon, label }) => (
+                      <button key={value} type="button"
+                        className={`btn flex-fill py-2 d-flex flex-column align-items-center gap-1 fw-semibold ${paymentMethod === value ? 'btn-primary shadow' : 'btn-outline-secondary'}`}
+                        onClick={() => setPaymentMethod(value)} disabled={isSubmitting}
+                        style={{ fontSize: '0.72rem', transition: 'all 0.15s' }}>
+                        <i className={`bi ${icon}`} style={{ fontSize: '1.2rem' }}></i>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Amount / QR display */}
+                  {amountDue > 0 && paymentMethod === 'TRANSFER' ? (
+                    <div className="p-3 border rounded text-center mb-3 flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 200 }}>
+                      <p className="small text-muted mb-2">Quét VietQR để thanh toán</p>
+                      <QRCodeCanvas value={qrString} size={150} level="H" />
+                      <div className="mt-2 fw-bold fs-5 text-danger">{fmtMoney(amountDue)} VND</div>
+                    </div>
+                  ) : amountDue <= 0 ? (
+                    <div className="p-3 bg-success bg-opacity-10 rounded text-center mb-3 border border-success flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 120 }}>
+                      <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '2.5rem' }}></i>
+                      <h6 className="text-success fw-bold mt-2 mb-0">FULLY PAID</h6>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-warning bg-opacity-10 rounded text-center mb-3 border border-warning flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 120 }}>
+                      <i className="bi bi-cash-stack text-warning" style={{ fontSize: '2rem' }}></i>
+                      <div className="fw-bold text-warning-emphasis fs-5 mt-2">{fmtMoney(amountDue)} VND</div>
+                      <div className="small text-muted">Số tiền cần thu</div>
+                    </div>
+                  )}
+
+                  {/* Room overview mini list */}
+                  {rooms.length > 1 && (
+                    <div className="mb-3 p-2 bg-light rounded" style={{ fontSize: '0.78rem' }}>
+                      <small className="text-muted fw-bold d-block mb-1">
+                        <i className="bi bi-list-ul me-1"></i>BILL THEO PHÒNG
+                      </small>
+                      {rooms.map((room, idx) => (
+                        <div key={idx}
+                          className="d-flex justify-content-between align-items-center py-1"
+                          style={{ borderBottom: idx < rooms.length - 1 ? '1px solid #e9ecef' : 'none' }}>
+                          <span>
+                            <i className="bi bi-door-open me-1 text-muted"></i>
+                            {room.roomName}
+                            <span className="text-muted ms-1">({room.guestName?.split(' ').pop()})</span>
+                          </span>
+                          <span className="fw-semibold">
+                            {fmtMoney(Number(room.roomPrice || 0) + Number(room.serviceTotal || 0))}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="d-grid gap-2 mt-auto">
+                    <button className="btn btn-outline-dark fw-bold py-2" onClick={handlePrint} style={{ fontSize: '0.85rem' }}>
+                      <i className="bi bi-printer-fill me-2"></i>In Hóa Đơn
+                    </button>
+                    <button className="btn btn-danger fw-bold shadow-sm py-2"
+                      onClick={handleConfirmCheckout}
+                      disabled={isSubmitting || !paymentMethod}
+                      style={{ fontSize: '0.85rem' }}>
+                      {isSubmitting
+                        ? <><span className="spinner-border spinner-border-sm me-2"></span>Đang xử lý...</>
+                        : <><i className="bi bi-check2-all me-2"></i>Xác Nhận Checkout</>
+                      }
+                    </button>
+                    {!paymentMethod && (
+                      <p className="text-muted text-center mb-0" style={{ fontSize: '0.72rem' }}>
+                        ⚠️ Chọn phương thức thanh toán để tiếp tục
+                      </p>
+                    )}
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* --- KHỐI ẨN IN MÁY IN NHIỆT (Chỉ hiển thị khi bấm Print) --- */}
+      {/* ═══ PRINT SECTION ═══ */}
       <div id="printable-receipt" className="bg-white text-dark p-2 d-none d-print-block">
         <div className="text-center mb-3">
           <h2 className="mb-0 fw-bold" style={{ fontSize: '18px' }}>{currentBranch.name}</h2>
@@ -238,42 +361,39 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
           <div><strong>Booking:</strong> {booking.bookingCode}</div>
           <div><strong>Guest:</strong> {booking.guestName}</div>
           <div><strong>In:</strong> {booking.checkIn} | <strong>Out:</strong> {booking.checkOut}</div>
+          <div><strong>Payment:</strong> {methodLabel(paymentMethod)}</div>
           <div><strong>Printed:</strong> {new Date().toLocaleString()}</div>
         </div>
 
-        <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse', marginBottom: '10px' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px dashed #000', borderTop: '1px dashed #000' }}>
-              <th style={{ textAlign: 'left', padding: '5px 0' }}>Item</th>
-              <th style={{ textAlign: 'right', padding: '5px 0' }}>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style={{ padding: '5px 0' }}>Room Charge ({booking.nights}N)</td>
-              <td style={{ textAlign: 'right' }}>{roomCharge.toLocaleString()}</td>
-            </tr>
-            {servicesList.map((svc, idx) => (
-              <tr key={idx}>
-                <td style={{ padding: '2px 0' }}>- {svc.name}</td>
-                <td style={{ textAlign: 'right' }}>{svc.amount?.toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {rooms.map((room, idx) => (
+          <div key={idx} style={{ marginBottom: '10px' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '13px', borderBottom: '1px dashed #ccc', paddingBottom: '3px', marginBottom: '3px' }}>
+              {room.roomName} - {room.guestName} ({room.roomTypeName})
+              {room.roomHistory?.length > 1 && ` [${room.roomHistory.join('→')}]`}
+            </div>
+            <div style={{ fontSize: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Room Charge</span><span>{fmtMoney(room.roomPrice)}</span>
+              </div>
+              {room.services?.map((svc, sIdx) => (
+                <div key={sIdx} style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: 8 }}>
+                  <span>- {svc.name} x{svc.quantity}{svc.paid ? ' ✓' : ''}</span>
+                  <span>{fmtMoney(svc.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
 
         <div style={{ borderTop: '1px dashed #000', paddingTop: '5px', fontSize: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-            <strong>GRAND TOTAL:</strong>
-            <strong>{grandTotal.toLocaleString()}</strong>
+            <strong>GRAND TOTAL:</strong><strong>{fmtMoney(grandTotal)}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-            <span>Paid:</span>
-            <span>- {Number(alreadyPaid).toLocaleString()}</span>
+            <span>Paid:</span><span>- {fmtMoney(alreadyPaid)}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px' }}>
-            <span>DUE:</span>
-            <span>{amountDue > 0 ? amountDue.toLocaleString() : '0'}</span>
+            <span>DUE:</span><span>{amountDue > 0 ? fmtMoney(amountDue) : '0'}</span>
           </div>
         </div>
 
@@ -281,13 +401,11 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
           <div className="text-center mt-4">
             <div style={{ fontSize: '12px', marginBottom: '5px' }}>Scan to Pay (VietQR)</div>
             <QRCodeCanvas value={qrString} size={150} />
-            <div style={{ fontSize: '11px', marginTop: '5px' }}>{BANK_ACCOUNT} - {ACCOUNT_NAME}</div>
           </div>
         )}
 
         <div className="text-center mt-4" style={{ fontSize: '12px', borderTop: '1px dashed #000', paddingTop: '10px' }}>
-          Thank you for staying with us!<br/>
-          See you again.
+          Thank you for staying with us!<br />See you again.
         </div>
       </div>
     </>

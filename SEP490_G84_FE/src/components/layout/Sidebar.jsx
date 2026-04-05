@@ -14,6 +14,11 @@ const Sidebar = ({ collapsed }) => {
     setOpenMenus((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
+  const isHousekeeper = currentUser?.permissions?.isHousekeeper;
+  const isStaff = currentUser?.permissions?.isStaff;
+  const isManager = currentUser?.permissions?.isManager;
+  const isAdmin = currentUser?.permissions?.isAdmin;
+
   // --- Menu groups ---
   const menuGroups = [
     {
@@ -25,11 +30,12 @@ const Sidebar = ({ collapsed }) => {
     {
       groupLabel: "Operations",
       items: [
-        { path: "/manager-booking", label: "Check-in", icon: "bi-key", show: true },
-        { path: "/stay", label: "In-house (Stay)", icon: "bi-house-door", show: true },
-        { path: "/bookings", label: "Bookings", icon: "bi-calendar-check", show: true },
-        // Ẩn Services đối với role Staff
-        { path: "/services", label: "Services", icon: "bi-cup-hot", show: !currentUser?.permissions?.isStaff },
+        { path: "/manager-booking", label: "Check-in", icon: "bi-key", show: !isHousekeeper },
+        { path: "/stay", label: "In-house (Stay)", icon: "bi-house-door", show: !isHousekeeper },
+        { path: "/housekeeping", label: "Housekeeping", icon: "bi-stars", show: true },
+        { path: "/bookings", label: "Bookings", icon: "bi-calendar-check", show: !isHousekeeper },
+        // Ẩn Services đối với role Staff và Housekeeper
+        { path: "/services", label: "Services", icon: "bi-cup-hot", show: !isStaff && !isHousekeeper },
       ],
     },
     {
@@ -39,45 +45,54 @@ const Sidebar = ({ collapsed }) => {
           path: "/admin/branches",
           label: "Branches",
           icon: "bi-building",
-          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+          show: isAdmin || isManager,
         },
         {
           path: "/admin/rooms",
           label: "Rooms",
           icon: "bi-door-open",
-          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+          show: isAdmin || isManager,
         },
         {
           path: "/admin/room-types",
           label: "Room Types",
           icon: "bi-grid-1x2",
-          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+          show: isAdmin || isManager,
         },
         {
           path: "/admin/room-inventories",
           label: "Room Inventories",
           icon: "bi-calendar3-range",
-          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+          show: isAdmin || isManager,
         },
         {
-          path: "/furniture/furniture",
+          path: "/admin/furniture",
           label: "Furniture Master",
           icon: "bi-lamp",
-          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+          show: isAdmin || isManager,
         },
         {
           path: "/inventory",
           label: "Main Inventory",
           icon: "bi-box-seam",
-          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+          show: isAdmin || isManager,
         },
         // Đã merge Item Inventory (Furniture) từ bản 2 vào đây dạng Dropdown
-
+        {
+          label: "Item Inventory",
+          icon: "bi-box",
+          show: isAdmin || isManager,
+          children: [
+            { path: "/furniture/furniture", label: "Furniture Inventory", icon: "bi-list-ul" },
+            { path: "/furniture/history", label: "Import History", icon: "bi-clock-history" },
+            { path: "/furniture/report", label: "Inventory Report", icon: "bi-file-earmark-bar-graph" },
+          ],
+        },
         {
           path: "/accounts",
           label: "Accounts",
           icon: "bi-people",
-          show: currentUser?.permissions?.canAccessAccountList || !currentUser?.permissions?.isStaff,
+          show: currentUser?.permissions?.canAccessAccountList,
         },
       ],
     },
@@ -87,7 +102,7 @@ const Sidebar = ({ collapsed }) => {
         {
           label: "Reports",
           icon: "bi-bar-chart-line",
-          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+          show: isAdmin || isManager,
           children: [
             { path: "/report/revenue", label: "Room Revenue", icon: "bi-building" },
             { path: "/report/services", label: "Service Revenue", icon: "bi-cup-hot" },
@@ -99,7 +114,7 @@ const Sidebar = ({ collapsed }) => {
         {
           label: "Dòng tiền",
           icon: "bi-cash-coin",
-          show: currentUser?.permissions?.isAdmin || currentUser?.permissions?.isManager,
+          show: isAdmin || isManager,
           children: [
             { path: "/finance/cashflow", label: "Báo cáo thu tiền", icon: "bi-arrow-down-circle" },
           ],
@@ -370,7 +385,7 @@ const Sidebar = ({ collapsed }) => {
                   {currentUser?.fullName || currentUser?.username || "User"}
                 </strong>
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>
-                  {currentUser?.role || (currentUser?.permissions?.isAdmin ? "Admin" : currentUser?.permissions?.isManager ? "Manager" : "Staff")}
+                  {currentUser?.role || (isAdmin ? "Admin" : isManager ? "Manager" : isHousekeeper ? "Housekeeper" : "Staff")}
                 </span>
               </div>
             )}
@@ -408,5 +423,3 @@ const Sidebar = ({ collapsed }) => {
 };
 
 export default Sidebar;
-
-

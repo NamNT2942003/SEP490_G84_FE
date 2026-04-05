@@ -1,240 +1,311 @@
 import React, { useState } from 'react';
 import { checkInApi } from '../api/checkInApi';
 
+const PRIMARY = '#465c47';
+const SECONDARY = '#f0f2f0';
+const ERROR = '#dc3545';
+
+// Identity number is already masked by the backend (only last 4 digits sent)
+
+function statusBadge(status) {
+  const map = {
+    CHECKED_IN: { bg: '#e8f2e9', color: PRIMARY, label: 'CHECKED IN' },
+    ARRIVED: { bg: '#e3f2fd', color: '#1565c0', label: 'ARRIVED' },
+    CONFIRMED: { bg: '#fff3e0', color: '#e65100', label: 'CONFIRMED' },
+  };
+  return map[status] || { bg: SECONDARY, color: '#666', label: status };
+}
+
+// ── Shared row ─────────────────────────────────────────────────────────────────
+function Row({ label, children }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '10px 0', borderBottom: '1px solid #f0f0f0',
+    }}>
+      <span style={{ fontSize: '0.85rem', color: '#888' }}>{label}</span>
+      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#222', textAlign: 'right' }}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
+// ── Section title ──────────────────────────────────────────────────────────────
+function Section({ title }) {
+  return (
+    <div style={{
+      fontSize: '0.72rem', fontWeight: 800, color: PRIMARY,
+      letterSpacing: '0.1em', textTransform: 'uppercase',
+      padding: '18px 0 6px',
+    }}>
+      {title}
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 export default function BookingDetailModal({ show, onClose, booking, onRefresh }) {
-  const [editingGuestId, setEditingGuestId] = useState(null);
-  const [editForm, setEditForm] = useState({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [expandedRow, setExpandedRow] = useState(null);
+  const [editForms, setEditForms] = useState({});
+  const [savingId, setSavingId] = useState(null);
 
   if (!show || !booking) return null;
 
-  const handleEditClick = (stay) => {
-    setEditingGuestId(stay.guestId);
-    setEditForm({
-      guestName: stay.guestName || '',
-      identityNumber: stay.identityNumber || '',
-      phone: stay.phone || '',
-      email: stay.email || '',
-      dateOfBirth: stay.dateOfBirth || '',
-      nationality: stay.nationality || '',
-      gender: stay.gender || ''
-    });
-  };
+  const badge = statusBadge(booking.status);
 
-  const handleCancelEdit = () => {
-    setEditingGuestId(null);
-    setEditForm({});
-  };
+  const startEdit = (stay) =>
+    setEditForms(prev => ({
+      ...prev,
+      [stay.guestId]: {
+        guestName: stay.guestName || '',
+        identityNumber: stay.identityNumber || '',
+        phone: stay.phone || '',
+        email: stay.email || '',
+        dateOfBirth: stay.dateOfBirth || '',
+        nationality: stay.nationality || '',
+        gender: stay.gender || '',
+      },
+    }));
 
-  const handleFormChange = (field, value) => {
-    setEditForm(prev => ({ ...prev, [field]: value }));
-  };
+  const cancelEdit = (id) =>
+    setEditForms(prev => { const n = { ...prev }; delete n[id]; return n; });
 
-  const handleSaveGuest = async (guestId) => {
-    if (!editForm.guestName || !editForm.identityNumber) {
-      alert("Guest Name and ID/Passport cannot be empty!");
-      return;
-    }
+  const onChange = (id, field, val) =>
+    setEditForms(prev => ({ ...prev, [id]: { ...prev[id], [field]: val } }));
 
-    setIsSaving(true);
+  const handleSave = async (guestId) => {
+    const form = editForms[guestId];
+    if (!form?.guestName) { alert('Guest name is required.'); return; }
+    setSavingId(guestId);
     try {
-      // FIX TẠI ĐÂY: Loại bỏ empty string của dateOfBirth
-      const payload = {
-        ...editForm,
-        dateOfBirth: editForm.dateOfBirth === '' ? null : editForm.dateOfBirth,
-        identityNumber: editForm.identityNumber === '' ? null : editForm.identityNumber
-      };
-
-      await checkInApi.updateGuestInfo(guestId, payload);
-      alert("Guest information updated successfully!");
-      setEditingGuestId(null);
-      if (onRefresh) onRefresh(); 
-    } catch (error) {
-      console.error("Update guest error:", error);
-      alert(error.response?.data?.error || "Failed to update guest information!");
+      await checkInApi.updateGuestInfo(guestId, {
+        ...form,
+        dateOfBirth: form.dateOfBirth || null,
+        identityNumber: form.identityNumber || null,
+      });
+      cancelEdit(guestId);
+      if (onRefresh) onRefresh();
+    } catch (e) {
+      alert(e.response?.data?.error || 'Failed to save.');
     } finally {
-      setIsSaving(false);
+      setSavingId(null);
     }
   };
 
   return (
     <>
-      <div className="modal-backdrop fade show" style={{ zIndex: 1040 }}></div>
-      <div className="modal fade show d-block" tabIndex="-1" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-        <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-          <div className="modal-content border-0 shadow-lg">
-            
-            <div className="modal-header bg-dark text-white border-0">
-              <div>
-                <h5 className="modal-title fw-bold">Booking Details: {booking.bookingCode}</h5>
-                <small className="text-secondary">Status: <span className="text-warning">{booking.status}</span></small>
-              </div>
-              <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
-            </div>
+      {/* Backdrop */}
+      <div
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 1040 }}
+        onClick={onClose}
+      />
 
-            <div className="modal-body bg-light">
-              <div className="row g-3 mb-4">
-                <div className="col-md-6">
-                  <div className="card h-100 border-0 shadow-sm">
-                    <div className="card-body">
-                      <h6 className="text-secondary fw-bold mb-3 border-bottom pb-2">GENERAL INFO</h6>
-                      <p className="mb-1"><strong>Booker:</strong> {booking.guestName}</p>
-                      <p className="mb-1"><strong>Source:</strong> {booking.source}</p>
-                      <p className="mb-1"><strong>Total Amount:</strong> {booking.totalAmount?.toLocaleString()} VND</p>
-                      <p className="mb-2"><strong>Payment:</strong> 
-                        <span className={`ms-2 badge ${booking.paymentStatus === 'PAID' ? 'bg-success' : 'bg-danger'}`}>
-                          {booking.paymentStatus}
-                        </span>
-                      </p>
-                      
-                      {booking.status !== 'CONFIRMED' && (
-                        <div className="mb-0 mt-3 p-2 bg-info bg-opacity-10 rounded border border-info-subtle">
-                          <i className="bi bi-luggage text-info me-2"></i>
-                          <strong className="text-dark">Luggage Note:</strong> 
-                          <div className="text-secondary small mt-1">{booking.luggageNote || <span className="text-muted fst-italic">No luggage deposited.</span>}</div>
+      {/* Panel */}
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, width: 480,
+        background: '#fff', zIndex: 1050,
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
+        fontFamily: "'Inter', -apple-system, sans-serif",
+      }}>
+
+        {/* ── Header ── */}
+        <div style={{ background: PRIMARY, padding: '24px 24px 20px', position: 'relative' }}>
+          <div style={{
+            fontSize: '0.68rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)',
+            letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8,
+          }}>
+            Booking Details
+          </div>
+
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.01em', marginBottom: 10 }}>
+            {booking.bookingCode}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              background: badge.bg, color: badge.color,
+              fontSize: '0.7rem', fontWeight: 700, padding: '3px 10px',
+              borderRadius: 20, letterSpacing: '0.06em',
+            }}>
+              {badge.label}
+            </span>
+            {booking.source && (
+              <span style={{
+                background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.85)',
+                fontSize: '0.7rem', fontWeight: 600, padding: '3px 10px', borderRadius: 20,
+              }}>
+                {booking.source}
+              </span>
+            )}
+          </div>
+
+        </div>
+
+
+        {/* ── Scrollable body ── */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
+
+          {/* BOOKING INFO */}
+          <Section title="Booking Info" />
+
+          <Row label="Booker">{booking.guestName || '–'}</Row>
+          <Row label="Check-in">{booking.checkIn || '–'}</Row>
+          <Row label="Check-out">{booking.checkOut || '–'}</Row>
+          <Row label="Duration">{booking.nights} night{booking.nights !== 1 ? 's' : ''}</Row>
+          <Row label="Total Amount">
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {booking.totalAmount?.toLocaleString('vi-VN')} ₫
+            </span>
+            {' '}
+            <span style={{
+              fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 12,
+              background: booking.paymentStatus === 'PAID' ? '#e8f2e9' : '#ffebee',
+              color: booking.paymentStatus === 'PAID' ? PRIMARY : ERROR,
+              marginLeft: 4,
+            }}>
+              {booking.paymentStatus === 'PAID' ? 'Paid' : 'Unpaid'}
+            </span>
+          </Row>
+
+          {/* LUGGAGE */}
+          {(booking.status === 'ARRIVED' || booking.status === 'CHECKED_IN') && (
+            <>
+              <Section title="Luggage" />
+              <Row label="Note">
+                {booking.luggageNote
+                  || <span style={{ color: '#bbb', fontStyle: 'italic', fontWeight: 400 }}>No luggage deposited</span>}
+              </Row>
+            </>
+          )}
+
+          {/* RESERVED ROOMS — CONFIRMED / ARRIVED */}
+          {(booking.status === 'CONFIRMED' || booking.status === 'ARRIVED') && booking.roomDetails?.length > 0 && (
+            <>
+              <Section title="Reserved Rooms" />
+              {booking.roomDetails.map((rd, i) => (
+                <Row key={i} label={`Room type ${i + 1}`}>
+                  {rd.quantity}× {rd.roomTypeName}
+                </Row>
+              ))}
+            </>
+          )}
+
+          {/* IN-HOUSE GUESTS — CHECKED_IN */}
+          {booking.status === 'CHECKED_IN' && booking.stayDetails?.length > 0 && (
+            <>
+              <Section title="In-House Guests" />
+              {booking.stayDetails.map((stay, idx) => {
+                const form = editForms[stay.guestId];
+                const isEdit = !!form;
+                const isSaving = savingId === stay.guestId;
+
+                return (
+                  <div key={idx}>
+                    {/* Guest room label as divider */}
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '12px 0 4px',
+                      borderBottom: `2px solid ${PRIMARY}22`,
+                      marginBottom: 0,
+                    }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: PRIMARY }}>Room {stay.roomName}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#aaa' }}>{stay.roomTypeName}</span>
+                    </div>
+
+                    {/* Rows or edit form */}
+                    <div>
+                      {isEdit ? (
+                        /* Edit form */
+                        <div style={{ padding: '12px 0' }}>
+                          {[
+                            { label: 'Full Name', field: 'guestName', type: 'text' },
+                            { label: 'Phone', field: 'phone', type: 'text' },
+                            { label: 'Email', field: 'email', type: 'email' },
+                            { label: 'Date of Birth', field: 'dateOfBirth', type: 'date' },
+                            { label: 'Nationality', field: 'nationality', type: 'text' },
+                          ].map(({ label, field, type }) => (
+                            <div key={field} style={{ marginBottom: 10 }}>
+                              <div style={{ fontSize: '0.67rem', fontWeight: 700, color: '#aaa', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>
+                                {label}
+                              </div>
+                              <input
+                                type={type}
+                                className="form-control form-control-sm"
+                                value={form[field]}
+                                onChange={e => onChange(stay.guestId, field, e.target.value)}
+                              />
+                            </div>
+                          ))}
+
+                          {/* ID — disabled */}
+                          <div style={{ marginBottom: 10 }}>
+                            <div style={{ fontSize: '0.67rem', fontWeight: 700, color: '#aaa', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>
+                              CCCD / Passport
+                            </div>
+                            <input className="form-control form-control-sm"
+                              value={form.identityNumber} disabled
+                              style={{ background: SECONDARY, color: '#aaa' }} />
+                          </div>
+
+                          {/* Gender */}
+                          <div style={{ marginBottom: 12 }}>
+                            <div style={{ fontSize: '0.67rem', fontWeight: 700, color: '#aaa', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>
+                              Gender
+                            </div>
+                            <select className="form-select form-select-sm" value={form.gender}
+                              onChange={e => onChange(stay.guestId, 'gender', e.target.value)}>
+                              <option value="">--</option>
+                              <option value="MALE">Male</option>
+                              <option value="FEMALE">Female</option>
+                            </select>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                            <button className="btn btn-sm btn-outline-secondary px-3"
+                              onClick={() => cancelEdit(stay.guestId)} disabled={isSaving}>
+                              Cancel
+                            </button>
+                            <button className="btn btn-sm px-4"
+                              style={{ background: PRIMARY, color: '#fff', border: 'none' }}
+                              onClick={() => handleSave(stay.guestId)} disabled={isSaving}>
+                              {isSaving ? 'Saving…' : 'Save'}
+                            </button>
+                          </div>
                         </div>
+                      ) : (
+                        /* View mode rows */
+                        <>
+                          <Row label="Full Name">{stay.guestName || '–'}</Row>
+                          <Row label="CCCD / Passport">
+                            <span style={{ fontFamily: 'monospace', letterSpacing: '0.06em' }}>
+                              {stay.identityNumber || '–'}
+                            </span>
+                          </Row>
+                          <Row label="Phone">{stay.phone || '–'}</Row>
+                          <Row label="Email">{stay.email || '–'}</Row>
+                          <Row label="Date of Birth">{stay.dateOfBirth || '–'}</Row>
+                          <Row label="Gender">{stay.gender || '–'}</Row>
+                          <Row label="Nationality">{stay.nationality || '–'}</Row>
+                          <Row label="Checked in by">
+                            <span style={{ color: '#888', fontWeight: 400 }}>{stay.checkInBy} · {stay.actualCheckInTime}</span>
+                          </Row>
+
+                          <div style={{ padding: '12px 0', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button className="btn btn-sm px-3"
+                              style={{ border: `1px solid ${PRIMARY}`, color: PRIMARY, background: 'transparent', fontWeight: 600 }}
+                              onClick={() => startEdit(stay)}>
+                              Edit
+                            </button>
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
-                </div>
-                <div className="col-md-6">
-                  <div className="card h-100 border-0 shadow-sm">
-                    <div className="card-body">
-                      <h6 className="text-secondary fw-bold mb-3 border-bottom pb-2">STAY DATES</h6>
-                      <p className="mb-1"><strong>Check-In:</strong> {booking.checkIn}</p>
-                      <p className="mb-1"><strong>Check-Out:</strong> {booking.checkOut}</p>
-                      <p className="mb-0"><strong>Duration:</strong> {booking.nights} nights</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {booking.status === 'CHECKED_IN' && booking.stayDetails && booking.stayDetails.length > 0 && (
-                <div className="card border-0 shadow-sm">
-                  <div className="card-body p-0">
-                    <h6 className="text-secondary fw-bold m-3 border-bottom pb-2">IN-HOUSE GUEST DETAILS</h6>
-                    <div className="table-responsive">
-                      <table className="table table-hover align-middle mb-0">
-                        <thead className="table-light text-muted small">
-                          <tr>
-                            <th>Room</th>
-                            <th>Guest Name</th>
-                            <th>Identity / Passport</th>
-                            <th>System Audit</th>
-                            <th className="text-end">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {booking.stayDetails.map((stay, idx) => {
-                            const isEditing = editingGuestId === stay.guestId;
-                            const isExpanded = expandedRow === stay.stayId;
-
-                            return (
-                              <React.Fragment key={idx}>
-                                <tr>
-                                  <td>
-                                    <span className="badge bg-warning text-dark me-2">Room {stay.roomName}</span>
-                                    <div className="small text-muted mt-1">{stay.roomTypeName}</div>
-                                  </td>
-                                  
-                                  <td className="fw-bold text-primary">
-                                    {isEditing ? (
-                                      <input type="text" className="form-control form-control-sm" value={editForm.guestName} onChange={(e) => handleFormChange('guestName', e.target.value)} placeholder="Enter exact name..." />
-                                    ) : (
-                                      stay.guestName
-                                    )}
-                                  </td>
-
-                                  <td>
-                                    {isEditing ? (
-                                      <input type="text" className="form-control form-control-sm bg-light" value={editForm.identityNumber} disabled title="ID/Passport is a unique identifier and cannot be edited. Use Undo Check-in if needed." />
-                                    ) : (
-                                      stay.identityNumber || <span className="text-muted fst-italic">N/A</span>
-                                    )}
-                                  </td>
-                                  
-                                  <td>
-                                    <div className="small">
-                                      <span className="text-muted">By:</span> <span className="fw-medium">{stay.checkInBy}</span>
-                                    </div>
-                                    <div className="small mt-1">
-                                      <span className="text-muted">At:</span> {stay.actualCheckInTime}
-                                    </div>
-                                  </td>
-
-                                  <td className="text-end">
-                                    {isEditing ? (
-                                      <>
-                                        <button className="btn btn-sm btn-success me-1" onClick={() => handleSaveGuest(stay.guestId)} disabled={isSaving}>
-                                          {isSaving ? 'Saving...' : 'Save'}
-                                        </button>
-                                        <button className="btn btn-sm btn-outline-secondary" onClick={handleCancelEdit} disabled={isSaving}>Cancel</button>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <button className="btn btn-sm btn-outline-info me-1" onClick={() => setExpandedRow(isExpanded ? null : stay.stayId)}>
-                                          {isExpanded ? 'Hide' : 'More'}
-                                        </button>
-                                        <button className="btn btn-sm btn-outline-primary" onClick={() => handleEditClick(stay)}>
-                                          <i className="bi bi-pencil-square"></i> Edit
-                                        </button>
-                                      </>
-                                    )}
-                                  </td>
-                                </tr>
-
-                                {(isExpanded || isEditing) && (
-                                  <tr className="bg-light">
-                                    <td colSpan="5" className="p-3 border-bottom">
-                                      <div className="row g-2">
-                                        <div className="col-md-3">
-                                          <label className="form-label small text-muted mb-1">Phone</label>
-                                          {isEditing ? <input type="text" className="form-control form-control-sm" value={editForm.phone} onChange={(e) => handleFormChange('phone', e.target.value)} /> : <div className="fw-medium">{stay.phone || '-'}</div>}
-                                        </div>
-                                        <div className="col-md-3">
-                                          <label className="form-label small text-muted mb-1">Email</label>
-                                          {isEditing ? <input type="email" className="form-control form-control-sm" value={editForm.email} onChange={(e) => handleFormChange('email', e.target.value)} /> : <div className="fw-medium">{stay.email || '-'}</div>}
-                                        </div>
-                                        <div className="col-md-2">
-                                          <label className="form-label small text-muted mb-1">DOB</label>
-                                          {isEditing ? <input type="date" className="form-control form-control-sm" value={editForm.dateOfBirth} onChange={(e) => handleFormChange('dateOfBirth', e.target.value)} /> : <div className="fw-medium">{stay.dateOfBirth || '-'}</div>}
-                                        </div>
-                                        <div className="col-md-2">
-                                          <label className="form-label small text-muted mb-1">Gender</label>
-                                          {isEditing ? (
-                                            <select className="form-select form-select-sm" value={editForm.gender} onChange={(e) => handleFormChange('gender', e.target.value)}>
-                                              <option value="">--</option>
-                                              <option value="MALE">Male</option>
-                                              <option value="FEMALE">Female</option>
-                                            </select>
-                                          ) : <div className="fw-medium">{stay.gender || '-'}</div>}
-                                        </div>
-                                        <div className="col-md-2">
-                                          <label className="form-label small text-muted mb-1">Nationality</label>
-                                          {isEditing ? <input type="text" className="form-control form-control-sm" value={editForm.nationality} onChange={(e) => handleFormChange('nationality', e.target.value)} /> : <div className="fw-medium">{stay.nationality || '-'}</div>}
-                                        </div>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-            </div>
-
-            <div className="modal-footer border-0 bg-white">
-              <button type="button" className="btn btn-secondary px-4" onClick={onClose}>Close</button>
-            </div>
-
-          </div>
+                );
+              })}
+            </>
+          )}
         </div>
       </div>
     </>

@@ -155,12 +155,16 @@ const generateInitialAssignments = (booking) => {
     Array.from({ length: detail.quantity }, (_, i) => ({
       id: `${detail.roomTypeName}-${di}-${i}`,
       roomTypeName: detail.roomTypeName,
+      newRoomTypeName: null,
       selectedRoomId: '',
       guestName: di === 0 && i === 0 ? booking.guestName : '',
       identityNumber: '',
       phone: '', email: '', dateOfBirth: '',
       nationality: 'VN', gender: '',
       showExtra: false,
+      showTypeChange: false,
+      upgradeFee: '', upgradeReason: '',
+      upgradePayNow: false, upgradePaymentMethod: 'CASH',
     }))
   );
 };
@@ -179,12 +183,63 @@ function Toggle({ on, onChange, disabled }) {
   );
 }
 
+function PaymentOption({ value, onChange, isSubmitting }) {
+  return (
+    <div style={{ display: 'flex', gap: '12px' }}>
+      {[
+        { val: false, label: 'Pay Later', sub: 'Roll into checkout bill' },
+        { val: true,  label: 'Pay Now',   sub: 'Collect at counter immediately' },
+      ].map(opt => (
+        <div key={String(opt.val)}
+          onClick={() => !isSubmitting && onChange(opt.val)}
+          style={{
+            flex: 1, padding: '12px 14px', borderRadius: '8px', cursor: 'pointer',
+            border: `2px solid ${value === opt.val ? C.PRIMARY : C.BORDER}`,
+            background: value === opt.val ? '#f0f5f0' : C.SURFACE,
+            transition: 'all .15s',
+          }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: 14, height: 14, borderRadius: '50%',
+              border: `2px solid ${value === opt.val ? C.PRIMARY : C.BORDER}`,
+              background: value === opt.val ? C.PRIMARY : 'transparent',
+            }} />
+            <span style={{ fontSize: '13px', fontWeight: 700, color: value === opt.val ? C.PRIMARY : C.TEXT_DARK }}>{opt.label}</span>
+          </div>
+          <div style={{ fontSize: '11.5px', color: C.MUTED, marginTop: '3px', marginLeft: '22px' }}>{opt.sub}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PaymentMethodSelect({ value, onChange, disabled }) {
+  return (
+    <Field label="Payment Method">
+      <select style={S.select(false)} value={value} onChange={e => onChange(e.target.value)} disabled={disabled}>
+        <option value="CASH">Cash</option>
+        <option value="CARD">Card</option>
+        <option value="TRANSFER">Bank Transfer</option>
+      </select>
+    </Field>
+  );
+}
+
 /* ── Step 1: Arrival Info ── */
-function StepArrival({ applyEarlyCheckIn, setApplyEarlyCheckIn, earlyCheckInFee, setEarlyCheckInFee, earlyCheckInNote, setEarlyCheckInNote, luggageNote, setLuggageNote, payNow, setPayNow, paymentMethod, setPaymentMethod, isSubmitting }) {
+function StepArrival({
+  applyEarlyCheckIn, setApplyEarlyCheckIn,
+  earlyCheckInFee, setEarlyCheckInFee,
+  earlyCheckInNote, setEarlyCheckInNote,
+  luggageNote, setLuggageNote,
+  payNow, setPayNow,
+  paymentMethod, setPaymentMethod,
+  isSubmitting,
+}) {
   return (
     <div>
       <p style={S.sectionLabel}>Fill in arrival context before assigning rooms</p>
 
+      {/* ── Early Check-in Surcharge ── */}
       <div style={S.card(applyEarlyCheckIn)}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: applyEarlyCheckIn ? '16px' : 0 }}>
           <div>
@@ -205,40 +260,12 @@ function StepArrival({ applyEarlyCheckIn, setApplyEarlyCheckIn, earlyCheckInFee,
                   onChange={e => setEarlyCheckInNote(e.target.value)} placeholder="e.g. Early check-in at 08:00" disabled={isSubmitting} />
               </Field>
             </div>
-
             <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: `1px solid ${C.BORDER}` }}>
               <div style={{ fontSize: '11.5px', fontWeight: 600, color: C.MUTED, marginBottom: '10px', letterSpacing: '0.2px' }}>PAYMENT OPTION</div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                {[{ val: false, label: 'Pay Later', sub: 'Roll into checkout bill' }, { val: true, label: 'Pay Now', sub: 'Collect at counter immediately' }].map(opt => (
-                  <div key={String(opt.val)}
-                    onClick={() => !isSubmitting && setPayNow(opt.val)}
-                    style={{
-                      flex: 1, padding: '12px 14px', borderRadius: '8px', cursor: 'pointer',
-                      border: `2px solid ${payNow === opt.val ? C.PRIMARY : C.BORDER}`,
-                      background: payNow === opt.val ? '#f0f5f0' : C.SURFACE,
-                      transition: 'all .15s',
-                    }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{
-                        width: 14, height: 14, borderRadius: '50%',
-                        border: `2px solid ${payNow === opt.val ? C.PRIMARY : C.BORDER}`,
-                        background: payNow === opt.val ? C.PRIMARY : 'transparent',
-                      }} />
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: payNow === opt.val ? C.PRIMARY : C.TEXT_DARK }}>{opt.label}</span>
-                    </div>
-                    <div style={{ fontSize: '11.5px', color: C.MUTED, marginTop: '3px', marginLeft: '22px' }}>{opt.sub}</div>
-                  </div>
-                ))}
-              </div>
+              <PaymentOption value={payNow} onChange={setPayNow} isSubmitting={isSubmitting} />
               {payNow && (
                 <div style={{ marginTop: '12px' }}>
-                  <Field label="Payment Method">
-                    <select style={S.select(false)} value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} disabled={isSubmitting}>
-                      <option value="CASH">Cash</option>
-                      <option value="CARD">Card</option>
-                      <option value="TRANSFER">Bank Transfer</option>
-                    </select>
-                  </Field>
+                  <PaymentMethodSelect value={paymentMethod} onChange={setPaymentMethod} disabled={isSubmitting} />
                 </div>
               )}
             </div>
@@ -248,6 +275,7 @@ function StepArrival({ applyEarlyCheckIn, setApplyEarlyCheckIn, earlyCheckInFee,
 
       <div style={S.divider} />
 
+      {/* ── Luggage ── */}
       <div style={S.card(!!luggageNote)}>
         <div style={{ fontSize: '14px', fontWeight: 700, color: C.TEXT_DARK, marginBottom: '4px' }}>Pre-arrival Luggage Storage</div>
         <div style={{ fontSize: '12.5px', color: C.MUTED, marginBottom: '12px' }}>
@@ -266,8 +294,8 @@ function StepArrival({ applyEarlyCheckIn, setApplyEarlyCheckIn, earlyCheckInFee,
 /* ── Step 2: Room Assignment ── */
 function StepRooms({ assignments, availableRooms, errorMessage, isSubmitting, onChange }) {
   const hasErr = !!errorMessage;
+  const allRoomTypeNames = Object.keys(availableRooms || {});
 
-  // Set of roomIds already picked by OTHER slots
   const takenByIndex = (currentIndex) =>
     new Set(
       assignments
@@ -279,10 +307,13 @@ function StepRooms({ assignments, availableRooms, errorMessage, isSubmitting, on
     <div>
       <p style={S.sectionLabel}>Assign a physical room and register each guest</p>
       {assignments.map((assign, index) => {
-        const rooms  = availableRooms[assign.roomTypeName];
-        const taken  = takenByIndex(index);
+        const currentTypeName = assign.newRoomTypeName || assign.roomTypeName;
+        const rooms = availableRooms[currentTypeName];
+        const taken = takenByIndex(index);
         const filteredRooms = rooms ? rooms.filter(r => !taken.has(r.id)) : [];
         const noRoom = !filteredRooms || filteredRooms.length === 0;
+        const wasUpgraded = assign.newRoomTypeName && assign.newRoomTypeName !== assign.roomTypeName;
+
         return (
           <div key={assign.id} style={S.card(!noRoom && !!assign.selectedRoomId)}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -290,13 +321,89 @@ function StepRooms({ assignments, availableRooms, errorMessage, isSubmitting, on
                 <div style={{ width: 26, height: 26, borderRadius: '7px', background: C.PRIMARY, color: C.TEXT_LIGHT, fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {index + 1}
                 </div>
-                <span style={{ fontSize: '14px', fontWeight: 700, color: C.TEXT_DARK }}>{assign.roomTypeName}</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: wasUpgraded ? C.PRIMARY : C.TEXT_DARK }}>
+                  {currentTypeName}
+                </span>
+                {wasUpgraded && (
+                  <span style={{ fontSize: '11px', color: C.SURFACE, fontWeight: 600, background: C.PRIMARY, padding: '2px 8px', borderRadius: '20px' }}>
+                    Changed from {assign.roomTypeName}
+                  </span>
+                )}
               </div>
-              <button style={{ fontSize: '12px', color: C.PRIMARY, border: 'none', background: 'none', cursor: 'pointer', fontWeight: 500, padding: 0, fontFamily: font }}
-                onClick={() => onChange(index, 'showExtra', !assign.showExtra)} disabled={isSubmitting}>
-                {assign.showExtra ? 'Hide extra fields' : 'Add extra info'}
-              </button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  style={{ fontSize: '12px', color: C.PRIMARY, border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, padding: 0, fontFamily: font }}
+                  onClick={() => onChange(index, 'showTypeChange', !assign.showTypeChange)}
+                  disabled={isSubmitting}>
+                  {assign.showTypeChange ? '✕ Cancel change' : '↔ Change type'}
+                </button>
+                <button
+                  style={{ fontSize: '12px', color: C.MUTED, border: 'none', background: 'none', cursor: 'pointer', fontWeight: 500, padding: 0, fontFamily: font }}
+                  onClick={() => onChange(index, 'showExtra', !assign.showExtra)}
+                  disabled={isSubmitting}>
+                  {assign.showExtra ? 'Hide extra' : '+ Extra info'}
+                </button>
+              </div>
             </div>
+
+            {/* Per-slot room type change + surcharge */}
+            {assign.showTypeChange && (
+              <div style={{ marginBottom: '14px', padding: '12px 14px', borderRadius: '8px', background: '#f0f5f0', border: `1px dashed ${C.PRIMARY}` }}>
+                <Field label={`Change from ${assign.roomTypeName} to:`}>
+                  <select
+                    style={{ ...S.select(false), border: `1.5px solid ${C.PRIMARY}` }}
+                    value={assign.newRoomTypeName || ''}
+                    onChange={e => {
+                      const newType = e.target.value || null;
+                      onChange(index, 'newRoomTypeName', newType);
+                      onChange(index, 'selectedRoomId', '');
+                      if (!newType) {
+                        onChange(index, 'upgradeFee', '');
+                        onChange(index, 'upgradeReason', '');
+                        onChange(index, 'upgradePayNow', false);
+                      }
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <option value="">-- Keep original ({assign.roomTypeName}) --</option>
+                    {allRoomTypeNames
+                      .filter(name => name !== assign.roomTypeName)
+                      .map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                  </select>
+                </Field>
+
+                {/* Surcharge fields — only when a new type is selected */}
+                {assign.newRoomTypeName && (
+                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: `1px solid ${C.BORDER}` }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px', color: C.MUTED, marginBottom: '8px' }}>SURCHARGE (optional)</div>
+                    <div style={S.grid2}>
+                      <Field label="Fee (VND)">
+                        <input style={S.input(false)} type="number" value={assign.upgradeFee}
+                          onChange={e => onChange(index, 'upgradeFee', e.target.value)}
+                          placeholder="0 = Free" disabled={isSubmitting} />
+                      </Field>
+                      <Field label="Reason">
+                        <input style={S.input(false)} value={assign.upgradeReason}
+                          onChange={e => onChange(index, 'upgradeReason', e.target.value)}
+                          placeholder={`e.g. ${assign.roomTypeName} → ${assign.newRoomTypeName}`} disabled={isSubmitting} />
+                      </Field>
+                    </div>
+                    {Number(assign.upgradeFee) > 0 && (
+                      <div style={{ marginTop: '10px' }}>
+                        <PaymentOption value={assign.upgradePayNow} onChange={v => onChange(index, 'upgradePayNow', v)} isSubmitting={isSubmitting} />
+                        {assign.upgradePayNow && (
+                          <div style={{ marginTop: '8px' }}>
+                            <PaymentMethodSelect value={assign.upgradePaymentMethod} onChange={v => onChange(index, 'upgradePaymentMethod', v)} disabled={isSubmitting} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={S.grid3}>
               <Field label="Assign Room">
@@ -344,6 +451,7 @@ function StepRooms({ assignments, availableRooms, errorMessage, isSubmitting, on
 /* ── Step 3: Confirm ── */
 function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee, earlyCheckInNote, luggageNote, payNow, paymentMethod }) {
   const pill = { display: 'inline-block', padding: '2px 9px', borderRadius: '20px', fontSize: '11.5px', fontWeight: 600, background: '#e8ede8', color: C.PRIMARY, marginLeft: '8px' };
+  const methodLabel = (m) => m === 'CARD' ? 'Card' : m === 'TRANSFER' ? 'Bank Transfer' : 'Cash';
   return (
     <div>
       <p style={S.sectionLabel}>Review all details before confirming</p>
@@ -352,25 +460,25 @@ function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee,
         <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: C.MUTED, textTransform: 'uppercase', marginBottom: '10px' }}>Booking</div>
         <div style={S.summaryRow}><span style={S.summaryLabel}>Booking Code</span><span style={S.summaryVal}>{booking.bookingCode}</span></div>
         <div style={S.summaryRow}><span style={S.summaryLabel}>Booker</span><span style={S.summaryVal}>{booking.guestName}</span></div>
+
         {applyEarlyCheckIn && (
           <>
             <div style={S.summaryRow}>
               <span style={S.summaryLabel}>Early Check-in Fee</span>
-              <span style={S.summaryVal}>{Number(earlyCheckInFee || 0).toLocaleString()} VND{earlyCheckInNote && <> &mdash; <span style={{ fontWeight: 400, color: C.MUTED }}>{earlyCheckInNote}</span></>}</span>
+              <span style={S.summaryVal}>
+                {Number(earlyCheckInFee || 0).toLocaleString()} VND
+                {earlyCheckInNote && <> &mdash; <span style={{ fontWeight: 400, color: C.MUTED }}>{earlyCheckInNote}</span></>}
+              </span>
             </div>
             <div style={{ ...S.summaryRow, borderBottom: 'none' }}>
               <span style={S.summaryLabel}>Payment</span>
-              <span style={{
-                ...S.summaryVal,
-                color: payNow ? '#1a7a3c' : '#b07800',
-                background: payNow ? '#eaf5ee' : '#fdf5e0',
-                padding: '2px 10px', borderRadius: '20px', fontSize: '12px',
-              }}>
-                {payNow ? <><i className="bi bi-check-circle-fill me-1"></i>Paid at counter ({paymentMethod === 'CARD' ? 'Card' : paymentMethod === 'TRANSFER' ? 'Bank Transfer' : 'Cash'})</> : <><i className="bi bi-hourglass-split me-1"></i>To be paid at checkout</>}
+              <span style={{ ...S.summaryVal, color: payNow ? '#1a7a3c' : '#b07800', background: payNow ? '#eaf5ee' : '#fdf5e0', padding: '2px 10px', borderRadius: '20px', fontSize: '12px' }}>
+                {payNow ? `✓ Paid (${methodLabel(paymentMethod)})` : '⏳ Pay at checkout'}
               </span>
             </div>
           </>
         )}
+
         {luggageNote && (
           <div style={{ ...S.summaryRow, borderBottom: 'none' }}>
             <span style={S.summaryLabel}>Luggage</span>
@@ -382,25 +490,37 @@ function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee,
       <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: C.MUTED, textTransform: 'uppercase', marginBottom: '10px' }}>
         Room Assignments ({assignments.length})
       </div>
-      {assignments.map((a, i) => (
-        <div key={a.id} style={{ ...S.card(!!a.selectedRoomId), marginBottom: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: 22, height: 22, borderRadius: '6px', background: C.PRIMARY, color: '#fff', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</div>
-              <span style={{ fontWeight: 700, color: C.TEXT_DARK, fontSize: '14px' }}>{a.guestName || <span style={{ color: C.MUTED, fontStyle: 'italic' }}>No name</span>}</span>
-              <span style={pill}>{a.roomTypeName}</span>
+      {assignments.map((a, i) => {
+        const displayType = a.newRoomTypeName || a.roomTypeName;
+        const changed = a.newRoomTypeName && a.newRoomTypeName !== a.roomTypeName;
+        return (
+          <div key={a.id} style={{ ...S.card(!!a.selectedRoomId), marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ width: 22, height: 22, borderRadius: '6px', background: C.PRIMARY, color: '#fff', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</div>
+                <span style={{ fontWeight: 700, color: C.TEXT_DARK, fontSize: '14px' }}>
+                  {a.guestName || <span style={{ color: C.MUTED, fontStyle: 'italic' }}>No name</span>}
+                </span>
+                <span style={pill}>{displayType}</span>
+                {changed && <span style={{ ...pill, background: C.PRIMARY, color: C.SURFACE }}>{a.roomTypeName} → {a.newRoomTypeName}</span>}
+              </div>
+              <span style={{ fontSize: '12.5px', color: a.selectedRoomId ? C.PRIMARY : C.ERROR, fontWeight: 600 }}>
+                {a.selectedRoomId ? 'Room assigned' : 'No room selected'}
+              </span>
             </div>
-            <span style={{ fontSize: '12.5px', color: a.selectedRoomId ? C.PRIMARY : C.ERROR, fontWeight: 600 }}>
-              {a.selectedRoomId ? 'Room assigned' : 'No room selected'}
-            </span>
+            <div style={{ fontSize: '12.5px', color: C.MUTED, marginTop: '6px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              {a.identityNumber && <span>ID: {a.identityNumber}</span>}
+              {a.phone && <span>Phone: {a.phone}</span>}
+              {a.email && <span>Email: {a.email}</span>}
+              {changed && Number(a.upgradeFee) > 0 && (
+                <span style={{ color: C.PRIMARY, fontWeight: 600 }}>
+                  Fee: {Number(a.upgradeFee).toLocaleString()} VND ({a.upgradePayNow ? `Paid - ${methodLabel(a.upgradePaymentMethod)}` : 'Pay later'})
+                </span>
+              )}
+            </div>
           </div>
-          <div style={{ fontSize: '12.5px', color: C.MUTED, marginTop: '6px', display: 'flex', gap: '16px' }}>
-            {a.identityNumber && <span>ID: {a.identityNumber}</span>}
-            {a.phone && <span>Phone: {a.phone}</span>}
-            {a.email && <span>Email: {a.email}</span>}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -412,6 +532,8 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
   const [availableRooms, setAvailableRooms] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Early check-in
   const [applyEarlyCheckIn, setApplyEarlyCheckIn] = useState(false);
   const [earlyCheckInFee, setEarlyCheckInFee] = useState('');
   const [earlyCheckInNote, setEarlyCheckInNote] = useState('');
@@ -419,14 +541,34 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
   const [payNow, setPayNow] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
 
+  const [isMarkingArrived, setIsMarkingArrived] = useState(false);
+
   useEffect(() => {
     if (!show || !branchId) return;
-    checkInApi.getAvailableRooms(branchId).then(setAvailableRooms).catch(() => setErrorMessage('Failed to load available rooms.'));
+    checkInApi.getAvailableRooms(branchId)
+      .then(setAvailableRooms)
+      .catch(() => setErrorMessage('Failed to load available rooms.'));
   }, [show, branchId]);
 
   const handleChange = (index, field, value) => {
     setAssignments(prev => prev.map((a, i) => i === index ? { ...a, [field]: value } : a));
     if (errorMessage) setErrorMessage('');
+  };
+
+  // Mark guest as ARRIVED (luggage stored, room not ready yet)
+  const handleMarkArrived = async () => {
+    setIsMarkingArrived(true);
+    setErrorMessage('');
+    try {
+      await checkInApi.markAsArrived(booking.id, luggageNote);
+      alert('Guest marked as Arrived. Room can be assigned later.');
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setErrorMessage(err.response?.data?.error || 'Failed to mark as arrived.');
+    } finally {
+      setIsMarkingArrived(false);
+    }
   };
 
   const handleSubmitCheckIn = async () => {
@@ -438,7 +580,16 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
     setIsSubmitting(true);
     try {
       const payload = {
-        assignments: assignments.map(a => ({ ...a, dateOfBirth: a.dateOfBirth || null })),
+        assignments: assignments.map(a => ({
+          ...a,
+          dateOfBirth: a.dateOfBirth || null,
+          newRoomTypeName: a.newRoomTypeName || null,
+          // Per-room upgrade surcharge
+          upgradeFee: a.newRoomTypeName && Number(a.upgradeFee) > 0 ? Number(a.upgradeFee) : null,
+          upgradeReason: a.newRoomTypeName ? (a.upgradeReason || `${a.roomTypeName} → ${a.newRoomTypeName}`) : null,
+          upgradePayNow: a.newRoomTypeName ? a.upgradePayNow : false,
+          upgradePaymentMethod: a.newRoomTypeName && a.upgradePayNow ? a.upgradePaymentMethod : null,
+        })),
         earlyCheckInFee: applyEarlyCheckIn && earlyCheckInFee ? Number(earlyCheckInFee) : 0,
         earlyCheckInNote: applyEarlyCheckIn ? earlyCheckInNote : '',
         payNow: applyEarlyCheckIn ? payNow : false,
@@ -453,74 +604,114 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
     } finally { setIsSubmitting(false); }
   };
 
-  const handleMarkArrived = async () => {
-    setIsSubmitting(true);
-    try {
-      await checkInApi.markAsArrived(booking.id, luggageNote);
-      alert('Guest arrival recorded!');
-      onSuccess(); onClose();
-    } catch (err) {
-      setErrorMessage(err.response?.data?.error || 'Failed to save arrival info.');
-    } finally { setIsSubmitting(false); }
-  };
-
   if (!show || !booking) return null;
 
-  const hasMissingRooms = assignments.some(a => !availableRooms[a.roomTypeName]?.length);
-  const stepDone = [true, assignments.every(a => a.selectedRoomId && a.guestName && a.identityNumber), false];
+  const canGoNext = step === 0;
+  const canGoBack = step > 0;
+  const isLastStep = step === STEPS.length - 1;
 
   return (
-    <>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      <div style={S.overlay} onClick={e => e.target === e.currentTarget && !isSubmitting && onClose()}>
-        <div style={S.shell}>
-          <div style={S.header}>
-            <div>
-              <h5 style={S.headerTitle}>Check-In Process</h5>
-              <p style={S.headerSub}>{booking.bookingCode} &middot; {booking.guestName}</p>
+    <div style={S.overlay}>
+      <div style={S.shell}>
+        {/* Header */}
+        <div style={S.header}>
+          <div>
+            <h2 style={S.headerTitle}>Check-in — {booking.bookingCode}</h2>
+            <p style={S.headerSub}>{booking.guestName} &nbsp;·&nbsp; {booking.checkIn} → {booking.checkOut} &nbsp;·&nbsp; {booking.nights} night{booking.nights !== 1 ? 's' : ''}</p>
+          </div>
+          <button style={S.closeBtn} onClick={onClose}>✕</button>
+        </div>
+
+        {/* Steps bar */}
+        <div style={S.stepsBar}>
+          {STEPS.map((label, i) => (
+            <div key={i} style={S.stepTab(i === step, i < step)} onClick={() => i < step && setStep(i)}>
+              <div style={S.stepNum(i === step, i < step)}>{i < step ? '✓' : i + 1}</div>
+              {label}
             </div>
-            <button style={S.closeBtn} onClick={onClose} disabled={isSubmitting}>x</button>
-          </div>
+          ))}
+        </div>
 
-          <div style={S.stepsBar}>
-            {STEPS.map((name, i) => (
-              <div key={i} style={S.stepTab(step === i, stepDone[i])} onClick={() => setStep(i)}>
-                <div style={S.stepNum(step === i, stepDone[i])}>
-                  {stepDone[i] && i < step ? 'v' : i + 1}
-                </div>
-                {name}
-              </div>
-            ))}
-          </div>
+        {/* Body */}
+        <div style={S.body}>
+          {errorMessage && (
+            <div style={S.errorBanner}>
+              <span style={S.errorText}>{errorMessage}</span>
+              <button onClick={() => setErrorMessage('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: C.ERROR, fontSize: '13px', padding: 0, fontFamily: font }}>Dismiss</button>
+            </div>
+          )}
 
-          <div style={S.body}>
-            {errorMessage && (
-              <div style={S.errorBanner}>
-                <span style={S.errorText}>{errorMessage}</span>
-                <button onClick={() => setErrorMessage('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: C.ERROR, fontSize: '13px', padding: 0, fontFamily: font }}>Dismiss</button>
-              </div>
+          {step === 0 && (
+            <StepArrival
+              applyEarlyCheckIn={applyEarlyCheckIn} setApplyEarlyCheckIn={setApplyEarlyCheckIn}
+              earlyCheckInFee={earlyCheckInFee} setEarlyCheckInFee={setEarlyCheckInFee}
+              earlyCheckInNote={earlyCheckInNote} setEarlyCheckInNote={setEarlyCheckInNote}
+              luggageNote={luggageNote} setLuggageNote={setLuggageNote}
+              payNow={payNow} setPayNow={setPayNow}
+              paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {step === 1 && (
+            <StepRooms
+              assignments={assignments}
+              availableRooms={availableRooms}
+              errorMessage={errorMessage}
+              isSubmitting={isSubmitting}
+              onChange={handleChange}
+            />
+          )}
+
+          {step === 2 && (
+            <StepConfirm
+              booking={booking}
+              assignments={assignments}
+              applyEarlyCheckIn={applyEarlyCheckIn}
+              earlyCheckInFee={earlyCheckInFee}
+              earlyCheckInNote={earlyCheckInNote}
+              luggageNote={luggageNote}
+              payNow={payNow}
+              paymentMethod={paymentMethod}
+            />
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={S.footer}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {canGoBack && (
+              <button style={S.btnOutline} onClick={() => setStep(s => s - 1)} disabled={isSubmitting || isMarkingArrived}>Back</button>
             )}
-            {step === 0 && <StepArrival applyEarlyCheckIn={applyEarlyCheckIn} setApplyEarlyCheckIn={setApplyEarlyCheckIn} earlyCheckInFee={earlyCheckInFee} setEarlyCheckInFee={setEarlyCheckInFee} earlyCheckInNote={earlyCheckInNote} setEarlyCheckInNote={setEarlyCheckInNote} luggageNote={luggageNote} setLuggageNote={setLuggageNote} payNow={payNow} setPayNow={setPayNow} paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} isSubmitting={isSubmitting} />}
-            {step === 1 && <StepRooms assignments={assignments} availableRooms={availableRooms} errorMessage={errorMessage} isSubmitting={isSubmitting} onChange={handleChange} />}
-            {step === 2 && <StepConfirm booking={booking} assignments={assignments} applyEarlyCheckIn={applyEarlyCheckIn} earlyCheckInFee={earlyCheckInFee} earlyCheckInNote={earlyCheckInNote} luggageNote={luggageNote} payNow={payNow} paymentMethod={paymentMethod} />}
+            {/* Mark Arrived: chỉ hiện ở Step 0 — khi phòng chưa sẵn sàng */}
+            {step === 0 && (
+              <button
+                style={{
+                  ...S.btnSecondary,
+                  opacity: (isSubmitting || isMarkingArrived) ? 0.6 : 1,
+                  cursor: (isSubmitting || isMarkingArrived) ? 'not-allowed' : 'pointer',
+                }}
+                onClick={handleMarkArrived}
+                disabled={isSubmitting || isMarkingArrived}
+                title="Record luggage and mark guest as Arrived — assign room later when ready"
+              >
+                {isMarkingArrived ? 'Marking...' : 'Mark Arrived'}
+              </button>
+            )}
           </div>
-
-          <div style={S.footer}>
-            <button style={S.btnOutline} onClick={onClose} disabled={isSubmitting}>Cancel</button>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {step > 0 && <button style={S.btnOutline} onClick={() => setStep(s => s - 1)} disabled={isSubmitting}>Back</button>}
-              <button style={S.btnSecondary} onClick={handleMarkArrived} disabled={isSubmitting}>Mark Arrived</button>
-              {step < STEPS.length - 1
-                ? <button style={S.btnPrimary(false)} onClick={() => setStep(s => s + 1)}>Next</button>
-                : <button style={S.btnPrimary(hasMissingRooms || isSubmitting)} onClick={handleSubmitCheckIn} disabled={hasMissingRooms || isSubmitting} title={hasMissingRooms ? 'No clean rooms available' : ''}>
-                    {isSubmitting ? 'Processing...' : 'Confirm Check-In'}
-                  </button>
-              }
-            </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button style={S.btnOutline} onClick={onClose} disabled={isSubmitting || isMarkingArrived}>Cancel</button>
+            {isLastStep
+              ? <button style={S.btnPrimary(isSubmitting)} onClick={handleSubmitCheckIn} disabled={isSubmitting}>
+                  {isSubmitting ? 'Processing...' : 'Confirm Check-in'}
+                </button>
+              : <button style={S.btnPrimary(false)} onClick={() => setStep(s => s + 1)} disabled={isMarkingArrived}>
+                  Next
+                </button>
+            }
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

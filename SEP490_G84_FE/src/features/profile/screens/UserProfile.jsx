@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { profileAPI } from '@/features/profile/api/profileApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import apiClient from '@/services/apiClient';
 import './UserProfile.css';
 
 const UserProfile = () => {
@@ -8,6 +9,9 @@ const UserProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Update full name
   const [fullName, setFullName] = useState('');
@@ -62,6 +66,26 @@ const UserProfile = () => {
       setNameError(err?.response?.data?.message || 'Failed to update full name');
     } finally {
       setNameSaving(false);
+    }
+  };
+
+  const handleAvatarSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setAvatarUploading(true);
+      setError('');
+      const res = await profileAPI.uploadAvatar(formData);
+      setProfile((prev) => ({ ...prev, image: res.data.imageUrl }));
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to upload avatar');
+    } finally {
+      setAvatarUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -135,6 +159,15 @@ const UserProfile = () => {
     ? profile.additionalBranches
     : [];
 
+  const getAbsoluteImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('/api/')) {
+      const baseUrl = apiClient.defaults.baseURL.replace(/\/api$/, '');
+      return baseUrl + url;
+    }
+    return url;
+  };
+
   return (
     <div className="profile-page">
       <div className="profile-header">
@@ -145,9 +178,27 @@ const UserProfile = () => {
 
       <div className="profile-grid">
         <div className="profile-card profile-summary">
-          <div className="profile-avatar-circle">
-            <span>{initials}</span>
+          <div 
+            className="profile-avatar-circle" 
+            onClick={() => !avatarUploading && fileInputRef.current && fileInputRef.current.click()} 
+            style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+            title="Click to change avatar"
+          >
+            {avatarUploading ? (
+              <span className="spinner-border spinner-border-sm" style={{ color: '#fff' }}></span>
+            ) : profile.image ? (
+              <img src={getAbsoluteImageUrl(profile.image)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span>{initials}</span>
+            )}
+            {!avatarUploading && (
+              <div style={{ position: 'absolute', bottom: 0, background: 'rgba(0,0,0,0.5)', width: '100%', textAlign: 'center', fontSize: '10px', color: '#fff', padding: '2px 0' }}>
+                EDIT
+              </div>
+            )}
           </div>
+          <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleAvatarSelect} />
+          
           <h2 className="profile-name">{profile.fullName || profile.username}</h2>
           <p className="profile-role">{profile.role || 'User'}</p>
 
