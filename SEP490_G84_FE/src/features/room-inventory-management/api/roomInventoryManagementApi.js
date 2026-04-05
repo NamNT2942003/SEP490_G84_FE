@@ -11,9 +11,14 @@ const normalizeInventory = (item = {}) => ({
   inventoryId: item.inventoryId,
   workDate: item.workDate || "",
   availability: toSafeNumber(item.availability, 0),
-  basePrice: toSafeNumber(item.basePrice ?? item.price, 0),
+  // basePrice is the stored raw price (before modifiers)
+  basePrice: toSafeNumber(item.basePrice, 0),
+  // price is the final price after modifiers (fallback to basePrice if not present)
   price: toSafeNumber(item.price ?? item.basePrice, 0),
-  delta: toSafeNumber(item?.priceCalculation?.delta ?? (item.price ?? 0) - (item.basePrice ?? 0), 0),
+  // delta: prefer backend-calculated value, then compute locally
+  delta: item?.priceCalculation?.delta != null
+    ? toSafeNumber(item.priceCalculation.delta, 0)
+    : toSafeNumber((item.price ?? 0) - (item.basePrice ?? 0), 0),
   appliedPriceModifiers: Array.isArray(item.appliedPriceModifiers)
     ? item.appliedPriceModifiers.map((modifier) => ({
       priceModifierId: modifier?.priceModifierId,
@@ -51,13 +56,13 @@ const normalizeInventory = (item = {}) => ({
 const toInventoryRequest = (payload = {}) => {
   const request = {
     roomTypeId: Number(payload.roomTypeId),
-    availability: payload.availability !== "" && payload.availability !== undefined ? Number(payload.availability) : undefined,
-    price: payload.price !== "" && payload.price !== undefined ? Number(payload.price) : undefined,
+    // price is intentionally excluded — backend derives it from roomType.basePrice
     isClosed: Boolean(payload.isClosed),
     minStay: payload.minStay !== "" && payload.minStay !== undefined ? Number(payload.minStay) : undefined,
   };
 
-  if (payload.workDate) {
+  const isSingleDay = payload.dateMode === "single";
+  if (isSingleDay && payload.workDate) {
     request.workDate = payload.workDate;
   } else {
     if (payload.fromDate) request.fromDate = payload.fromDate;
@@ -85,7 +90,13 @@ const roomInventoryManagementApi = {
 
   upsertInventory: async (payload) => {
     const response = await apiClient.post(INVENTORY_BASE, toInventoryRequest(payload));
-    return normalizeInventory(response.data);
+    // Backend returns an array of upserted inventory items
+    const data = response.data;
+    if (Array.isArray(data)) {
+      return data.map(normalizeInventory);
+    }
+    // Fallback: single object
+    return normalizeInventory(data);
   },
 
   updateInventory: async (inventoryId, payload) => {

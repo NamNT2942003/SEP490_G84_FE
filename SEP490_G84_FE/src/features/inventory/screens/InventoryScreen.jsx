@@ -124,7 +124,7 @@ const InventoryScreen = () => {
         }),
       });
 
-      toast('✅ Report saved successfully!', 'ok');
+      toast('Report saved successfully!', 'ok');
       await loadMonthlyReport(curYear, curMonth);
       loadYearOverview();
     } catch { toast('Failed to save report', 'err'); }
@@ -135,7 +135,7 @@ const InventoryScreen = () => {
     try {
       await inventoryApi.unsaveMonthlyReport(selectedBranch, curYear, curMonth);
 
-      toast('🔓 Report unsaved');
+      toast('Report unsaved');
       await loadMonthlyReport(curYear, curMonth);
       loadYearOverview();
     } catch { toast('Failed to unsave report', 'err'); }
@@ -145,7 +145,7 @@ const InventoryScreen = () => {
   const handleCreateReceipt = async (payload) => {
     await inventoryApi.createImportReceipt(selectedBranch, payload);
 
-    toast(`✅ Import receipt saved — ${payload.items.length} items`, 'ok');
+    toast(`Import receipt saved — ${payload.items.length} items`, 'ok');
     if (curMonth) await loadMonthlyReport(curYear, curMonth);
     loadYearOverview();
   };

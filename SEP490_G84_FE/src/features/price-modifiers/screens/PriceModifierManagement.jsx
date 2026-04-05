@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { priceModifierApi } from "@/features/price-modifiers/api/priceModifierApi";
 import roomTypeManagementApi from "@/features/room-type-management/api/roomTypeManagementApi";
+import refundPolicyApi from "@/features/refund-policy/api/refundPolicyApi";
 import PriceModifierFormModal from "./PriceModifierFormModal";
 
 const PriceModifierManagement = () => {
@@ -10,6 +11,8 @@ const PriceModifierManagement = () => {
     
     const [modifiers, setModifiers] = useState([]);
     const [roomTypeInfo, setRoomTypeInfo] = useState(null);
+    const [branchPolicies, setBranchPolicies] = useState([]);
+    const [loadingPolicies, setLoadingPolicies] = useState(false);
     const [loading, setLoading] = useState(true);
     
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,6 +30,23 @@ const PriceModifierManagement = () => {
             try {
                 const rtData = await roomTypeManagementApi.getRoomTypeById(roomTypeId);
                 setRoomTypeInfo(rtData);
+
+                if (rtData?.branchId) {
+                    try {
+                        setLoadingPolicies(true);
+                        const policies = await refundPolicyApi.getByBranch(rtData.branchId);
+                        const normalized = Array.isArray(policies)
+                            ? policies.map((p) => ({ id: p.id, name: p.name || `Policy #${p.id}`, active: p.active !== false }))
+                            : [];
+                        setBranchPolicies(normalized);
+                    } catch {
+                        setBranchPolicies([]);
+                    } finally {
+                        setLoadingPolicies(false);
+                    }
+                } else {
+                    setBranchPolicies([]);
+                }
             } catch(e) { /* ignore */ }
             
         } catch (error) {
@@ -104,7 +124,10 @@ const PriceModifierManagement = () => {
             case 'LENGTH_OF_STAY': return `Min ${meta.minNights || 1}N, Max ${meta.maxNights || '∞'}N`;
             case 'OCCUPANCY': return `Min ${meta.minRooms || 1} Rm, Max ${meta.maxRooms || '∞'} Rm`;
             case 'AVAILABILITY': return `Min ${meta.minAvailableRooms || 0} Avail, Max ${meta.maxAvailableRooms || '∞'} Avail`;
-            case 'POLICY': return `Policy ID: ${meta.policyId}`;
+            case 'POLICY': {
+                const selected = branchPolicies.find((p) => Number(p.id) === Number(meta.policyId));
+                return selected ? `Policy: ${selected.name}` : `Policy ID: ${meta.policyId}`;
+            }
             default: return JSON.stringify(meta);
         }
     };
@@ -208,6 +231,8 @@ const PriceModifierManagement = () => {
                     onClose={() => setIsModalOpen(false)}
                     onSave={handleSave}
                     initialData={editingModifier}
+                    policyOptions={branchPolicies}
+                    loadingPolicies={loadingPolicies}
                 />
             )}
         </div>

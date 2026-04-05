@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 
 // --- MOCK DATA ---
 const initialReportData = [
-  { id: 1, name: 'Bàn chải', unit: 'Cái', opening: 937, importTotal: 0, closing: 716 },
-  { id: 2, name: 'Bim Bim', unit: 'Gói', opening: 56, importTotal: 265, closing: 204 },
-  { id: 3, name: 'Cafe gói G7', unit: 'Gói', opening: 50, importTotal: 100, closing: 0 },
+  { id: 1, name: 'Toothbrush', unit: 'Piece', opening: 937, importTotal: 0, closing: 716 },
+  { id: 2, name: 'Snack Pack', unit: 'Pack', opening: 56, importTotal: 265, closing: 204 },
+  { id: 3, name: 'G7 Coffee Pack', unit: 'Pack', opening: 50, importTotal: 100, closing: 0 },
 ];
 
 const mockImportHistory = {
@@ -25,7 +25,7 @@ const InventoryReportPage = () => {
   const [selectedItemForHistory, setSelectedItemForHistory] = useState(null);
 
   // --- HANDLERS ---
-  // Cập nhật số lượng tồn cuối khi user gõ
+  // Update closing quantity when the user types
   const handleClosingChange = (id, value) => {
     const numValue = parseInt(value, 10) || 0;
     setReportData(prev =>
@@ -33,9 +33,9 @@ const InventoryReportPage = () => {
     );
   };
 
-  // Mở modal xem chi tiết lịch sử nhập
+  // Open the import history modal
   const openHistoryModal = (item) => {
-    if (item.importTotal === 0) return; // Không có nhập thì không mở modal
+    if (item.importTotal === 0) return; // No imports, no modal
     setSelectedItemForHistory({
       ...item,
       history: mockImportHistory[item.id] || []
@@ -49,10 +49,10 @@ const InventoryReportPage = () => {
       {/* Header Bar */}
       <div className="bg-yellow-400 p-4 rounded-t-lg flex justify-between items-center shadow-sm">
         <h1 className="text-xl font-bold text-gray-800 uppercase">
-          Tháng 11/2024 - Báo cáo nhập xuất tồn
+          November 2024 - Import/Export/Stock Report
         </h1>
         <button className="bg-gray-800 text-white px-4 py-2 rounded shadow hover:bg-gray-700 transition flex items-center gap-2 text-sm font-semibold">
-          <span>⬇</span> Xuất file Excel
+          <i className="bi bi-file-earmark-excel"></i> Export Excel
         </button>
       </div>
 
@@ -61,13 +61,13 @@ const InventoryReportPage = () => {
         <table className="w-full text-sm text-left">
           <thead className="bg-gray-100 text-gray-700 border-b">
             <tr>
-              <th className="p-4 font-semibold">Hạng mục khấu hao</th>
-              <th className="p-4 font-semibold text-center">ĐVT</th>
-              <th className="p-4 font-semibold text-center">Tồn kho đầu tháng<br/><span className="font-normal text-xs">(1)</span></th>
-              <th className="p-4 font-semibold text-center">Hàng mua trong tháng<br/><span className="font-normal text-xs">(2)</span></th>
-              <th className="p-4 font-semibold text-center">Tổng số lượng<br/><span className="font-normal text-xs">(1) + (2)</span></th>
-              <th className="p-4 font-semibold text-center text-blue-600 bg-blue-50">TỒN KHO CUỐI THÁNG<br/><span className="font-normal text-xs text-gray-500">(Gõ số đếm thực tế)</span></th>
-              <th className="p-4 font-semibold text-center text-green-700 bg-green-50">SỐ LƯỢNG SỬ DỤNG<br/><span className="font-normal text-xs">(Tự động tính)</span></th>
+              <th className="p-4 font-semibold">Depreciation Item</th>
+              <th className="p-4 font-semibold text-center">Unit</th>
+              <th className="p-4 font-semibold text-center">Opening Stock<br/><span className="font-normal text-xs">(1)</span></th>
+              <th className="p-4 font-semibold text-center">Purchases in Month<br/><span className="font-normal text-xs">(2)</span></th>
+              <th className="p-4 font-semibold text-center">Total Quantity<br/><span className="font-normal text-xs">(1) + (2)</span></th>
+              <th className="p-4 font-semibold text-center text-blue-600 bg-blue-50">CLOSING STOCK<br/><span className="font-normal text-xs text-gray-500">(Enter actual count)</span></th>
+              <th className="p-4 font-semibold text-center text-green-700 bg-green-50">USED QUANTITY<br/><span className="font-normal text-xs">(Auto-calculated)</span></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -87,7 +87,7 @@ const InventoryReportPage = () => {
                       <span 
                         onClick={() => openHistoryModal(item)}
                         className="text-blue-600 font-semibold cursor-pointer hover:underline"
-                        title="Click để xem chi tiết các lần nhập"
+                        title="Click to view import details"
                       >
                         +{item.importTotal}
                       </span>
@@ -122,7 +122,7 @@ const InventoryReportPage = () => {
         {/* Action Footer */}
         <div className="p-4 flex justify-end bg-gray-50 border-t">
           <button className="bg-emerald-700 text-white px-6 py-2 rounded hover:bg-emerald-800 transition font-semibold shadow-md">
-            LƯU BÁO CÁO THÁNG
+            SAVE MONTHLY REPORT
           </button>
         </div>
       </div>
@@ -134,7 +134,7 @@ const InventoryReportPage = () => {
             {/* Modal Header */}
             <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
               <h3 className="text-lg font-bold text-gray-800">
-                Lịch sử nhập hàng: <span className="text-blue-600">{selectedItemForHistory.name}</span>
+                Import history: <span className="text-blue-600">{selectedItemForHistory.name}</span>
               </h3>
               <button 
                 onClick={() => setIsModalOpen(false)}
@@ -149,10 +149,10 @@ const InventoryReportPage = () => {
               <table className="w-full text-sm text-left border">
                 <thead className="bg-gray-100 border-b">
                   <tr>
-                    <th className="p-3">Ngày nhập</th>
-                    <th className="p-3 text-right">Số lượng</th>
-                    <th className="p-3 text-right">Đơn giá</th>
-                    <th className="p-3 text-right">Thành tiền</th>
+                    <th className="p-3">Import date</th>
+                    <th className="p-3 text-right">Quantity</th>
+                    <th className="p-3 text-right">Unit price</th>
+                    <th className="p-3 text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -168,7 +168,7 @@ const InventoryReportPage = () => {
                   ))}
                   {/* Dòng tổng cộng */}
                   <tr className="bg-blue-50 font-bold">
-                    <td className="p-3 text-right text-blue-800 uppercase">Tổng cộng:</td>
+                    <td className="p-3 text-right text-blue-800 uppercase">Total:</td>
                     <td className="p-3 text-right text-blue-800">+{selectedItemForHistory.importTotal}</td>
                     <td colSpan="2"></td>
                   </tr>
@@ -182,7 +182,7 @@ const InventoryReportPage = () => {
                 onClick={() => setIsModalOpen(false)}
                 className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition"
               >
-                Đóng
+                Close
               </button>
             </div>
           </div>

@@ -118,19 +118,7 @@ const SearchRoom = () => {
 
 
     const searchRooms = useCallback(async (sp) => {
-        setLoading(true); setError(null);
-
-        // Phát hiện đổi ngày → reset cart luôn, cập nhật ngày trên cart
-        const datesChanged = searchParams
-            && (sp.checkIn !== searchParams.checkIn || sp.checkOut !== searchParams.checkOut);
-
-        setSearchParams(sp);
-
-        // Reset cart ngay khi đổi ngày (giá & availability theo ngày mới hoàn toàn khác)
-        if (datesChanged) {
-            setSelectedCart([]);
-        }
-
+        setLoading(true); setError(null); setSearchParams(sp);
         try {
             if (sp.checkIn && sp.checkOut) {
                 if (new Date(sp.checkOut) <= new Date(sp.checkIn)) {
@@ -142,20 +130,17 @@ const SearchRoom = () => {
             const res = await roomService.searchRooms(params);
             const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
             setRooms(fetchedRooms);
-            // Chỉ sync cart khi KHÔNG đổi ngày (sort, phân trang)
-            if (!datesChanged) {
-                setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
-            }
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
             const apiError = err?.response?.data?.error;
             const message = apiError && String(apiError).includes("yyyy-MM-dd")
-                ? "Invalid date format (yyyy-MM-dd)"
+                ? "Date format must be yyyy-MM-dd"
                 : (apiError || err.message || "Failed to search rooms");
             setError(message);
         } finally { setLoading(false); }
-    }, [filters, searchParams]);
+    }, [filters]);
 
     const refetchRooms = useCallback(async () => {
         if (!searchParams) return;
@@ -175,7 +160,7 @@ const SearchRoom = () => {
         } catch (err) {
             const apiError = err?.response?.data?.error;
             const message = apiError && String(apiError).includes("yyyy-MM-dd")
-                ? "Invalid date format (yyyy-MM-dd)"
+                ? "Date format must be yyyy-MM-dd"
                 : (apiError || err.message || "Failed to search rooms");
             setError(message);
         } finally { setLoading(false); }
@@ -192,20 +177,18 @@ const SearchRoom = () => {
         const existingIndex = selectedCart.findIndex(r => r.roomTypeId === room.roomTypeId);
 
         if (existingIndex >= 0) {
-            // Nếu đã có → tăng quantity (nhưng không vượt quá availableCount)
-            const currentQty = selectedCart[existingIndex].quantity || 1;
-            if (currentQty >= roomForCart.availableCount) {
-                showUiMessage("warning", `Only ${roomForCart.availableCount} room(s) available for ${roomForCart.name}.`);
-                return;
-            }
+            // Nếu đã có → cập nhật gói giá đang chọn, giữ nguyên số lượng để tránh cộng dồn ngoài ý muốn
             setSelectedCart(prev => prev.map((r, idx) =>
                 idx === existingIndex
                     ? {
                         ...r,
-                        quantity: Math.min((r.quantity || 1) + 1, roomForCart.availableCount),
+                        ...roomForCart,
+                        quantity: Math.min(r.quantity || 1, roomForCart.availableCount || (r.quantity || 1)),
                     }
                     : r
             ));
+            showUiMessage("success", `${roomForCart.name} pricing has been updated.`);
+            return;
         } else {
             // Nếu chưa → thêm vào cart với quantity = 1
             if (roomForCart.availableCount <= 0) {
@@ -214,6 +197,8 @@ const SearchRoom = () => {
             }
             setSelectedCart(prev => [...prev, { ...roomForCart, quantity: 1 }]);
         }
+
+        showUiMessage("success", `${roomForCart.name} has been added to your selection.`);
     };
 
     const handleRemoveFromCart = (roomTypeId) => {
@@ -252,7 +237,6 @@ const SearchRoom = () => {
             return;
         }
 
-        // API trả giá tổng cả kỳ lưu trú, không cần nhân nights
         const totalPrice = selectedCart.reduce((sum, room) =>
             sum + ((room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0) * (room.quantity || 1)), 0
         );
@@ -288,8 +272,7 @@ const SearchRoom = () => {
             console.log("🔄 Refetch due to filter change");
             refetchRooms();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters.branchId, filters.sortPrice, filters.page]);
+    }, [filters.branchId, filters.sortPrice, filters.page, searchParams, isInitialized, refetchRooms]);
 
     useEffect(() => {
         if (!uiMessage) return;
@@ -311,21 +294,24 @@ const SearchRoom = () => {
     return (
         <div style={{ background: '#f5f6f8', minHeight: '100vh' }}>
             <style>{`
-                .hero{background:linear-gradient(135deg,#465c47 0%,#3d4a33 100%);padding:36px 0 48px;margin-bottom:-22px;position:relative;z-index:10;overflow:visible}
+                .hero{background:linear-gradient(135deg,#5C6F4E 0%,#3d4a33 100%);padding:36px 0 48px;margin-bottom:-22px;position:relative;z-index:10;overflow:visible}
                 .hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:36px;background:#f5f6f8;border-radius:20px 20px 0 0;z-index:-1;pointer-events:none}
                 .hero-txt{text-align:center;margin-bottom:20px;color:#fff}
                 .hero-txt h2{font-weight:800;font-size:1.5rem;margin-bottom:4px}
                 .hero-txt p{color:rgba(255,255,255,.7);font-size:.9rem;margin:0}
                 .res-hdr{background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,.04);border:1px solid #eee;margin-bottom:16px}
                 .res-cnt{font-size:1rem;font-weight:700;color:#333}
-                .res-cnt span{color:#465c47}
+                .res-cnt span{color:#5C6F4E}
                 .sort-sel{border:1px solid #dee2e6;border-radius:10px;padding:7px 12px;font-size:.84rem;color:#555;background:#fafafa;cursor:pointer}
-                .sort-sel:focus{border-color:#465c47;box-shadow:0 0 0 3px rgba(92,111,78,.1)}
+                .sort-sel:focus{border-color:#5C6F4E;box-shadow:0 0 0 3px rgba(92,111,78,.1)}
                 .empty-st{background:#fff;border-radius:16px;padding:50px 30px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)}
                 .empty-st i{font-size:3.5rem;color:#ddd;margin-bottom:12px}
                 .load-st{background:#fff;border-radius:16px;padding:50px 30px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)}
                 .err-c{background:#fff;border-radius:14px;border-left:4px solid #dc3545;padding:18px 22px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-                .bc-bar{padding:16px 0 8px; display: flex; flex-direction: column; align-items: flex-end;}
+                .bc-bar{padding:12px 0 0}
+                .bc-bar .breadcrumb{margin-bottom:0;font-size:.85rem}
+                .bc-bar .breadcrumb a{color:#5C6F4E;text-decoration:none;font-weight:500}
+                .bc-bar .breadcrumb a:hover{text-decoration:underline}
                 .ux-msg{margin-top:12px;border-radius:12px;padding:11px 14px;font-size:.88rem;font-weight:600;display:flex;align-items:center;gap:8px}
                 .ux-msg.warn{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
                 .ux-msg.success{background:#ecfdf3;color:#166534;border:1px solid #b7ebc6}
@@ -350,7 +336,12 @@ const SearchRoom = () => {
             </div>
 
             <div className="container bc-bar" style={{ position: 'relative', zIndex: 1 }}>
-                {/* Breadcrumb removed as requested */}
+                <nav aria-label="breadcrumb">
+                    <ol className="breadcrumb">
+                        <li className="breadcrumb-item"><a href="/public"><i className="bi bi-house-door me-1"></i>Home</a></li>
+                        <li className="breadcrumb-item active">Search Results</li>
+                    </ol>
+                </nav>
                 {uiMessage && (
                     <div className={`ux-msg ${uiMessage.type === "success" ? "success" : "warn"}`} role="alert" aria-live="polite">
                         <i className={`bi ${uiMessage.type === "success" ? "bi-check-circle" : "bi-exclamation-triangle"}`}></i>
@@ -365,7 +356,7 @@ const SearchRoom = () => {
                         {/* Selected Rooms Cart Panel */}
                         <style>{`
                             .cart-panel {
-                                background: linear-gradient(135deg, #465c47 0%, #384a39 100%);
+                                background: linear-gradient(135deg, #5C6F4E 0%, #4a5b3f 100%);
                                 color: white;
                                 position: sticky;
                                 top: 90px;
@@ -397,7 +388,7 @@ const SearchRoom = () => {
                             .cart-room-name {
                                 font-weight: 700;
                                 font-size: 0.95rem;
-                                color: #465c47;
+                                color: #5C6F4E;
                                 margin-bottom: 4px;
                             }
                             .cart-room-price {
@@ -417,7 +408,7 @@ const SearchRoom = () => {
                             .cart-qty-control button {
                                 background: white;
                                 border: 1px solid #ddd;
-                                color: #465c47;
+                                color: #5C6F4E;
                                 width: 28px;
                                 height: 28px;
                                 padding: 0;
@@ -426,9 +417,9 @@ const SearchRoom = () => {
                                 transition: all 0.2s;
                             }
                             .cart-qty-control button:hover {
-                                background: #465c47;
+                                background: #5C6F4E;
                                 color: white;
-                                border-color: #465c47;
+                                border-color: #5C6F4E;
                             }
                             .cart-qty-control button:disabled {
                                 background: #f5f5f5;
@@ -451,7 +442,7 @@ const SearchRoom = () => {
                                 background: transparent !important;
                                 font-weight: 700;
                                 font-size: 1.1rem !important;
-                                color: #465c47 !important;
+                                color: #5C6F4E !important;
                                 padding: 0 !important;
                                 line-height: 28px !important;
                                 box-shadow: none !important;
@@ -518,7 +509,7 @@ const SearchRoom = () => {
                             }
                             .cart-room-total-amount {
                                 font-weight: 700;
-                                color: #465c47;
+                                color: #5C6F4E;
                             }
                             .cart-delete-btn {
                                 background: #ff4757;
@@ -603,18 +594,18 @@ const SearchRoom = () => {
                             <div style={{marginTop: '15px', maxHeight: '450px', overflowY: 'auto', paddingRight: '8px'}}>
                                 {selectedCart.length > 0 ? (
                                     selectedCart.map((room, idx) => {
-                                        const roomStayPrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
-                                        const roomTotal = roomStayPrice * (room.quantity || 1);
+                                        const roomUnitPrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+                                        const roomTotal = roomUnitPrice * (room.quantity || 1);
                                         return (
                                             <div key={idx} className="cart-room-item">
                                                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
                                                     <div style={{flex: 1}}>
                                                         <div className="cart-room-name">
-                                                            <i className="bi bi-door-open me-2" style={{color: '#465c47'}}></i>
+                                                            <i className="bi bi-door-open me-2" style={{color: '#5C6F4E'}}></i>
                                                             {room.name}
                                                         </div>
                                                         <div className="cart-room-price">
-                                                            💰 {new Intl.NumberFormat('vi-VN').format(roomStayPrice)}₫ / {nights}N
+                                                                    <i className="bi bi-currency-dollar me-1"></i>{new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/stay
                                                         </div>
                                                     </div>
                                                     <button
@@ -656,7 +647,7 @@ const SearchRoom = () => {
 
                                                 <div className="cart-room-total">
                                                     <span>
-                                                        <span className="me-2">📊</span>
+                                                        <i className="bi bi-bar-chart-line me-2"></i>
                                                         {room.quantity} room(s)
                                                     </span>
                                                     <span className="cart-room-total-amount">
@@ -678,7 +669,7 @@ const SearchRoom = () => {
                             {selectedCart.length > 0 && (
                                 <div className="cart-footer">
                                     <div className="cart-total-section">
-                                        <span className="cart-total-label">💰 Total:</span>
+                                        <span className="cart-total-label"><i className="bi bi-wallet2 me-1"></i>Total:</span>
                                         <span className="cart-total-amount">
                                             {new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(cartTotal)}
                                         </span>
@@ -688,7 +679,7 @@ const SearchRoom = () => {
                                         onClick={handleCheckout}
                                         disabled={!hasValidStayDates}
                                     >
-                                        <i className="bi bi-arrow-right me-2"></i>Continue to Guest Info
+                                        <i className="bi bi-arrow-right me-2"></i>Continue to guest information
                                     </button>
                                     {!hasValidStayDates && (
                                         <p className="mb-0 mt-2" style={{ fontSize: '0.78rem', opacity: 0.9 }}>
@@ -702,19 +693,19 @@ const SearchRoom = () => {
 
                     <div className="col-lg-9 col-md-8" style={{ position: 'relative', zIndex: 0 }}>
                         <div className="res-hdr d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div className="res-cnt"><i className="bi bi-building me-2" style={{ color: '#465c47' }}></i>Available Rooms: <span>{totalElements}</span></div>
+                            <div className="res-cnt"><i className="bi bi-building me-2" style={{ color: '#5C6F4E' }}></i>Available rooms: <span>{totalElements}</span></div>
                             <div className="d-flex align-items-center gap-2">
                                 <span className="text-muted" style={{ fontSize: '.82rem' }}><i className="bi bi-sort-down me-1"></i>Sort by:</span>
                                 <select className="sort-sel" value={filters.sortPrice} onChange={handleSortChange}>
-                                    <option value="priceAsc">Price: Low → High</option>
-                                    <option value="priceDesc">Price: High → Low</option>
+                                    <option value="priceAsc">Price: low to high</option>
+                                    <option value="priceDesc">Price: high to low</option>
                                 </select>
                             </div>
                         </div>
 
-                        {loading && rooms.length === 0 && (
+                        {loading && (
                             <div className="load-st">
-                                <div className="spinner-border mb-3" role="status" style={{ color: '#465c47', width: '2.5rem', height: '2.5rem' }}><span className="visually-hidden">Loading...</span></div>
+                                <div className="spinner-border mb-3" role="status" style={{ color: '#5C6F4E', width: '2.5rem', height: '2.5rem' }}><span className="visually-hidden">Loading...</span></div>
                                 <p className="text-muted mb-0">Searching for available rooms...</p>
                             </div>
                         )}
@@ -741,8 +732,8 @@ const SearchRoom = () => {
                             </div>
                         )}
 
-                        {!error && rooms.length > 0 && (
-                            <div style={{ opacity: loading ? 0.5 : 1, pointerEvents: loading ? 'none' : 'auto', transition: 'opacity 0.25s ease-in-out' }}>
+                        {!loading && !error && rooms.length > 0 && (
+                            <div>
                                 {rooms.map((rt) => (
                                     <RoomCard
                                         key={rt.roomTypeId}

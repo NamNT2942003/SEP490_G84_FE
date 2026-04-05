@@ -2,49 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { roomManagementApi } from "../api/roomManagementApi";
 import MainLayout from "../../../components/layout/MainLayout";
 import RoomDetailModal from "../components/RoomDetailModal";
+import AddRoomModal from "../components/AddRoomModal";
 import RoomList from "../components/RoomList";
 import ReportIssueModal from "../components/ReportIssueModal";
 import webSocketService from "../../../services/webSocketService";
 
 const BRAND = "#5C6F4E";
-
-const STAT_CARDS = [
-  {
-    key: "total",
-    label: "Total Rooms", 
-    icon: "bi-building",
-    color: BRAND,
-    bgAlpha: "rgba(92,111,78,0.08)",
-  },
-  {
-    key: "available", 
-    label: "Available",
-    icon: "bi-check-circle-fill",
-    color: "#198754",
-    bgAlpha: "rgba(25,135,84,0.08)",
-  },
-  {
-    key: "occupied",
-    label: "Occupied", 
-    icon: "bi-person-fill-check",
-    color: "#0d6efd",
-    bgAlpha: "rgba(13,110,253,0.08)",
-  },
-  {
-    key: "cleaning",
-    label: "Cleaning",
-    icon: "bi-arrow-clockwise",
-    color: "#fd7e14",
-    bgAlpha: "rgba(253,126,20,0.08)",
-  },
-  {
-    key: "maintenance",
-    label: "Maintenance",
-    icon: "bi-hammer",
-    color: "#dc3545", 
-    bgAlpha: "rgba(220,53,69,0.08)",
-  },
-];
 
 function RoomManagement() {
   const [rooms, setRooms] = useState([]);
@@ -58,15 +21,15 @@ function RoomManagement() {
   const [branchFilter, setBranchFilter] = useState("");
   const [branches, setBranches] = useState([]);
   const [sortBy, setSortBy] = useState("name");
-  const [viewMode, setViewMode] = useState("grid"); // grid or list
+  const [viewMode, setViewMode] = useState("grid");
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showAddRoomModal, setShowAddRoomModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  
-  // Additional state for enhanced data
+
   const [statistics, setStatistics] = useState({
     totalRooms: 0,
     availableRooms: 0,
@@ -77,41 +40,35 @@ function RoomManagement() {
   const [floors, setFloors] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
   const [apiStatus, setApiStatus] = useState({
-    rooms: 'unknown',
-    statistics: 'unknown', 
-    floors: 'unknown',
-    types: 'unknown'
+    rooms: "unknown",
+    statistics: "unknown",
+    floors: "unknown",
+    types: "unknown",
   });
 
-  // Real-time notification state
   const [notification, setNotification] = useState(null);
   const [wsConnected, setWsConnected] = useState(false);
   const wsCleanupRef = useRef(null);
 
   const pageSize = 20;
 
+  /* ─── Data Fetching ─────────────────────────────────────────────────── */
+
   const fetchRooms = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await roomManagementApi.listRooms(
-        search,
-        "", // status filter - we'll handle this in UI if needed, but here we pass empty to get all
-        page,
-        pageSize,
-        branchFilter
-      );
+      const data = await roomManagementApi.listRooms(search, "", 0, 1000, branchFilter);
       setRooms(data.content || []);
-      setTotalPages(data.totalPages || 0);
-      setTotalElements(data.totalElements || 0);
-      setApiStatus(prev => ({ ...prev, rooms: 'available' }));
+      setApiStatus((prev) => ({ ...prev, rooms: "available" }));
     } catch (err) {
-      console.warn("Rooms API not available:", err.response?.status);
-      setError(err.response?.status === 400 || err.response?.status === 404 
-        ? "Backend APIs are not ready. Please check the backend connection."
-        : err.message || "Error loading room data");
+      setError(
+          err.response?.status === 400 || err.response?.status === 404
+              ? "Backend APIs are not ready. Please check the backend connection."
+              : err.message || "Error loading room data"
+      );
       setRooms([]);
-      setApiStatus(prev => ({ ...prev, rooms: 'unavailable' }));
+      setApiStatus((prev) => ({ ...prev, rooms: "unavailable" }));
     } finally {
       setLoading(false);
     }
@@ -130,58 +87,47 @@ function RoomManagement() {
         brokenEquipment: stats.brokenEquipment || 0,
         totalIssues: stats.totalIssues || 0,
       });
-      setApiStatus(prev => ({ ...prev, statistics: 'available' }));
+      setApiStatus((prev) => ({ ...prev, statistics: "available" }));
     } catch (err) {
-      console.warn("Statistics API not available:", err.response?.status);
-      // Set default statistics when API is not available
       setStatistics({
         totalRooms: 0,
         availableRooms: 0,
-        occupiedRooms: 0,        cleaningRooms: 1,        maintenanceRooms: 0,
+        occupiedRooms: 0,
+        cleaningRooms: 0,
+        maintenanceRooms: 0,
         totalEquipment: 0,
         brokenEquipment: 0,
         totalIssues: 0,
       });
-      setApiStatus(prev => ({ ...prev, statistics: 'unavailable' }));
+      setApiStatus((prev) => ({ ...prev, statistics: "unavailable" }));
     }
   };
 
   const fetchFloors = async () => {
     try {
       const floorData = await roomManagementApi.getFloors();
-      // ✅ Ensure unique keys and valid structure
-      const validFloors = (floorData || []).filter(floor => 
-        floor && 
-        typeof floor.floor === 'number' && 
-        floor.floor > 0 && // Filter out invalid floors
-        floor.label && 
-        typeof floor.roomCount === 'number'
+      const validFloors = (floorData || []).filter(
+          (f) => f && typeof f.floor === "number" && f.floor > 0 && f.label && typeof f.roomCount === "number"
       );
       setFloors(validFloors);
-      setApiStatus(prev => ({ ...prev, floors: 'available' }));
-    } catch (err) {
-      console.warn("Floors API not available:", err.response?.status);
-      setFloors([]); // Empty array when API not available
-      setApiStatus(prev => ({ ...prev, floors: 'unavailable' }));
+      setApiStatus((prev) => ({ ...prev, floors: "available" }));
+    } catch {
+      setFloors([]);
+      setApiStatus((prev) => ({ ...prev, floors: "unavailable" }));
     }
   };
 
   const fetchRoomTypes = async () => {
     try {
       const typeData = await roomManagementApi.getRoomTypes();
-      // ✅ Ensure unique keys and valid structure
-      const validTypes = (typeData || []).filter(type => 
-        type && 
-        type.type && 
-        type.label &&
-        typeof type.roomCount === 'number'
+      const validTypes = (typeData || []).filter(
+          (t) => t && t.type && t.label && typeof t.roomCount === "number"
       );
       setRoomTypes(validTypes);
-      setApiStatus(prev => ({ ...prev, types: 'available' }));
-    } catch (err) {
-      console.warn("Room types API not available:", err.response?.status);
-      setRoomTypes([]); // Empty array when API not available
-      setApiStatus(prev => ({ ...prev, types: 'unavailable' }));
+      setApiStatus((prev) => ({ ...prev, types: "available" }));
+    } catch {
+      setRoomTypes([]);
+      setApiStatus((prev) => ({ ...prev, types: "unavailable" }));
     }
   };
 
@@ -195,207 +141,62 @@ function RoomManagement() {
   };
 
   const fetchAllData = async () => {
-    await Promise.all([
-      fetchRooms(),
-      fetchStatistics(),
-      fetchFloors(),
-      fetchRoomTypes(),
-      fetchBranches(),
-    ]);
+    await Promise.all([fetchRooms(), fetchStatistics(), fetchFloors(), fetchRoomTypes(), fetchBranches()]);
   };
+
+  /* ─── Effects ───────────────────────────────────────────────────────── */
 
   useEffect(() => {
     setPage(0);
   }, [search, floorFilter, roomTypeFilter, equipmentBrokenFilter, branchFilter]);
-  
+
   useEffect(() => {
     fetchRooms();
     fetchStatistics();
-  }, [page, search, branchFilter]);
+  }, [search, branchFilter]);
 
   useEffect(() => {
-    fetchAllData()
-      .catch(error => {
-        console.error('[RoomManagement] Failed to fetch initial data:', error);
-      });
-    
-    // Set up periodic refresh every 30 seconds for real-time updates
-    const interval = setInterval(() => {
-      fetchStatistics(branchFilter);
-    }, 30000);
-    
+    fetchAllData().catch(console.error);
+    const interval = setInterval(() => fetchStatistics(branchFilter), 30000);
     return () => clearInterval(interval);
-  }, []); // Load initial data on mount
-
-  // Re-fetch data when page changes
-  useEffect(() => {
-    const fetchCurrentPageRooms = async () => {
-      try {
-        setLoading(true);
-        const data = await roomManagementApi.listRooms(search, "", page, 12, branchFilter);
-        
-        setRooms(data.content || []);
-        setTotalElements(data.totalElements || 0);
-        setTotalPages(data.totalPages || 0);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCurrentPageRooms();
-  }, [page, search, branchFilter]);
-
-  // Handle page change with smooth scroll to top of grid
-  const handlePageChange = (newPage) => {
-    setPage(newPage);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
-
-    const pages = [];
-    const maxVisiblePages = 5;
-    let startPage = Math.max(0, page - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(0, endPage - maxVisiblePages + 1);
-    }
-
-    return (
-      <nav aria-label="Room navigation" className="mt-4">
-        <ul className="pagination pagination-sm justify-content-center gap-1 mb-0">
-          {/* First Page */}
-          <li className={`page-item ${page === 0 ? 'disabled' : ''}`}>
-            <button className="page-link border-0 rounded-3 px-3" onClick={() => handlePageChange(0)}>
-              <i className="bi bi-chevron-double-left"></i>
-            </button>
-          </li>
-
-          {/* Previous Page */}
-          <li className={`page-item ${page === 0 ? 'disabled' : ''}`}>
-            <button className="page-link border-0 rounded-3 px-3" onClick={() => handlePageChange(page - 1)}>
-              <i className="bi bi-chevron-left"></i>
-            </button>
-          </li>
-
-          {/* Page Numbers */}
-          {startPage > 0 && <li className="page-item disabled"><span className="page-link border-0">...</span></li>}
-          
-          {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(p => (
-            <li key={p} className={`page-item ${page === p ? 'active' : ''}`}>
-              <button 
-                className="page-link border-0 rounded-3 px-3 fw-bold" 
-                style={page === p ? { backgroundColor: BRAND, color: 'white' } : { color: BRAND }}
-                onClick={() => handlePageChange(p)}
-              >
-                {p + 1}
-              </button>
-            </li>
-          ))}
-
-          {endPage < totalPages - 1 && <li className="page-item disabled"><span className="page-link border-0">...</span></li>}
-
-          {/* Next Page */}
-          <li className={`page-item ${page === totalPages - 1 ? 'disabled' : ''}`}>
-            <button className="page-link border-0 rounded-3 px-3" onClick={() => handlePageChange(page + 1)}>
-              <i className="bi bi-chevron-right"></i>
-            </button>
-          </li>
-
-          {/* Last Page */}
-          <li className={`page-item ${page === totalPages - 1 ? 'disabled' : ''}`}>
-            <button className="page-link border-0 rounded-3 px-3" onClick={() => handlePageChange(totalPages - 1)}>
-              <i className="bi bi-chevron-double-right"></i>
-            </button>
-          </li>
-        </ul>
-      </nav>
-    );
-  };
-
-  // Re-fetch statistics when filters change (reset to page 0)
-  useEffect(() => {
-    setPage(0);
-  }, [search, floorFilter, roomTypeFilter, equipmentBrokenFilter, branchFilter]);
-
-  // Re-fetch data when user returns to tab (for better UX)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        fetchAllData()
-          .catch(error => {
-            console.error('[RoomManagement] Failed to refresh on visibility change:', error);
-          });
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // WebSocket connection for real-time updates
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") fetchAllData().catch(console.error);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
   useEffect(() => {
     const connectWebSocket = async () => {
       try {
-        console.log('[RoomManagement] Connecting to WebSocket...');
         await webSocketService.connect();
         setWsConnected(true);
-        console.log('[RoomManagement] WebSocket connected');
-        
-        // Subscribe to all room events
         const subscription = webSocketService.subscribeToAllRooms((event) => {
-          console.log('[RoomManagement] Received room event:', event);
-          
-          if (event.type === 'ROOM_STATUS_CHANGE') {
-            console.log('[RoomManagement] Processing room status change...');
-            // Show notification
+          if (event.type === "ROOM_STATUS_CHANGE") {
             setNotification({
-              type: 'success',
-              message: `Room ${event.roomName} status changed from ${event.oldStatus} to ${event.newStatus}`,
-              timestamp: Date.now()
+              type: "success",
+              message: `Room ${event.roomName} changed: ${event.oldStatus} → ${event.newStatus}`,
+              timestamp: Date.now(),
             });
-            
-            // Auto-hide notification after 5 seconds
-            setTimeout(() => {
-              console.log('[RoomManagement] Auto-hiding notification');
-              setNotification(null);
-            }, 5000);
-            
-            // Refresh room data to show latest status
-            fetchAllData()
-              .catch(error => {
-                console.error('[RoomManagement] Failed to refresh data after status change:', error);
-              });
+            setTimeout(() => setNotification(null), 5000);
+            fetchAllData().catch(console.error);
           }
         });
-
         return () => {
-          console.log('[RoomManagement] Cleaning up WebSocket connection');
-          if (subscription) {
-            subscription.unsubscribe();
-          }
+          if (subscription) subscription.unsubscribe();
           setWsConnected(false);
         };
-      } catch (error) {
-        console.error('[RoomManagement] Failed to connect to WebSocket:', error);
+      } catch {
         setWsConnected(false);
       }
     };
 
-    // Connect immediately on mount
     connectWebSocket()
-      .then(cleanupFn => {
-        // Store cleanup function in ref (not global)
-        wsCleanupRef.current = cleanupFn;
-      })
-      .catch(error => {
-        console.error('[RoomManagement] WebSocket connection failed:', error);
-        setWsConnected(false);
-      });
+        .then((cleanupFn) => { wsCleanupRef.current = cleanupFn; })
+        .catch(() => setWsConnected(false));
 
     return () => {
       if (wsCleanupRef.current) wsCleanupRef.current();
@@ -404,39 +205,31 @@ function RoomManagement() {
     };
   }, []);
 
-  // Filter rooms based on UI filters
-  const filteredRooms = rooms.filter(room => {
-    if (room.roomName === "WAREHOUSE" || room.roomName === "WAREHOUSE_FAIL") return false;
+  /* ─── Filtering & Sorting ───────────────────────────────────────────── */
 
+  const filteredRooms = rooms.filter((room) => {
+    if (room.roomName === "WAREHOUSE" || room.roomName === "WAREHOUSE_FAIL") return false;
     let match = true;
     if (floorFilter) match = match && room.floor?.toString() === floorFilter;
     if (roomTypeFilter) match = match && room.roomType === roomTypeFilter;
-    if (equipmentBrokenFilter === "true") match = match && (room.equipmentBroken > 0);
-    if (equipmentBrokenFilter === "false") match = match && (room.equipmentBroken === 0);
+    if (equipmentBrokenFilter === "true") match = match && room.equipmentBroken > 0;
+    if (equipmentBrokenFilter === "false") match = match && room.equipmentBroken === 0;
     return match;
   });
 
-  // Sort filtered rooms  
   const sortedRooms = [...filteredRooms].sort((a, b) => {
-    switch(sortBy) {
-      case "name": 
-        return (a.roomName || "").localeCompare(b.roomName || "");
-      case "floor": 
-        return (a.floor || 0) - (b.floor || 0);
-      case "type": 
-        return (a.roomType || "").localeCompare(b.roomType || "");
-      default: 
-        return 0;
+    switch (sortBy) {
+      case "name":   return (a.roomName || "").localeCompare(b.roomName || "");
+      case "floor":  return (a.floor || 0) - (b.floor || 0);
+      case "type":   return (a.roomType || "").localeCompare(b.roomType || "");
+      default:       return 0;
     }
   });
-
-  const statValues = {
-    total: statistics.totalRooms,
-    available: statistics.availableRooms,
-    occupied: statistics.occupiedRooms,
-    cleaning: statistics.cleaningRooms,
-    maintenance: statistics.maintenanceRooms,
-  };
+  const totalElementsFiltered = sortedRooms.length;
+  const totalPagesFiltered = Math.max(1, Math.ceil(totalElementsFiltered / pageSize));
+  const validPage = Math.min(page, totalPagesFiltered - 1);
+  const displayedRooms = sortedRooms.slice(validPage * pageSize, (validPage + 1) * pageSize);
+  /* ─── Handlers ──────────────────────────────────────────────────────── */
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -454,665 +247,564 @@ function RoomManagement() {
     setShowReportModal(true);
   };
 
+  const showNotif = (message, type = "success") => {
+    setNotification({ type, message, timestamp: Date.now() });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
   const handleMarkCleaning = async (room) => {
     try {
-      await roomManagementApi.updateRoomStatus(room.roomId, 'CLEANING');
-      
-      // Show notification
-      setNotification({
-        type: 'success',
-        message: `🧹 Room ${room.roomName} marked as cleaning`,
-        timestamp: Date.now()
-      });
-      setTimeout(() => setNotification(null), 5000);
-      
-      // Refresh data after status update
+      await roomManagementApi.updateRoomStatus(room.roomId, "CLEANING");
+      showNotif(`Room ${room.roomName} marked as cleaning`);
       await fetchAllData();
-    } catch (error) {
-      console.error('Error marking room as cleaning:', error);
-      setNotification({
-        type: 'error',
-        message: `❌ Failed to mark room as cleaning`,
-        timestamp: Date.now()
-      });
-      setTimeout(() => setNotification(null), 5000);
+    } catch {
+      showNotif("Failed to update room status", "error");
     }
   };
 
   const handleCleaningComplete = async (room) => {
     try {
-      await roomManagementApi.updateRoomStatus(room.roomId, 'AVAILABLE');
-      
-      // Show notification
-      setNotification({
-        type: 'success',
-        message: `✅ Room ${room.roomName} cleaning completed - now available`,
-        timestamp: Date.now()
-      });
-      setTimeout(() => setNotification(null), 5000);
-      
-      // Refresh data after status update
+      await roomManagementApi.updateRoomStatus(room.roomId, "AVAILABLE");
+      showNotif(`Room ${room.roomName} is now available`);
       await fetchAllData();
-    } catch (error) {
-      console.error('Error completing cleaning:', error);
-      setNotification({
-        type: 'error',
-        message: `❌ Failed to complete cleaning`,
-        timestamp: Date.now()
-      });
-      setTimeout(() => setNotification(null), 5000);
+    } catch {
+      showNotif("Failed to complete cleaning", "error");
     }
   };
 
-  const getStatusColor = (status) => {
-    if (!status) return "#6c757d";
-    const s = status.toUpperCase();
-    switch(s) {
-      case "AVAILABLE": return "#198754"; // Xanh lá - Sẵn sàng
-      case "OCCUPIED": return "#0d6efd";  // Xanh dương - Có người
-      case "CLEANING": return "#fd7e14";   // Cam - Đang dọn dẹp
-      case "MAINTENANCE": return "#dc3545"; // Đỏ - Bảo trì (Vì có đồ hỏng/sự cố)
-      default: return "#6c757d";
-    }
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const getStatusText = (status) => {
-    if (!status) return "Unknown";
-    const s = status.toUpperCase();
-    switch(s) {
-      case "AVAILABLE": return "Available";
-      case "OCCUPIED": return "Occupied";
-      case "CLEANING": return "Cleaning";
-      case "MAINTENANCE": return "Maintenance";
-      default: return status;
-    }
+  /* ─── Utilities ─────────────────────────────────────────────────────── */
+
+  const STATUS_CONFIG = {
+    AVAILABLE:   { color: "#198754", bg: "rgba(25,135,84,0.08)",   label: "Available",    icon: "bi-check-circle-fill" },
+    OCCUPIED:    { color: "#0d6efd", bg: "rgba(13,110,253,0.08)",  label: "Occupied",     icon: "bi-person-fill-check" },
+    CLEANING:    { color: "#fd7e14", bg: "rgba(253,126,20,0.08)",  label: "Cleaning",     icon: "bi-arrow-clockwise" },
+    MAINTENANCE: { color: "#dc3545", bg: "rgba(220,53,69,0.08)",   label: "Maintenance",  icon: "bi-hammer" },
   };
+
+  const getStatus = (status) =>
+      STATUS_CONFIG[(status || "").toUpperCase()] || { color: "#6c757d", bg: "rgba(108,117,125,0.08)", label: status || "Unknown", icon: "bi-question-circle" };
+
+  /* ─── Pagination ────────────────────────────────────────────────────── */
+
+  const renderPagination = () => {
+    if (totalPagesFiltered <= 1) return null;
+    const maxVisible = 5;
+    let start = Math.max(0, validPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPagesFiltered - 1, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) start = Math.max(0, end - maxVisible + 1);
+
+    const btnBase = { border: "none", background: "transparent", borderRadius: "8px", padding: "6px 12px", fontSize: "0.85rem", cursor: "pointer", transition: "all 0.2s" };
+
+    return (
+        <nav aria-label="Room pagination">
+          <ul className="pagination justify-content-center gap-1 mb-0" style={{ listStyle: "none", padding: 0, display: "flex", alignItems: "center" }}>        
+            <li><button style={{ ...btnBase, opacity: validPage === 0 ? 0.3 : 1 }} disabled={validPage === 0} onClick={() => handlePageChange(0)}><i className="bi bi-chevron-double-left"></i></button></li>
+            <li><button style={{ ...btnBase, opacity: validPage === 0 ? 0.3 : 1 }} disabled={validPage === 0} onClick={() => handlePageChange(validPage - 1)}><i className="bi bi-chevron-left"></i></button></li>
+            {start > 0 && <li><span style={{ padding: "6px 4px", color: "#aaa" }}>…</span></li>}
+            {Array.from({ length: end - start + 1 }, (_, i) => start + i).map((p) => (
+                <li key={p}>
+                  <button
+                      style={{ ...btnBase, backgroundColor: validPage === p ? BRAND : "transparent", color: validPage === p ? "#fff" : BRAND, fontWeight: validPage === p ? 700 : 400 }}
+                      onClick={() => handlePageChange(p)}
+                  >{p + 1}</button>
+                </li>
+            ))}
+            {end < totalPagesFiltered - 1 && <li><span style={{ padding: "6px 4px", color: "#aaa" }}>…</span></li>}
+            <li><button style={{ ...btnBase, opacity: validPage === totalPagesFiltered - 1 ? 0.3 : 1 }} disabled={validPage === totalPagesFiltered - 1} onClick={() => handlePageChange(validPage + 1)}><i className="bi bi-chevron-right"></i></button></li>
+            <li><button style={{ ...btnBase, opacity: validPage === totalPagesFiltered - 1 ? 0.3 : 1 }} disabled={validPage === totalPagesFiltered - 1} onClick={() => handlePageChange(totalPagesFiltered - 1)}><i className="bi bi-chevron-double-right"></i></button></li>     
+          </ul>
+        </nav>
+    );
+  };
+
+  /* ─── Render ────────────────────────────────────────────────────────── */
+
+  const STAT_CARDS = [
+    { key: "total",       label: "Total Rooms",   value: statistics.totalRooms,       icon: "bi-building",             color: "#5C6F4E" },
+    { key: "available",   label: "Available",     value: statistics.availableRooms,   icon: "bi-check-circle-fill",    color: "#198754" },
+    { key: "occupied",    label: "Occupied",      value: statistics.occupiedRooms,    icon: "bi-person-fill-check",    color: "#0d6efd" },
+    { key: "cleaning",    label: "Cleaning",      value: statistics.cleaningRooms,    icon: "bi-arrow-clockwise",      color: "#fd7e14" },
+    { key: "maintenance", label: "Maintenance",   value: statistics.maintenanceRooms, icon: "bi-hammer",               color: "#dc3545" },
+    { key: "broken",      label: "Broken Items",  value: statistics.brokenEquipment,  icon: "bi-exclamation-octagon-fill", color: "#ffc107" },
+  ];
+
+  const hasActiveFilters = search || floorFilter || roomTypeFilter || branchFilter || equipmentBrokenFilter;
 
   return (
-    <>
-      {/* NOTIFICATION OVERLAY - TOP LEVEL */}
-      {notification ? (
-        <div className="alert alert-success alert-dismissible fade show d-flex align-items-center" 
-             role="alert" 
-             style={{ 
-               position: 'fixed', 
-               top: '80px', 
-               right: '20px', 
-               zIndex: 9999,
-               width: '400px',
-               background: '#d1edff',
-               border: '2px solid #0984e3',
-               borderRadius: '12px',
-               boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-               color: '#2d3436',
-               animation: 'slideIn 0.3s ease-out'
-             }}>
-          <i className="bi bi-check-circle-fill me-3" style={{ color: '#00b894', fontSize: '24px' }}></i>
-          <div className="flex-grow-1">
-            <strong style={{ color: '#2d3436' }}>🔔 Live Update</strong><br/>
-            <span style={{ fontSize: '14px' }}>{notification.message}</span>
-          </div>
-          <button 
-            type="button" 
-            className="btn-close btn-close-dark" 
-            onClick={() => {
-              console.log('🗙 Closing notification manually');
-              setNotification(null);
-            }}
-            aria-label="Close"
-            style={{ 
-              filter: 'invert(1)',
-              opacity: 0.8
-            }}
-          ></button>
-        </div>
-      ) : null}
+      <>
+        {/* ── Styles ── */}
+        <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
-      <style>{`
-        @keyframes slideIn {
-          from { 
-            transform: translateX(100%); 
-            opacity: 0; 
-          }
-          to { 
-            transform: translateX(0); 
-            opacity: 1; 
-          }
+        .rm-root * { font-family: 'DM Sans', sans-serif; }
+        .rm-root { background: #F4F5F0; min-height: 100vh; }
+
+        @keyframes slideInRight {
+          from { transform: translateX(110%); opacity: 0; }
+          to   { transform: translateX(0);   opacity: 1; }
         }
+        @keyframes fadeUp {
+          from { transform: translateY(12px); opacity: 0; }
+          to   { transform: translateY(0);    opacity: 1; }
+        }
+
+        .rm-notif {
+          position: fixed; top: 80px; right: 24px; z-index: 9999;
+          width: 380px; border-radius: 14px;
+          background: #fff; border-left: 4px solid #198754;
+          box-shadow: 0 12px 40px rgba(0,0,0,0.14);
+          padding: 16px 20px; display: flex; align-items: flex-start; gap: 14px;
+          animation: slideInRight 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .rm-stat-card {
+          background: #fff; border-radius: 16px;
+          border: 1px solid rgba(0,0,0,0.06);
+          padding: 20px; display: flex; align-items: center; gap: 16px;
+          transition: transform 0.2s, box-shadow 0.2s;
+          animation: fadeUp 0.4s ease both;
+        }
+        .rm-stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.10); }
+
+        .rm-search-input {
+          width: 100%; padding: 11px 14px 11px 42px;
+          border: 1.5px solid #e0e0da; border-radius: 10px;
+          font-size: 0.9rem; background: #FAFAF8;
+          transition: all 0.25s; color: #1a1a1a;
+        }
+        .rm-search-input:focus {
+          outline: none; border-color: ${BRAND}; background: #fff;
+          box-shadow: 0 0 0 3px rgba(92,111,78,0.12);
+        }
+        .rm-search-input::placeholder { color: #aaa; }
+
+        .rm-select {
+          width: 100%; padding: 9px 12px;
+          border: 1.5px solid #e0e0da; border-radius: 10px;
+          font-size: 0.85rem; background: #FAFAF8;
+          cursor: pointer; transition: all 0.25s; color: #333;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+          background-repeat: no-repeat; background-position: right 12px center;
+          padding-right: 32px;
+        }
+        .rm-select:focus { outline: none; border-color: ${BRAND}; box-shadow: 0 0 0 3px rgba(92,111,78,0.12); }
+
+        .rm-filter-label {
+          display: block; font-size: 0.7rem; font-weight: 700;
+          color: #888; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
+        }
+
+        .rm-view-btn {
+          padding: 8px 14px; border: none; border-radius: 8px;
+          font-size: 0.82rem; cursor: pointer; transition: all 0.2s;
+          font-weight: 500; display: flex; align-items: center; gap: 6px;
+        }
+        .rm-view-btn.active { background: ${BRAND}; color: #fff; }
+        .rm-view-btn:not(.active) { background: transparent; color: #666; }
+        .rm-view-btn:not(.active):hover { background: #eee; }
+
+        .rm-room-card {
+          background: #fff; border-radius: 18px;
+          border: 1px solid rgba(0,0,0,0.06);
+          overflow: hidden; transition: all 0.25s;
+          animation: fadeUp 0.4s ease both;
+          display: flex; flex-direction: column;
+        }
+        .rm-room-card:hover { transform: translateY(-3px); box-shadow: 0 14px 36px rgba(0,0,0,0.11); }
+
+        .rm-badge {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 5px 12px; border-radius: 20px;
+          font-size: 0.72rem; font-weight: 700; letter-spacing: 0.3px;
+        }
+
+        .rm-action-btn {
+          padding: 9px 16px; border-radius: 10px; border: none;
+          font-size: 0.82rem; font-weight: 600; cursor: pointer;
+          transition: all 0.2s; display: flex; align-items: center;
+          justify-content: center; gap: 6px; width: 100%;
+        }
+        .rm-action-btn:hover { filter: brightness(1.08); }
+
+        .rm-filter-tag {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 5px 12px; background: rgba(92,111,78,0.1);
+          color: ${BRAND}; border-radius: 20px;
+          font-size: 0.78rem; font-weight: 600;
+        }
+        .rm-clear-tag {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 5px 12px; background: rgba(220,53,69,0.08);
+          color: #dc3545; border-radius: 20px;
+          font-size: 0.78rem; font-weight: 600; cursor: pointer;
+        }
+        .rm-clear-tag:hover { background: rgba(220,53,69,0.15); }
       `}</style>
 
-
-        <div className="container-fluid py-4 px-xl-5" style={{ backgroundColor: "#fbfbfb", minHeight: "100vh" }}>
-
-        {/* BREADCRUMB & ADD BUTTON */}
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3">
-          <div>
-            <nav aria-label="breadcrumb">
-              <ol className="breadcrumb mb-3" style={{ fontSize: "0.8rem" }}>
-                <li className="breadcrumb-item"><a href="#" className="text-decoration-none text-muted">Admin Panel</a></li>
-                <li className="breadcrumb-item active fw-medium" aria-current="page" style={{ color: BRAND }}>Room Management</li>
-              </ol>
-            </nav>
-            <div className="d-flex align-items-center gap-2">
-              <p className="text-muted mb-0 small">Real-time monitoring of room status, equipment health, and maintenance incidents.</p>
-              <span className={`badge ${wsConnected ? 'bg-success' : 'bg-secondary'}`} 
-                    style={{ fontSize: '0.65rem', height: 'fit-content' }}>
-                <i className={`bi ${wsConnected ? 'bi-wifi' : 'bi-wifi-off'} me-1`}></i>
-                {wsConnected ? 'Live' : 'Offline'}
-              </span>
+        {/* ── Toast Notification ── */}
+        {notification && (
+            <div className="rm-notif">
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(25,135,84,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <i className="bi bi-bell-fill" style={{ color: "#198754", fontSize: "1rem" }}></i>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "#111", marginBottom: 3 }}>Live Update</div>
+                <div style={{ fontSize: "0.83rem", color: "#555" }}>{notification.message}</div>
+              </div>
+              <button onClick={() => setNotification(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa", padding: 0, fontSize: "1.1rem" }}>
+                <i className="bi bi-x"></i>
+              </button>
             </div>
-          </div>
-          <div className="d-flex gap-2">
-            <button 
-              className="btn btn-primary d-inline-flex align-items-center gap-2 px-4 shadow-sm border-0"
-              style={{ backgroundColor: BRAND, borderRadius: "10px", fontWeight: "600", transition: "all 0.3s" }}
-            >
-              <i className="bi bi-plus-circle-fill"></i> Add New Room
-            </button>
-          </div>
-        </div>
+        )}
 
-        {/* QUICK STATS - REFACTORED */}
-        <div className="row g-3 mb-4">
-          {[
-            { key: "total", label: "Total Rooms", value: statistics.totalRooms, icon: "bi-building", color: "#6c757d" },
-            { key: "available", label: "Available", value: statistics.availableRooms, icon: "bi-check-circle-fill", color: "#198754" },
-            { key: "occupied", label: "Occupied", value: statistics.occupiedRooms, icon: "bi-person-fill-check", color: "#0d6efd" },
-          { key: "cleaning", label: "Cleaning", value: statistics.cleaningRooms, icon: "bi-arrow-clockwise", color: "#fd7e14" },
-          { key: "maintenance", label: "Maintenance", value: statistics.maintenanceRooms, icon: "bi-hammer", color: "#dc3545" },
-          { key: "broken", label: "Broken Items", value: statistics.brokenEquipment, icon: "bi-exclamation-octagon-fill", color: "#ffc107" }
-          ].map((stat, idx) => (
-            <div key={idx} className="col-6 col-md-4 col-lg">
-              <div className="card border-0 shadow-sm h-100 overflow-hidden" 
-                   style={{ borderRadius: "16px", borderBottom: `4px solid ${stat.color}` }}>
-                <div className="card-body p-3">
-                  <div className="d-flex align-items-center justify-content-between gap-2">
-                    <div className="text-truncate">
-                      <div className="text-muted fw-bold text-uppercase mb-1 text-truncate" style={{ letterSpacing: "0.5px", fontSize: "0.65rem" }}>{stat.label}</div>
-                      <h4 className="fw-bold mb-0 text-dark">
-                        {loading ? <div className="spinner-border spinner-border-sm" /> : stat.value}
-                      </h4>
-                    </div>
-                    <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" 
-                         style={{ backgroundColor: `${stat.color}12`, color: stat.color, width: "40px", height: "40px" }}>
-                      <i className={`bi ${stat.icon} fs-5`}></i>
-                    </div>
-                  </div>
+        <div className="rm-root">
+          <div style={{ maxWidth: 1600, margin: "0 auto", padding: "28px 28px" }}>
+
+            {/* ── Page Header ── */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
+              <div>
+                <nav style={{ fontSize: "0.75rem", color: "#999", marginBottom: 8 }}>
+                  <span>Admin Panel</span>
+                  <span style={{ margin: "0 8px", color: "#ccc" }}>/</span>
+                  <span style={{ color: BRAND, fontWeight: 600 }}>Room Management</span>
+                </nav>
+                <h1 style={{ fontSize: "1.65rem", fontWeight: 700, color: "#111", margin: 0, letterSpacing: "-0.5px" }}>
+                  Room Management
+                </h1>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
+                  <p style={{ color: "#888", fontSize: "0.85rem", margin: 0 }}>
+                    Real-time monitoring of room status, equipment health & incidents.
+                  </p>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "3px 10px", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700,
+                    background: wsConnected ? "rgba(25,135,84,0.1)" : "rgba(108,117,125,0.1)",
+                    color: wsConnected ? "#198754" : "#6c757d",
+                  }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: wsConnected ? "#198754" : "#aaa", display: "inline-block" }}></span>
+                    {wsConnected ? "Live" : "Offline"}
+                </span>
                 </div>
               </div>
+              <button
+                  style={{
+                    background: BRAND, color: "#fff", border: "none",
+                    borderRadius: 12, padding: "11px 22px", fontWeight: 700,
+                    fontSize: "0.88rem", cursor: "pointer", display: "flex",
+                    alignItems: "center", gap: 8, transition: "all 0.2s",
+                    boxShadow: "0 4px 14px rgba(92,111,78,0.35)",
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.opacity = "0.88"}
+                  onMouseOut={(e) => e.currentTarget.style.opacity = "1"}                  onClick={() => setShowAddRoomModal(true)}              >
+                <i className="bi bi-plus-circle-fill"></i> Add New Room
+              </button>
             </div>
-          ))}
-        </div>
 
-        {/* FILTERS & SEARCH - CLEAN DESIGN */}
-        <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: "16px", overflow: "hidden", backgroundColor: "#fff" }}>
-          <div className="card-body p-4">
-            <style>{`
-              .search-bar {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 16px;
-              }
-              .search-input-wrapper {
-                flex: 1;
-                position: relative;
-              }
-              .search-input-wrapper i {
-                position: absolute;
-                left: 14px;
-                top: 50%;
-                transform: translateY(-50%);
-                color: #999;
-                font-size: 0.9rem;
-              }
-              .search-input-wrapper input {
-                width: 100%;
-                padding: 12px 12px 12px 40px;
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                font-size: 0.9rem;
-                background: #f9f9f9;
-                transition: all 0.3s;
-              }
-              .search-input-wrapper input:focus {
-                outline: none;
-                border-color: ${BRAND};
-                background: #fff;
-                box-shadow: 0 0 0 3px rgba(92,111,78,0.1);
-              }
-              .filters-row {
-                display: flex;
-                gap: 10px;
-                flex-wrap: wrap;
-                align-items: center;
-              }
-              .filter-item {
-                flex: 1;
-                min-width: 150px;
-              }
-              .filter-item label {
-                display: block;
-                font-size: 0.75rem;
-                font-weight: 600;
-                color: #666;
-                text-transform: uppercase;
-                margin-bottom: 6px;
-                letter-spacing: 0.3px;
-              }
-              .filter-item select {
-                width: 100%;
-                padding: 10px 12px;
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                font-size: 0.9rem;
-                background: #f9f9f9;
-                cursor: pointer;
-                transition: all 0.3s;
-              }
-              .filter-item select:hover {
-                border-color: #ccc;
-              }
-              .filter-item select:focus {
-                outline: none;
-                border-color: ${BRAND};
-                background: #fff;
-                box-shadow: 0 0 0 3px rgba(92,111,78,0.1);
-              }
-              .view-toggle-group {
-                display: flex;
-                gap: 6px;
-                background: #f5f5f5;
-                padding: 6px;
-                border-radius: 8px;
-                width: fit-content;
-              }
-              .view-toggle-group button {
-                padding: 8px 12px;
-                border: none;
-                background: transparent;
-                color: #666;
-                cursor: pointer;
-                border-radius: 6px;
-                font-size: 0.9rem;
-                transition: all 0.2s;
-              }
-              .view-toggle-group button.active {
-                background: ${BRAND};
-                color: #fff;
-              }
-              .active-filters {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-                padding-top: 12px;
-              }
-              .filter-tag {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                padding: 6px 12px;
-                background: rgba(92,111,78,0.08);
-                color: ${BRAND};
-                border-radius: 6px;
-                font-size: 0.8rem;
-                font-weight: 500;
-              }
-              .filter-tag-close {
-                cursor: pointer;
-                opacity: 0.6;
-              }
-              .filter-tag-close:hover {
-                opacity: 1;
-              }
+            {/* ── Stat Cards ── */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 14, marginBottom: 24 }}
+                 className="rm-stats-grid">
+              <style>{`
+              @media (max-width: 1200px) { .rm-stats-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+              @media (max-width: 640px)  { .rm-stats-grid { grid-template-columns: repeat(2, 1fr) !important; } }
             `}</style>
-
-            {/* Search Bar */}
-            <div className="search-bar">
-              <div className="search-input-wrapper">
-                <i className="bi bi-search"></i>
-                <form onSubmit={handleSearch} style={{ width: "100%" }}>
-                  <input
-                    type="text"
-                    placeholder="Find room by name or ID..."
-                    value={inputVal}
-                    onChange={(e) => setInputVal(e.target.value)}
-                  />
-                </form>
-              </div>
+              {STAT_CARDS.map((s, i) => (
+                  <div key={s.key} className="rm-stat-card" style={{ animationDelay: `${i * 60}ms` }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                      background: `${s.color}18`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <i className={`bi ${s.icon}`} style={{ color: s.color, fontSize: "1.15rem" }}></i>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 4 }}>
+                        {s.label}
+                      </div>
+                      <div style={{ fontSize: "1.55rem", fontWeight: 700, color: "#111", lineHeight: 1 }}>
+                        {loading ? <div className="spinner-border spinner-border-sm text-secondary" style={{ width: 18, height: 18 }} /> : (s.value ?? 0)}
+                      </div>
+                    </div>
+                  </div>
+              ))}
             </div>
 
-            {/* Filters Row */}
-            <div className="filters-row">
-              <div className="filter-item">
-                <label><i className="bi bi-building me-1" style={{color: BRAND}}></i>Branch</label>
-                <select 
-                  value={branchFilter}
-                  onChange={(e) => setBranchFilter(e.target.value)}
-                >
-                  <option value="">All Branches</option>
-                  {branches.map((b, index) => (
-                    <option key={`${b.branchId || b.id}-${index}`} value={b.branchId || b.id}>
-                      {b.branchName || b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* ── Error Banner ── */}
+            {error && (
+                <div style={{ background: "rgba(220,53,69,0.07)", border: "1px solid rgba(220,53,69,0.2)", borderRadius: 12, padding: "12px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10, color: "#dc3545", fontSize: "0.88rem" }}>
+                  <i className="bi bi-exclamation-triangle-fill"></i>
+                  <span>{error}</span>
+                </div>
+            )}
 
-              <div className="filter-item">
-                <label><i className="bi bi-diagram-3 me-1" style={{color: "#0d6efd"}}></i>Floor</label>
-                <select 
-                  value={floorFilter}
-                  onChange={(e) => setFloorFilter(e.target.value)}
-                >
-                  <option value="">All Floors</option>
-                  {floors.map((f, index) => (
-                    <option key={`floor-${f.floor}-${index}`} value={String(f.floor)}>
-                      Floor {f.floor}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* ── Filters Panel ── */}
+            <div style={{ background: "#fff", borderRadius: 18, border: "1px solid rgba(0,0,0,0.06)", padding: "20px 24px", marginBottom: 24 }}>
 
-              <div className="filter-item">
-                <label><i className="bi bi-door-closed me-1" style={{color: "#198754"}}></i>Type</label>
-                <select 
-                  value={roomTypeFilter}
-                  onChange={(e) => setRoomTypeFilter(e.target.value)}
-                >
-                  <option value="">All Types</option>
-                  {roomTypes.map((t, index) => (
-                    <option key={`${t.type}-${index}`} value={t.type}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Search Row */}
+              <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "flex-end", flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 240, position: "relative" }}>
+                  <label className="rm-filter-label">Search</label>
+                  <i className="bi bi-search" style={{ position: "absolute", left: 14, bottom: 11, color: "#aaa", fontSize: "0.85rem" }}></i>
+                  <form onSubmit={handleSearch} style={{ margin: 0 }}>
+                    <input
+                        className="rm-search-input"
+                        type="text"
+                        placeholder="Search by room name or ID…"
+                        value={inputVal}
+                        onChange={(e) => setInputVal(e.target.value)}
+                    />
+                  </form>
+                </div>
 
-              <div className="filter-item">
-                <label><i className="bi bi-tools me-1" style={{color: "#ffc107"}}></i>Equipment</label>
-                <select 
-                  value={equipmentBrokenFilter}
-                  onChange={(e) => setEquipmentBrokenFilter(e.target.value)}
-                >
-                  <option value="">All</option>
-                  <option value="true">Has Broken Items</option>
-                  <option value="false">No Broken Items</option>
-                </select>
-              </div>
-
-              <div className="filter-item">
-                <label><i className="bi bi-sort-down me-1" style={{color: "#0d6efd"}}></i>Sort</label>
-                <select 
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                >
-                  <option value="name">Room Name</option>
-                  <option value="floor">Floor</option>
-                  <option value="type">Type</option>
-                </select>
-              </div>
-
-              <div className="filter-item" style={{minWidth: "auto"}}>
-                <label style={{opacity: 0}}>View</label>
-                <div className="view-toggle-group">
-                  <button 
-                    className={viewMode === "grid" ? "active" : ""}
-                    onClick={() => setViewMode("grid")}
-                    title="Grid View"
-                  >
+                {/* View Toggle */}
+                <div style={{ display: "flex", background: "#F4F5F0", borderRadius: 10, padding: 5, gap: 4, alignSelf: "flex-end" }}>
+                  <button className={`rm-view-btn ${viewMode === "grid" ? "active" : ""}`} onClick={() => setViewMode("grid")}>
                     <i className="bi bi-grid-fill"></i> Grid
                   </button>
-                  <button 
-                    className={viewMode === "list" ? "active" : ""}
-                    onClick={() => setViewMode("list")}
-                    title="List View"
-                  >
+                  <button className={`rm-view-btn ${viewMode === "list" ? "active" : ""}`} onClick={() => setViewMode("list")}>
                     <i className="bi bi-list-task"></i> List
                   </button>
                 </div>
               </div>
+
+              {/* Filter Selects Row */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
+                <div>
+                  <label className="rm-filter-label"><i className="bi bi-building me-1"></i>Branch</label>
+                  <select className="rm-select" value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)}>
+                    <option value="">All Branches</option>
+                    {branches.map((b, i) => (
+                        <option key={`${b.branchId || b.id}-${i}`} value={b.branchId || b.id}>
+                          {b.branchName || b.name}
+                        </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="rm-filter-label"><i className="bi bi-layers me-1"></i>Floor</label>
+                  <select className="rm-select" value={floorFilter} onChange={(e) => setFloorFilter(e.target.value)}>
+                    <option value="">All Floors</option>
+                    {floors.map((f, i) => (
+                        <option key={`floor-${f.floor}-${i}`} value={String(f.floor)}>Floor {f.floor}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="rm-filter-label"><i className="bi bi-door-closed me-1"></i>Room Type</label>
+                  <select className="rm-select" value={roomTypeFilter} onChange={(e) => setRoomTypeFilter(e.target.value)}>
+                    <option value="">All Types</option>
+                    {roomTypes.map((t, i) => (
+                        <option key={`${t.type}-${i}`} value={t.type}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="rm-filter-label"><i className="bi bi-tools me-1"></i>Equipment</label>
+                  <select className="rm-select" value={equipmentBrokenFilter} onChange={(e) => setEquipmentBrokenFilter(e.target.value)}>
+                    <option value="">All Conditions</option>
+                    <option value="true">Has Broken Items</option>
+                    <option value="false">All Working</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="rm-filter-label"><i className="bi bi-sort-down me-1"></i>Sort By</label>
+                  <select className="rm-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="name">Room Name</option>
+                    <option value="floor">Floor</option>
+                    <option value="type">Type</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Active Filter Tags */}
+              {hasActiveFilters && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "1px solid #f0f0ea" }}>
+                    <span style={{ fontSize: "0.75rem", color: "#aaa", fontWeight: 600, alignSelf: "center" }}>Active filters:</span>
+                    {search && <span className="rm-filter-tag"><i className="bi bi-search"></i>"{search}"</span>}
+                    {branchFilter && (
+                        <span className="rm-filter-tag">
+                    <i className="bi bi-building"></i>
+                          {branches.find((b) => String(b.branchId || b.id) === String(branchFilter))?.branchName || "Branch"}
+                  </span>
+                    )}
+                    {floorFilter && <span className="rm-filter-tag"><i className="bi bi-layers"></i>Floor {floorFilter}</span>}
+                    {roomTypeFilter && <span className="rm-filter-tag"><i className="bi bi-door-closed"></i>{roomTypes.find((t) => t.type === roomTypeFilter)?.label || roomTypeFilter}</span>}
+                    {equipmentBrokenFilter === "true" && <span className="rm-filter-tag"><i className="bi bi-tools"></i>Has Broken Items</span>}
+                    <span className="rm-clear-tag" onClick={() => { setSearch(""); setInputVal(""); setFloorFilter(""); setRoomTypeFilter(""); setBranchFilter(""); setEquipmentBrokenFilter(""); setPage(0); }}>
+                  <i className="bi bi-x-circle"></i> Clear All
+                </span>
+                  </div>
+              )}
             </div>
 
-            {/* Active Filters Tags */}
-            {(search || floorFilter || roomTypeFilter || branchFilter) && (
-              <div className="active-filters">
-                {search && (
-                  <span className="filter-tag">
-                    <i className="bi bi-search"></i>
-                    "{search}"
-                  </span>
-                )}
-                {branchFilter && (
-                  <span className="filter-tag">
-                    <i className="bi bi-building"></i>
-                    {branches.find(b => String(b.branchId || b.id) === String(branchFilter))?.branchName || 'Branch'}
-                  </span>
-                )}
-                {floorFilter && (
-                  <span className="filter-tag">
-                    <i className="bi bi-diagram-3"></i>
-                    Floor {floorFilter}
-                  </span>
-                )}
-                {roomTypeFilter && (
-                  <span className="filter-tag">
-                    <i className="bi bi-door-closed"></i>
-                    {roomTypes.find(t => t.type === roomTypeFilter)?.label || roomTypeFilter}
-                  </span>
-                )}
-                <span 
-                  className="filter-tag"
-                  onClick={() => {
-                    setSearch("");
-                    setInputVal("");
-                    setFloorFilter("");
-                    setRoomTypeFilter("");
-                    setBranchFilter("");
-                    setPage(0);
-                  }}
-                  style={{cursor: "pointer", background: "rgba(220,53,69,0.08)", color: "#dc3545"}}
-                >
-                  <i className="bi bi-x-circle"></i>
-                  Clear All
-                </span>
-              </div>
+            {/* ── Loading ── */}
+            {loading && page === 0 && (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "60px 0", gap: 14 }}>
+                  <div style={{ width: 40, height: 40, border: `3px solid ${BRAND}30`, borderTop: `3px solid ${BRAND}`, borderRadius: "50%", animation: "spin 0.8s linear infinite" }}></div>
+                  <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                  <span style={{ color: "#aaa", fontSize: "0.85rem" }}>Syncing room data…</span>
+                </div>
+            )}
+
+            {/* ── Room Grid / List ── */}
+            {!loading && (
+                <>
+                  {displayedRooms.length === 0 ? (
+                      <div style={{ background: "#fff", borderRadius: 18, border: "1px solid rgba(0,0,0,0.06)", padding: "60px 24px", textAlign: "center" }}>
+                        <i className="bi bi-inbox" style={{ fontSize: "3rem", color: "#ccc", display: "block", marginBottom: 16 }}></i>
+                        <h5 style={{ color: "#888", fontWeight: 600, marginBottom: 12 }}>No rooms match your filters</h5>
+                        <button
+                            style={{ background: "none", border: "none", color: BRAND, fontWeight: 600, cursor: "pointer", fontSize: "0.88rem" }}
+                            onClick={() => { setSearch(""); setInputVal(""); setBranchFilter(""); setFloorFilter(""); setRoomTypeFilter(""); setPage(0); }}
+                        >
+                          Clear all filters
+                        </button>
+                      </div>
+                  ) : viewMode === "grid" ? (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
+                        {displayedRooms.map((room, index) => {
+                          const st = getStatus(room.status);
+                          return (
+                              <div key={room.roomId || room.id || `room-${index}`} className="rm-room-card" style={{ animationDelay: `${index * 40}ms` }}>
+                                {/* Status stripe */}
+                                <div style={{ height: 5, background: st.color }}></div>
+
+                                <div style={{ padding: "20px 20px 16px" }}>
+                                  {/* Header */}
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                                    <div>
+                                      <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 5 }}>
+                                        {room.roomTypeName || "Standard"}
+                                      </div>
+                                      <h4 style={{ fontWeight: 700, fontSize: "1.15rem", color: "#111", margin: 0, letterSpacing: "-0.3px" }}>
+                                        {room.roomName}
+                                      </h4>
+                                    </div>
+                                    <span className="rm-badge" style={{ background: st.bg, color: st.color }}>
+                              <i className={`bi ${st.icon}`}></i>
+                                      {st.label}
+                            </span>
+                                  </div>
+
+                                  {/* Meta */}
+                                  <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: "0.78rem", color: "#aaa", marginBottom: 16 }}>
+                                    <span><i className="bi bi-layers-fill me-1"></i>Floor {room.floor}</span>
+                                    <span>·</span>
+                                    <span><i className="bi bi-geo-alt-fill me-1"></i>{room.branchName || room.branch?.branchName || room.branch?.name || "Central Branch"}</span>
+                                  </div>
+
+                                  {/* Metrics */}
+                                  <div style={{ background: "#F8F9F5", borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0 }}>
+                                    {[
+                                      { label: "Equipment", value: room.totalEquipment || 0, alert: false },
+                                      { label: "Broken",    value: room.equipmentBroken || 0, alert: (room.equipmentBroken || 0) > 0 },
+                                      { label: "Issues",    value: room.totalIssues || 0,     alert: (room.totalIssues || 0) > 0 },
+                                    ].map((m, mi) => (
+                                        <div key={mi} style={{ textAlign: "center", borderRight: mi < 2 ? "1px solid #eee" : "none" }}>
+                                          <div style={{ fontSize: "0.62rem", fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>{m.label}</div>
+                                          <div style={{ fontSize: "1.05rem", fontWeight: 700, color: m.alert ? "#dc3545" : "#333" }}>{m.value}</div>
+                                        </div>
+                                    ))}
+                                  </div>
+
+                                  {/* Actions */}
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                    <button
+                                        className="rm-action-btn"
+                                        style={{ background: "#111", color: "#fff" }}
+                                        onClick={() => handleViewRoom(room)}
+                                    >
+                                      <i className="bi bi-sliders"></i> Manage Details
+                                    </button>
+                                    {room.status?.toUpperCase() === "OCCUPIED" && (
+                                        <button
+                                            className="rm-action-btn"
+                                            style={{ background: "#fd7e14", color: "#fff" }}
+                                            onClick={() => handleMarkCleaning(room)}
+                                        >
+                                          <i className="bi bi-arrow-clockwise"></i> Mark as Cleaning
+                                        </button>
+                                    )}
+                                    {room.status?.toUpperCase() === "CLEANING" && (
+                                        <button
+                                            className="rm-action-btn"
+                                            style={{ background: "#198754", color: "#fff" }}
+                                            onClick={() => handleCleaningComplete(room)}
+                                        >
+                                          <i className="bi bi-check-circle-fill"></i> Cleaning Complete
+                                        </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                          );
+                        })}
+                      </div>
+                  ) : (
+                      <RoomList rooms={displayedRooms} onRefresh={fetchAllData} />
+                  )}
+
+                  {/* ── Footer / Pagination ── */}
+                  {displayedRooms.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginTop: 40, marginBottom: 32 }}>
+                        <p style={{ color: "#aaa", fontSize: "0.83rem", margin: 0 }}>
+                          Showing <strong style={{ color: "#555" }}>{displayedRooms.length}</strong> of{" "}
+                          <strong style={{ color: "#555" }}>{totalElementsFiltered}</strong> rooms
+                        </p>
+                        {renderPagination()}
+                      </div>
+                  )}
+                </>
             )}
           </div>
         </div>
 
-        {/* LOADING & ERROR - MODERN OVERLAY */}
-        {loading && page === 0 && (
-          <div className="d-flex flex-column align-items-center justify-content-center py-5">
-            <div className="spinner-grow text-primary mb-3" style={{ color: BRAND }} role="status"></div>
-            <h6 className="text-muted fw-medium">Syncing Room Data...</h6>
-          </div>
+        {/* ── Modals ── */}
+        {showDetailModal && selectedRoom && (
+            <RoomDetailModal
+                show={showDetailModal}
+                room={selectedRoom}
+                onHide={() => { setShowDetailModal(false); setSelectedRoom(null); }}
+                onReportIssue={(room) => { setShowDetailModal(false); handleReportIssue(room); }}
+                onShowNotification={(n) => { setNotification(n); setTimeout(() => setNotification(null), 5000); }}
+                onRoomUpdated={() => fetchAllData().catch(console.error)}
+            />
         )}
 
-        {/* ROOM CARDS GRID - PREMIUM DESIGN */}
-        {!loading && (
-          <>
-            {sortedRooms.length === 0 ? (
-              <div className="text-center py-5 bg-white shadow-sm rounded-4">
-                <i className="bi bi-inbox text-muted display-1 mb-3"></i>
-                <h4 className="text-muted">No rooms found matching your criteria</h4>
-                <button className="btn btn-link link-primary" onClick={() => { setSearch(''); setBranchFilter(''); setPage(0); }}>Clear All Filters</button>
-              </div>
-            ) : viewMode === 'grid' ? (
-              <div className="row g-4">
-                {sortedRooms.map((room, index) => (
-                  <div key={room.roomId || room.id || `room-${index}`} className="col-12 col-md-6 col-lg-4 col-xl-3">
-                    <div className="card border-0 shadow-sm h-100 room-card position-relative" 
-                         style={{ borderRadius: "20px", overflow: "hidden", transition: "all 0.3s ease" }}>
-                      
-                      {/* Status Indicator Bar */}
-                      <div style={{ height: "6px", backgroundColor: getStatusColor(room.status) }}></div>
-                      
-                      <div className="card-body p-4">
-                        <div className="d-flex justify-content-between align-items-start mb-2">
-                          <div>
-                            <span className="badge bg-light text-muted smallest text-uppercase mb-1" style={{ letterSpacing: "1px" }}>
-                              {room.roomTypeName || "Standard"}
-                            </span>
-                            <h4 className="fw-bold mb-0" style={{ color: "#1a1a2e" }}>{room.roomName}</h4>
-                          </div>
-                          <span
-                            className="badge px-3 py-2 rounded-pill shadow-sm"
-                            style={{
-                              backgroundColor: `${getStatusColor(room.status)}`,
-                              color: "#fff",
-                              fontSize: "0.7rem",
-                              fontWeight: "700"
-                            }}
-                          >
-                            {getStatusText(room.status)}
-                          </span>
-                        </div>
-
-                        <div className="d-flex align-items-center text-muted smallest mb-4">
-                          <i className="bi bi-layers-fill me-1"></i> Floor {room.floor}
-                          <span className="mx-2">•</span>
-                          <i className="bi bi-geo-alt-fill me-1"></i> Central Branch
-                        </div>
-
-                        {/* Visual Metrics */}
-                        <div className="bg-light rounded-4 p-3 mb-4">
-                          <div className="row g-0 align-items-center">
-                            <div className="col-4 border-end border-white text-center">
-                              <div className="text-muted text-uppercase" style={{ fontSize: "0.65rem", fontWeight: "600", letterSpacing: "0.5px" }}>Equip</div>
-                              <div className="fw-bold text-dark mt-1" style={{ fontSize: "1rem" }}>{room.totalEquipment || 0}</div>
-                            </div>
-                            <div className="col-4 border-end border-white text-center">
-                              <div className="text-muted text-uppercase" style={{ fontSize: "0.65rem", fontWeight: "600", letterSpacing: "0.5px" }}>Broken</div>
-                              <div className={`fw-bold mt-1 ${(room.equipmentBroken || 0) > 0 ? "text-danger" : "text-dark"}`} style={{ fontSize: "1rem" }}>
-                                {room.equipmentBroken || 0}
-                              </div>
-                            </div>
-                            <div className="col-4 text-center">
-                              <div className="text-muted text-uppercase" style={{ fontSize: "0.65rem", fontWeight: "600", letterSpacing: "0.5px" }}>Issues</div>
-                              <div className={`fw-bold mt-1 ${(room.totalIssues || 0) > 0 ? "text-danger" : "text-dark"}`} style={{ fontSize: "1rem" }}>
-                                {room.totalIssues || 0}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="d-grid gap-2">
-                          <button
-                            className="btn btn-dark shadow-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
-                            onClick={() => handleViewRoom(room)}
-                            style={{ borderRadius: "12px", fontSize: "0.85rem", letterSpacing: "0.5px" }}
-                          >
-                            <i className="bi bi-sliders"></i> Manage Details
-                          </button>
-                          {(room.status?.toUpperCase() === 'OCCUPIED') && (
-                            <button
-                              className="btn shadow-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
-                              onClick={() => handleMarkCleaning(room)}
-                              style={{ 
-                                borderRadius: "12px", 
-                                fontSize: "0.85rem", 
-                                letterSpacing: "0.5px",
-                                backgroundColor: "#fd7e14",
-                                color: "white",
-                                border: "none"
-                              }}
-                            >
-                              <i className="bi bi-arrow-clockwise"></i> Mark as Cleaning
-                            </button>
-                          )}
-                          {(room.status?.toUpperCase() === 'CLEANING') && (
-                            <button
-                              className="btn shadow-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
-                              onClick={() => handleCleaningComplete(room)}
-                              style={{ 
-                                borderRadius: "12px", 
-                                fontSize: "0.85rem", 
-                                letterSpacing: "0.5px",
-                                backgroundColor: "#198754",
-                                color: "white",
-                                border: "none"
-                              }}
-                            >
-                              <i className="bi bi-check-circle-fill"></i> Cleaning Complete
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <RoomList 
-                rooms={sortedRooms} 
-                onRefresh={fetchAllData}
-              />
-            )}
-            
-            {/* FOOTER & PAGINATION */}
-            {sortedRooms.length > 0 && (
-              <div className="d-flex flex-column align-items-center mt-5 mb-5">
-                <p className="text-muted small">
-                  Showing <strong>{sortedRooms.length}</strong> of <strong>{totalElements}</strong> rooms
-                </p>
-                {renderPagination()}
-              </div>
-            )}
-          </>
+        {showReportModal && selectedRoom && (
+            <ReportIssueModal
+                show={showReportModal}
+                room={selectedRoom}
+                onHide={() => { setShowReportModal(false); setSelectedRoom(null); }}
+                onShowNotification={(n) => { setNotification(n); setTimeout(() => setNotification(null), 5000); }}
+                onSuccess={() => {
+                  setShowReportModal(false);
+                  setSelectedRoom(null);
+                  fetchAllData().catch(console.error);
+                }}
+            />
         )}
-      </div>
 
-      {/* MODALS */}
-      {showDetailModal && selectedRoom && (
-        <RoomDetailModal
-          show={showDetailModal}
-          room={selectedRoom}
-          onHide={() => {
-            setShowDetailModal(false);
-            setSelectedRoom(null);
-          }}
-          onReportIssue={(room) => {
-            setShowDetailModal(false);
-            handleReportIssue(room);
-          }}
-          onShowNotification={(notificationData) => {
-            setNotification(notificationData);
-            setTimeout(() => setNotification(null), 5000);
-          }}
-          onRoomUpdated={() => {
-            fetchAllData()
-              .catch(error => {
-                console.error('[RoomManagement] Failed to refresh after room update:', error);
-              });
-          }}
+        <AddRoomModal
+            isOpen={showAddRoomModal}
+            onClose={() => setShowAddRoomModal(false)}
+            onRoomAdded={() => fetchAllData().catch(console.error)}
+            branches={branches}
+            roomTypes={roomTypes}
         />
-      )}
-
-      {showReportModal && selectedRoom && (
-        <ReportIssueModal
-          show={showReportModal}
-          room={selectedRoom}
-          onHide={() => {
-            setShowReportModal(false);
-            setSelectedRoom(null);
-          }}
-          onShowNotification={(notificationData) => {
-            setNotification(notificationData);
-            setTimeout(() => setNotification(null), 5000);
-          }}
-          onSuccess={() => {
-            setShowReportModal(false);
-            setSelectedRoom(null);
-            fetchAllData()
-              .catch(error => {
-                console.error('[RoomManagement] Failed to refresh after report success:', error);
-              });
-          }}
-        />
-      )}
-
-  </>
-);
+      </>
+  );
 }
 
 export default RoomManagement;
+
+

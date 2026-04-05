@@ -1,24 +1,49 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { roomManagementApi } from "../api/roomManagementApi";
+import apiClient from "../../../services/apiClient";
+import AddFurnitureToRoomModal from "./AddFurnitureToRoomModal";
 
 const BRAND = "#5c6f4e";
 
 export default function EditRoomModal({ room, onClose, onSubmitted }) {
   const [roomName, setRoomName] = useState(room?.roomName || "");
   const [floor, setFloor] = useState(room?.floor || "");
+  const [branchId, setBranchId] = useState(room?.branchId || room?.roomType?.branch?.branchId || "");
   const [roomTypeId, setRoomTypeId] = useState(room?.roomTypeId || room?.roomType?.id || "");
+  const [furnitures, setFurnitures] = useState([]);
+  
+  const [roomTypes, setRoomTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // You might want to fetch room types from API, but for simplicity, we provide common ones or leave as text input if not available
-  // Here we use a text input, ideally it should be a select dropdown fetching from an endpoint.
-  // Assuming roomType has an id and name.
+  const [isFurnitureModalOpen, setFurnitureModalOpen] = useState(false);
+
+  useEffect(() => {
+    // Fetch room types so user has a dropdown
+    const fetchRoomTypes = async () => {
+      try {
+        const types = await roomManagementApi.getRoomTypes();
+        setRoomTypes(types || []);
+      } catch (err) {
+        console.error("Failed to load room types", err);
+      }
+    };
+    fetchRoomTypes();
+  }, []);
 
   useEffect(() => {
     if (room) {
       setRoomName(room.roomName || "");
       setFloor(room.floor || "");
+      setBranchId(room.branchId || room?.roomType?.branch?.branchId || "");
       setRoomTypeId(room.roomTypeId || room?.roomType?.id || "");
+      
+      const mappedFurniture = (room.furnitureList || []).map(f => ({
+        id: f.furnitureId,
+        name: f.furnitorName || f.name,
+        qty: f.quantity || 1
+      }));
+      setFurnitures(mappedFurniture);
     }
   }, [room]);
 
@@ -27,11 +52,16 @@ export default function EditRoomModal({ room, onClose, onSubmitted }) {
     try {
       setLoading(true);
       setError(null);
-      await roomManagementApi.updateRoomBaseInfo(room.roomId, {
-        roomName,
-        floor: parseInt(floor),
+      
+      const payload = {
         roomTypeId: parseInt(roomTypeId),
-      });
+        furnitures: furnitures.map(f => ({
+          furnitureId: f.id,
+          quantity: f.qty
+        }))
+      };
+
+      await apiClient.put(`/admin/rooms/` + room.roomId, payload);
       onSubmitted?.();
       onClose();
     } catch (err) {
@@ -54,7 +84,7 @@ export default function EditRoomModal({ room, onClose, onSubmitted }) {
       <div
         className="bg-white"
         style={{
-          width: "min(560px, 94vw)",
+          width: "min(640px, 94vw)",
           borderRadius: 16,
           boxShadow: "0 24px 64px rgba(0,0,0,0.22)",
           overflow: "hidden",
@@ -79,7 +109,7 @@ export default function EditRoomModal({ room, onClose, onSubmitted }) {
                 Edit Room
               </div>
               <div className="text-muted small">
-                {room?.roomName ? `${room.roomName}` : `Room #${room?.roomId}`}
+                {room?.roomName ? `${room.roomName}` : `Room #${room?.roomId}`} 
               </div>
             </div>
           </div>
@@ -89,48 +119,81 @@ export default function EditRoomModal({ room, onClose, onSubmitted }) {
         </div>
 
         <form className="p-4" onSubmit={submit}>
-          <div className="mb-3">
-            <label className="fw-semibold small mb-2">
-              Room Name <span style={{ color: BRAND }}>*</span>
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
-              required
-              style={{ borderRadius: 12, borderColor: "rgba(92,111,78,0.55)" }}
-            />
+          <div className="row mb-3">
+            <div className="col">
+              <label className="fw-semibold small mb-2">
+                Room Name
+              </label>
+              <input
+                type="text"
+                className="form-control bg-light"
+                value={roomName}
+                readOnly
+                disabled
+                style={{ borderRadius: 12, borderColor: "rgba(92,111,78,0.25)" }} 
+              />
+            </div>
+            <div className="col">
+              <label className="fw-semibold small mb-2">
+                Floor
+              </label>
+              <input
+                type="text"
+                className="form-control bg-light"
+                value={"Floor " + floor}
+                readOnly
+                disabled
+                style={{ borderRadius: 12, borderColor: "rgba(92,111,78,0.25)" }} 
+              />
+            </div>
           </div>
 
           <div className="mb-3">
             <label className="fw-semibold small mb-2">
-              Floor <span style={{ color: BRAND }}>*</span>
+              Room Type <span style={{ color: BRAND }}>*</span>
             </label>
-            <input
-              type="number"
-              className="form-control"
-              value={floor}
-              onChange={(e) => setFloor(e.target.value)}
-              required
-              style={{ borderRadius: 12, borderColor: "rgba(92,111,78,0.55)" }}
-            />
-          </div>
-
-          <div className="mb-3">
-            <label className="fw-semibold small mb-2">
-              Room Type ID <span style={{ color: BRAND }}>*</span>
-            </label>
-            <input
-              type="number"
-              className="form-control"
+            <select
+              className="form-select"
               value={roomTypeId}
-              onChange={(e) => setRoomTypeId(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setRoomTypeId(val);
+                const rt = roomTypes?.find(t => (t.roomTypeId || t.id).toString() === val.toString());
+                if (rt?.branchId) {
+                  setBranchId(rt.branchId);
+                }
+              }}
               required
               style={{ borderRadius: 12, borderColor: "rgba(92,111,78,0.55)" }}
-              placeholder="Enter Room Type ID"
-            />
-             <div className="text-muted small mt-1">Please enter the valid ID of the room type.</div>
+            >
+              <option value="">Select Room Type</option>
+              {roomTypes?.map(rt => (
+                <option key={rt.roomTypeId || rt.id} value={rt.roomTypeId || rt.id}>{rt.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mt-4 pt-3 border-top">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h6 className="m-0 fw-bold" style={{ color: "#1a1a2e" }}>Furniture (Modify):</h6>
+              <button 
+                type="button" 
+                onClick={() => setFurnitureModalOpen(true)} 
+                className="btn btn-sm btn-outline-warning fw-bold px-3"
+                style={{ borderRadius: 20 }}
+              >
+                <i className="bi bi-plus-lg me-1"></i> Manage Furniture
+              </button>
+            </div>
+
+            <div className="d-flex flex-wrap gap-2 p-3 rounded-3" style={{ border: "1px dashed #17a2b8", minHeight: "80px", backgroundColor: "#f8fdfd" }}>
+              {furnitures.map((f, i) => (
+                <div key={i} className="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill d-flex align-items-center shadow-sm">
+                  {f.name} <span className="ms-2 px-2 py-1 bg-white rounded-pill text-muted small">{f.qty}</span>
+                </div>
+              ))}
+              {furnitures.length === 0 && <span className="text-muted small align-self-center">No furniture assigned yet.</span>}
+            </div>
           </div>
 
           {error && (
@@ -143,18 +206,19 @@ export default function EditRoomModal({ room, onClose, onSubmitted }) {
           )}
 
           <div className="d-flex justify-content-end gap-2 mt-4">
-            <button type="button" className="btn btn-outline-secondary px-4" onClick={onClose}>
+            <button type="button" className="btn btn-outline-secondary px-4" onClick={onClose} style={{ borderRadius: 12 }}>
               Cancel
             </button>
             <button
               type="submit"
-              className="btn px-4 d-inline-flex align-items-center gap-2"
+              className="btn px-4 d-inline-flex align-items-center gap-2"       
               disabled={loading}
               style={{
                 backgroundColor: BRAND,
                 color: "#fff",
                 border: "none",
-                boxShadow: `0 2px 10px rgba(92,111,78,0.25)`,
+                borderRadius: 12,
+                boxShadow: "0 4px 14px rgba(92,111,78,0.35)",
               }}
             >
               {loading ? (
@@ -164,13 +228,21 @@ export default function EditRoomModal({ room, onClose, onSubmitted }) {
                 </>
               ) : (
                 <>
-                  <i className="bi bi-save"></i> Save Changes
+                  <i className="bi bi-check2-circle"></i> Save Changes
                 </>
               )}
             </button>
           </div>
         </form>
       </div>
+
+      <AddFurnitureToRoomModal
+        isOpen={isFurnitureModalOpen}
+        onClose={() => setFurnitureModalOpen(false)}
+        selectedBranchId={branchId}
+        currentSelections={furnitures}
+        onConfirmSelection={(newSelections) => setFurnitures(newSelections)}
+      />
     </div>
   );
 }

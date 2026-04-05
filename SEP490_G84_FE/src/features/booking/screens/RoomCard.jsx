@@ -26,7 +26,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
     return (
         <>
             <style>{`
-        :root { --olive: #465c47; --olive-dark: #384a39; --gold: #D4AF37; --bg-light: #fafbf8; }
+        :root { --olive: #5C6F4E; --olive-dark: #4a5b3f; --gold: #D4AF37; --bg-light: #fafbf8; }
         .rc { background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid rgba(92,111,78,0.1); margin-bottom: 24px; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
         .rc:hover { box-shadow: 0 12px 30px rgba(92,111,78,0.12); transform: translateY(-4px); }
         .rc-row { display: flex; flex-direction: row; }
@@ -88,13 +88,13 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                     <div className="rc-img">
                         <img src={imageSrc} alt={room.name} onError={(e) => { e.target.src = getPlaceholderImage(room.name); }} />
                         {room.availableCount > 0 && room.availableCount <= 3 && (
-                            <div className="rc-badge urgent"><i className="bi bi-fire"></i> Only {room.availableCount} rooms left!</div>
+                            <div className="rc-badge urgent"><i className="bi bi-fire"></i> Only {room.availableCount} room(s) left!</div>
                         )}
                         {room.availableCount > 3 && (
-                            <div className="rc-badge"><i className="bi bi-check-circle-fill" style={{color: '#9ae6b4'}}></i> Available: {room.availableCount} rooms</div>
+                            <div className="rc-badge"><i className="bi bi-check-circle-fill" style={{ color: '#9ae6b4' }}></i> Available: {room.availableCount} room(s)</div>
                         )}
                     </div>
-                    
+
                     <div className="rc-info">
                         <div className="rc-name">{room.name}</div>
                         <div className="rc-tags">
@@ -104,7 +104,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                             {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile"></i> Children: {room.maxChildren}</span>}
                         </div>
                         <div className="rc-desc">{room.description}</div>
-                        
+
                         <button className="rc-side-btn" onClick={() => onViewDetail(room)}>
                             <i className="bi bi-info-circle me-1"></i> View details
                         </button>
@@ -112,23 +112,23 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
 
                     <div className="rc-pricing">
                         <div className="rc-pricing-hd">
-                            <span><i className="bi bi-tag-fill me-1"></i> Price Packages</span>
-                            <span className="badge bg-secondary" style={{fontSize: '0.65rem'}}>{options.length} Options</span>
+                            <span><i className="bi bi-tag-fill me-1"></i> Pricing options</span>
+                            <span className="badge bg-secondary" style={{ fontSize: '0.65rem' }}>{options.length} option(s)</span>
                         </div>
-                        
+
                         <div className="rc-pricing-options">
                             {options.length > 0 ? options.map((option, idx) => {
                                 const isRecommended = idx === 0 && options.length > 1; // Highlight first element
                                 const hasDiscount = option.delta < 0;
-                                
+
                                 return (
                                     <div className={`rc-opt ${isRecommended ? 'rc-opt-highlight' : ''}`} key={`${room.roomTypeId}-${option.mode}-${idx}`}>
                                         <div className="rc-opt-header">
                                             <div className="rc-opt-mode">
-                                                {option.mode?.startsWith("POLICY_") ? "Standard Payment Package" : (option.mode || "Standard Package")}
+                                                {option.mode?.startsWith("POLICY_") ? "Standard payment plan" : (option.mode || "Standard plan")}
                                             </div>
                                         </div>
-                                        
+
                                         <div className="rc-opt-prices">
                                             <div>
                                                 {hasDiscount && <div className="rc-opt-base">{formatPrice(option.basePrice)}</div>}
@@ -141,14 +141,45 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
 
                                         {(option.modifiers && option.modifiers.length > 0) && (
                                             <div className="rc-opt-meta">
-                                                {option.modifiers.map((m, i) => (
-                                                    <div key={i}>
-                                                        <div className="rc-promo-badge">
-                                                            <i className="bi bi-check2-circle"></i> {m.name}
+                                                {option.modifiers.map((m, i) => {
+                                                    const rawAmountMatch = m.reason ? m.reason.match(/\[\s*(-?\d+)\s*\]$/) : null;
+                                                    let displayReason = m.reason || "";
+                                                    let formattedAmount = '';
+                                                    let isDiscount = false;
+                                                    let isSurcharge = false;
+
+                                                    if (rawAmountMatch) {
+                                                        const amt = parseInt(rawAmountMatch[1], 10);
+                                                        isDiscount = amt < 0;
+                                                        isSurcharge = amt > 0;
+                                                        formattedAmount = formatPrice(Math.abs(amt));
+                                                        displayReason = displayReason.replace(/\[\s*-?\d+\s*\]$/, "").trim();
+                                                    } else if (m.adjustmentValue) {
+                                                        isDiscount = m.adjustmentValue < 0;
+                                                        isSurcharge = m.adjustmentValue > 0;
+                                                        const suffixType = m.adjustmentType === 'PERCENT' ? '%' : ' VNĐ';
+                                                        formattedAmount = Math.abs(m.adjustmentValue) + suffixType;
+                                                    }
+
+                                                    return (
+                                                        <div key={i} className="mb-2 p-2 rounded" style={{ background: isDiscount ? '#f0fdf4' : (isSurcharge ? '#fff5f5' : '#f8fafc'), border: `1px solid ${isDiscount ? '#bbf7d0' : (isSurcharge ? '#fed7d7' : '#e2e8f0')}` }}>
+                                                            <div className="d-flex justify-content-between align-items-start gap-2">
+                                                                <div className="rc-promo-badge" style={{ background: isDiscount ? '#dcfce7' : (isSurcharge ? '#fed7d7' : '#ebf4ff'), color: isDiscount ? '#166534' : (isSurcharge ? '#9b2c2c' : '#3182ce'), margin: 0 }}>
+                                                                    <i className={isDiscount ? "bi bi-tag-fill" : (isSurcharge ? "bi bi-graph-up-arrow" : "bi bi-info-circle")}></i> {m.name}
+                                                                </div>
+                                                                {formattedAmount && (
+                                                                    <div className="fw-bold" style={{ fontSize: '0.8rem', color: isDiscount ? '#16a34a' : (isSurcharge ? '#e53e3e' : '#4a5568') }}>
+                                                                        {isDiscount ? '-' : (isSurcharge ? '+' : '')}{formattedAmount}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="rc-promo-reason mt-1 ms-1 d-flex gap-1" style={{ color: isDiscount ? '#15803d' : (isSurcharge ? '#c53030' : '#718096') }}>
+                                                                <i className="bi bi-arrow-return-right mt-1" style={{ fontSize: '0.7rem' }}></i>
+                                                                <span>{displayReason}</span>
+                                                            </div>
                                                         </div>
-                                                        <div className="rc-promo-reason mt-1"><i className="bi bi-arrow-return-right me-1 text-muted"></i>{m.reason}</div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         )}
 
@@ -158,15 +189,15 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                                             disabled={sold}
                                         >
                                             {sold
-                                                ? <><i className="bi bi-x-octagon-fill"></i> No Rooms Available</>
-                                                : <><i className="bi bi-cart-plus-fill"></i> Select Package</>}
+                                                ? <><i className="bi bi-x-octagon-fill"></i> Sold out</>
+                                                : <><i className="bi bi-cart-plus-fill"></i> Select this plan</>}
                                         </button>
                                     </div>
                                 );
                             }) : (
                                 <div className="rc-pricing-empty">
                                     <i className="bi bi-calendar-x fs-1 text-muted d-block mb-2"></i>
-                                    No applicable rates found for this date.
+                                    No pricing options available for this date.
                                 </div>
                             )}
                         </div>

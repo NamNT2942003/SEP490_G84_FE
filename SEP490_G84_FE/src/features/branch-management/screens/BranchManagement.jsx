@@ -1,8 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Select from "react-select";
 import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
-import Buttons from "@/components/ui/Buttons";
-import { COLORS } from "@/constants";
-import Swal from "sweetalert2";
 import "./BranchManagement.css";
 
 
@@ -10,6 +9,7 @@ const EMPTY_FORM = {
   branchName: "",
   propertyType: "",
   address: "",
+  country: "VN",
   city: "",
   contactNumber: "",
 };
@@ -17,11 +17,11 @@ const EMPTY_FORM = {
 const FORM_FIELDS = [
   { key: "branchName", label: "Branch name", required: true },
   { key: "address", label: "Address" },
-  { key: "city", label: "City" },
   { key: "contactNumber", label: "Contact number" },
 ];
 
 export default function BranchManagement() {
+  const navigate = useNavigate();
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -37,6 +37,11 @@ export default function BranchManagement() {
   const [propertyTypeOptions, setPropertyTypeOptions] = useState([]);
   const [loadingPropertyTypes, setLoadingPropertyTypes] = useState(false);
   const [propertyTypeError, setPropertyTypeError] = useState("");
+  const [countryOptions, setCountryOptions] = useState([]);
+  const [cityOptions, setCityOptions] = useState([]);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState("");
+  const [geoLib, setGeoLib] = useState(null);
 
   const fetchBranches = useCallback(async () => {
     try {
@@ -78,6 +83,47 @@ export default function BranchManagement() {
     fetchPropertyTypes();
   }, []);
 
+  React.useEffect(() => {
+    const loadGeoData = async () => {
+      if (!showFormModal || geoLib) return;
+      try {
+        setGeoLoading(true);
+        setGeoError("");
+        const module = await import("country-state-city");
+        const countries = module.Country.getAllCountries()
+          .map((country) => ({
+            value: country.isoCode,
+            label: country.name,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label));
+        setGeoLib(module);
+        setCountryOptions(countries);
+      } catch (err) {
+        setGeoError("Cannot load country/city data.");
+      } finally {
+        setGeoLoading(false);
+      }
+    };
+
+    loadGeoData();
+  }, [showFormModal, geoLib]);
+
+  React.useEffect(() => {
+    if (!geoLib || !formData.country) {
+      setCityOptions([]);
+      return;
+    }
+    const cities = geoLib.City.getCitiesOfCountry(formData.country) || [];
+    const options = cities
+      .map((city) => ({
+        value: city.name,
+        label: city.name,
+      }))
+      .filter((opt, idx, arr) => arr.findIndex((o) => o.value === opt.value) === idx)
+      .sort((a, b) => a.label.localeCompare(b.label));
+    setCityOptions(options);
+  }, [geoLib, formData.country]);
+
   const filteredBranches = useMemo(() => {
     const keyword = search.toLowerCase().trim();
     if (!keyword) return branches;
@@ -87,6 +133,7 @@ export default function BranchManagement() {
         branch.branchName,
         branch.address,
         branch.city,
+        branch.country,
         branch.contactNumber,
       ]
         .filter(Boolean)
@@ -109,6 +156,7 @@ export default function BranchManagement() {
       branchName: branch.branchName || "",
       propertyType: branch.propertyType || "",
       address: branch.address || "",
+      country: branch.country || "VN",
       city: branch.city || "",
       contactNumber: branch.contactNumber || "",
     });
@@ -124,8 +172,46 @@ export default function BranchManagement() {
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      if (name === "country") {
+        return { ...prev, country: value, city: "" };
+      }
+      return { ...prev, [name]: value };
+    });
   };
+
+  const selectedCountryOption = useMemo(
+    () => countryOptions.find((option) => option.value === formData.country) || null,
+    [countryOptions, formData.country]
+  );
+
+  const selectedCityOption = useMemo(
+    () => cityOptions.find((option) => option.value === formData.city) || null,
+    [cityOptions, formData.city]
+  );
+
+  const handleCountrySelect = (option) => {
+    setFormData((prev) => ({
+      ...prev,
+      country: option?.value || "",
+      city: "",
+    }));
+  };
+
+  const handleCitySelect = (option) => {
+    setFormData((prev) => ({
+      ...prev,
+      city: option?.value || "",
+    }));
+  };
+
+  const countryCodeToName = useMemo(() => {
+    const lookup = new Map();
+    countryOptions.forEach((option) => {
+      lookup.set(option.value, option.label);
+    });
+    return lookup;
+  }, [countryOptions]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -142,6 +228,16 @@ export default function BranchManagement() {
 
     if (!formData.branchName.trim()) {
       setFormError("Branch name is required.");
+      return;
+    }
+
+    if (!formData.country.trim()) {
+      setFormError("Country is required.");
+      return;
+    }
+
+    if (!formData.city.trim()) {
+      setFormError("City is required.");
       return;
     }
 
@@ -168,24 +264,14 @@ export default function BranchManagement() {
     const branchId = branch.branchId;
     if (!branchId) return;
 
-    const result = await Swal.fire({
-      title: 'Delete Branch?',
-      text: `"${branch.branchName || branchId}" will be permanently removed.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc3545',
-      cancelButtonColor: COLORS.PRIMARY,
-      confirmButtonText: 'Yes, delete it',
-      cancelButtonText: 'Cancel',
-    });
-    if (!result.isConfirmed) return;
+    const confirmed = window.confirm(`Delete branch "${branch.branchName || branchId}"?`);
+    if (!confirmed) return;
 
     try {
       await branchManagementApi.deleteBranch(branchId);
       await fetchBranches();
-      Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Branch has been removed.', timer: 1800, showConfirmButton: false });
     } catch (err) {
-      Swal.fire({ icon: 'error', title: 'Failed', text: err?.response?.data?.error || err?.response?.data?.message || 'Delete branch failed.' });
+      window.alert(err?.response?.data?.error || err?.response?.data?.message || "Delete branch failed.");
     }
   };
 
@@ -194,15 +280,27 @@ export default function BranchManagement() {
       {/* Header */}
       <div className="branch-title-row">
         <div>
+          <p className="branch-breadcrumb mb-1">
+            <i className="bi bi-house me-1" />
+            Admin
+            <i className="bi bi-chevron-right mx-1" style={{ fontSize: "0.65rem" }} />
+            Branch Management
+          </p>
           <h4 className="branch-page-title">Branch Management</h4>
         </div>
         <div className="d-flex gap-2 align-items-center">
-          <Buttons variant="outline" className="btn-sm" icon={<i className="bi bi-arrow-clockwise" />} onClick={fetchBranches} isLoading={loading}>
-            Refresh
-          </Buttons>
-          <Buttons variant="primary" className="btn-sm" icon={<i className="bi bi-plus-circle-fill" />} onClick={openCreateModal}>
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
+            onClick={fetchBranches}
+            disabled={loading}
+          >
+            <i className="bi bi-arrow-clockwise me-1" /> Refresh
+          </button>
+          <button type="button" className="btn btn-brand btn-sm" onClick={openCreateModal}>
+            <i className="bi bi-plus-circle-fill me-1" />
             Add Branch
-          </Buttons>
+          </button>
         </div>
       </div>
 
@@ -217,19 +315,27 @@ export default function BranchManagement() {
             <input
               type="text"
               className="form-control no-left-border"
-              placeholder="Search by name, city, address..."
+              placeholder="Search by name, city, country, address..."
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch(e)}
             />
           </div>
           <div className="d-flex gap-2">
-            <Buttons variant="primary" className="btn-sm" icon={<i className="bi bi-search" />} onClick={handleSearch}>
-              Search
-            </Buttons>
-            <Buttons variant="outline" className="btn-sm" onClick={handleClearSearch}>
+            <button
+              type="button"
+              className="btn btn-brand btn-sm"
+              onClick={handleSearch}
+            >
+              <i className="bi bi-search me-1" />Search
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              onClick={handleClearSearch}
+            >
               Clear
-            </Buttons>
+            </button>
           </div>
           <span className="text-muted ms-auto" style={{ fontSize: "0.82rem", whiteSpace: "nowrap" }}>
             {loading ? "Loading..." : `${filteredBranches.length} branch(es)`}
@@ -273,33 +379,38 @@ export default function BranchManagement() {
               )}
               {!loading && filteredBranches.map((branch) => (
                 <tr key={branch.branchId || `${branch.branchName}-${branch.address}`}>
-                  <td>
-                    <div className="fw-semibold" style={{ color: COLORS.PRIMARY }}>{branch.branchName || "-"}</div>
-                    {branch.branchId && <div className="text-muted" style={{ fontSize: "0.72rem" }}>ID #{branch.branchId}</div>}
-                  </td>
+                  <td className="branch-value">{branch.branchName || "-"}</td>
                   <td className="branch-value">{branch.propertyType || "-"}</td>
                   <td>
                     <div className="branch-value">{branch.address || "-"}</div>
-                    <div className="branch-meta">{branch.city || "-"}</div>
+                    <div className="branch-meta">{branch.city || "-"}{branch.country ? `, ${countryCodeToName.get(branch.country) || branch.country}` : ""}</div>
                   </td>
                   <td className="branch-value">{branch.contactNumber || "-"}</td>
                   <td className="text-end">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-secondary me-1"
-                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
-                      onClick={() => openEditModal(branch)}
-                    >
-                      <i className="bi bi-pencil me-1" />Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-danger"
-                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
-                      onClick={() => handleDelete(branch)}
-                    >
-                      <i className="bi bi-trash me-1" />Delete
-                    </button>
+                    <div className="btn-group">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-success"
+                        onClick={() => navigate(`/admin/branches/${branch.branchId}/cancellation-policies`)}
+                        title="Cancellation Policy"
+                      >
+                        <i className="bi bi-shield-check me-1"></i>Cancellation Policy
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={() => openEditModal(branch)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => handleDelete(branch)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -332,6 +443,12 @@ export default function BranchManagement() {
                     {propertyTypeError && (
                       <div className="alert alert-warning py-2" role="alert">
                         {propertyTypeError}
+                      </div>
+                    )}
+
+                    {geoError && (
+                      <div className="alert alert-warning py-2" role="alert">
+                        {geoError}
                       </div>
                     )}
 
@@ -374,6 +491,34 @@ export default function BranchManagement() {
                         </select>
                       </div>
 
+                      <div className="col-md-6">
+                        <label className="form-label">Country *</label>
+                        <Select
+                          classNamePrefix="branch-select"
+                          options={countryOptions}
+                          value={selectedCountryOption}
+                          onChange={handleCountrySelect}
+                          isDisabled={submitLoading || geoLoading}
+                          isSearchable
+                          placeholder="Select country"
+                          noOptionsMessage={() => "No country found"}
+                        />
+                      </div>
+
+                      <div className="col-md-6">
+                        <label className="form-label">City *</label>
+                        <Select
+                          classNamePrefix="branch-select"
+                          options={cityOptions}
+                          value={selectedCityOption}
+                          onChange={handleCitySelect}
+                          isDisabled={submitLoading || geoLoading || !formData.country}
+                          isSearchable
+                          placeholder={formData.country ? "Select city" : "Select country first"}
+                          noOptionsMessage={() => "No city found"}
+                        />
+                      </div>
+
                       {FORM_FIELDS.map((field) => (
                         <div className="col-md-6" key={field.key}>
                           <label className="form-label">
@@ -393,12 +538,12 @@ export default function BranchManagement() {
                   </div>
 
                   <div className="modal-footer border-top">
-                    <Buttons variant="outline" className="btn-sm" onClick={closeModal} disabled={submitLoading}>
+                    <button type="button" className="btn btn-light" onClick={closeModal} disabled={submitLoading}>
                       Cancel
-                    </Buttons>
-                    <Buttons variant="primary" type="submit" className="btn-sm" isLoading={submitLoading}>
+                    </button>
+                    <button type="submit" className="btn btn-brand" disabled={submitLoading}>
                       {submitLoading ? "Saving..." : editingBranch ? "Update" : "Create"}
-                    </Buttons>
+                    </button>
                   </div>
                 </form>
               </div>

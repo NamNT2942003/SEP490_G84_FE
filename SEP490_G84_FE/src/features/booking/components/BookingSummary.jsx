@@ -8,13 +8,13 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
             return `Free cancellation before ${freeCancelBeforeDays} days`;
         }
         if (cancellationType === 'REFUNDABLE') return 'Free cancellation';
-        return 'Cancellation policy per room';
+        return 'Cancellation policy by room';
     };
 
     const getPaymentText = (paymentType) => {
         if (paymentType === 'PREPAID') return 'Prepaid';
         if (paymentType === 'PAY_AT_HOTEL') return 'Pay at hotel';
-        return 'Payment method per room';
+        return 'Room-based payment method';
     };
 
     const calculateNights = (start, end) => {
@@ -40,7 +40,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
     const nights = calculateNights(checkIn, checkOut);
     const totalRooms = selectedRooms.reduce((sum, r) => sum + (r.quantity || 1), 0);
     const subtotal = selectedRooms.reduce(
-        (sum, room) => sum + (getUnitPrice(room) * (room.quantity || 1) * nights),
+        (sum, room) => sum + (getUnitPrice(room) * (room.quantity || 1)),
         0,
     );
 
@@ -57,7 +57,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                 <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: '10px', letterSpacing: '1px' }}>
                     Booking Overview
                 </p>
-                <p className="fw-bold mb-0 fs-6" style={{ color: '#384a39' }}>Grand Heritage Resort</p>
+                <p className="fw-bold text-olive-dark mb-0 fs-6">Grand Heritage Resort</p>
             </div>
 
             <div className="mb-3">
@@ -71,7 +71,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                                 <p className="fw-semibold text-dark mb-0 small">{room.quantity}x {room.name}</p>
                                 {room.selectedPricingOption?.mode && <p className="text-muted mb-0" style={{ fontSize: '11px' }}>Mode: {room.selectedPricingOption.mode}</p>}
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
-                                    {(room.quantity || 1)} room x {nights} {nights > 1 ? 'nights' : 'night'}
+                                    {(room.quantity || 1)} room(s) for selected stay
                                 </p>
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                     {getCancellationText(room.cancellationType, room.freeCancelBeforeDays)} · {getPaymentText(room.paymentType)}
@@ -92,7 +92,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                     Stay Dates
                 </p>
                 <div className="d-flex align-items-center gap-2 fw-semibold text-dark small">
-                    <i className="fa-solid fa-calendar" style={{ color: '#465c47' }}></i>
+                    <i className="bi bi-calendar3 text-olive"></i>
                     <span>
             {formatDateDisplay(checkIn)} - {formatDateDisplay(checkOut)} ({nights} {nights > 1 ? 'Nights' : 'Night'})
           </span>
@@ -102,15 +102,15 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
             <div className="pt-3 border-top mt-2">
                 <div className="d-flex justify-content-between align-items-center">
                     <span className="fw-bold text-dark">Subtotal</span>
-                    <span className="fw-bold" style={{ color: '#465c47' }}>{formatCurrency(subtotal)}</span>
+                    <span className="fw-bold text-olive">{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="mt-2">
                     <p className="text-muted small mb-1">
-                        <i className="fa-solid fa-info-circle me-1"></i>
-                        {nights} {nights > 1 ? 'nights' : 'night'} x {totalRooms} {totalRooms > 1 ? 'rooms' : 'room'}
+                        <i className="bi bi-info-circle me-1"></i>
+                        {nights} {nights > 1 ? 'nights' : 'night'} stay · {totalRooms} {totalRooms > 1 ? 'rooms' : 'room'}
                     </p>
                 </div>
-                <small className="text-muted" style={{ fontSize: '11px' }}>*Taxes and fees included</small>
+                        <small className="text-muted" style={{ fontSize: '11px' }}>*Taxes and fees included</small>
             </div>
         </div>
     );

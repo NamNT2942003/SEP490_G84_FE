@@ -131,7 +131,7 @@ function RoomFurnitureTable({ furnitureList, roomId, branchId, onChanged }) {
                       }}
                       onClick={() => setReplaceFor(item)}
                     >
-                      <i className="bi bi-arrow-repeat me-1"></i> Thay từ kho
+                      <i className="bi bi-arrow-repeat me-1"></i> Replace from stock
                     </button>
                   )}
                 </td>
@@ -144,10 +144,10 @@ function RoomFurnitureTable({ furnitureList, roomId, branchId, onChanged }) {
 
       {pending && (
         <ConfirmChangeModal
-          message="Bạn có chắc chắn muốn thay đổi trạng thái thiết bị này?"
+          message="Are you sure you want to change the condition of this equipment?"
           detailLines={[
-            `Thiết bị: ${pending.item?.furnitorName || "—"}`,
-            `Mới: ${pending.nextStatus === "GOOD" ? "Tốt" : pending.nextStatus === "BROKEN" ? "Hỏng" : "Bảo trì"}`,
+            `Equipment: ${pending.item?.furnitorName || "—"}`,
+            `Status: ${pending.nextStatus === "GOOD" ? "Good" : pending.nextStatus === "BROKEN" ? "Broken" : "Need Repair"}`,
           ]}
           loading={saving}
           onCancel={() => !saving && setPending(null)}
