@@ -116,9 +116,9 @@ const Header = () => {
                         }}
                     >
                         {avatarUrl ? (
-                            <img 
-                                src={avatarUrl} 
-                                alt="Avatar" 
+                            <img
+                                src={avatarUrl}
+                                alt="Avatar"
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 onError={() => setAvatarUrl(null)}
                             />

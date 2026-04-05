@@ -4,6 +4,8 @@ import branchManagementApi from "@/features/branch-management/api/branchManageme
 import enumOptionsApi from "@/features/common/api/enumOptionsApi";
 import roomTypeManagementApi from "@/features/room-type-management/api/roomTypeManagementApi";
 import { parseApiError } from "@/utils/apiError";
+import Buttons from "@/components/ui/Buttons";
+import Swal from "sweetalert2";
 import "./RoomTypeManagement.css";
 
 const EMPTY_FORM = {
@@ -212,13 +214,22 @@ export default function RoomTypeManagement() {
   };
 
   const handleDelete = async (roomTypeId) => {
-    if (!window.confirm("Delete this room type?")) return;
+    const result = await Swal.fire({
+      title: 'Delete Room Type?',
+      text: "This room type will be permanently removed.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      confirmButtonText: 'Yes, delete it'
+    });
+    if (!result.isConfirmed) return;
 
     try {
       await roomTypeManagementApi.deleteRoomType(roomTypeId);
       await loadRoomTypes(branchId);
+      Swal.fire({ icon: 'success', title: 'Deleted!', timer: 1500, showConfirmButton: false });
     } catch (err) {
-      window.alert(parseApiError(err, "Delete room type failed."));
+      Swal.fire({ icon: 'error', title: 'Failed', text: parseApiError(err, "Delete room type failed.") });
     }
   };
 
@@ -229,9 +240,9 @@ export default function RoomTypeManagement() {
           <p className="text-muted small mb-1">Admin / Room Type Management</p>
           <h4 className="mb-0">Room Type Management</h4>
         </div>
-        <button type="button" className="btn btn-brand btn-sm" onClick={openCreateModal}>
-          <i className="bi bi-plus-circle me-1" /> Add Room Type
-        </button>
+        <Buttons variant="primary" className="btn-sm" icon={<i className="bi bi-plus-circle me-1" />} onClick={openCreateModal}>
+          Add Room Type
+        </Buttons>
       </div>
 
       <div className="rt-card card">
@@ -280,11 +291,31 @@ export default function RoomTypeManagement() {
                   <td>{item.bedType || "-"} x {item.bedCount || 0}</td>
                   <td>{item.area || "-"}</td>
                   <td className="text-end">
-                    <div className="btn-group btn-group-sm">
-                      <button type="button" className="btn btn-outline-success" onClick={() => navigate(`/admin/room-types/${item.roomTypeId}/price-modifiers`)} title="Manage Pricing Rules"><i className="bi bi-tag-fill"></i></button>
-                      <button type="button" className="btn btn-outline-primary" onClick={() => openEditModal(item)}>Edit</button>
-                      <button type="button" className="btn btn-outline-danger" onClick={() => handleDelete(item.roomTypeId)}>Delete</button>
-                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-success me-1"
+                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
+                      onClick={() => navigate(`/admin/room-types/${item.roomTypeId}/price-modifiers`)}
+                      title="Manage Pricing Rules"
+                    >
+                      <i className="bi bi-tag-fill me-1" />Pricing
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary me-1"
+                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
+                      onClick={() => openEditModal(item)}
+                    >
+                      <i className="bi bi-pencil me-1" />Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-danger"
+                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
+                      onClick={() => handleDelete(item.roomTypeId)}
+                    >
+                      <i className="bi bi-trash me-1" />Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -370,8 +401,8 @@ export default function RoomTypeManagement() {
                     </div>
                   </div>
                   <div className="modal-footer">
-                    <button type="button" className="btn btn-light" onClick={closeModal} disabled={submitLoading}>Cancel</button>
-                    <button type="submit" className="btn btn-brand" disabled={submitLoading}>{submitLoading ? "Saving..." : "Save"}</button>
+                    <Buttons variant="outline" className="btn-sm" onClick={closeModal} disabled={submitLoading}>Cancel</Buttons>
+                    <Buttons variant="primary" type="submit" className="btn-sm" isLoading={submitLoading}>Save</Buttons>
                   </div>
                 </form>
               </div>

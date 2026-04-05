@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { accountAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import apiClient from '@/services/apiClient';
 import './UserDetail.css';
 
 const UserDetail = ({ userId: userIdProp, onClose, isModal }) => {
@@ -23,10 +24,16 @@ const UserDetail = ({ userId: userIdProp, onClose, isModal }) => {
         const params = currentUser?.userId != null ? { currentUserId: currentUser.userId } : {};
         const response = await accountAPI.getAccountById(id, params);
         const userData = response.data;
-        const baseURL = accountAPI.getBaseURL?.() || (typeof window !== 'undefined' ? window.location.origin : '');
-        const imageUrl = userData.image
-          ? (userData.image.startsWith('http') ? userData.image : baseURL + userData.image)
-          : 'https://i.pravatar.cc/150?img=12';
+        // Lấy absolute URL thật, không dùng pravatar
+        const getAbsoluteImageUrl = (url) => {
+          if (!url) return null;
+          if (url.startsWith('http')) return url;
+          const baseUrl = apiClient.defaults.baseURL.replace(/\/api$/, '');
+          if (url.startsWith('/api/')) return baseUrl + url;
+          return baseUrl + url.replace(/^\/?/, '/');
+        };
+        const imageUrl = getAbsoluteImageUrl(userData.image);
+        
         // Chỉ dùng dữ liệu từ API. Không có address/description từ BE thì hiển thị "—"
         const noValue = '—';
         const transformedUser = {
@@ -169,9 +176,9 @@ const UserDetail = ({ userId: userIdProp, onClose, isModal }) => {
                 <div className="password-field">
                   <input
                     type="text"
-                    value={showPassword ? "Password hidden for security" : "***********"}
+                    value={showPassword ? "Password encrypted (Hidden for security)" : "***********"}
                     readOnly
-                    className={`form-control ${showPassword ? 'italic' : ''}`}
+                    className={`form-control ${showPassword ? 'fst-italic text-muted' : ''}`}
                   />
                   <button
                     className="btn-toggle-password"
@@ -237,15 +244,22 @@ const UserDetail = ({ userId: userIdProp, onClose, isModal }) => {
 
         {/* Right Column - Profile */}
         <div className="detail-right">
-          <div className="detail-card profile-card">
-            <h3 className="card-title">Profile</h3>
-            <div className="profile-content">
-              <img
-                src={user.image}
-                alt={user.fullName}
-                className="profile-avatar"
-              />
-              <h4 className="profile-name">{user.fullName}</h4>
+          <div className="detail-card profile-card text-center">
+            <h3 className="card-title text-start">Profile</h3>
+            <div className="profile-content d-flex flex-column align-items-center">
+              {user.image ? (
+                <img
+                  src={user.image}
+                  alt={user.fullName}
+                  className="profile-avatar"
+                  style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', marginBottom: '16px', border: '4px solid #d9e2ff' }}
+                />
+              ) : (
+                <div className="profile-avatar-circle" style={{ width: '120px', height: '120px', borderRadius: '50%', background: '#d9e2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', fontWeight: '600', color: '#2f3d6b', marginBottom: '16px', border: '4px solid #fff', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                  {(user.fullName || user.username || '').split(' ').filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join('') || 'U'}
+                </div>
+              )}
+              <h4 className="profile-name">{user.fullName || user.username}</h4>
               <p className="profile-username">@{user.username}</p>
             </div>
           </div>

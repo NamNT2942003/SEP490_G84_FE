@@ -12,7 +12,7 @@ function ResolveIncidentModal({ incident, room, onClose, onResolved }) {
 
   const handleResolve = async () => {
     if (!resolution.trim()) {
-      setError("Vui lòng nhập giải pháp xử lý");
+      setError("Please enter a resolution description");
       return;
     }
 
@@ -23,7 +23,7 @@ function ResolveIncidentModal({ incident, room, onClose, onResolved }) {
       onResolved?.();
       onClose();
     } catch (err) {
-      setError(err.message || "Lỗi khi giải quyết sự cố");
+      setError(err.message || "Failed to resolve incident");
     } finally {
       setLoading(false);
     }
@@ -54,10 +54,10 @@ function ResolveIncidentModal({ incident, room, onClose, onResolved }) {
           <div>
             <h5 className="mb-1 fw-bold" style={{ color: "#1a1a2e" }}>
               <i className="bi bi-check-circle me-2" style={{ color: SUCCESS }}></i>
-              Giải quyết sự cố
+              Resolve Incident
             </h5>
             <p className="mb-0 small text-muted">
-              Phòng {room.roomName} • ID sự cố: {incident.incidentId}
+              Room {room.roomName} &bull; Incident ID: {incident.incidentId}
             </p>
           </div>
           <button
@@ -75,7 +75,7 @@ function ResolveIncidentModal({ incident, room, onClose, onResolved }) {
           <div className="mb-4 p-3 rounded-3" style={{ backgroundColor: "rgba(220,53,69,0.08)" }}>
             <div className="mb-2">
               <small className="text-muted fw-semibold text-uppercase" style={{ fontSize: "0.65rem", letterSpacing: "0.05em" }}>
-                Mô tả sự cố
+                Incident Description
               </small>
               <p className="mb-0 mt-1" style={{ color: "#1a1a2e", fontSize: "0.95rem" }}>
                 {incident.description}
@@ -83,10 +83,10 @@ function ResolveIncidentModal({ incident, room, onClose, onResolved }) {
             </div>
             <div className="mt-3 pt-3 border-top">
               <small className="text-muted fw-semibold text-uppercase" style={{ fontSize: "0.65rem", letterSpacing: "0.05em" }}>
-                Ngày báo cáo
+                Reported On
               </small>
               <p className="mb-0 mt-1 small text-muted">
-                {incident.createdAt ? new Date(incident.createdAt).toLocaleString("vi-VN") : "—"}
+                {incident.createdAt ? new Date(incident.createdAt).toLocaleString("en-US") : "—"}
               </p>
             </div>
           </div>
@@ -95,12 +95,12 @@ function ResolveIncidentModal({ incident, room, onClose, onResolved }) {
           <div className="mb-4">
             <label className="form-label fw-semibold" style={{ color: "#1a1a2e", fontSize: "0.95rem" }}>
               <i className="bi bi-tools me-2"></i>
-              Giải pháp xử lý <span style={{ color: DANGER }}>*</span>
+              Resolution <span style={{ color: DANGER }}>*</span>
             </label>
             <textarea
               className="form-control"
               rows="4"
-              placeholder="Mô tả chi tiết cách xử lý sự cố này, có thể bao gồm: vấn đề đã giải quyết, các biện pháp được thực hiện, tình trạng hiện tại..."
+              placeholder="Describe how the incident was resolved, including: actions taken, current status, any follow-up needed..."
               value={resolution}
               onChange={(e) => {
                 setResolution(e.target.value);
@@ -123,7 +123,7 @@ function ResolveIncidentModal({ incident, room, onClose, onResolved }) {
 
           {/* Character count */}
           <div className="mb-4 text-end small text-muted">
-            {resolution.length}/500 ký tự
+            {resolution.length}/500 characters
           </div>
         </div>
 
@@ -137,7 +137,7 @@ function ResolveIncidentModal({ incident, room, onClose, onResolved }) {
             onClick={onClose}
             disabled={loading}
           >
-            Huỷ bỏ
+            Cancel
           </button>
           <button
             className="btn px-4 fw-semibold"
@@ -154,12 +154,12 @@ function ResolveIncidentModal({ incident, room, onClose, onResolved }) {
             {loading ? (
               <>
                 <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                Đang xử lý...
+                Processing...
               </>
             ) : (
               <>
                 <i className="bi bi-check-lg me-2"></i>
-                Giải quyết sự cố
+                Resolve Incident
               </>
             )}
           </button>

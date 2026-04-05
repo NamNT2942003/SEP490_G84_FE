@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { checkInApi } from '../api/checkInApi';
+import Swal from 'sweetalert2';
 
 const PRIMARY = '#465c47';
 const SECONDARY = '#f0f2f0';
@@ -75,7 +76,7 @@ export default function BookingDetailModal({ show, onClose, booking, onRefresh }
 
   const handleSave = async (guestId) => {
     const form = editForms[guestId];
-    if (!form?.guestName) { alert('Guest name is required.'); return; }
+    if (!form?.guestName) { Swal.fire({ icon: 'warning', title: 'Required', text: 'Guest name is required.' }); return; }
     setSavingId(guestId);
     try {
       await checkInApi.updateGuestInfo(guestId, {
@@ -86,7 +87,7 @@ export default function BookingDetailModal({ show, onClose, booking, onRefresh }
       cancelEdit(guestId);
       if (onRefresh) onRefresh();
     } catch (e) {
-      alert(e.response?.data?.error || 'Failed to save.');
+      Swal.fire({ icon: 'error', title: 'Error', text: e.response?.data?.error || 'Failed to save guest info.' });
     } finally {
       setSavingId(null);
     }

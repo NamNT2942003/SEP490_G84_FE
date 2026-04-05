@@ -80,7 +80,7 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
       setFormData({
         username: user.username || '',
         email: user.email || '',
-        password: '********',
+        password: '',
         role: user.role || assignableList[0]?.value || '',
         primaryBranchId: primaryBranch ? primaryBranch.branchId : '',
         primaryBranchName: user.mainBranch || '',
@@ -148,6 +148,9 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
         primaryBranchId: formData.primaryBranchId || null,
         additionalBranchIds: additionalBranchIds
       };
+      if (formData.password && formData.password.trim() !== '') {
+        updateData.password = formData.password.trim();
+      }
       if (currentUser?.permissions?.canEditUsername) {
         updateData.username = formData.username;
         updateData.email = formData.email;
@@ -170,12 +173,6 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
       alert('Could not update user.' + (msg ? '\n' + msg : ''));
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleResetPassword = () => {
-    if (window.confirm('Are you sure you want to reset password for this user?')) {
-      alert('Reset Password feature will be implemented later.');
     }
   };
 
@@ -236,6 +233,7 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
                 className="form-control"
                 readOnly={!currentUser?.permissions?.canEditUsername}
                 title={!currentUser?.permissions?.canEditUsername ? 'Only Admin can edit username' : ''}
+                autoComplete="off"
               />
             </div>
 
@@ -267,7 +265,8 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
                   value={formData.password}
                   onChange={handleInputChange}
                   className="form-control"
-                  disabled
+                  placeholder="Leave blank to keep unchanged"
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
@@ -354,14 +353,6 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
           </button>
 
           <div className="right-actions">
-            <button
-              type="button"
-              onClick={handleResetPassword}
-              className="btn btn-reset"
-            >
-              Reset Password
-            </button>
-
             <button
               type="submit"
               className="btn btn-submit"

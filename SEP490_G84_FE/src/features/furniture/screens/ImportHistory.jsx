@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '@/services/apiClient';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useMyBranches } from '@/hooks/useMyBranches';
 import '../css/InventoryManagement.css';
 import '../css/InventoryReport.css';
 
@@ -22,9 +23,18 @@ const ImportHistory = () => {
     }, [currentUser, navigate]);
 
     // ================= STATE =================
-    const [branches, setBranches] = useState([]);
+    const { branches } = useMyBranches();
     const [selectedBranchId, setSelectedBranchId] = useState(currentUser?.defaultBranchId || 1);
     const [historyList, setHistoryList] = useState([]);
+
+    useEffect(() => {
+        if (branches.length > 0) {
+            const isManaged = branches.some(b => b.branchId === selectedBranchId);
+            if (!isManaged) {
+                setSelectedBranchId(branches[0].branchId);
+            }
+        }
+    }, [branches, selectedBranchId]);
 
     const today = new Date();
     const [draftMonth, setDraftMonth] = useState(today.getMonth() + 1);
@@ -46,16 +56,7 @@ const ImportHistory = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editLines, setEditLines] = useState([]);
 
-    // ================= EFFECT =================
-    useEffect(() => {
-        setBranches([
-            { id: 1, name: 'Branch 1' },
-            { id: 2, name: 'Branch 2' },
-            { id: 3, name: 'Branch 3' }
-        ]);
-    }, []);
-
-    const fetchImportHistory = async (branchId) => {
+    const fetchImportHistory = React.useCallback(async (branchId) => {
         try {
             const response = await apiClient.get(`/inventory/history`, {
                 params: { branchId: branchId, userId: currentUser?.userId }
@@ -65,13 +66,14 @@ const ImportHistory = () => {
             console.error("Lỗi khi tải lịch sử:", error);
             setHistoryList([]);
         }
-    };
+    }, [currentUser]);
 
     useEffect(() => {
         if (selectedBranchId) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             fetchImportHistory(selectedBranchId);
         }
-    }, [selectedBranchId]);
+    }, [selectedBranchId, fetchImportHistory]);
 
     const applyFilter = () => {
         setFilterMonth(draftMonth);
@@ -131,6 +133,7 @@ const ImportHistory = () => {
             setImportList([{ isNew: false, inventoryId: '', inventoryName: '', price: '', quantity: 1, unit: '' }]);
             setIsModalOpen(true);
         } catch (error) {
+            console.error(error);
             alert("Failed to load inventory items!");
         }
     };
@@ -231,6 +234,7 @@ const ImportHistory = () => {
     const pagedHistory = filteredGroupedHistory.slice((page - 1) * pageSize, page * pageSize);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setPage(1);
     }, [filterMonth, filterYear, selectedBranchId]);
 
@@ -246,7 +250,7 @@ const ImportHistory = () => {
                         className="search-input"
                         style={{ width: 'auto' }}
                     >
-                        {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        {branches.map(b => <option key={b.branchId} value={b.branchId}>{b.branchName}</option>)}
                     </select>
 
                         <select

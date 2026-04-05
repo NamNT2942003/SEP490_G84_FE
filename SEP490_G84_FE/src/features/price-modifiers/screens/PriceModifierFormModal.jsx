@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Buttons from "@/components/ui/Buttons";
 
 const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOptions = [], loadingPolicies = false }) => {
     const [formData, setFormData] = useState({
@@ -211,15 +212,15 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
                                 <div className="col-md-6">
                                     <label className="form-label text-muted small fw-semibold">Adjustment Type</label>
                                     <select className="form-select" name="adjustmentType" value={formData.adjustmentType} onChange={handleChange}>
-                                        <option value="PERCENT">Phần trăm (%)</option>
-                                        <option value="AMOUNT">Số tiền cố định (₫)</option>
+                                        <option value="PERCENT">Percentage (%)</option>
+                                        <option value="AMOUNT">Fixed Amount (VND)</option>
                                     </select>
                                 </div>
                                 <div className="col-md-6">
                                     <label className="form-label text-muted small fw-semibold">
-                                        Giá trị điều chỉnh{' '}
+                                        Adjustment Value{' '}
                                         <span className="text-muted fw-normal">
-                                            {formData.adjustmentType === 'PERCENT' ? '(− giảm / + tăng %)' : '(− giảm VNĐ / + tăng VNĐ)'}
+                                            {formData.adjustmentType === 'PERCENT' ? '(- decrease / + increase %)' : '(- decrease / + increase VND)'}
                                         </span>
                                     </label>
                                     <div className="input-group">
@@ -232,17 +233,17 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
                                             name="adjustmentValue"
                                             value={formData.adjustmentValue}
                                             onChange={handleChange}
-                                            placeholder={formData.adjustmentType === 'PERCENT' ? '-10 (giảm 10%)' : '-50000 (giảm 50k₫)'}
+                                            placeholder={formData.adjustmentType === 'PERCENT' ? '-10 (decrease 10%)' : '-50000 (decrease 50k)'}
                                             required
                                         />
                                         <span className="input-group-text">
-                                            {formData.adjustmentType === 'PERCENT' ? '%' : '₫'}
+                                            {formData.adjustmentType === 'PERCENT' ? '%' : 'VND'}
                                         </span>
                                     </div>
                                     <div className="form-text" style={{ fontSize: '0.75rem' }}>
                                         {formData.adjustmentType === 'PERCENT'
-                                            ? 'VD: -20 (giảm 20% giá gốc), +15 (tăng 15%)'
-                                            : 'VD: -50000 (giảm 50.000₫), 100000 (phụ thu 100k)'}
+                                            ? 'Ex: -20 (decrease 20%), +15 (increase 15%)'
+                                            : 'Ex: -50000 (decrease 50,000 VND), 100000 (surcharge 100k)'}
                                     </div>
                                 </div>
                             </div>
@@ -282,8 +283,8 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
                             </div>
                         </div>
                         <div className="modal-footer border-top-0 pt-0 px-4 pb-4">
-                            <button type="button" className="btn btn-light border" onClick={onClose}>Cancel</button>
-                            <button type="submit" className="btn fw-bold px-4 text-white" style={{ backgroundColor: '#5C6F4E' }}>Save Modifier</button>
+                            <Buttons variant="outline" className="btn-sm" onClick={onClose}>Cancel</Buttons>
+                            <Buttons variant="primary" type="submit" className="btn-sm">Save Modifier</Buttons>
                         </div>
                     </form>
                 </div>

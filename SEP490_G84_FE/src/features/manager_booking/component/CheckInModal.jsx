@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { checkInApi } from '../api/checkInApi';
+import Swal from 'sweetalert2';
 
 /* ── Project color tokens ── */
 const C = {
@@ -561,7 +562,7 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
     setErrorMessage('');
     try {
       await checkInApi.markAsArrived(booking.id, luggageNote);
-      alert('Guest marked as Arrived. Room can be assigned later.');
+      Swal.fire({ icon: 'success', title: 'Arrived!', text: 'Guest has been marked as Arrived. Room can be assigned later.', timer: 2000, showConfirmButton: false });
       onSuccess();
       onClose();
     } catch (err) {
@@ -596,7 +597,7 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
         paymentMethod: applyEarlyCheckIn && payNow ? paymentMethod : null,
       };
       await checkInApi.processCheckIn(booking.id, payload);
-      alert('Check-in completed successfully!');
+      Swal.fire({ icon: 'success', title: 'Check-in Complete!', text: 'Guest has been successfully checked in.', timer: 2000, showConfirmButton: false });
       onSuccess(); onClose();
     } catch (err) {
       setErrorMessage(err.response?.data?.error || 'A system error occurred.');
@@ -683,7 +684,7 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
             {canGoBack && (
               <button style={S.btnOutline} onClick={() => setStep(s => s - 1)} disabled={isSubmitting || isMarkingArrived}>Back</button>
             )}
-            {/* Mark Arrived: chỉ hiện ở Step 0 — khi phòng chưa sẵn sàng */}
+            {/* Mark Arrived: only shown at Step 0 — when the room is not ready yet */}
             {step === 0 && (
               <button
                 style={{

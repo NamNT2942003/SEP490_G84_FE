@@ -3,6 +3,8 @@ import branchManagementApi from "@/features/branch-management/api/branchManageme
 import roomTypeManagementApi from "@/features/room-type-management/api/roomTypeManagementApi";
 import roomInventoryManagementApi from "@/features/room-inventory-management/api/roomInventoryManagementApi";
 import { parseApiError } from "@/utils/apiError";
+import Buttons from "@/components/ui/Buttons";
+import Swal from "sweetalert2";
 import "./RoomInventoryManagement.css";
 
 const getToday = () => new Date().toISOString().slice(0, 10);
@@ -146,22 +148,22 @@ export default function RoomInventoryManagement() {
 
   const validateInventoryForm = () => {
     // ✅ Always validate roomTypeId regardless of date mode
-    if (!formData.roomTypeId) return "Vui lòng chọn loại phòng (Room Type).";
+    if (!formData.roomTypeId) return "Please select a Room Type.";
 
     if (formData.dateMode === "single" && !formData.workDate) {
-      return "Vui lòng nhập Work Date.";
+      return "Please select a Work Date.";
     }
 
     const hasRange = formData.fromDate && formData.toDate;
     if (formData.dateMode === "range" && !hasRange) {
-      return "Vui lòng nhập From Date và To Date.";
+      return "Please select both From Date and To Date.";
     }
 
     if (formData.dateMode === "range" && hasRange && formData.toDate < formData.fromDate) {
-      return "To Date phải lớn hơn hoặc bằng From Date.";
+      return "To Date must be greater than or equal to From Date.";
     }
     if (formData.minStay !== "" && Number(formData.minStay) < 1) {
-      return "Min Stay tối thiểu là 1.";
+      return "Min Stay must be at least 1.";
     }
 
     return "";
@@ -196,13 +198,22 @@ export default function RoomInventoryManagement() {
   };
 
   const handleDelete = async (inventoryId) => {
-    if (!window.confirm("Delete this inventory record?")) return;
+    const result = await Swal.fire({
+      title: 'Delete Inventory?',
+      text: "This inventory record will be permanently removed.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      confirmButtonText: 'Yes, delete it'
+    });
+    if (!result.isConfirmed) return;
 
     try {
       await roomInventoryManagementApi.deleteInventory(inventoryId);
       await loadInventories();
+      Swal.fire({ icon: 'success', title: 'Deleted!', timer: 1500, showConfirmButton: false });
     } catch (err) {
-      window.alert(parseApiError(err, "Delete inventory failed."));
+      Swal.fire({ icon: 'error', title: 'Failed', text: parseApiError(err, "Delete inventory failed.") });
     }
   };
 
@@ -213,9 +224,9 @@ export default function RoomInventoryManagement() {
           <p className="text-muted small mb-1">Admin / Room Inventory Management</p>
           <h4 className="mb-0">Room Inventory Management</h4>
         </div>
-        <button type="button" className="btn btn-brand btn-sm" onClick={openCreateModal}>
-          <i className="bi bi-plus-circle me-1" /> Upsert Inventory
-        </button>
+        <Buttons variant="primary" className="btn-sm" icon={<i className="bi bi-plus-circle me-1" />} onClick={openCreateModal}>
+          Upsert Inventory
+        </Buttons>
       </div>
 
       <div className="ri-card card">
@@ -233,7 +244,7 @@ export default function RoomInventoryManagement() {
           <input type="date" className="form-control" name="fromDate" value={filter.fromDate} onChange={handleFilterChange} />
           <input type="date" className="form-control" name="toDate" value={filter.toDate} onChange={handleFilterChange} />
 
-          <button type="button" className="btn btn-brand btn-sm" onClick={loadInventories}>Search</button>
+          <Buttons variant="primary" className="btn-sm ms-2" onClick={loadInventories} isLoading={loading}>Search</Buttons>
         </div>
 
         {error && <div className="alert alert-danger rounded-0 mb-0">{error}</div>}
@@ -265,7 +276,7 @@ export default function RoomInventoryManagement() {
                       <button
                         className="btn btn-sm btn-light border-0 shadow-none text-muted p-1"
                         onClick={() => toggleExpand(item.inventoryId)}
-                        title="Xem lịch sử tính giá"
+                        title="View price explanation"
                       >
                         <i className={`bi bi-chevron-${expandedRows[item.inventoryId] ? 'up' : 'down'}`}></i>
                       </button>
@@ -294,10 +305,22 @@ export default function RoomInventoryManagement() {
                         : <span className="badge bg-success rounded-pill">No</span>}
                     </td>
                     <td className="text-end">
-                      <div className="btn-group btn-group-sm">
-                        <button type="button" className="btn btn-outline-primary" onClick={() => openEditModal(item)}>Edit</button>
-                        <button type="button" className="btn btn-outline-danger" onClick={() => handleDelete(item.inventoryId)}>Delete</button>
-                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary me-1"
+                        style={{ fontSize: "0.78rem", padding: "3px 10px" }}
+                        onClick={() => openEditModal(item)}
+                      >
+                        <i className="bi bi-pencil me-1" />Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger"
+                        style={{ fontSize: "0.78rem", padding: "3px 10px" }}
+                        onClick={() => handleDelete(item.inventoryId)}
+                      >
+                        <i className="bi bi-trash me-1" />Delete
+                      </button>
                     </td>
                   </tr>
                   {expandedRows[item.inventoryId] && (
@@ -309,7 +332,7 @@ export default function RoomInventoryManagement() {
                             <i className="bi bi-calculator me-2"></i> Price Explanation
                           </div>
                           <div className="ri-explain-note text-muted small mb-3 fst-italic">
-                            {item.priceCalculation?.notes || "Không có ghi chú đặc biệt."}
+                            {item.priceCalculation?.notes || "No special notes."}
                           </div>
                           {(item.priceCalculation?.steps || []).length > 0 ? (
                             <div className="ri-steps-list d-flex flex-column gap-2">
@@ -317,7 +340,7 @@ export default function RoomInventoryManagement() {
                                 <div className="ri-step-item p-2 border rounded-2 bg-light" key={`${item.inventoryId}-step-${idx}`}>
                                   <div className="d-flex justify-content-between align-items-center mb-1">
                                     <div className="fw-semibold text-dark">
-                                      <span className="badge bg-secondary me-2">Bước {idx + 1}</span>
+                                      <span className="badge bg-secondary me-2">Step {idx + 1}</span>
                                       {step.name || "Default Rule"}
                                       {step.type && <span className="text-muted fw-normal ms-1">({step.type})</span>}
                                     </div>
@@ -330,7 +353,7 @@ export default function RoomInventoryManagement() {
                                   {step.adjustmentType && step.adjustmentValue !== undefined && step.applied && (
                                     <div className="small text-primary fw-semibold mt-1">
                                       <i className="bi bi-arrow-return-right me-1 text-muted"></i>
-                                      Biến động: {step.adjustmentType === 'PERCENT' ? `${step.adjustmentValue}%` : `+${formatVnd(step.adjustmentValue)} ₫`}
+                                      Adjustment: {step.adjustmentType === 'PERCENT' ? `${step.adjustmentValue}%` : `+${formatVnd(step.adjustmentValue)} ₫`}
                                     </div>
                                   )}
                                   {step.reason && (
@@ -342,7 +365,7 @@ export default function RoomInventoryManagement() {
                               ))}
                             </div>
                           ) : (
-                            <div className="small text-muted mt-1">Không thấy thay đổi nào can thiệp vào giá.</div>
+                            <div className="small text-muted mt-1">No adjustments applied to the base price.</div>
                           )}
                         </div>
                       </td>
@@ -372,14 +395,14 @@ export default function RoomInventoryManagement() {
                         <div className="alert alert-info py-2 mb-0" style={{ fontSize: '0.82rem' }}>
                           <i className="bi bi-info-circle me-1"></i>
                           {!editingItem
-                            ? <span><strong>Hướng dẫn:</strong> Chọn loại phòng, chọn phạm vi ngày và nhập thông tin cần cập nhật. Các giá trị kho phòng và giá phòng sẽ tự động lấy từ hệ thống.</span>
-                            : <span><strong>Hướng dẫn:</strong> Chỉ chỉnh <strong>Min Stay</strong> hoặc <strong>Closed</strong> cho bản ghi hiện tại.</span>}
+                            ? <span><strong>Instructions:</strong> Select room type and date range, then input the fields. Room inventory and base price will sync automatically.</span>
+                            : <span><strong>Instructions:</strong> Only modify <strong>Min Stay</strong> or <strong>Closed</strong> for the selected record.</span>}
                         </div>
                       </div>
                       {!editingItem && (
                         <>
                           <div className="col-12">
-                            <label className="form-label mb-2">Phạm vi áp dụng</label>
+                            <label className="form-label mb-2">Applicable range</label>
                             <div className="d-flex gap-3">
                               <div className="form-check">
                                 <input
@@ -391,7 +414,7 @@ export default function RoomInventoryManagement() {
                                   checked={formData.dateMode === "single"}
                                   onChange={handleFormChange}
                                 />
-                                <label className="form-check-label" htmlFor="date-mode-single">1 ngày</label>
+                                <label className="form-check-label" htmlFor="date-mode-single">Single day</label>
                               </div>
                               <div className="form-check">
                                 <input
@@ -403,14 +426,14 @@ export default function RoomInventoryManagement() {
                                   checked={formData.dateMode === "range"}
                                   onChange={handleFormChange}
                                 />
-                                <label className="form-check-label" htmlFor="date-mode-range">Nhiều ngày</label>
+                                <label className="form-check-label" htmlFor="date-mode-range">Multiple days</label>
                               </div>
                             </div>
                           </div>
                           <div className="col-md-6">
                             <label className="form-label">Room Type <span className="text-danger">*</span></label>
                             <select className="form-select" name="roomTypeId" value={formData.roomTypeId} onChange={handleFormChange}>
-                              <option value="">-- Chọn loại phòng --</option>
+                              <option value="">-- Select Room Type --</option>
                               {roomTypes.map((r) => <option key={r.roomTypeId} value={r.roomTypeId}>{r.name}</option>)}
                             </select>
                           </div>
@@ -453,20 +476,20 @@ export default function RoomInventoryManagement() {
                         </>
                       )}
                       <div className="col-md-4">
-                        <label className="form-label">Min Stay (đêm)</label>
+                        <label className="form-label">Min Stay (nights)</label>
                         <input type="number" min="1" className="form-control" name="minStay" value={formData.minStay} onChange={handleFormChange} />
                       </div>
                       <div className="col-md-4 d-flex align-items-end">
                         <div className="form-check">
                           <input className="form-check-input" type="checkbox" name="isClosed" checked={formData.isClosed} onChange={handleFormChange} id="inventory-closed" />
-                          <label className="form-check-label" htmlFor="inventory-closed">Đóng phòng (Closed)</label>
+                          <label className="form-check-label" htmlFor="inventory-closed">Mark as Closed</label>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="modal-footer">
-                    <button type="button" className="btn btn-light" onClick={closeModal} disabled={submitLoading}>Cancel</button>
-                    <button type="submit" className="btn btn-brand" disabled={submitLoading}>{submitLoading ? "Saving..." : "Save"}</button>
+                    <Buttons variant="outline" className="btn-sm" onClick={closeModal} disabled={submitLoading}>Cancel</Buttons>
+                    <Buttons variant="primary" type="submit" className="btn-sm" isLoading={submitLoading}>Save</Buttons>
                   </div>
                 </form>
               </div>

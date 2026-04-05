@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import { QRCodeCanvas } from 'qrcode.react';
 import './checkout-print.css';
 import { checkoutApi } from '../api/checkoutApi';
@@ -9,9 +10,9 @@ const BRANCH_CONFIG = {
 };
 
 const PAYMENT_METHODS = [
-  { value: 'CASH', icon: 'bi-cash-coin', label: 'Tiền Mặt' },
-  { value: 'TRANSFER', icon: 'bi-bank', label: 'CK' },
-  { value: 'CARD', icon: 'bi-credit-card-2-front', label: 'Thẻ' },
+  { value: 'CASH', icon: 'bi-cash-coin', label: 'Cash' },
+  { value: 'TRANSFER', icon: 'bi-bank', label: 'Transfer' },
+  { value: 'CARD', icon: 'bi-credit-card-2-front', label: 'Card' },
 ];
 
 export default function CheckoutModal({ show, onClose, booking, onSuccess, branchId }) {
@@ -33,8 +34,8 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
     checkoutApi.getRoomBillingInfo(booking.id)
       .then(data => setRoomBilling(data))
       .catch(err => {
-        console.error("Lỗi lấy room billing:", err);
-        alert("Không thể tải chi tiết hóa đơn theo phòng!");
+        console.error('Error fetching room billing:', err);
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load room billing details. Please try again.' });
       })
       .finally(() => setLoadingBill(false));
   }, [show, booking]);
@@ -72,15 +73,15 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   const handlePrint = () => window.print();
 
   const handleConfirmCheckout = async () => {
-    if (!paymentMethod) { alert('Vui lòng chọn phương thức thanh toán!'); return; }
+    if (!paymentMethod) { Swal.fire({ icon: 'warning', title: 'Required', text: 'Please select a payment method to continue.' }); return; }
     setIsSubmitting(true);
     try {
       const response = await checkoutApi.processCheckout(booking.id, paymentMethod);
-      alert(response.message || 'Check-out successful!');
+      Swal.fire({ icon: 'success', title: 'Done!', text: response.message || 'Check-out completed successfully!', timer: 2000, showConfirmButton: false });
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
-      alert(error.response?.data?.error || 'Có lỗi xảy ra khi Check-out!');
+      Swal.fire({ icon: 'error', title: 'Checkout Failed', text: error.response?.data?.error || 'An error occurred during check-out. Please try again.' });
     } finally { setIsSubmitting(false); }
   };
 
@@ -159,7 +160,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                             </div>
                           </div>
                           <div className="text-end" style={{ whiteSpace: 'nowrap' }}>
-                            <div className="text-muted" style={{ fontSize: '0.7rem' }}>Giá phòng</div>
+                            <div className="text-muted" style={{ fontSize: '0.7rem' }}>Room Price</div>
                             <div className="fw-bold">{fmtMoney(activeRoom.roomPrice)}</div>
                           </div>
                         </div>
@@ -170,18 +171,18 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                         <table className="table table-hover mb-0" style={{ fontSize: '0.82rem' }}>
                           <thead className="table-light text-muted">
                             <tr>
-                              <th style={{ minWidth: 160 }}>Dịch vụ</th>
-                              <th className="text-center" style={{ width: 45 }}>SL</th>
+                              <th style={{ minWidth: 160 }}>Service</th>
+                              <th className="text-center" style={{ width: 45 }}>Qty</th>
                               <th className="text-center" style={{ width: 65 }}>Status</th>
-                              {hasRoomChange && <th className="text-center" style={{ width: 55 }}>Phòng</th>}
-                              <th className="text-end" style={{ width: 100 }}>Thành tiền</th>
+                              {hasRoomChange && <th className="text-center" style={{ width: 55 }}>Room</th>}
+                              <th className="text-end" style={{ width: 100 }}>Amount</th>
                             </tr>
                           </thead>
                           <tbody>
                             {(!activeRoom.services || activeRoom.services.length === 0) ? (
                               <tr>
                                 <td colSpan={hasRoomChange ? 5 : 4} className="text-center text-muted py-3">
-                                  <i className="bi bi-check-circle me-1"></i>Không có dịch vụ phát sinh
+                                  <i className="bi bi-check-circle me-1"></i>No additional services
                                 </td>
                               </tr>
                             ) : activeRoom.services.map((svc, idx) => (
@@ -215,7 +216,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                             <tfoot className="table-light">
                               <tr>
                                 <td colSpan={hasRoomChange ? 4 : 3} className="text-end text-muted small fw-bold">
-                                  Chưa trả / Đã trả:
+                                  Unpaid / Paid:
                                 </td>
                                 <td className="text-end">
                                   <span className="text-danger fw-bold">{fmtMoney(activeRoom.serviceTotal)}</span>
@@ -249,7 +250,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                         <span>- {fmtMoney(alreadyPaid)}</span>
                       </div>
                       <div className="d-flex justify-content-between align-items-center py-1 text-danger fw-bold" style={{ fontSize: '1.1rem', borderTop: '2px solid #dc3545' }}>
-                        <span>CẦN THU</span>
+                        <span>AMOUNT DUE</span>
                         <span>{amountDue > 0 ? fmtMoney(amountDue) : '0'}</span>
                       </div>
                     </div>
@@ -261,7 +262,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
 
                   {/* Payment method selector */}
                   <h6 className="fw-bold text-dark mb-2 text-center" style={{ fontSize: '0.85rem' }}>
-                    <i className="bi bi-wallet2 me-1"></i>THANH TOÁN
+                    <i className="bi bi-wallet2 me-1"></i>PAYMENT
                   </h6>
                   <div className="d-flex gap-2 mb-3">
                     {PAYMENT_METHODS.map(({ value, icon, label }) => (
@@ -278,7 +279,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                   {/* Amount / QR display */}
                   {amountDue > 0 && paymentMethod === 'TRANSFER' ? (
                     <div className="p-3 border rounded text-center mb-3 flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 200 }}>
-                      <p className="small text-muted mb-2">Quét VietQR để thanh toán</p>
+                      <p className="small text-muted mb-2">Scan VietQR to pay</p>
                       <QRCodeCanvas value={qrString} size={150} level="H" />
                       <div className="mt-2 fw-bold fs-5 text-danger">{fmtMoney(amountDue)} VND</div>
                     </div>
@@ -291,7 +292,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                     <div className="p-3 bg-warning bg-opacity-10 rounded text-center mb-3 border border-warning flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 120 }}>
                       <i className="bi bi-cash-stack text-warning" style={{ fontSize: '2rem' }}></i>
                       <div className="fw-bold text-warning-emphasis fs-5 mt-2">{fmtMoney(amountDue)} VND</div>
-                      <div className="small text-muted">Số tiền cần thu</div>
+                      <div className="small text-muted">Amount to collect</div>
                     </div>
                   )}
 
@@ -299,7 +300,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                   {rooms.length > 1 && (
                     <div className="mb-3 p-2 bg-light rounded" style={{ fontSize: '0.78rem' }}>
                       <small className="text-muted fw-bold d-block mb-1">
-                        <i className="bi bi-list-ul me-1"></i>BILL THEO PHÒNG
+                        <i className="bi bi-list-ul me-1"></i>BILL BY ROOM
                       </small>
                       {rooms.map((room, idx) => (
                         <div key={idx}
@@ -321,20 +322,20 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                   {/* Action buttons */}
                   <div className="d-grid gap-2 mt-auto">
                     <button className="btn btn-outline-dark fw-bold py-2" onClick={handlePrint} style={{ fontSize: '0.85rem' }}>
-                      <i className="bi bi-printer-fill me-2"></i>In Hóa Đơn
+                      <i className="bi bi-printer-fill me-2"></i>Print Receipt
                     </button>
                     <button className="btn btn-danger fw-bold shadow-sm py-2"
                       onClick={handleConfirmCheckout}
                       disabled={isSubmitting || !paymentMethod}
                       style={{ fontSize: '0.85rem' }}>
                       {isSubmitting
-                        ? <><span className="spinner-border spinner-border-sm me-2"></span>Đang xử lý...</>
-                        : <><i className="bi bi-check2-all me-2"></i>Xác Nhận Checkout</>
+                        ? <><span className="spinner-border spinner-border-sm me-2"></span>Processing...</>
+                        : <><i className="bi bi-check2-all me-2"></i>Confirm Checkout</>
                       }
                     </button>
                     {!paymentMethod && (
                       <p className="text-muted text-center mb-0" style={{ fontSize: '0.72rem' }}>
-                        ⚠️ Chọn phương thức thanh toán để tiếp tục
+                        ⚠️ Please select a payment method to continue
                       </p>
                     )}
                   </div>

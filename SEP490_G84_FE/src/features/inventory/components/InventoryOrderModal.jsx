@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Inventory.css';
 import { COLORS } from '@/constants';
+import Swal from 'sweetalert2';
 
 const InventoryOrderModal = ({ open, onClose, inventoryItems, onSubmit }) => {
   const [rows, setRows] = useState([{ inventoryId: '', qty: 1, unitPrice: '' }]);
@@ -20,7 +21,7 @@ const InventoryOrderModal = ({ open, onClose, inventoryItems, onSubmit }) => {
 
   const handleSubmit = async () => {
     const valid = rows.filter(r => (r.inventoryId === 'NEW' ? r.inventoryName?.trim() : r.inventoryId) && r.qty > 0);
-    if (!valid.length) { alert('Add at least 1 valid item (provide all info & Qty > 0)!'); return; }
+    if (!valid.length) { Swal.fire({ icon: 'warning', title: 'Invalid Input', text: 'Please add at least 1 valid item (all info filled & Qty > 0).', confirmButtonColor: COLORS.PRIMARY }); return; }
 
     setSubmitting(true);
     try {
@@ -150,7 +151,7 @@ const InventoryOrderModal = ({ open, onClose, inventoryItems, onSubmit }) => {
             disabled={submitting}
           >
             <i className="bi bi-floppy me-1" />
-            {submitting ? 'Đang lưu...' : 'Lưu đơn'}
+            {submitting ? 'Saving...' : 'Save Receipt'}
           </button>
         </div>
       </div>

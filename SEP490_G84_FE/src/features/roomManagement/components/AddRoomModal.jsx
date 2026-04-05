@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import apiClient from "../../../services/apiClient";
 import AddFurnitureToRoomModal from "./AddFurnitureToRoomModal";
 
@@ -34,7 +34,7 @@ export default function AddRoomModal({ isOpen, onClose, onRoomAdded, branches, r
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.roomName || formData.roomName.trim() === "") {
-        alert("Vui lòng nhập tên phòng");
+        alert("Please enter a room name");
         return;
     }
     try {

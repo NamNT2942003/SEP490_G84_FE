@@ -299,7 +299,7 @@ const InventoryReport = ({
         <div className="inv-modal" style={{ width: 700 }} onClick={e => e.stopPropagation()}>
           <div className="inv-modal-header">
             <h6 className="fw-bold mb-0" style={{ color: COLORS.PRIMARY }}>
-              <i className="bi bi-box me-2" />Đơn nhập — {monthLabel} {year}
+              <i className="bi bi-box me-2" />Import Receipts — {monthLabel} {year}
             </h6>
             <button className="inv-drawer-close" onClick={() => setOrdersOpen(false)}>✕</button>
           </div>

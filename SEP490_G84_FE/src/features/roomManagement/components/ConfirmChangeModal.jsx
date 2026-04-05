@@ -3,11 +3,11 @@ import React from "react";
 const BRAND = "#f59f00";
 
 export default function ConfirmChangeModal({
-  title = "Xác nhận thay đổi trạng thái",
+  title = "Confirm Status Change",
   message,
   detailLines = [],
-  confirmText = "Xác nhận",
-  cancelText = "Huỷ bỏ",
+  confirmText = "Confirm",
+  cancelText = "Cancel",
   loading = false,
   onCancel,
   onConfirm,
@@ -70,7 +70,7 @@ export default function ConfirmChangeModal({
             onClick={onConfirm}
             style={{ backgroundColor: BRAND, color: "#fff", border: "none" }}
           >
-            {loading ? "Đang xử lý..." : confirmText}
+            {loading ? "Processing..." : confirmText}
           </button>
         </div>
       </div>

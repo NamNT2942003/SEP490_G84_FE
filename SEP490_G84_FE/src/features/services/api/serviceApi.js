@@ -10,4 +10,5 @@ export const serviceAPI = {
   createService: (data) => apiClient.post('/services', data),
   updateService: (id, data) => apiClient.put(`/services/${id}`, data),
   deleteService: (id) => apiClient.delete(`/services/${id}`),
+  toggleServiceStatus: (id) => apiClient.patch(`/services/${id}/toggle-status`),
 };

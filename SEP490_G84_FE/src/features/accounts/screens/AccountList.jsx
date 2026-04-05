@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { accountAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import apiClient from '@/services/apiClient';
 import UserDetail from './UserDetail';
 import CreateAccount from './CreateAccount';
 import EditStaff from './EditStaff';
@@ -54,6 +55,14 @@ const AccountList = () => {
   };
   const closeSuccessNotice = () => {
     setSuccessNotice((prev) => ({ ...prev, open: false }));
+  };
+
+  const getAbsoluteImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    const baseUrl = apiClient.defaults.baseURL.replace(/\/api$/, '');
+    if (url.startsWith('/api/')) return baseUrl + url;
+    return baseUrl + url.replace(/^\/?/, '/');
   };
 
   useEffect(() => {
@@ -358,18 +367,12 @@ const AccountList = () => {
                               <td>{(currentPage - 1) * accountsPerPage + index + 1}</td>
                               <td>
                                 <img
-                                    src={
-                                      account.image
-                                          ? account.image.startsWith('http')
-                                              ? account.image
-                                              : (accountAPI.getBaseURL?.() || (typeof window !== 'undefined' ? window.location.origin : '')) + account.image
-                                          : `https://ui-avatars.com/api/?name=${encodeURIComponent(account.fullName || 'U')}&size=40&background=56785e&color=fff`
-                                    }
-                                    alt={account.fullName}
+                                    src={getAbsoluteImageUrl(account.image) || `https://ui-avatars.com/api/?name=${encodeURIComponent(account.fullName || account.username || 'U')}&size=40&background=56785e&color=fff`}
+                                    alt={account.fullName || account.username}
                                     className="avatar-img"
                                     onError={(e) => {
                                       e.target.onerror = null;
-                                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(account.fullName || 'U')}&size=40&background=56785e&color=fff`;
+                                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(account.fullName || account.username || 'U')}&size=40&background=56785e&color=fff`;
                                     }}
                                 />
                               </td>
@@ -408,27 +411,35 @@ const AccountList = () => {
                                 <div className="action-icons">
                                   {/* View */}
                                   <button
-                                      className="action-btn view"
+                                      type="button"
+                                      className="btn btn-sm btn-outline-secondary me-1"
+                                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
                                       title="View"
                                       onClick={() => setViewModalId(account.userId)}
                                   >
-                                    <i className="bi bi-eye"></i>
+                                    <i className="bi bi-eye me-1"></i>View
                                   </button>
 
-                                  {/* Edit & Delete */}
+                                  {/* Edit */}
                                   <button
-                                      className="action-btn edit"
+                                      type="button"
+                                      className="btn btn-sm btn-outline-secondary me-1"
+                                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
                                       title="Edit"
                                       onClick={() => setEditModalId(account.userId)}
                                   >
-                                    <i className="bi bi-pencil"></i>
+                                    <i className="bi bi-pencil me-1"></i>Edit
                                   </button>
+                                  
+                                  {/* Delete */}
                                   <button
-                                      className="action-btn delete"
+                                      type="button"
+                                      className="btn btn-sm btn-outline-danger"
+                                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
                                       title="Delete"
                                       onClick={() => openDeleteConfirm(account.userId, account.username)}
                                   >
-                                    <i className="bi bi-trash"></i>
+                                    <i className="bi bi-trash me-1"></i>Delete
                                   </button>
                                 </div>
                               </td>

@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import refundPolicyApi from "@/features/refund-policy/api/refundPolicyApi";
 import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
-import Buttons from "@/components/ui/Buttons";
-import Swal from "sweetalert2";
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Constants ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const POLICY_TYPES = [
     { value: "FREE_CANCEL", label: "Free cancellation", color: "#16a34a", bg: "#dcfce7", icon: "bi-check-circle-fill" },
     { value: "PARTIAL_REFUND", label: "Partial refund", color: "#d97706", bg: "#fef3c7", icon: "bi-arrow-left-right" },
@@ -152,7 +150,7 @@ const normalizePolicyForm = (initialData, branchId) => ({
     })(),
 });
 
-// ─── PolicyTypeBadge ─────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ PolicyTypeBadge ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const PolicyTypeBadge = ({ type }) => {
     const t = getPolicyType(type);
     return (
@@ -167,7 +165,7 @@ const PolicyTypeBadge = ({ type }) => {
     );
 };
 
-// ─── PolicyFormModal ──────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ PolicyFormModal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, saving }) => {
     const [form, setForm] = useState({ ...EMPTY_FORM, branchId });
 
@@ -240,7 +238,7 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                             <i className="bi bi-shield-check me-2"></i>
                             {initialData ? "Update Cancellation Policy" : "Create Cancellation Policy"}
                         </h5>
-                        <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: "1rem" }}>×</button>
+                        <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: "1rem" }}>├ù</button>
                     </div>
                     <div className="rp-modal-body">
                         {/* Name */}
@@ -358,7 +356,7 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                             </div>
                             <div className="text-muted mt-2" style={{ fontSize: "0.75rem" }}>
                                 {seasonalPreviewStart && seasonalPreviewEnd
-                                    ? <>Current seasonal window: <strong>{seasonalPreviewStart} → {seasonalPreviewEnd}</strong></>
+                                    ? <>Current seasonal window: <strong>{seasonalPreviewStart} ΓåÆ {seasonalPreviewEnd}</strong></>
                                     : <>Current seasonal window: <strong>Whole year</strong></>
                                 }
                             </div>
@@ -373,17 +371,15 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                         </div>
                     </div>
                     <div className="rp-modal-footer">
-                        <Buttons variant="outline" className="btn-sm" onClick={onClose} disabled={saving}>Cancel</Buttons>
-                        <Buttons
-                            variant="primary"
-                            className="btn-sm"
+                        <button className="btn btn-outline-secondary" onClick={onClose} disabled={saving}>Cancel</button>
+                        <button
+                            className="btn fw-bold px-4"
+                            style={{ backgroundColor: "#5C6F4E", color: "#fff", borderRadius: 10 }}
                             onClick={() => onSave(form)}
                             disabled={saving || !form.name.trim()}
-                            isLoading={saving}
-                            icon={!saving && <i className="bi bi-floppy" />}
                         >
-                            {initialData ? "Update" : "Create"}
-                        </Buttons>
+                            {saving ? <><span className="spinner-border spinner-border-sm me-2"></span>Saving...</> : <><i className="bi bi-floppy me-1"></i>{initialData ? "Update" : "Create"}</>}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -391,7 +387,7 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
     );
 };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Main Component ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const RefundPolicyManagement = () => {
     const { branchId } = useParams();
     const navigate = useNavigate();
@@ -481,21 +477,12 @@ const RefundPolicyManagement = () => {
     };
 
     const handleDelete = async (p) => {
-        Swal.fire({
-            title: 'Delete Policy?',
-            text: `Confirm deleting policy "${p.name}"?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, delete it'
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    await refundPolicyApi.delete(p.id);
-                    showAlert("success", "Policy deleted.");
-                    load();
-                } catch { showAlert("error", "Delete failed."); }
-            }
-        });
+        if (!window.confirm(`Confirm deleting policy "${p.name}"?`)) return;
+        try {
+            await refundPolicyApi.delete(p.id);
+            showAlert("success", "Policy deleted.");
+            load();
+        } catch { showAlert("error", "Delete failed."); }
     };
 
     return (
@@ -544,12 +531,12 @@ const RefundPolicyManagement = () => {
                             </div>
                             <div className="rp-hero-sub">
                                 Branch: <strong>{branchInfo?.branchName || `#${branchId}`}</strong>
-                                {branchInfo?.address && <span className="ms-2 opacity-75">— {branchInfo.address}</span>}
+                                {branchInfo?.address && <span className="ms-2 opacity-75">ΓÇö {branchInfo.address}</span>}
                             </div>
                         </div>
-                        <Buttons variant="primary" icon={<i className="bi bi-plus-lg" />} onClick={() => { setEditing(null); setModalOpen(true); }}>
-                            Add Cancellation Policy
-                        </Buttons>
+                        <button className="rp-add-btn" onClick={() => { setEditing(null); setModalOpen(true); }}>
+                            <i className="bi bi-plus-lg"></i> Add Cancellation Policy
+                        </button>
                     </div>
                 </div>
 
@@ -656,7 +643,7 @@ const RefundPolicyManagement = () => {
                                                 <div><i className="bi bi-calendar-event me-1 text-primary"></i>Applies when cancelled within <strong>{p.daysBeforeCheckIn ?? p.dateRange}</strong> days before check-in</div>
                                             ) : null}
                                             {seasonal.start && seasonal.end && (
-                                                <div><i className="bi bi-calendar-range me-1 text-info"></i>Active Seasonal window: <strong>{seasonal.start} → {seasonal.end}</strong></div>
+                                                <div><i className="bi bi-calendar-range me-1 text-info"></i>Active Seasonal window: <strong>{seasonal.start} ΓåÆ {seasonal.end}</strong></div>
                                             )}
                                             {!p.dateRange && p.daysBeforeCheckIn == null && !p.activeTimeStart && (
                                                 <div className="text-muted fst-italic"><i className="bi bi-infinity me-1"></i>Always applicable</div>
@@ -664,18 +651,24 @@ const RefundPolicyManagement = () => {
                                         </div>
 
                                         {/* Actions */}
-                                        <div className="d-flex gap-2 mt-2">
+                                        <div className="d-flex gap-2">
                                             <button
-                                                className="btn btn-sm btn-outline-secondary flex-fill"
+                                                className="rp-action-btn flex-fill"
+                                                style={{ borderColor: "#5C6F4E", color: "#5C6F4E" }}
                                                 onClick={() => { setEditing(p); setModalOpen(true); }}
+                                                onMouseEnter={e => { e.target.style.background = "#5C6F4E"; e.target.style.color = "#fff"; }}
+                                                onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = "#5C6F4E"; }}
                                             >
                                                 <i className="bi bi-pencil me-1"></i>Edit
                                             </button>
                                             <button
-                                                className="btn btn-sm btn-outline-danger flex-fill"
+                                                className="rp-action-btn"
+                                                style={{ borderColor: "#dc2626", color: "#dc2626" }}
                                                 onClick={() => handleDelete(p)}
+                                                onMouseEnter={e => { e.target.style.background = "#dc2626"; e.target.style.color = "#fff"; }}
+                                                onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = "#dc2626"; }}
                                             >
-                                                <i className="bi bi-trash me-1"></i>Delete
+                                                <i className="bi bi-trash"></i>
                                             </button>
                                         </div>
                                     </div>

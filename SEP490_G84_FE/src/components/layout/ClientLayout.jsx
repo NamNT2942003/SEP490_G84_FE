@@ -1,10 +1,16 @@
 import React from 'react';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 
 const ClientLayout = ({ children }) => {
     return (
-        <main style={{ minHeight: 'calc(100vh - 100px)' }}>
-            {children}
-        </main>
+        <div className="d-flex flex-column min-vh-100">
+            <Header />
+            <main className="flex-fill">
+                {children}
+            </main>
+            <Footer />
+        </div>
     );
 };
 

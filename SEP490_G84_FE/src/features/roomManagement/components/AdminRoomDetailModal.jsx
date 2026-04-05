@@ -164,7 +164,7 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                   }}
                   onClick={() => setShowReport(true)}
                 >
-                  <i className="bi bi-megaphone-fill"></i> Báo sự cố
+                  <i className="bi bi-megaphone-fill"></i> Report Incident
                 </button>
               </div>
 
@@ -178,7 +178,7 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                   }
                   onClick={() => setActiveTab("furniture")}
                 >
-                  <i className="bi bi-wrench-adjustable-circle me-2"></i> Thiết bị
+                  <i className="bi bi-wrench-adjustable-circle me-2"></i> Equipment
                 </button>
                 <button
                   className={`btn btn-sm px-3 py-2 rounded-3 ${activeTab === "incidents" ? "" : "btn-light"}`}
@@ -189,7 +189,7 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                   }
                   onClick={() => setActiveTab("incidents")}
                 >
-                  <i className="bi bi-exclamation-triangle me-2"></i> Sự cố
+                  <i className="bi bi-exclamation-triangle me-2"></i> Incidents
                 </button>
               </div>
             </div>
@@ -286,12 +286,12 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                     {summary.needRepair > 0 ? (
                       <>
                         <i className="bi bi-tools me-1"></i>
-                        Tự động Bảo trì — {summary.needRepair} thiết bị hỏng
+                        Auto Maintenance — {summary.needRepair} broken item(s)
                       </>
                     ) : (
                       <>
                         <i className="bi bi-check-circle me-1"></i>
-                        Thiết bị hoạt động tốt
+                        All equipment working normally
                       </>
                     )}
                   </span>
@@ -324,7 +324,7 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                   <div className="d-flex align-items-center gap-2">
                     <i className="bi bi-exclamation-triangle" style={{ color: DANGER }}></i>
                     <span className="fw-semibold small" style={{ color: "#1a1a2e", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: "0.75rem" }}>
-                      Danh sách sự cố
+                      Incident List
                     </span>
                     <span className="badge rounded-pill px-2" style={{ backgroundColor: "rgba(220,53,69,0.12)", color: DANGER, fontWeight: 700 }}>
                       {incidents?.totalElements || 0}
@@ -345,15 +345,15 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                       <div className="d-flex align-items-center justify-content-center rounded-4 mb-3" style={{ width: 64, height: 64, backgroundColor: "rgba(220,53,69,0.08)" }}>
                         <i className="bi bi-clipboard-x fs-3" style={{ color: DANGER }}></i>
                       </div>
-                      <h6 className="fw-semibold mb-1">Chưa có sự cố</h6>
-                      <p className="small mb-0 opacity-75">Nhấn “Báo sự cố” để tạo mới.</p>
+                      <h6 className="fw-semibold mb-1">No incidents reported</h6>
+                      <p className="small mb-0 opacity-75">Click "Report Incident" to create one.</p>
                     </div>
                   ) : (
                     <div className="table-responsive">
                       <table className="table align-middle mb-0">
                         <thead>
                           <tr style={{ backgroundColor: "#f8f9fb" }}>
-                            {["#", "Mô tả", "Trạng thái", "Thời gian", "Hành động"].map((h, i) => (
+                            {["#", "Description", "Status", "Time", "Action"].map((h, i) => (
                               <th
                                 key={h}
                                 className={`text-muted fw-semibold border-0${i === 0 ? " ps-4" : ""}`}
@@ -384,7 +384,7 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                                       color: it.status === "OPEN" ? "#856404" : "#198754",
                                     }}
                                   >
-                                    {it.status === "OPEN" ? "Chờ xử lý" : "Đã giải quyết"}
+                                    {it.status === "OPEN" ? "Pending" : "Resolved"}
                                 </span>
                               </td>
                               <td className="text-muted small">
@@ -416,7 +416,7 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
                                       e.target.style.backgroundColor = "rgba(25,135,84,0.1)";
                                     }}
                                   >
-                                    <i className="bi bi-check-lg me-1"></i>Giải quyết
+                                    <i className="bi bi-check-lg me-1"></i>Resolve
                                   </button>
                                 ) : (
                                   <span className="text-muted small">—</span>

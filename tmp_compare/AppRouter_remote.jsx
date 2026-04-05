@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+﻿import { Routes, Route, Navigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser.js";
 
 // =====================================================================
@@ -56,10 +56,10 @@ import ServiceList from '@/features/services/screens/ServiceList';
 // =====================================================================
 // --- 7. INVENTORY, FINANCE & REPORTS ---
 // =====================================================================
-// Inventory (Chuẩn)
+// Inventory (Chuß║⌐n)
 import InventoryScreen from "@/features/inventory/screens/InventoryScreen.jsx";
-// Furniture Inventory (Giữ lại từ file cũ để không sót tính năng)
-
+// Furniture Inventory (Giß╗» lß║íi tß╗½ file c┼⌐ ─æß╗â kh├┤ng s├│t t├¡nh n─âng)
+import InventoryManagement from "@/features/furniture/screens/InventoryManagement";
 import InventoryReport from "@/features/furniture/screens/InventoryReport";
 import FurnitureInventory from "@/features/furniture/screens/FurnitureInventory";
 import ImportHistory from "@/features/furniture/screens/ImportHistory";
@@ -92,8 +92,8 @@ import ImportReceiptUI from "@/features/test/ImportReceiptUI.jsx";
 import InventoryReportPage from "@/features/test/InventoryReportPage";
 
 /**
- * Helper HOC: Chặn Staff truy cập vào các trang quản lý nhạy cảm (Account, Services, Admin...).
- * Redirect về trang /dashboard an toàn.
+ * Helper HOC: Chß║╖n Staff truy cß║¡p v├áo c├íc trang quß║ún l├╜ nhß║íy cß║úm (Account, Services, Admin...).
+ * Redirect vß╗ü trang /dashboard an to├án.
  */
 const RequireManagerOrAdmin = ({ children }) => {
     const currentUser = useCurrentUser();
@@ -106,34 +106,34 @@ const RequireManagerOrAdmin = ({ children }) => {
 const AppRouter = () => {
     return (
         <Routes>
-            {/* --- NHÓM 1: CÁC TRANG PUBLIC & GUEST (Client Layout) --- */}
+            {/* --- NH├ôM 1: C├üC TRANG PUBLIC & GUEST (Client Layout) --- */}
             <Route path="/" element={<ClientLayout><HomePage /></ClientLayout>} />
             <Route path="/about" element={<ClientLayout><AboutPage /></ClientLayout>} />
             <Route path="/contact" element={<ClientLayout><ContactPage /></ClientLayout>} />
             <Route path="/guest-access" element={<ClientLayout><GuestAccessPage /></ClientLayout>} />
             <Route path="/guest/bookings" element={<ClientLayout><GuestBookingHistoryPage /></ClientLayout>} />
 
-            {/* --- NHÓM 2: CÁC TRANG AUTHENTICATION (Client Layout) --- */}
+            {/* --- NH├ôM 2: C├üC TRANG AUTHENTICATION (Client Layout) --- */}
             <Route path="/login" element={<ClientLayout><Login /></ClientLayout>} />
             <Route path="/forgot-password" element={<ClientLayout><ForgotPassword /></ClientLayout>} />
             <Route path="/reset-password" element={<ClientLayout><ResetPassword /></ClientLayout>} />
 
-            {/* --- NHÓM 3: BOOKING & PAYMENT (Client Layout) --- */}
+            {/* --- NH├ôM 3: BOOKING & PAYMENT (Client Layout) --- */}
             <Route path="/search" element={<ClientLayout><SearchRoom /></ClientLayout>} />
             <Route path="/BookingSummary" element={<ClientLayout><BookingSummary /></ClientLayout>} />
-            <Route path="/guest-information" element={<ClientLayout><GuestInformation /></ClientLayout>} />
-            <Route path="/payment-selection" element={<ClientLayout><PaymentSelection /></ClientLayout>} />
-            <Route path="/payment/result" element={<ClientLayout><PaymentResult /></ClientLayout>} />
+            <Route path="/guest-information" element={<ClientLayout><GuestInformation/></ClientLayout>} />
+            <Route path="/payment-selection" element={<PaymentSelection/>} />
+            <Route path="/payment/result" element={<PaymentResult/>} />
 
-            {/* --- NHÓM 4: TEST / BOOTSTRAP (Dev only) --- */}
+            {/* --- NH├ôM 4: TEST / BOOTSTRAP (Dev only) --- */}
             <Route path="/test" element={<ImportInventoryBootstrap />} />
             <Route path="/test2" element={<MonthlyReportBootstrap />} />
             <Route path="/test3" element={<ExcelToWebReport />} />
             <Route path="/import-receipt" element={<ImportReceiptUI />} />
             <Route path="/inventory-report" element={<InventoryReportPage />} />
 
-            {/* --- NHÓM 5: PRIVATE PAGES (Main Layout) --- */}
-
+            {/* --- NH├ôM 5: PRIVATE PAGES (Main Layout) --- */}
+            
             {/* 5.1 Dashboard, Core & Front Desk */}
             <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
             <Route path="/rooms" element={<MainLayout><div>Room List (Coming Soon)</div></MainLayout>} />
@@ -144,12 +144,12 @@ const AppRouter = () => {
 
             {/* 5.2 Inventory & Finance */}
             <Route path="/inventory" element={<MainLayout><InventoryScreen /></MainLayout>} />
-            {/* Sub-routes cho Furniture Inventory (Giữ nguyên cấu trúc file 1) */}
-
+            {/* Sub-routes cho Furniture Inventory (Giß╗» nguy├¬n cß║Ñu tr├║c file 1) */}
+            <Route path="/furniture" element={<MainLayout><InventoryManagement /></MainLayout>} />
             <Route path="/furniture/report" element={<MainLayout><InventoryReport /></MainLayout>} />
             <Route path="/furniture/history" element={<MainLayout><ImportHistory /></MainLayout>} />
             <Route path="/furniture/furniture" element={<MainLayout><FurnitureInventory /></MainLayout>} />
-
+            
             <Route path="/finance/cashflow" element={<MainLayout><CashflowScreen /></MainLayout>} />
 
             {/* 5.3 Profile */}
@@ -164,8 +164,8 @@ const AppRouter = () => {
             <Route path="/report/multi-branch" element={<MainLayout><MultiBranchReportScreen /></MainLayout>} />
             <Route path="/report/detail/:category" element={<MainLayout><ReportDetailScreen /></MainLayout>} />
 
-            {/* --- NHÓM 6: ADMIN / MANAGER ONLY PAGES (Main Layout + RequireManagerOrAdmin) --- */}
-
+            {/* --- NH├ôM 6: ADMIN / MANAGER ONLY PAGES (Main Layout + RequireManagerOrAdmin) --- */}
+            
             {/* 6.1 Admin Infrastructure Management */}
             <Route path="/admin/rooms" element={<MainLayout><RoomManagement /></MainLayout>} />
             <Route path="/admin/furniture" element={<MainLayout><FurnitureManagement /></MainLayout>} />
@@ -174,7 +174,7 @@ const AppRouter = () => {
             <Route path="/admin/room-types/:roomTypeId/price-modifiers" element={<MainLayout><PriceModifierManagement /></MainLayout>} />
             <Route path="/admin/room-inventories" element={<MainLayout><RoomInventoryManagement /></MainLayout>} />
             <Route path="/admin/branches/:branchId/cancellation-policies" element={<MainLayout><RefundPolicyManagement /></MainLayout>} />
-
+            
             {/* 6.2 Services Management */}
             <Route path="/services" element={<MainLayout><RequireManagerOrAdmin><ServiceList /></RequireManagerOrAdmin></MainLayout>} />
 
@@ -184,7 +184,7 @@ const AppRouter = () => {
             <Route path="/accounts/:id" element={<MainLayout><RequireManagerOrAdmin><UserDetail /></RequireManagerOrAdmin></MainLayout>} />
             <Route path="/accounts/:id/edit" element={<MainLayout><RequireManagerOrAdmin><EditStaff /></RequireManagerOrAdmin></MainLayout>} />
 
-            {/* --- NHÓM 7: CATCH-ALL (Redirect to Login) --- */}
+            {/* --- NH├ôM 7: CATCH-ALL (Redirect to Login) --- */}
             <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
     );

@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '@/services/apiClient';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useMyBranches } from '@/hooks/useMyBranches';
 import '../css/InventoryReport.css';
 import * as XLSX from 'xlsx';
 
@@ -22,7 +23,7 @@ const InventoryReport = () => {
     }, [currentUser, navigate]);
 
     // --- STATE CHO BÁO CÁO ---
-    const [branches, setBranches] = useState([]);
+    const { branches } = useMyBranches();
     const [selectedBranch, setSelectedBranch] = useState('');
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [year, setYear] = useState(new Date().getFullYear());
@@ -35,24 +36,10 @@ const InventoryReport = () => {
     const [latestSavedMonth, setLatestSavedMonth] = useState(0);
     const pageSize = 5;
 
-    // Fetch branches from API
-    useEffect(() => {
-        const fetchBranches = async () => {
-            try {
-                const res = await apiClient.get(`/branches`);
-                setBranches(res.data || []);
-            } catch (error) {
-                console.error("Error fetching branches:", error);
-                setBranches([]);
-            }
-        };
-
-        fetchBranches();
-    }, []);
-
     // Fetch latest saved month when branch changes
     useEffect(() => {
         if (!selectedBranch) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setLatestSavedMonth(0);
             return;
         }
@@ -84,16 +71,7 @@ const InventoryReport = () => {
     const [showReceiptDetailModal, setShowReceiptDetailModal] = useState(false);
     const [selectedReceipt, setSelectedReceipt] = useState(null);
 
-    // --- STATE CHO MODAL NHẬP KHO MỚI ---
-    const [showImportModal, setShowImportModal] = useState(false);
-    const [availableItems, setAvailableItems] = useState([]);
-    const [importList, setImportList] = useState([
-        { isNew: false, inventoryId: '', inventoryName: '', price: '', quantity: 1 }
-    ]);
 
-    // --- STATE CHI TIẾT SẢN PHẨM (Dùng ở bảng báo cáo) ---
-    const [showDetailModal, setShowDetailModal] = useState(false);
-    const [productDetail, setProductDetail] = useState(null);
 
     const reportTitle = isReportLoaded
         ? `Inventory Stocktake Report - Month ${month} / ${year}`
@@ -149,15 +127,7 @@ const InventoryReport = () => {
         await handleFetchReport(monthToFetch);
     };
 
-    const handleBackToMonthSelector = () => {
-        setIsReportLoaded(false);
-        setReportData([]);
-        setPage(1);
-        setPageInput('1');
-        setNameQuery('');
-        setNameApplied('');
-        // Keep selectedBranch/year/month so user can quickly switch again.
-    };
+
 
     const handleClosingStockChange = (index, value) => {
         const newValue = parseInt(value) || 0;
@@ -207,10 +177,7 @@ const InventoryReport = () => {
         return reportData.filter((r) => (r.inventoryName || '').toLowerCase().includes(q));
     }, [reportData, nameApplied]);
 
-    const totalPages = useMemo(() => {
-        const total = reportDataFiltered.length || 0;
-        return Math.max(1, Math.ceil(total / pageSize));
-    }, [reportDataFiltered.length]);
+    const totalPages = Math.max(1, Math.ceil((reportDataFiltered.length || 0) / pageSize));
 
     const pagedReportData = useMemo(() => {
         const start = (page - 1) * pageSize;
@@ -336,118 +303,7 @@ const InventoryReport = () => {
         setShowReceiptDetailModal(true);
     };
 
-    // ================= LOGIC TẠO PHIẾU NHẬP =================
-    const openImportModal = async () => {
-        if (!selectedBranch) {
-            alert("Please select a Branch first!");
-            return;
-        }
-        try {
-            const res = await apiClient.get(`/inventory/branch/${selectedBranch}/items`, {
-                params: { userId: currentUser?.userId }
-            });
-            setAvailableItems(res.data);
-            setImportList([{ isNew: false, inventoryId: '', inventoryName: '', price: '', quantity: 1 }]);
-            setShowImportModal(true);
-        } catch (error) {
-            console.error("Error loading inventory items:", error);
-            alert("Failed to load inventory items for this branch.");
-        }
-    };
 
-    const handleImportChange = (index, field, value) => {
-        const newList = [...importList];
-        const current = newList[index];
-        const updatedItem = { ...current, [field]: value };
-
-        // If choosing an existing item, also fill price from availableItems
-        if (field === 'inventoryId' && !current.isNew) {
-            const selected = availableItems.find(
-                (i) => i.inventoryId === parseInt(value)
-            );
-            if (selected) {
-                updatedItem.price = selected.price != null ? selected.price : '';
-            }
-        }
-
-        newList[index] = updatedItem;
-        setImportList(newList);
-    };
-
-    const removeImportRow = (index) => {
-        if (importList.length === 1) return alert("At least one item is required!");
-        const newList = importList.filter((_, i) => i !== index);
-        setImportList(newList);
-    };
-
-    const submitImport = async () => {
-        const validItems = importList.filter(item =>
-            (item.isNew && item.inventoryName.trim() !== '' && item.price !== '') ||
-            (!item.isNew && item.inventoryId !== '')
-        );
-
-        if (validItems.length === 0) return alert("Please fill in information for at least one item!");
-
-        for (let item of validItems) {
-            if (item.isNew) {
-                const isDuplicate = availableItems.some(
-                    available => available.inventoryName.toLowerCase() === item.inventoryName.trim().toLowerCase()
-                );
-                if (isDuplicate) {
-                    alert(`Item "${item.inventoryName}" already exists in this inventory. Please choose "Existing item".`);
-                    return;
-                }
-            }
-        }
-
-        const payloadItems = validItems.map(item => {
-            if (item.isNew) {
-                return {
-                    isNew: true,
-                    inventoryName: item.inventoryName.trim(),
-                    price: item.price,
-                    quantity: parseInt(item.quantity)
-                };
-            } else {
-                return {
-                    isNew: false,
-                    inventoryId: parseInt(item.inventoryId),
-                    quantity: parseInt(item.quantity),
-                    // Send price so backend can update latest price/date
-                    price: item.price !== '' ? item.price : null
-                };
-            }
-        });
-
-        try {
-            await apiClient.post(`/inventory/import`, {
-                branchId: parseInt(selectedBranch),
-                items: payloadItems,
-                userId: currentUser?.userId
-            });
-            alert("Import successfully!");
-            setShowImportModal(false);
-            openHistoryModal();
-            if (isReportLoaded) handleFetchReport();
-        } catch (error) {
-            console.error("Import error:", error);
-            alert("Error while importing items!");
-        }
-    };
-
-    // ================= LOGIC XEM CHI TIẾT SẢN PHẨM =================
-    const handleViewDetail = async (id) => {
-        try {
-            const res = await apiClient.get(`/inventory/${id}`, {
-                params: { userId: currentUser?.userId }
-            });
-            setProductDetail(res.data);
-            setShowDetailModal(true);
-        } catch (error) {
-            console.error("Error loading item detail:", error);
-            alert("Failed to load item detail!");
-        }
-    };
 
     return (
         <div className="inventory-container">
@@ -660,7 +516,7 @@ const InventoryReport = () => {
                             </tr>
                             </thead>
                             <tbody>
-                            {reportDataFiltered.length > 0 ? pagedReportData.map((row, localIndex) => {
+                            {reportDataFiltered.length > 0 ? pagedReportData.map((row) => {
                                 const originalIndex = reportData.findIndex((r) => r.inventoryId === row.inventoryId);
                                 return (
                                     <tr key={row.inventoryId}>
@@ -859,122 +715,6 @@ const InventoryReport = () => {
                 </div>
             )}
 
-            {/* MODAL NHẬP KHO */}
-            {showImportModal && (
-                <div className="modal-overlay" style={{ zIndex: 1100 }}>
-                    <div className="modal-content" style={{ maxWidth: '600px', width: '100%' }}>
-                        <div className="modal-header">
-                            <h3>Create Import Receipt - {branches.find(b => b.branchId === parseInt(selectedBranch))?.branchName}</h3>
-                            <button className="close-btn" onClick={() => setShowImportModal(false)}>✖</button>
-                        </div>
-
-                        <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '5px' }}>
-                            {importList.map((row, index) => (
-                                <div key={index} style={{ marginBottom: '15px', padding: '15px', border: '1px solid #e0e0e0', borderRadius: '6px', backgroundColor: '#fafafa' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                        <div style={{ display: 'flex', gap: '15px' }}>
-                                            <label style={{ cursor: 'pointer', fontWeight: row.isNew ? 'normal' : 'bold' }}>
-                                                <input
-                                                    type="radio" name={`type-report-${index}`} checked={!row.isNew}
-                                                    onChange={() => handleImportChange(index, 'isNew', false)}
-                                                /> Existing
-                                            </label>
-                                            <label style={{ cursor: 'pointer', fontWeight: row.isNew ? 'bold' : 'normal', color: '#007bff' }}>
-                                                <input
-                                                    type="radio" name={`type-report-${index}`} checked={row.isNew}
-                                                    onChange={() => handleImportChange(index, 'isNew', true)}
-                                                /> + New item
-                                            </label>
-                                        </div>
-                                        <button
-                                            onClick={() => removeImportRow(index)}
-                                            style={{ color: '#d9534f', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
-                                        >
-                                            ✖ Remove
-                                        </button>
-                                    </div>
-
-                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                        {!row.isNew ? (
-                                            <select
-                                                className="stock-input"
-                                                value={row.inventoryId || ''}
-                                                onChange={(e) => handleImportChange(index, 'inventoryId', e.target.value)}
-                                                style={{ flex: 1, padding: '8px' }}
-                                            >
-                                                <option value="">-- Select item --</option>
-                                                {availableItems.map(i => (
-                                                    <option key={i.inventoryId} value={i.inventoryId}>
-                                                        {i.inventoryName} (Stock: {i.stock})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <div style={{ display: 'flex', gap: '10px', flex: 1 }}>
-                                                <input
-                                                    type="text" className="stock-input" placeholder="Item name..."
-                                                    value={row.inventoryName || ''}
-                                                    onChange={(e) => handleImportChange(index, 'inventoryName', e.target.value)}
-                                                    style={{ flex: 1, padding: '8px', border: '1px solid #007bff' }}
-                                                />
-                                                <input
-                                                    type="number" className="stock-input" min="0" placeholder="Unit price"
-                                                    value={row.price || ''}
-                                                    onChange={(e) => handleImportChange(index, 'price', e.target.value)}
-                                                    style={{ width: '110px', padding: '8px', border: '1px solid #007bff' }}
-                                                />
-                                            </div>
-                                        )}
-
-                                        <input
-                                            type="number" min="1" className="stock-input" placeholder="Qty"
-                                            value={row.quantity || ''}
-                                            onChange={(e) => handleImportChange(index, 'quantity', e.target.value)}
-                                            style={{ width: '70px', padding: '8px' }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <button
-                            className="btn btn-secondary btn-sm"
-                            style={{ width: '100%', marginTop: '10px', borderStyle: 'dashed' }}
-                            onClick={() => setImportList([...importList, { isNew: false, inventoryId: '', inventoryName: '', price: '', quantity: 1 }])}
-                        >
-                            + Add another item row
-                        </button>
-
-                        <div style={{ marginTop: '20px', textAlign: 'right', borderTop: '1px solid #ddd', paddingTop: '15px' }}>
-                            <button className="btn btn-secondary" onClick={() => setShowImportModal(false)} style={{ marginRight: '10px' }}>Cancel</button>
-                            <button className="btn btn-success" onClick={submitImport}>Confirm Import</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* MODAL CHI TIẾT SẢN PHẨM (Mở từ bảng ngoài cùng) */}
-            {showDetailModal && productDetail && (
-                <div className="modal-overlay" style={{ zIndex: 1200 }}>
-                    <div className="modal-content small">
-                        <div className="modal-header">
-                            <h3>Item Detail</h3>
-                            <button className="close-btn" onClick={() => setShowDetailModal(false)}>✖</button>
-                        </div>
-                        <div style={{ textAlign: 'left', lineHeight: '2' }}>
-                            <p><strong>Item ID:</strong> {productDetail.inventoryId}</p>
-                            <p><strong>Item name:</strong> {productDetail.inventoryName}</p>
-                            <p><strong>Unit:</strong> {productDetail.unit || '---'}</p>
-                            <p><strong>Current import price:</strong> {productDetail.price?.toLocaleString()} đ</p>
-                            <p><strong>System stock:</strong> {productDetail.stock}</p>
-                            <p><strong>Last updated:</strong> {productDetail.date ? new Date(productDetail.date).toLocaleDateString('vi-VN') : '---'}</p>
-                        </div>
-                        <div style={{ marginTop: '20px', textAlign: 'right' }}>
-                            <button className="btn btn-secondary" onClick={() => setShowDetailModal(false)}>Close</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

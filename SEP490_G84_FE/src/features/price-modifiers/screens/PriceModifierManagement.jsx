@@ -4,6 +4,8 @@ import { priceModifierApi } from "@/features/price-modifiers/api/priceModifierAp
 import roomTypeManagementApi from "@/features/room-type-management/api/roomTypeManagementApi";
 import refundPolicyApi from "@/features/refund-policy/api/refundPolicyApi";
 import PriceModifierFormModal from "./PriceModifierFormModal";
+import Buttons from "@/components/ui/Buttons";
+import Swal from 'sweetalert2';
 
 const PriceModifierManagement = () => {
     const { roomTypeId } = useParams();
@@ -78,14 +80,23 @@ const PriceModifierManagement = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to permanently delete this price modifier?")) return;
-        try {
-            await priceModifierApi.deleteModifier(id);
-            showAlert("success", "Deleted successfully.");
-            loadData();
-        } catch (error) {
-            showAlert("error", "Failed to delete modifier.");
-        }
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Are you sure you want to permanently delete this price modifier?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await priceModifierApi.deleteModifier(id);
+                    showAlert("success", "Deleted successfully.");
+                    loadData();
+                } catch (error) {
+                    showAlert("error", "Failed to delete modifier.");
+                }
+            }
+        });
     };
 
     const handleSave = async (payload) => {
@@ -143,13 +154,14 @@ const PriceModifierManagement = () => {
                         Price Modifiers <span className="text-muted fs-5">| {roomTypeInfo?.name || `Room Type ID: ${roomTypeId}`}</span>
                     </h2>
                 </div>
-                <button
-                    className="btn px-4 fw-bold shadow-sm"
-                    style={{ backgroundColor: '#D4AF37', color: '#fff' }}
-                    onClick={() => { setEditingModifier(null); setIsModalOpen(true); }}
-                >
-                    <i className="bi bi-plus-lg me-2"></i> Add Rule
-                </button>
+                <div className="d-flex gap-2 align-items-center">
+                    <Buttons variant="outline" className="btn-sm" icon={<i className="bi bi-arrow-clockwise" />} onClick={loadData} isLoading={loading}>
+                        Refresh
+                    </Buttons>
+                    <Buttons variant="primary" className="btn-sm" icon={<i className="bi bi-plus-circle-fill" />} onClick={() => { setEditingModifier(null); setIsModalOpen(true); }}>
+                        Add Rule
+                    </Buttons>
+                </div>
             </div>
 
             {alert && (
@@ -205,16 +217,18 @@ const PriceModifierManagement = () => {
                                         </td>
                                         <td className="px-4 text-end">
                                             <button 
-                                                className="btn btn-sm btn-outline-primary me-2"
+                                                className="btn btn-sm btn-outline-secondary me-1"
+                                                style={{ fontSize: "0.78rem", padding: "3px 10px" }}
                                                 onClick={() => { setEditingModifier(mod); setIsModalOpen(true); }}
                                             >
-                                                <i className="bi bi-pencil"></i>
+                                                <i className="bi bi-pencil me-1"></i>Edit
                                             </button>
                                             <button 
                                                 className="btn btn-sm btn-outline-danger"
+                                                style={{ fontSize: "0.78rem", padding: "3px 10px" }}
                                                 onClick={() => handleDelete(mod.priceModifierId)}
                                             >
-                                                <i className="bi bi-trash"></i>
+                                                <i className="bi bi-trash me-1"></i>Delete
                                             </button>
                                         </td>
                                     </tr>

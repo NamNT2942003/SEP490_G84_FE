@@ -124,6 +124,21 @@ const ServiceList = () => {
     }
   };
 
+  const handleToggleStatus = async (s) => {
+    try {
+      await serviceAPI.toggleServiceStatus(s.serviceId);
+      fetchServices();
+      const newStatus = s.isActive !== false ? "deactivated" : "activated";
+      showSuccessNotice(
+        'Status updated', 
+        `Service "${s.serviceName || 'ID ' + s.serviceId}" has been ${newStatus}.`
+      );
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message;
+      alert(`Could not toggle status: ${msg}`);
+    }
+  };
+
   const formatPrice = (value) => {
     if (value == null) return '—';
     const n = Number(value);
@@ -208,13 +223,14 @@ const ServiceList = () => {
                   <th>Service Name</th>
                   <th>Price</th>
                   <th>Category</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {currentServices.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="text-center text-muted">
+                    <td colSpan="6" className="text-center text-muted">
                       {services.length === 0 ? 'No services yet.' : 'No services match your search or filter.'}
                     </td>
                   </tr>
@@ -226,30 +242,36 @@ const ServiceList = () => {
                       <td>{formatPrice(s.basePrice)}</td>
                       <td>{s.category || '—'}</td>
                       <td>
-                        <div className="action-icons">
+                        <span className={`badge ${s.isActive !== false ? 'bg-success' : 'bg-secondary'}`}>
+                          {s.isActive !== false ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="d-flex align-items-center gap-3">
                           <button
                             type="button"
-                            className="action-btn view"
-                            onClick={() => setViewModalId(s.serviceId)}
-                            title="View details"
+                            className="btn btn-link text-decoration-none p-0 text-secondary d-flex align-items-center gap-1"
+                            onClick={() => handleToggleStatus(s)}
+                            title={s.isActive !== false ? "Deactivate" : "Activate"}
                           >
-                            <i className="bi bi-eye" />
+                            <i className={s.isActive !== false ? "bi bi-shield-x" : "bi bi-shield-check"} /> 
+                            {s.isActive !== false ? 'Deactivate' : 'Activate'}
                           </button>
                           <button
                             type="button"
-                            className="action-btn edit"
+                            className="btn btn-link text-decoration-none p-0 text-secondary d-flex align-items-center gap-1"
                             onClick={() => setEditModalId(s.serviceId)}
                             title="Edit"
                           >
-                            <i className="bi bi-pencil" />
+                            <i className="bi bi-pencil" /> Edit
                           </button>
                           <button
                             type="button"
-                            className="action-btn delete"
+                            className="btn btn-link text-decoration-none p-0 text-danger d-flex align-items-center gap-1"
                             onClick={() => openDeleteConfirm(s)}
                             title="Delete"
                           >
-                            <i className="bi bi-trash" />
+                            <i className="bi bi-trash" /> Delete
                           </button>
                         </div>
                       </td>

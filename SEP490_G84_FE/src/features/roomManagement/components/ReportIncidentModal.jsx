@@ -58,11 +58,11 @@ export default function ReportIncidentModal({ room, onClose, onSubmitted }) {
             </div>
             <div>
               <div className="fw-bold" style={{ color: "#1a1a2e" }}>
-                Báo cáo sự cố
+                Report Incident
               </div>
               <div className="text-muted small">
                 {room?.roomName ? `${room.roomName}` : "Room"}{" "}
-                {room?.floor ? `· Tầng ${room.floor}` : ""}
+                {room?.floor ? `· Floor ${room.floor}` : ""}
               </div>
             </div>
           </div>
@@ -73,18 +73,18 @@ export default function ReportIncidentModal({ room, onClose, onSubmitted }) {
 
         <form className="p-4" onSubmit={submit}>
           <label className="fw-semibold small mb-2">
-            Mô tả sự cố <span style={{ color: BRAND }}>*</span>
+            Incident Description <span style={{ color: BRAND }}>*</span>
           </label>
           <textarea
             className="form-control"
             rows={4}
-            placeholder="Ví dụ: Điều hoà không chạy, cửa phòng bị kẹt, có mùi ẩm mốc..."
+            placeholder="e.g. Air conditioning not working, door stuck, unusual smell in room..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
             style={{ borderRadius: 12, borderColor: "rgba(220,53,69,0.55)" }}
           />
-          <div className="text-muted small mt-2">Bắt buộc nhập lý do</div>
+          <div className="text-muted small mt-2">Description is required</div>
 
           <div
             className="alert border-0 mt-3 mb-0 d-flex align-items-start gap-2"
@@ -96,8 +96,8 @@ export default function ReportIncidentModal({ room, onClose, onSubmitted }) {
           >
             <i className="bi bi-exclamation-circle-fill mt-1"></i>
             <div className="small">
-              Sau khi gửi, phòng sẽ tự động chuyển sang trạng thái{" "}
-              <strong>Bảo trì</strong>.
+              After submitting, the room will automatically switch to{" "}
+              <strong>Maintenance</strong> status.
             </div>
           </div>
 
@@ -112,7 +112,7 @@ export default function ReportIncidentModal({ room, onClose, onSubmitted }) {
 
           <div className="d-flex justify-content-end gap-2 mt-4">
             <button type="button" className="btn btn-outline-secondary px-4" onClick={onClose}>
-              Huỷ
+              Cancel
             </button>
             <button
               type="submit"
@@ -128,11 +128,11 @@ export default function ReportIncidentModal({ room, onClose, onSubmitted }) {
               {loading ? (
                 <>
                   <span className="spinner-border spinner-border-sm" role="status"></span>
-                  Đang gửi...
+                  Submitting...
                 </>
               ) : (
                 <>
-                  <i className="bi bi-megaphone-fill"></i> Gửi báo cáo
+                  <i className="bi bi-megaphone-fill"></i> Submit Report
                 </>
               )}
             </button>

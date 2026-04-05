@@ -65,7 +65,7 @@ const Sidebar = ({ collapsed }) => {
           show: isAdmin || isManager,
         },
         {
-          path: "/admin/furniture",
+          path: "/furniture/furniture",
           label: "Furniture Master",
           icon: "bi-lamp",
           show: isAdmin || isManager,
@@ -75,17 +75,6 @@ const Sidebar = ({ collapsed }) => {
           label: "Main Inventory",
           icon: "bi-box-seam",
           show: isAdmin || isManager,
-        },
-        // Item Inventory (Furniture) dropdown
-        {
-          label: "Item Inventory",
-          icon: "bi-box",
-          show: isAdmin || isManager,
-          children: [
-            { path: "/furniture/furniture", label: "Furniture Inventory", icon: "bi-list-ul" },
-            { path: "/furniture/history", label: "Import History", icon: "bi-clock-history" },
-            { path: "/furniture/report", label: "Inventory Report", icon: "bi-file-earmark-bar-graph" },
-          ],
         },
         {
           path: "/accounts",

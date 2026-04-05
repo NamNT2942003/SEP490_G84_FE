@@ -1,4 +1,14 @@
 import React from 'react';
+import apiClient from '@/services/apiClient';
+
+const getAbsoluteImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('/api/')) {
+        const baseUrl = apiClient.defaults.baseURL.replace(/\/api$/, '');
+        return baseUrl + url;
+    }
+    return url;
+};
 
 const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
 
@@ -49,7 +59,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
             <img
                 alt="Resort Room"
                 className="img-fluid rounded-3 mb-3"
-                src={selectedRooms[0]?.image || "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"}
+                src={getAbsoluteImageUrl(selectedRooms[0]?.image) || "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"}
                 style={{ height: '160px', width: '100%', objectFit: 'cover' }}
             />
 

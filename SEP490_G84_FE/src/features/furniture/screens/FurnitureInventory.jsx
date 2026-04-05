@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useMyBranches } from '@/hooks/useMyBranches';
 import { furnitureApi } from '@/features/furniture/api/furnitureApi';
 import RoomDetailModal from '@/features/roomManagement/components/RoomDetailModal';
 import apiClient from '@/services/apiClient';
@@ -33,6 +34,7 @@ const FurnitureInventory = () => {
     const [brokenDetailInfo, setBrokenDetailInfo] = useState(null);
     const [brokenActionQuantity, setBrokenActionQuantity] = useState(1);
     const [isProcessingBroken, setIsProcessingBroken] = useState(false);
+    const { branches: rawBranches } = useMyBranches();
     const [branches, setBranches] = useState([]);
     const [showWarehouseFailModal, setShowWarehouseFailModal] = useState(false);
     const [warehouseFailRoom, setWarehouseFailRoom] = useState(null);
@@ -56,20 +58,19 @@ const FurnitureInventory = () => {
     const [showItemHistoryPanel, setShowItemHistoryPanel] = useState(false);
     const [itemHistoryData, setItemHistoryData] = useState([]);
 
-    /* ─── Data Fetching ────────────────────────────────────────────── */
-
     useEffect(() => {
-        const fetchBranches = async () => {
-            try {
-                const data = await furnitureApi.listBranches();
-                setBranches([
-                    { value: 'all', label: 'All branches' },
-                    ...(Array.isArray(data) ? data.map(b => ({ value: String(b.branchId), label: b.branchName })) : [])
-                ]);
-            } catch (err) { console.error('Failed to fetch branches:', err); }
-        };
-        fetchBranches();
+        if (rawBranches && rawBranches.length > 0) {
+             setBranches([
+                  { value: 'all', label: 'All branches' },
+                  ...rawBranches.map(b => ({ value: String(b.branchId), label: b.branchName }))
+             ]);
+        } else {
+             setBranches([{ value: 'all', label: 'All branches' }]);
+        }
+    }, [rawBranches]);
 
+    // Fetch types separately
+    useEffect(() => {
         const fetchTypes = async () => {
             try {
                 const typeData = await apiClient.get('/inventory/furniture/types');
@@ -105,7 +106,7 @@ const FurnitureInventory = () => {
                 type: item.type, code: item.furnitureCode,
             })) : []);
         } catch (err) { console.error('Failed to fetch furniture:', err); setRows([]); }
-    }, [branches]);
+    }, [branches, pageSize]);
 
     useEffect(() => { setPage(1); }, [selectedBranch, nameApplied, typeFilterApplied]);
     useEffect(() => { fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page); }, [page, fetchFurnitureData, selectedBranch, nameApplied, typeFilterApplied]);
@@ -293,7 +294,7 @@ const FurnitureInventory = () => {
 
     /* ─── Render ──────────────────────────────────────────────────── */
     return (
-        <div style={{ background: '#F2F3EE', minHeight: '100vh', paddingBottom: 40 }}>
+        <div style={{ minHeight: '100vh', paddingBottom: 40 }}>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
                 .fi-root * { font-family: 'DM Sans', sans-serif; }
@@ -448,8 +449,7 @@ const FurnitureInventory = () => {
             `}</style>
 
             <div className="fi-root">
-                {/* Hero */}
-                <div className="container" style={{ paddingTop: '28px', paddingBottom: '16px' }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, flexWrap: "wrap", gap: 16 }}><div><nav style={{ fontSize: "0.75rem", color: "#999", marginBottom: 8 }}><span>Admin Panel</span><span style={{ margin: "0 8px", color: "#ccc" }}>/</span><span style={{ color: BRAND, fontWeight: 600 }}>Furniture Inventory</span></nav><h1 style={{ fontSize: "1.65rem", fontWeight: 700, color: "#111", margin: 0, letterSpacing: "-0.5px" }}>Furniture Inventory</h1><div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}><p style={{ color: "#888", fontSize: "0.85rem", margin: 0 }}>Manage and track all furniture items efficiently.</p></div></div></div></div>
+
 
                 <div className="container pb-5">
                     <div className="row g-4">

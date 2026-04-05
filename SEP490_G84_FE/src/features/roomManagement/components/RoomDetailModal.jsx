@@ -85,12 +85,12 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
       if (action === 'fix') {
         const response = await roomManagementApi.fixWarehouseFailFurniture(roomId, equipment.furnitureId, customQuantity);
         if (onShowNotification) {
-          onShowNotification({ type: 'success', message: response.message || 'Đã khôi phục thiết bị về kho', timestamp: Date.now() });
+          onShowNotification({ type: 'success', message: response.message || 'Equipment restored to warehouse', timestamp: Date.now() });
         }
       } else if (action === 'discard') {
         const response = await roomManagementApi.discardWarehouseFailFurniture(roomId, equipment.furnitureId, customQuantity);
         if (onShowNotification) {
-          onShowNotification({ type: 'success', message: response.message || 'Đã loại bỏ thiết bị khỏi kho', timestamp: Date.now() });
+          onShowNotification({ type: 'success', message: response.message || 'Equipment discarded from warehouse', timestamp: Date.now() });
         }
       }
 
@@ -135,7 +135,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
           timestamp: Date.now()
         });
       }
-      alert("Không thể chuyển trạng thái thiết bị. Vui lòng thử lại.");
+      alert("Cannot update equipment status. Please try again.");
     } finally {
       setActionLoading(null);
     }
@@ -205,9 +205,31 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
   if (!show) return null;
 
   return (
-    <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-      <div className="modal-dialog modal-xl modal-dialog-centered">
-        <div className="modal-content border-0" style={{ borderRadius: 15 }}>
+    <>
+    <div
+      style={{
+        position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        zIndex: 1050,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+        backdropFilter: "blur(2px)",
+      }}
+      onClick={onHide}
+    >
+      <div
+        style={{
+          width: "min(900px, 95vw)",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          backgroundColor: "#fff",
+          borderRadius: 15,
+          boxShadow: "0 24px 64px rgba(0,0,0,0.22)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
           {/* MODAL HEADER */}
           <div className="modal-header border-0 p-4 pb-3">
             <div className="d-flex justify-content-between align-items-start w-100">
@@ -377,7 +399,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                     {String(index + 1).padStart(2, '0')}
                                   </td>
                                   <td className="border-0 fw-medium">
-                                    {equipment.furnitorName || 'Không xác định'}
+                                    {equipment.furnitorName || 'Unknown'}
                                   </td>
                                   <td className="border-0 text-center">
                                     {equipment.quantity || 1}
@@ -417,7 +439,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                           onClick={() => handleWarehouseFailAction('fix', equipment, actionQuantities[equipment.furnitureId] || 1)}
                                           disabled={actionLoading === equipment.furnitureId}
                                         >
-                                          {actionLoading === equipment.furnitureId ? 'Đang xử lý...' : 'Fixed'}
+                                          {actionLoading === equipment.furnitureId ? 'Processing...' : 'Fixed'}
                                         </button>
                                         <button
                                           className="btn btn-danger btn-sm px-3"
@@ -425,7 +447,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                           onClick={() => handleWarehouseFailAction('discard', equipment, actionQuantities[equipment.furnitureId] || 1)}
                                           disabled={actionLoading === equipment.furnitureId}
                                         >
-                                          {actionLoading === equipment.furnitureId ? 'Đang xử lý...' : 'Beyond fixed'}
+                                          {actionLoading === equipment.furnitureId ? 'Processing...' : 'Beyond Repair'}
                                         </button>
                                       </div>
                                     ) : eqGood ? (
@@ -523,10 +545,10 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                           <thead className="table-light">
                             <tr style={{ fontSize: "0.85rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                               <th className="text-muted border-0">#</th>
-                              <th className="text-muted border-0">MÔ TẢ</th>
-                              <th className="text-muted border-0">ĐỘ ƯU TIÊN</th>
-                              <th className="text-muted border-0">TRẠNG THÁI</th>
-                              <th className="text-muted border-0">NGÀY TẠO</th>
+                              <th className="text-muted border-0">DESCRIPTION</th>
+                              <th className="text-muted border-0">PRIORITY</th>
+                              <th className="text-muted border-0">STATUS</th>
+                              <th className="text-muted border-0">CREATED</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -537,9 +559,9 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                 </td>
                                 <td className="border-0">
                                   <div>
-                                    <div className="fw-medium">{issue.description || 'Không có mô tả'}</div>
+                                    <div className="fw-medium">{issue.description || 'No description'}</div>
                                     {issue.equipment && (
-                                      <small className="text-muted">Thiết bị: {issue.equipment}</small>
+                                      <small className="text-muted">Equipment: {issue.equipment}</small>
                                     )}
                                   </div>
                                 </td>
@@ -550,8 +572,8 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                     'bg-secondary'
                                   }`}>
                                     {issue.priority === 'HIGH' ? 'Cao' :
-                                     issue.priority === 'MEDIUM' ? 'Trung bình' :
-                                     'Thấp'}
+                                     issue.priority === 'MEDIUM' ? 'Medium' :
+                                     'Low'}
                                   </span>
                                 </td>
                                 <td className="border-0">
@@ -560,13 +582,13 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                       issue.status === 'IN_PROGRESS' ? 'bg-info' :
                                       'bg-warning text-dark'
                                     }`}>
-                                      {(issue.status === 'RESOLVED' || issue.status === 'CLOSED') ? 'Đã giải quyết' :
-                                     issue.status === 'IN_PROGRESS' ? 'Đang xử lý' :
-                                     'Chờ xử lý'}
+                                      {(issue.status === 'RESOLVED' || issue.status === 'CLOSED') ? 'Resolved' :
+                                     issue.status === 'IN_PROGRESS' ? 'In Progress' :
+                                     'Pending'}
                                   </span>
                                 </td>
                                 <td className="border-0 text-muted">
-                                  {issue.createdAt ? new Date(issue.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                                  {issue.createdAt ? new Date(issue.createdAt).toLocaleDateString('en-US') : 'N/A'}
                                 </td>
                               </tr>
                             ))}
@@ -576,9 +598,9 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                     ) : (
                       <div className="text-center text-muted py-4">
                         <i className="bi bi-info-circle me-2"></i>
-                        <div>Không có dữ liệu sự cố</div>
+                        <div>No incident data found</div>
                         <div className="small mt-1">
-                          API sự cố chưa sẵn sàng hoặc phòng này không có sự cố nào
+                          No incidents reported for this room
                         </div>
                       </div>
                     )}
@@ -605,30 +627,29 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
             </button>
           </div>
         </div>
-      </div>
-
-      {/* REPLACE FROM INVENTORY MODAL */}
-      {replaceFor && (
-        <ReplaceFromInventoryModal
-          roomId={room.roomId || room.id}
-          branchId={room.branchId}
-          oldItem={replaceFor}
-          onClose={() => setReplaceFor(null)}
-          onReplaced={() => {
-            setReplaceFor(null);
-            if (onShowNotification) {
-              onShowNotification({
-                type: 'success',
-                message: `Equipment replaced successfully`,
-                timestamp: Date.now()
-              });
-            }
-            fetchRoomDetails();
-            if (onRoomUpdated) onRoomUpdated();
-          }}
-        />
-      )}
     </div>
+    {/* REPLACE FROM INVENTORY MODAL */}
+    {replaceFor && (
+      <ReplaceFromInventoryModal
+        roomId={room.roomId || room.id}
+        branchId={room.branchId}
+        oldItem={replaceFor}
+        onClose={() => setReplaceFor(null)}
+        onReplaced={() => {
+          setReplaceFor(null);
+          if (onShowNotification) {
+            onShowNotification({
+              type: 'success',
+              message: `Equipment replaced successfully`,
+              timestamp: Date.now()
+            });
+          }
+          fetchRoomDetails();
+          if (onRoomUpdated) onRoomUpdated();
+        }}
+      />
+    )}
+    </>
   );
 };
 

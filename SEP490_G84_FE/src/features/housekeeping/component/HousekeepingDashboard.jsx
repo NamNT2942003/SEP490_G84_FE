@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { housekeepingApi } from '../api/housekeepingApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { COLORS } from '@/constants';
+import Swal from 'sweetalert2';
 
 const SUCCESS_COLOR = '#198754';
 
@@ -11,7 +12,7 @@ export const HousekeepingDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('DIRTY'); // 'ALL' or 'DIRTY'
 
-  // Branch selector state (cho Admin/Manager)
+  // Branch selector state (for Admin/Manager)
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
 
@@ -19,7 +20,7 @@ export const HousekeepingDashboard = () => {
   const isManager = currentUser?.permissions?.isManager;
   const canSelectBranch = isAdmin || isManager;
 
-  // Load danh sách branch cho Admin/Manager
+  // Load branch list for Admin/Manager
   useEffect(() => {
     if (!currentUser) return;
 
@@ -28,7 +29,7 @@ export const HousekeepingDashboard = () => {
         .then(res => {
           const data = res.data || [];
           setBranches(data);
-          // Default: chọn branch hiện tại của user, hoặc branch đầu tiên
+          // Default: select current user's branch, or the first available branch
           const defaultBranch = data.find(b => b.branchId === currentUser.branchId) || data[0];
           setSelectedBranch(defaultBranch ? defaultBranch.branchId : currentUser.branchId);
         })
@@ -36,12 +37,12 @@ export const HousekeepingDashboard = () => {
           setSelectedBranch(currentUser.branchId);
         });
     } else {
-      // Staff/Housekeeper: dùng branch cố định từ token
+      // Staff/Housekeeper: use fixed branch from token
       setSelectedBranch(currentUser.branchId);
     }
   }, [currentUser]);
 
-  // Fetch rooms khi branch thay đổi
+  // Fetch rooms when the selected branch changes
   useEffect(() => {
     if (selectedBranch) {
       fetchRooms();
@@ -55,7 +56,7 @@ export const HousekeepingDashboard = () => {
       const res = await housekeepingApi.getRooms(selectedBranch);
       setRooms(res.data);
     } catch (error) {
-      alert('Failed to load rooms');
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load rooms. Please try again.', confirmButtonColor: COLORS.PRIMARY });
     } finally {
       setLoading(false);
     }
@@ -64,10 +65,10 @@ export const HousekeepingDashboard = () => {
   const handleMarkClean = async (roomId) => {
     try {
       await housekeepingApi.updateRoomStatusToClean(roomId);
-      alert('Room marked as Clean (AVAILABLE)');
+      Swal.fire({ icon: 'success', title: 'Done!', text: 'Room has been marked as Clean (AVAILABLE).', timer: 2000, showConfirmButton: false });
       fetchRooms(); // Refresh the list
     } catch (error) {
-      alert('Failed to update room status');
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to update room status. Please try again.', confirmButtonColor: COLORS.PRIMARY });
     }
   };
 
@@ -103,7 +104,7 @@ export const HousekeepingDashboard = () => {
     }
   };
 
-  // Tên branch đang chọn
+  // Name of the currently selected branch
   const selectedBranchName = branches.find(b => b.branchId === selectedBranch)?.branchName || '';
 
   return (
@@ -121,7 +122,7 @@ export const HousekeepingDashboard = () => {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Branch selector — chỉ hiện cho Admin/Manager */}
+          {/* Branch selector — only visible for Admin/Manager */}
           {canSelectBranch && branches.length > 0 && (
             <select
               id="select-housekeeping-branch"
