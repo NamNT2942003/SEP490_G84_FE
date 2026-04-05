@@ -165,9 +165,9 @@ export default function FrontDeskDashboard() {
       const d = pivotDate(b, mode);
       if (!d) return false;
       const diff = Math.round((d - t) / 86400000);
-      if (cardFilter === 'overdue')      return diff < 0;
+      if (cardFilter === 'overdue') return diff < 0;
       if (cardFilter === 'today_action') return diff === 0;
-      if (cardFilter === 'upcoming')     return diff > 0;
+      if (cardFilter === 'upcoming') return diff > 0;
       return true;
     });
   }, [filteredByTime, cardFilter, mode]);
@@ -175,9 +175,9 @@ export default function FrontDeskDashboard() {
   const toggleCardFilter = (key) => setCardFilter(prev => prev === key ? null : key);
 
   // ── Modals ─────────────────────────────────────────────────────────────────
-  const handleOpenCheckIn   = (b) => { setSelectedBooking(b); setShowModal(true); };
-  const handleOpenDetails   = (b) => { setSelectedBooking(b); setShowDetailsModal(true); };
-  const handleOpenCheckout  = (b) => { setSelectedBooking(b); setShowCheckoutModal(true); };
+  const handleOpenCheckIn = (b) => { setSelectedBooking(b); setShowModal(true); };
+  const handleOpenDetails = (b) => { setSelectedBooking(b); setShowDetailsModal(true); };
+  const handleOpenCheckout = (b) => { setSelectedBooking(b); setShowCheckoutModal(true); };
 
   // ── Theme ─────────────────────────────────────────────────────────────────
   const isCheckin = mode === 'checkin';
@@ -189,19 +189,19 @@ export default function FrontDeskDashboard() {
 
   const statCards = isInhouse
     ? [
-        { key: null,          label: 'Currently In-House',    value: s.totalCheckout   ?? '–', sub: 'guests staying now' },
-        { key: null,          label: 'Checkout Today',        value: s.todayCheckout   ?? '–', sub: 'due for check-out today' },
-        { key: null,          label: 'Overdue Check-out',     value: s.overdueCheckout ?? '–', sub: 'need immediate action' },
-        { key: null,          label: 'Upcoming Departures',   value: s.upcomingCheckout ?? '–', sub: 'future check-outs' },
-      ]
+      { key: null, label: 'Currently In-House', value: s.totalCheckout ?? '–', sub: 'guests staying now' },
+      { key: null, label: 'Checkout Today', value: s.todayCheckout ?? '–', sub: 'due for check-out today' },
+      { key: null, label: 'Overdue Check-out', value: s.overdueCheckout ?? '–', sub: 'need immediate action' },
+      { key: null, label: 'Upcoming Departures', value: s.upcomingCheckout ?? '–', sub: 'future check-outs' },
+    ]
     : [
-        { key: 'overdue',      label: isCheckin ? 'Overdue Check-in'    : 'Overdue Check-out',     value: isCheckin ? (s.overdueCheckin  ?? '–') : (s.overdueCheckout  ?? '–'), sub: 'need immediate action' },
-        { key: 'today_action', label: isCheckin ? 'Check-in Today'      : 'Check-out Today',       value: isCheckin ? (s.todayCheckin    ?? '–') : (s.todayCheckout    ?? '–'), sub: 'arrivals / departures' },
-        { key: null,           label: 'Checkout Today',                                            value: s.todayCheckout  ?? '–',                                              sub: 'due for check-out today' },
-        { key: null,           label: 'Currently In-House',                                        value: s.totalCheckout  ?? '–',                                              sub: 'guests staying now' },
-        { key: 'upcoming',     label: isCheckin ? 'Upcoming Arrivals'   : 'Upcoming Departures',   value: isCheckin ? (s.upcomingCheckin ?? '–') : (s.upcomingCheckout ?? '–'), sub: 'future bookings' },
-        { key: null,           label: isCheckin ? 'Total Check-ins'     : 'Total Check-outs',      value: isCheckin ? (s.totalCheckin    ?? '–') : (s.totalCheckout    ?? '–'), sub: 'all statuses' },
-      ];
+      { key: 'overdue', label: isCheckin ? 'Overdue Check-in' : 'Overdue Check-out', value: isCheckin ? (s.overdueCheckin ?? '–') : (s.overdueCheckout ?? '–'), sub: 'need immediate action' },
+      { key: 'today_action', label: isCheckin ? 'Check-in Today' : 'Check-out Today', value: isCheckin ? (s.todayCheckin ?? '–') : (s.todayCheckout ?? '–'), sub: 'arrivals / departures' },
+      { key: null, label: 'Checkout Today', value: s.todayCheckout ?? '–', sub: 'due for check-out today' },
+      { key: null, label: 'Currently In-House', value: s.totalCheckout ?? '–', sub: 'guests staying now' },
+      { key: 'upcoming', label: isCheckin ? 'Upcoming Arrivals' : 'Upcoming Departures', value: isCheckin ? (s.upcomingCheckin ?? '–') : (s.upcomingCheckout ?? '–'), sub: 'future bookings' },
+      { key: null, label: isCheckin ? 'Total Check-ins' : 'Total Check-outs', value: isCheckin ? (s.totalCheckin ?? '–') : (s.totalCheckout ?? '–'), sub: 'all statuses' },
+    ];
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -313,9 +313,9 @@ export default function FrontDeskDashboard() {
         <div className="d-flex border-bottom">
           {[
             { key: 'today', label: 'Today' },
-            { key: 'week',  label: 'This Week' },
+            { key: 'week', label: 'This Week' },
             { key: 'month', label: 'This Month' },
-            { key: 'all',   label: 'All' },
+            { key: 'all', label: 'All' },
           ].map(({ key, label }) => (
             <button key={key} id={`tab-time-${key}`}
               className={`fd-time-tab ${timeFilter === key ? 'active' : ''}`}

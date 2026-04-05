@@ -1,11 +1,11 @@
-import {useState, useEffect, useCallback} from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import SearchForm from "./SearchForm.jsx";
 import RoomCard from "./RoomCard.jsx";
 import RoomDetailModal from "./RoomDetailModal.jsx";
 import SmartPagination from "./SmartPagination.jsx";
-import {roomService} from "../api/roomService.js";
-import {branchService} from "../api/branchService.js";
+import { roomService } from "../api/roomService.js";
+import { branchService } from "../api/branchService.js";
 
 const SearchRoom = () => {
     const [rooms, setRooms] = useState([]);
@@ -255,9 +255,9 @@ const SearchRoom = () => {
     const handleCloseModal = () => { setShowModal(false); setSelectedRoom(null); };
 
     useEffect(() => {
-        const fmtYmd = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-        const now = new Date(); now.setHours(0,0,0,0);
-        const tom = new Date(now); tom.setDate(now.getDate()+1);
+        const fmtYmd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const tom = new Date(now); tom.setDate(now.getDate() + 1);
 
         // Chỉ gọi lần đầu khi component mount
         if (!isInitialized) {
@@ -591,21 +591,21 @@ const SearchRoom = () => {
                                 <div><i className="bi bi-moon-stars"></i>{nights} {nights > 1 ? "nights" : "night"}</div>
                             </div>
 
-                            <div style={{marginTop: '15px', maxHeight: '450px', overflowY: 'auto', paddingRight: '8px'}}>
+                            <div style={{ marginTop: '15px', maxHeight: '450px', overflowY: 'auto', paddingRight: '8px' }}>
                                 {selectedCart.length > 0 ? (
                                     selectedCart.map((room, idx) => {
                                         const roomUnitPrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
                                         const roomTotal = roomUnitPrice * (room.quantity || 1);
                                         return (
                                             <div key={idx} className="cart-room-item">
-                                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
-                                                    <div style={{flex: 1}}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                                                    <div style={{ flex: 1 }}>
                                                         <div className="cart-room-name">
-                                                            <i className="bi bi-door-open me-2" style={{color: '#5C6F4E'}}></i>
+                                                            <i className="bi bi-door-open me-2" style={{ color: '#5C6F4E' }}></i>
                                                             {room.name}
                                                         </div>
                                                         <div className="cart-room-price">
-                                                                    <i className="bi bi-currency-dollar me-1"></i>{new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/stay
+                                                            <i className="bi bi-currency-dollar me-1"></i>{new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/stay
                                                         </div>
                                                     </div>
                                                     <button
@@ -651,7 +651,7 @@ const SearchRoom = () => {
                                                         {room.quantity} room(s)
                                                     </span>
                                                     <span className="cart-room-total-amount">
-                                                        {new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(roomTotal)}
+                                                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(roomTotal)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -660,8 +660,8 @@ const SearchRoom = () => {
                                 ) : (
                                     <div className="cart-empty">
                                         <i className="bi bi-inbox"></i>
-                                        <p style={{fontSize: '0.9rem', fontWeight: 600, marginBottom: '4px'}}>No Rooms Yet</p>
-                                        <p style={{fontSize: '0.8rem', opacity: 0.8}}>Click "Book Now" to add rooms</p>
+                                        <p style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '4px' }}>No Rooms Yet</p>
+                                        <p style={{ fontSize: '0.8rem', opacity: 0.8 }}>Click "Book Now" to add rooms</p>
                                     </div>
                                 )}
                             </div>
@@ -671,7 +671,7 @@ const SearchRoom = () => {
                                     <div className="cart-total-section">
                                         <span className="cart-total-label"><i className="bi bi-wallet2 me-1"></i>Total:</span>
                                         <span className="cart-total-amount">
-                                            {new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(cartTotal)}
+                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cartTotal)}
                                         </span>
                                     </div>
                                     <button

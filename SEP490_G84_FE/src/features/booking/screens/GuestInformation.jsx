@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import BookingSummary from '@/features/booking/components/BookingSummary';
 import Input from '@/components/ui/Input';
 import bookingService from '@/features/booking/api/bookingService';
+import Swal from 'sweetalert2';
 import './GuestInformation.css';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -75,7 +76,7 @@ const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
     const maxQty = room.availableCount || 999;
 
     return (
-        <div className="room-item shadow-sm border-0 rounded-4 overflow-hidden mb-4" style={{background: '#fff', transition: 'all 0.3s'}}>
+        <div className="room-item shadow-sm border-0 rounded-4 overflow-hidden mb-4" style={{ background: '#fff', transition: 'all 0.3s' }}>
             <style>{`
                 .promo-container { padding: 20px 24px; background: #fafbf8; border-top: 1px solid #f0f4ec; }
                 .promo-title { font-size: 0.95rem; font-weight: 700; color: #2d3748; letter-spacing: 0.5px; }
@@ -96,16 +97,16 @@ const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
             <div className="room-item-body">
                 <div className="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                        <div className="room-name fs-5 fw-bold text-dark mb-1" style={{fontFamily: "'Playfair Display', serif"}}>{room.name}</div>
-                        <div className="room-price fw-semibold text-secondary mb-2" style={{fontSize: '0.9rem'}}>
+                        <div className="room-name fs-5 fw-bold text-dark mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>{room.name}</div>
+                        <div className="room-price fw-semibold text-secondary mb-2" style={{ fontSize: '0.9rem' }}>
                             <i className="bi bi-currency-dollar me-1"></i>{new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ stay</span>
                         </div>
                         <div className="d-flex gap-3">
-                            <div className="small px-2 py-1 rounded" style={{background: '#ebf4ff', color: '#3182ce', fontWeight: 600}}>
+                            <div className="small px-2 py-1 rounded" style={{ background: '#ebf4ff', color: '#3182ce', fontWeight: 600 }}>
                                 <i className="bi bi-shield-check me-1" />
                                 {getCancellationText(room.cancellationType, room.freeCancelBeforeDays)}
                             </div>
-                            <div className="small px-2 py-1 rounded" style={{background: '#e6fffa', color: '#319795', fontWeight: 600}}>
+                            <div className="small px-2 py-1 rounded" style={{ background: '#e6fffa', color: '#319795', fontWeight: 600 }}>
                                 <i className="bi bi-credit-card me-1" />
                                 {getPaymentText(room.paymentType)}
                             </div>
@@ -127,7 +128,7 @@ const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
                             type="button"
                             className="btn btn-sm btn-light rounded-circle"
                             onClick={() => onQuantityChange(room.roomTypeId, qty - 1)}
-                            style={{width: '32px', height: '32px', padding: 0}}
+                            style={{ width: '32px', height: '32px', padding: 0 }}
                         >
                             <i className="bi bi-dash fw-bold" />
                         </button>
@@ -140,19 +141,19 @@ const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
                             onChange={(e) =>
                                 onQuantityChange(room.roomTypeId, parseInt(e.target.value) || 1)
                             }
-                            style={{width: '50px', background: 'transparent'}}
+                            style={{ width: '50px', background: 'transparent' }}
                         />
                         <button
                             type="button"
                             className="btn btn-sm btn-light rounded-circle"
                             onClick={() => onQuantityChange(room.roomTypeId, qty + 1)}
                             disabled={qty >= maxQty}
-                            style={{width: '32px', height: '32px', padding: 0}}
+                            style={{ width: '32px', height: '32px', padding: 0 }}
                         >
                             <i className="bi bi-plus fw-bold" />
                         </button>
                     </div>
-                    <div className="room-total fs-4 fw-bold" style={{color: '#5C6F4E'}}>
+                    <div className="room-total fs-4 fw-bold" style={{ color: '#5C6F4E' }}>
                         {formatVND(unitPrice * qty)}
                     </div>
                 </div>
@@ -160,14 +161,14 @@ const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
 
             {room.manualSelectPromotions?.length > 0 && (
                 <div className="promo-container">
-                    <h6 className="promo-title mb-3"><i className="bi bi-gift-fill me-2" style={{color: '#D4AF37'}}></i>Exclusive Promotions</h6>
+                    <h6 className="promo-title mb-3"><i className="bi bi-gift-fill me-2" style={{ color: '#D4AF37' }}></i>Exclusive Promotions</h6>
                     <div className="promo-list">
                         {room.manualSelectPromotions.map((promo, idx) => {
                             const isChecked = room.selectedManualPromotion?.priceModifierId === promo.priceModifierId;
                             return (
                                 <div className={`promo-card ${isChecked ? 'active' : ''}`} key={`${room.roomTypeId}-promo-${idx}`} onClick={() => onSelectPromo(room.roomTypeId, promo)}>
                                     <div className="promo-radio">
-                                        <i className={`bi ${isChecked ? 'bi-check-circle-fill' : 'bi-circle'}`} style={{color: isChecked ? '#5C6F4E' : '#cbd5e0'}}></i>
+                                        <i className={`bi ${isChecked ? 'bi-check-circle-fill' : 'bi-circle'}`} style={{ color: isChecked ? '#5C6F4E' : '#cbd5e0' }}></i>
                                     </div>
                                     <div className="promo-content">
                                         <div className="promo-header">
@@ -181,7 +182,7 @@ const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
                         })}
                         <div className={`promo-card no-promo ${!room.selectedManualPromotion ? 'active' : ''}`} onClick={() => onSelectPromo(room.roomTypeId, null)}>
                             <div className="promo-radio">
-                                <i className={`bi ${!room.selectedManualPromotion ? 'bi-check-circle-fill text-secondary' : 'bi-circle'}`} style={{color: !room.selectedManualPromotion ? '' : '#cbd5e0'}}></i>
+                                <i className={`bi ${!room.selectedManualPromotion ? 'bi-check-circle-fill text-secondary' : 'bi-circle'}`} style={{ color: !room.selectedManualPromotion ? '' : '#cbd5e0' }}></i>
                             </div>
                             <div className="promo-content justify-content-center">
                                 <span className="text-secondary fw-semibold">Do not use a promotion right now</span>
@@ -227,7 +228,12 @@ const GuestInformation = () => {
         }
         const room = rooms.find((r) => r.roomTypeId === roomTypeId);
         if (room && newQty > (room.availableCount || 999)) {
-            alert(`Only ${room.availableCount} room(s) left for ${room.name}`);
+            Swal.fire({
+                icon: 'warning',
+                title: 'Limit Reached',
+                text: `Only ${room.availableCount} room(s) left for ${room.name}`,
+                confirmButtonColor: '#5C6F4E',
+            });
             return;
         }
         setRooms((prev) =>
@@ -247,23 +253,23 @@ const GuestInformation = () => {
 
     const calculateTotalPrice = () => {
         return rooms.reduce(
-                (sum, room) => sum + calculateRoomUnitPrice(room) * (room.quantity || 1),
+            (sum, room) => sum + calculateRoomUnitPrice(room) * (room.quantity || 1),
             0
         );
     };
 
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
-            alert('Please fill in all guest information.');
+            Swal.fire({ icon: 'warning', title: 'Missing Information', text: 'Please fill in all guest information.', confirmButtonColor: '#5C6F4E' });
             return;
         }
         if (rooms.length === 0) {
-            alert('Please select at least one room.');
+            Swal.fire({ icon: 'warning', title: 'No Rooms Selected', text: 'Please select at least one room.', confirmButtonColor: '#5C6F4E' });
             return;
         }
 
         if (!checkIn || !checkOut || new Date(checkOut) <= new Date(checkIn)) {
-            alert('Invalid date. Please select a check-out date after check-in (yyyy-MM-dd).');
+            Swal.fire({ icon: 'warning', title: 'Invalid Date', text: 'Please select a check-out date after check-in (yyyy-MM-dd).', confirmButtonColor: '#5C6F4E' });
             return;
         }
 
@@ -274,7 +280,7 @@ const GuestInformation = () => {
             const createdBookingId = data?.bookingId ?? data?.id;
 
             if (!createdBookingId) {
-                alert('Booking error: Did not receive a booking ID from the server.');
+                Swal.fire({ icon: 'error', title: 'Booking Error', text: 'Did not receive a booking ID from the server.', confirmButtonColor: '#d33' });
                 return;
             }
 
@@ -291,7 +297,7 @@ const GuestInformation = () => {
         } catch (error) {
             console.error('Booking error:', error);
             const message = error?.response?.data?.message || error?.friendlyMessage || error.message || 'Unable to create booking';
-            alert('Booking error: ' + message);
+            Swal.fire({ icon: 'error', title: 'Booking Error', text: message, confirmButtonColor: '#d33' });
         }
     };
 

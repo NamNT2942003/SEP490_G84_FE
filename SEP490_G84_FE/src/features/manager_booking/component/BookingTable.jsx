@@ -1,5 +1,6 @@
 import React from 'react';
 import { checkInApi } from '../api/checkInApi';
+import Swal from 'sweetalert2';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -39,13 +40,13 @@ function sourceTag(source) {
 }
 
 function statusBadge(booking, isNoShow, isCheckoutOverdue, isCheckoutToday) {
-  if (booking.status === 'NO_SHOW')   return { text: 'No-Show', bg: '#212121', color: '#fff' };
-  if (isNoShow)                       return { text: '⚠ Overdue / No-Show', bg: '#ffcdd2', color: '#b71c1c' };
-  if (isCheckoutOverdue)              return { text: '⚠ Overstayed', bg: '#ffcdd2', color: '#b71c1c' };
-  if (isCheckoutToday)                return { text: '⏰ Checkout Due Today', bg: '#fff3e0', color: '#e65100' };
-  if (booking.status === 'ARRIVED')   return { text: '🧳 Arrived · Luggage Stored', bg: '#e1f5fe', color: '#01579b' };
+  if (booking.status === 'NO_SHOW') return { text: 'No-Show', bg: '#212121', color: '#fff' };
+  if (isNoShow) return { text: '⚠ Overdue / No-Show', bg: '#ffcdd2', color: '#b71c1c' };
+  if (isCheckoutOverdue) return { text: '⚠ Overstayed', bg: '#ffcdd2', color: '#b71c1c' };
+  if (isCheckoutToday) return { text: '⏰ Checkout Due Today', bg: '#fff3e0', color: '#e65100' };
+  if (booking.status === 'ARRIVED') return { text: '🧳 Arrived · Luggage Stored', bg: '#e1f5fe', color: '#01579b' };
   if (booking.status === 'CONFIRMED') return { text: 'Awaiting Check-in', bg: '#e8f5e9', color: '#2e7d32' };
-  if (booking.status === 'CHECKED_IN')return { text: 'In-House', bg: '#fce4ec', color: '#880e4f' };
+  if (booking.status === 'CHECKED_IN') return { text: 'In-House', bg: '#fce4ec', color: '#880e4f' };
   return { text: booking.status, bg: '#eee', color: '#555' };
 }
 
@@ -71,47 +72,87 @@ export default function BookingTable({
   }
 
   const handleUndoCheckIn = async (booking) => {
-    if (window.confirm(`⚠️ Undo check-in for booking ${booking.bookingCode}?\n\nAll check-in data and surcharges will be permanently deleted!`)) {
+    const result = await Swal.fire({
+      title: 'Undo Check-in?',
+      html: `⚠️ Undo check-in for booking <b>${booking.bookingCode}</b>?<br><br>All check-in data and surcharges will be permanently deleted!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, undo it!'
+    });
+
+    if (result.isConfirmed) {
       try {
         await checkInApi.undoCheckIn(booking.id);
-        alert('Check-in undone successfully.');
+        Swal.fire('Success', 'Check-in undone successfully.', 'success');
         if (onRefresh) onRefresh();
       } catch (error) {
-        alert(error.response?.data?.error || 'Failed to undo check-in.');
+        Swal.fire('Error', error.response?.data?.error || 'Failed to undo check-in.', 'error');
       }
     }
   };
 
   const handleNotifyNoShow = async (booking) => {
-    if (window.confirm(`Send no-show reminder email for booking ${booking.bookingCode}?`)) {
+    const result = await Swal.fire({
+      title: 'Send reminder?',
+      text: `Send no-show reminder email for booking ${booking.bookingCode}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Send'
+    });
+
+    if (result.isConfirmed) {
       try {
         await checkInApi.notifyNoShow(booking.id);
-        alert('Reminder email sent successfully!');
+        Swal.fire('Sent!', 'Reminder email sent successfully!', 'success');
       } catch (error) {
-        alert(error.response?.data?.error || 'Failed to send email.');
+        Swal.fire('Error', error.response?.data?.error || 'Failed to send email.', 'error');
       }
     }
   };
 
   const handleMarkNoShow = async (booking) => {
-    if (window.confirm(`Mark booking ${booking.bookingCode} as NO_SHOW?\n\nThis cannot be undone.`)) {
+    const result = await Swal.fire({
+      title: 'Mark as No-Show?',
+      html: `Mark booking <b>${booking.bookingCode}</b> as NO_SHOW?<br><br>This cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, mark it'
+    });
+
+    if (result.isConfirmed) {
       try {
         await checkInApi.markNoShow(booking.id);
-        alert('Booking marked as No-Show.');
+        Swal.fire('Marked', 'Booking marked as No-Show.', 'success');
         if (onRefresh) onRefresh();
       } catch (error) {
-        alert(error.response?.data?.error || 'Failed to mark as No-Show.');
+        Swal.fire('Error', error.response?.data?.error || 'Failed to mark as No-Show.', 'error');
       }
     }
   };
 
   const handleRemindCheckout = async (booking) => {
-    if (window.confirm(`Send checkout reminder email to ${booking.guestName} for booking ${booking.bookingCode}?`)) {
+    const result = await Swal.fire({
+      title: 'Send checkout reminder?',
+      text: `Send checkout reminder email to ${booking.guestName} for booking ${booking.bookingCode}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Send'
+    });
+
+    if (result.isConfirmed) {
       try {
         await checkInApi.notifyCheckout(booking.id);
-        alert('Checkout reminder email sent!');
+        Swal.fire('Sent!', 'Checkout reminder email sent!', 'success');
       } catch (error) {
-        alert(error.response?.data?.error || 'Failed to send email.');
+        Swal.fire('Error', error.response?.data?.error || 'Failed to send email.', 'error');
       }
     }
   };
@@ -258,12 +299,12 @@ export default function BookingTable({
                     {/* Check-in button */}
                     {!isNoShow && booking.status !== 'NO_SHOW'
                       && (booking.status === 'CONFIRMED' || booking.status === 'ARRIVED') && (
-                      <button className="btn btn-sm fw-semibold"
-                        style={{ background: accent, color: '#fff', border: 'none', fontSize: '0.82rem' }}
-                        onClick={() => onCheckInClick(booking)}>
-                        <i className="bi bi-box-arrow-in-right me-1"></i>Check In
-                      </button>
-                    )}
+                        <button className="btn btn-sm fw-semibold"
+                          style={{ background: accent, color: '#fff', border: 'none', fontSize: '0.82rem' }}
+                          onClick={() => onCheckInClick(booking)}>
+                          <i className="bi bi-box-arrow-in-right me-1"></i>Check In
+                        </button>
+                      )}
 
                     {/* Check-out mode */}
                     {booking.status === 'CHECKED_IN' && (

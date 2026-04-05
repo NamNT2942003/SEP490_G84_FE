@@ -75,9 +75,9 @@ const CalendarDropdown = ({ value, minDate, onSelect, onClose }) => {
   const canGoPrev = viewYear > now.getFullYear() || (viewYear === now.getFullYear() && viewMonth > now.getMonth());
 
   return (
-    <div className="cal-dropdown shadow-lg border-0 rounded-4 bg-white p-3" 
-         style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 1070, minWidth: 320, animation: "calFadeIn .2s ease" }}
-         onClick={(e) => e.stopPropagation()}>
+    <div className="cal-dropdown shadow-lg border-0 rounded-4 bg-white p-3"
+      style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 1070, minWidth: 320, animation: "calFadeIn .2s ease" }}
+      onClick={(e) => e.stopPropagation()}>
       {/* Header */}
       <div className="d-flex align-items-center justify-content-between mb-3">
         <button type="button" className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center"
@@ -130,7 +130,7 @@ const CalendarDropdown = ({ value, minDate, onSelect, onClose }) => {
           onClick={() => { onSelect(""); onClose(); }}>
           Clear
         </button>
-        <button type="button" className="btn btn-sm px-3 text-white fw-bold" 
+        <button type="button" className="btn btn-sm px-3 text-white fw-bold"
           style={{ background: "#5C6F4E", borderRadius: 8, fontSize: ".8rem" }}
           onClick={() => { const t = fmtYmd(new Date()); if (!minD || new Date() >= minD) { onSelect(t); onClose(); } }}>
           Today
@@ -142,11 +142,11 @@ const CalendarDropdown = ({ value, minDate, onSelect, onClose }) => {
 
 /* ── Main Search Form ── */
 const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange }) => {
-  const fmtYmd = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const fmtYmd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-  const now = new Date(); now.setHours(0,0,0,0);
+  const now = new Date(); now.setHours(0, 0, 0, 0);
   const today = fmtYmd(now);
-  const tom = new Date(now); tom.setDate(now.getDate()+1);
+  const tom = new Date(now); tom.setDate(now.getDate() + 1);
   const tomorrow = fmtYmd(tom);
 
   const [sp, setSp] = useState({ checkIn: today, checkOut: tomorrow, adults: 1, children: 0 });
@@ -170,8 +170,8 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
   }, []);
 
   const adj = (f, d) => setSp(p => {
-    const mn = f==="adults"?1:0, mx = f==="adults"?6:4;
-    return { ...p, [f]: Math.min(mx, Math.max(mn, p[f]+d)) };
+    const mn = f === "adults" ? 1 : 0, mx = f === "adults" ? 6 : 4;
+    return { ...p, [f]: Math.min(mx, Math.max(mn, p[f] + d)) };
   });
   const guestText = () => {
     let t = `${sp.adults} adult${sp.adults > 1 ? 's' : ''}`;
@@ -180,24 +180,24 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
   };
 
   // date helpers
-  const enDay = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  const enMonth = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const enDay = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const enMonth = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = (ymd) => {
     if (!ymd) return { main: "Select date", sub: "" };
-    const [y,m,d] = ymd.split("-").map(Number);
-    return { main: `${enMonth[m-1]} ${d}, ${y}`, sub: enDay[new Date(y,m-1,d).getDay()] };
+    const [y, m, d] = ymd.split("-").map(Number);
+    return { main: `${enMonth[m - 1]} ${d}, ${y}`, sub: enDay[new Date(y, m - 1, d).getDay()] };
   };
   const nights = () => {
     if (!sp.checkIn || !sp.checkOut) return 0;
-    const [y1,m1,d1] = sp.checkIn.split("-").map(Number);
-    const [y2,m2,d2] = sp.checkOut.split("-").map(Number);
-    return Math.max(0, Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 864e5));
+    const [y1, m1, d1] = sp.checkIn.split("-").map(Number);
+    const [y2, m2, d2] = sp.checkOut.split("-").map(Number);
+    return Math.max(0, Math.round((new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1)) / 864e5));
   };
 
   const handleSelectCheckIn = useCallback((val) => {
     setSp(p => {
       const ci = val; let co = p.checkOut;
-      if (ci && co && co <= ci) { const d = new Date(ci.split("-").map(Number).reduce((_, v, i) => i === 0 ? new Date(v, 0, 1) : i === 1 ? (_.setMonth(v-1), _) : (_.setDate(v), _), new Date())); d.setDate(d.getDate()+1); co = fmtYmd(d); }
+      if (ci && co && co <= ci) { const d = new Date(ci.split("-").map(Number).reduce((_, v, i) => i === 0 ? new Date(v, 0, 1) : i === 1 ? (_.setMonth(v - 1), _) : (_.setDate(v), _), new Date())); d.setDate(d.getDate() + 1); co = fmtYmd(d); }
       return { ...p, checkIn: ci || p.checkIn, checkOut: co };
     });
   }, []);
@@ -216,8 +216,8 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
   // Min date for checkout = checkIn + 1 day
   const checkOutMin = (() => {
     if (!sp.checkIn) return today;
-    const [y,m,d] = sp.checkIn.split("-").map(Number);
-    const dt = new Date(y, m-1, d); dt.setDate(dt.getDate()+1);
+    const [y, m, d] = sp.checkIn.split("-").map(Number);
+    const dt = new Date(y, m - 1, d); dt.setDate(dt.getDate() + 1);
     return fmtYmd(dt);
   })();
 
@@ -314,7 +314,7 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                     // Auto-open checkout calendar after selecting check-in
                     setTimeout(() => setCalOpen("checkout"), 100);
                   }}
-                  onClose={() => {}}
+                  onClose={() => { }}
                 />
               )}
               {calOpen === "checkout" && (
@@ -332,7 +332,7 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
               <span className="sf-l"><i className="bi bi-people-fill"></i>Guests</span>
               <div className="sf-w">
                 <i className="bi bi-people-fill si"></i>
-                <div className={`gt ${guestOpen?"op":""}`} onClick={() => { setGuestOpen(!guestOpen); setCalOpen(null); }}>
+                <div className={`gt ${guestOpen ? "op" : ""}`} onClick={() => { setGuestOpen(!guestOpen); setCalOpen(null); }}>
                   {guestText()}<i className="bi bi-chevron-down ch"></i>
                 </div>
               </div>
@@ -341,17 +341,17 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                   <div className="gr">
                     <div><div className="grl">Adults</div><div className="grh">Ages 13 and above</div></div>
                     <div className="gc">
-                      <button type="button" className="gb" onClick={() => adj("adults",-1)} disabled={sp.adults<=1}>−</button>
+                      <button type="button" className="gb" onClick={() => adj("adults", -1)} disabled={sp.adults <= 1}>−</button>
                       <span className="gv">{sp.adults}</span>
-                      <button type="button" className="gb" onClick={() => adj("adults",1)} disabled={sp.adults>=6}>+</button>
+                      <button type="button" className="gb" onClick={() => adj("adults", 1)} disabled={sp.adults >= 6}>+</button>
                     </div>
                   </div>
                   <div className="gr">
                     <div><div className="grl">Children</div><div className="grh">Ages 0 – 12</div></div>
                     <div className="gc">
-                      <button type="button" className="gb" onClick={() => adj("children",-1)} disabled={sp.children<=0}>−</button>
+                      <button type="button" className="gb" onClick={() => adj("children", -1)} disabled={sp.children <= 0}>−</button>
                       <span className="gv">{sp.children}</span>
-                      <button type="button" className="gb" onClick={() => adj("children",1)} disabled={sp.children>=4}>+</button>
+                      <button type="button" className="gb" onClick={() => adj("children", 1)} disabled={sp.children >= 4}>+</button>
                     </div>
                   </div>
                   <button type="button" className="gdone" onClick={() => setGuestOpen(false)}>Done</button>
