@@ -92,7 +92,7 @@ function RoomManagement() {
     } catch (err) {
       console.warn("Rooms API not available:", err.response?.status);
       setError(err.response?.status === 400 || err.response?.status === 404
-          ? "Backend APIs chưa sẵn sàng. Vui lòng kiểm tra kết nối backend."
+          ? "Backend APIs are not ready. Please check the backend connection."
           : err.message || "Error loading room data");
       setRooms([]);
       setApiStatus(prev => ({ ...prev, rooms: 'unavailable' }));

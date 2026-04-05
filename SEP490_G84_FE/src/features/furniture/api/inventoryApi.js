@@ -60,7 +60,7 @@ const ImportHistory = () => {
 
         try {
             await inventoryApi.importInventory(payload);
-            alert("Nhập kho thành công!");
+            alert("Import successful!");
             setIsModalOpen(false);
             fetchImportHistory();
         } catch (error) {

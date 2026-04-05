@@ -118,7 +118,19 @@ const SearchRoom = () => {
 
 
     const searchRooms = useCallback(async (sp) => {
-        setLoading(true); setError(null); setSearchParams(sp);
+        setLoading(true); setError(null);
+
+        // Phát hiện đổi ngày → reset cart luôn, cập nhật ngày trên cart
+        const datesChanged = searchParams
+            && (sp.checkIn !== searchParams.checkIn || sp.checkOut !== searchParams.checkOut);
+
+        setSearchParams(sp);
+
+        // Reset cart ngay khi đổi ngày (giá & availability theo ngày mới hoàn toàn khác)
+        if (datesChanged) {
+            setSelectedCart([]);
+        }
+
         try {
             if (sp.checkIn && sp.checkOut) {
                 if (new Date(sp.checkOut) <= new Date(sp.checkIn)) {
@@ -130,17 +142,20 @@ const SearchRoom = () => {
             const res = await roomService.searchRooms(params);
             const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
             setRooms(fetchedRooms);
-            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
+            // Chỉ sync cart khi KHÔNG đổi ngày (sort, phân trang)
+            if (!datesChanged) {
+                setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
+            }
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
             const apiError = err?.response?.data?.error;
             const message = apiError && String(apiError).includes("yyyy-MM-dd")
-                ? "Ngay khong dung dinh dang yyyy-MM-dd"
+                ? "Invalid date format (yyyy-MM-dd)"
                 : (apiError || err.message || "Failed to search rooms");
             setError(message);
         } finally { setLoading(false); }
-    }, [filters]);
+    }, [filters, searchParams]);
 
     const refetchRooms = useCallback(async () => {
         if (!searchParams) return;
@@ -160,7 +175,7 @@ const SearchRoom = () => {
         } catch (err) {
             const apiError = err?.response?.data?.error;
             const message = apiError && String(apiError).includes("yyyy-MM-dd")
-                ? "Ngay khong dung dinh dang yyyy-MM-dd"
+                ? "Invalid date format (yyyy-MM-dd)"
                 : (apiError || err.message || "Failed to search rooms");
             setError(message);
         } finally { setLoading(false); }
@@ -239,9 +254,9 @@ const SearchRoom = () => {
             return;
         }
 
-        const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
+        // API trả giá tổng cả kỳ lưu trú, không cần nhân nights
         const totalPrice = selectedCart.reduce((sum, room) =>
-            sum + ((room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0) * (room.quantity || 1) * nights), 0
+            sum + ((room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0) * (room.quantity || 1)), 0
         );
 
         navigate('/guest-information', {
@@ -287,7 +302,7 @@ const SearchRoom = () => {
     const totalSelectedRooms = selectedCart.reduce((sum, r) => sum + (r.quantity || 1), 0);
     const cartTotal = selectedCart.reduce((sum, r) => {
         const unitPrice = r.selectedPrice ?? r.appliedPrice ?? r.basePrice ?? r.price ?? 0;
-        return sum + (unitPrice * (r.quantity || 1) * nights);
+        return sum + (unitPrice * (r.quantity || 1));
     }, 0);
     const hasValidStayDates =
         Boolean(searchParams?.checkIn) &&
@@ -597,8 +612,8 @@ const SearchRoom = () => {
                             <div style={{marginTop: '15px', maxHeight: '450px', overflowY: 'auto', paddingRight: '8px'}}>
                                 {selectedCart.length > 0 ? (
                                     selectedCart.map((room, idx) => {
-                                        const roomUnitPrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
-                                        const roomTotal = roomUnitPrice * (room.quantity || 1) * nights;
+                                        const roomStayPrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+                                        const roomTotal = roomStayPrice * (room.quantity || 1);
                                         return (
                                             <div key={idx} className="cart-room-item">
                                                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
@@ -608,7 +623,7 @@ const SearchRoom = () => {
                                                             {room.name}
                                                         </div>
                                                         <div className="cart-room-price">
-                                                            💰 {new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/night
+                                                            💰 {new Intl.NumberFormat('vi-VN').format(roomStayPrice)}₫ / {nights}N
                                                         </div>
                                                     </div>
                                                     <button
@@ -651,7 +666,7 @@ const SearchRoom = () => {
                                                 <div className="cart-room-total">
                                                     <span>
                                                         <span className="me-2">📊</span>
-                                                        {room.quantity} × {nights}N
+                                                        {room.quantity} room(s)
                                                     </span>
                                                     <span className="cart-room-total-amount">
                                                         {new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(roomTotal)}

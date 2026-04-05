@@ -76,7 +76,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
     setIsSubmitting(true);
     try {
       const response = await checkoutApi.processCheckout(booking.id, paymentMethod);
-      alert(response.message || 'Check-out thành công!');
+      alert(response.message || 'Check-out successful!');
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {

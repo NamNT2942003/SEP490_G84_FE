@@ -118,12 +118,12 @@ export default function MonthlyReportBootstrap() {
 
       {/* Footer Form: Action */}
       <div className="d-flex justify-content-end gap-3">
-        <button className="btn btn-secondary px-4">Lưu nháp</button>
+        <button className="btn btn-secondary px-4">Save Draft</button>
         <button 
           className="btn btn-success btn-lg px-5 shadow" 
-          onClick={() => alert('Chốt sổ thành công! Số liệu tháng này sẽ bị khóa.')}
+          onClick={() => alert('Closing successful! This month data will be locked.')}
         >
-          🔒 CHỐT SỔ THÁNG NÀY
+          🔒 LOCK THIS MONTH
         </button>
       </div>
     </div>

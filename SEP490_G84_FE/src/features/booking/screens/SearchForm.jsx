@@ -47,19 +47,28 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         return Math.max(0, Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 864e5));
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!sp.checkIn || !sp.checkOut) {
-            setValidationMessage("Please select both check-in and check-out dates.");
+    const isFirstRun = useRef(true);
+    useEffect(() => {
+        if (isFirstRun.current) {
+            isFirstRun.current = false;
             return;
         }
-        if (sp.checkOut <= sp.checkIn) {
-            setValidationMessage("Check-out date must be after check-in date.");
-            return;
-        }
-        setValidationMessage("");
-        onSearch(sp);
-    };
+
+        const timer = setTimeout(() => {
+            if (!sp.checkIn || !sp.checkOut) {
+                setValidationMessage("Please select both check-in and check-out dates.");
+                return;
+            }
+            if (sp.checkOut <= sp.checkIn) {
+                setValidationMessage("Check-out date must be after check-in date.");
+                return;
+            }
+            setValidationMessage("");
+            onSearch(sp);
+        }, 300); // optional debounce for rapid clicks
+
+        return () => clearTimeout(timer);
+    }, [sp, onSearch]);
 
     return (
         <>
@@ -113,8 +122,8 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         @media(max-width:576px){.sf{padding:18px 14px 16px}.sf-g.gu,.sf-g.ac{flex:1 1 100%}}
       `}</style>
 
-            <div className="sf" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" && !guestOpen) { e.preventDefault(); handleSubmit(e); } }}>
-                <form onSubmit={handleSubmit}>
+            <div className="sf" tabIndex={0}>
+                <div>
                     <div className="sf-r">
                         {/* Branch */}
                         <div className="sf-g br">
@@ -208,15 +217,7 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                             )}
                         </div>
 
-                        {/* Search */}
-                        <div className="sf-g ac">
-                            <span className="sf-l">&nbsp;</span>
-                            <button type="submit" className="sf-btn" disabled={loading}>
-                                {loading
-                                    ? <><span className="spinner-border" role="status"></span><span>Searching...</span></>
-                                    : <><i className="bi bi-search"></i><span>Search</span></>}
-                            </button>
-                        </div>
+                        {/* Removed manual Search button as it auto-searches */}
                     </div>
                     {validationMessage && (
                         <div className="sf-msg" role="alert" aria-live="polite">
@@ -224,10 +225,16 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                             <span>{validationMessage}</span>
                         </div>
                     )}
-                    <div className="sf-help">
-                        Tip: Select your dates first, then choose guests to get accurate room availability.
+                    <div className="sf-help" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>Tip: Select your dates first, then choose guests to get accurate room availability.</span>
+                        {loading && (
+                            <span style={{ color: '#5C6F4E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span className="spinner-border spinner-border-sm" role="status"></span>
+                                Updating results...
+                            </span>
+                        )}
                     </div>
-                </form>
+                </div>
             </div>
         </>
     );
