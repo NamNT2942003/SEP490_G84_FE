@@ -5,6 +5,7 @@ import { fetchRoleOptionsForAccountForm } from '@/features/accounts/utils/roleOp
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import SuccessNoticeModal from '@/features/accounts/components/SuccessNoticeModal';
 import AccountConfirmModal from '@/features/accounts/components/AccountConfirmModal';
+import AccountErrorModal from '@/features/accounts/components/AccountErrorModal';
 import './EditStaff.css';
 
 const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
@@ -37,6 +38,11 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
   const [pendingSuccessMeta, setPendingSuccessMeta] = useState(null);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   const [submitConfirming, setSubmitConfirming] = useState(false);
+  const [errorModal, setErrorModal] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     if (!currentUser) {
@@ -179,7 +185,15 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
       const msg =
         error.response?.data?.message ||
         (typeof error.response?.data === 'string' ? error.response?.data : JSON.stringify(error.response?.data));
-      alert('Could not update user.' + (msg ? '\n' + msg : ''));
+      const detail =
+        msg != null && msg !== ''
+          ? String(msg)
+          : 'Please try again or contact support if the problem continues.';
+      setErrorModal({
+        open: true,
+        title: 'Could not update user',
+        message: detail,
+      });
       setSubmitConfirmOpen(false);
     } finally {
       setSubmitConfirming(false);
@@ -196,6 +210,10 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
   const handleCancel = () => {
     if (isModal && onClose) onClose();
     else navigate('/accounts');
+  };
+
+  const closeErrorModal = () => {
+    setErrorModal({ open: false, title: '', message: '' });
   };
 
   const handleCloseSuccessNotice = () => {
@@ -418,6 +436,13 @@ const EditStaff = ({ id: idProp, onClose, onSuccess, isModal }) => {
         onConfirm={performUpdateAccount}
         confirming={submitConfirming}
         variant="primary"
+      />
+
+      <AccountErrorModal
+        open={errorModal.open}
+        title={errorModal.title}
+        message={errorModal.message}
+        onClose={closeErrorModal}
       />
 
       <SuccessNoticeModal

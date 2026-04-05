@@ -281,13 +281,19 @@ const AccountList = () => {
 
   if (!currentUser || !currentUser.permissions?.canAccessAccountList) return null;
 
+  const isAdminUser =
+    currentUser.role === 'ADMIN' || !!currentUser.permissions?.isAdmin;
+  const isManagerUser =
+    !isAdminUser &&
+    (currentUser.role === 'MANAGER' || !!currentUser.permissions?.isManager);
+
   return (
       <div className="account-management-container">
         {/* Header */}
         <div className="account-header">
           <div>
             <h1 className="account-title">
-              Account List
+              {isManagerUser ? 'Staff Account List' : 'Account List'}
             </h1>
           </div>
           <div className="d-flex gap-2 align-items-center">
@@ -297,7 +303,7 @@ const AccountList = () => {
                 onClick={() => setCreateModalOpen(true)}
             >
               <i className="bi bi-person-plus-fill"></i>
-              {currentUser.permissions?.isManager ? 'Create Staff' : 'Create Account'}
+              {isManagerUser ? 'Create Staff' : 'Create Account'}
             </button>
           </div>
         </div>
@@ -481,7 +487,7 @@ const AccountList = () => {
                         <tr>
                           <td colSpan="9" className="text-center py-4 text-muted">
                             {loadError ? 'Failed to load data.' : 'No accounts found'}
-                            {!loadError && currentUser?.permissions?.isManager && ' (Manager can only view Staff accounts.)'}
+                            {!loadError && isManagerUser && ' (Manager can only view Staff accounts.)'}
                           </td>
                         </tr>
                     )}
