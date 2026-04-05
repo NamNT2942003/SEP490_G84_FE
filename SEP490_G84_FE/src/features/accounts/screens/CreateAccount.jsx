@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { accountAPI, branchAPI } from '@/features/accounts/api/accountApi';
+import { accountAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useMyBranches } from '@/hooks/useMyBranches';
 import SuccessNoticeModal from '@/features/accounts/components/SuccessNoticeModal';
 import './CreateAccount.css';
 
 const CreateAccount = ({ onClose, onSuccess, isModal }) => {
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
+  const { branches: myBranches } = useMyBranches();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -42,10 +44,16 @@ const CreateAccount = ({ onClose, onSuccess, isModal }) => {
 
   useEffect(() => {
     if (currentUser?.permissions?.canAccessAccountList) {
-      fetchBranches();
       fetchAssignableRoles();
     }
   }, [currentUser]);
+
+  // Use managed branches from useMyBranches hook (filtered by User_Branch)
+  useEffect(() => {
+    if (myBranches && myBranches.length > 0) {
+      setBranches(myBranches);
+    }
+  }, [myBranches]);
 
   const fetchAssignableRoles = async () => {
     if (!currentUser?.userId) return;
@@ -57,16 +65,6 @@ const CreateAccount = ({ onClose, onSuccess, isModal }) => {
     } catch (err) {
       console.warn('Assignable roles not loaded:', err);
       setAssignableRoles([]);
-    }
-  };
-
-  const fetchBranches = async () => {
-    try {
-      const response = await branchAPI.getAllBranches();
-      setBranches(response.data);
-    } catch (err) {
-      console.error('Error fetching branches:', err);
-      setError('Unable to load branch list');
     }
   };
 

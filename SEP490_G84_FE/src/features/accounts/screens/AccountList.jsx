@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { accountAPI } from '@/features/accounts/api/accountApi';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useMyBranches } from '@/hooks/useMyBranches';
 import apiClient from '@/services/apiClient';
 import UserDetail from './UserDetail';
 import CreateAccount from './CreateAccount';
@@ -23,6 +24,7 @@ const AccountList = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useCurrentUser();
+  const { branches: myBranches } = useMyBranches();
 
   const [accounts, setAccounts] = useState([]);
   const [rolesList, setRolesList] = useState([]);
@@ -202,7 +204,8 @@ const AccountList = () => {
 
   const indexOfLastAccount = currentPage * accountsPerPage;
   const indexOfFirstAccount = indexOfLastAccount - accountsPerPage;
-  const uniqueBranches = [...new Set(accounts.map(a => a.mainBranch).filter(Boolean))].sort();
+  // Use managed branches from useMyBranches hook (not extracted from loaded accounts)
+  const uniqueBranches = myBranches.map(b => b.branchName).sort();
   const searchLower = searchTerm.trim().toLowerCase();
   const filteredAccounts = accounts.filter(account => {
     const matchesSearch = searchLower === '' ||
