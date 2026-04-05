@@ -52,25 +52,23 @@ const Login = () => {
 
 const handleGoogleSuccess = async (credentialResponse) => {
     try {
-        // 1. Lấy token từ Google trả về
-        const token = credentialResponse.credential;
+        // 1. Get token from Google
+        const googleToken = credentialResponse.credential;
 
-        // 2. Gửi về Backend của mình để đổi lấy JWT
-        const res = await apiClient.post('/auth/google', { token: token });
+        // 2. Send to our backend to exchange for JWT
+        const res = await apiClient.post('/auth/google', { token: googleToken });
 
-        // 3. Backend trả về accessToken -> Lưu vào Redux/LocalStorage
+        // 3. Dispatch through Redux (same as normal login)
         const { accessToken } = res.data;
+        dispatch({ type: 'auth/setTokenFromGoogle', payload: accessToken });
 
-        // Lưu token
-        localStorage.setItem('accessToken', accessToken);
-
-        // Chuyển trang (Reload nhẹ để cập nhật state)
-        window.location.href = '/dashboard';
+        // 4. Navigate to dashboard
+        navigate('/dashboard');
 
     } catch (error) {
-        console.error("Lỗi Google Login:", error);
-        alert("Google login failed!");
-
+        console.error("Google Login error:", error);
+        const msg = error.response?.data?.message || "Google login failed!";
+        alert(msg);
     }
   };
 

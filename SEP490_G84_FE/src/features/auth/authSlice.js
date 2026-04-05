@@ -58,6 +58,12 @@ const authSlice = createSlice({
         },
         clearError: (state) => {
             state.error = null;
+        },
+        setTokenFromGoogle: (state, action) => {
+            const token = action.payload;
+            state.token = token;
+            state.user = getUserFromToken(token);
+            localStorage.setItem('accessToken', token);
         }
     },
     extraReducers: (builder) => {
@@ -80,5 +86,5 @@ const authSlice = createSlice({
     },
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { logout, clearError, setTokenFromGoogle } = authSlice.actions;
 export default authSlice.reducer;

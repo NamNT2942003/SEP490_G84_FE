@@ -14,6 +14,13 @@ export function useCurrentUser() {
     if (!token) return null;
     try {
       const decoded = jwtDecode(token);
+
+      // Check if token has expired
+      if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+        localStorage.removeItem(STORAGE_ACCESS_TOKEN);
+        return null;
+      }
+
       const roleRaw = (decoded.role || '').split(',')[0] || '';
       const role = roleRaw.replace(ROLE_PREFIX, '').toUpperCase();
       const permissions = decoded.permissions && typeof decoded.permissions === 'object'

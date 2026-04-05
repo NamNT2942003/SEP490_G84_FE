@@ -92,15 +92,33 @@ import ImportReceiptUI from "@/features/test/ImportReceiptUI.jsx";
 import InventoryReportPage from "@/features/test/InventoryReportPage";
 
 /**
- * Helper HOC: Chặn Staff truy cập vào các trang quản lý nhạy cảm (Account, Services, Admin...).
- * Redirect về trang /dashboard an toàn.
+ * ProtectedRoute: Requires user to be authenticated.
+ * Redirects to /login if no valid token exists.
+ */
+const ProtectedRoute = ({ children }) => {
+    const currentUser = useCurrentUser();
+    if (!currentUser) {
+        return <Navigate to="/login" replace />;
+    }
+    return children;
+};
+
+/**
+ * RequireManagerOrAdmin: Only allows ADMIN and MANAGER roles.
+ * Must be used inside ProtectedRoute (user is guaranteed to exist).
  */
 const RequireManagerOrAdmin = ({ children }) => {
     const currentUser = useCurrentUser();
-    if (currentUser?.permissions?.isStaff || currentUser?.permissions?.isHousekeeper) {
-        return <Navigate to="/dashboard" replace />;
+    // Must be authenticated
+    if (!currentUser) {
+        return <Navigate to="/login" replace />;
     }
-    return children;
+    // Only ADMIN and MANAGER are allowed
+    const role = currentUser.role?.toUpperCase();
+    if (role === 'ADMIN' || role === 'MANAGER') {
+        return children;
+    }
+    return <Navigate to="/dashboard" replace />;
 };
 
 const AppRouter = () => {
@@ -132,57 +150,56 @@ const AppRouter = () => {
             <Route path="/import-receipt" element={<ImportReceiptUI />} />
             <Route path="/inventory-report" element={<InventoryReportPage />} />
 
-            {/* --- NHÓM 5: PRIVATE PAGES (Main Layout) --- */}
+            {/* --- NHÓM 5: PRIVATE PAGES (Main Layout + ProtectedRoute) --- */}
 
             {/* 5.1 Dashboard, Core & Front Desk */}
-            <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
-            <Route path="/rooms" element={<MainLayout><div>Room List (Coming Soon)</div></MainLayout>} />
-            <Route path="/bookings" element={<MainLayout><BookingManagement /></MainLayout>} />
-            <Route path="/manager-booking" element={<MainLayout><FrontDeskDashboard /></MainLayout>} />
-            <Route path="/stay" element={<MainLayout><StayScreen /></MainLayout>} />
-            <Route path="/housekeeping" element={<MainLayout><HousekeepingDashboard /></MainLayout>} />
+            <Route path="/dashboard" element={<ProtectedRoute><MainLayout><Dashboard /></MainLayout></ProtectedRoute>} />
+            <Route path="/rooms" element={<ProtectedRoute><MainLayout><div>Room List (Coming Soon)</div></MainLayout></ProtectedRoute>} />
+            <Route path="/bookings" element={<ProtectedRoute><MainLayout><BookingManagement /></MainLayout></ProtectedRoute>} />
+            <Route path="/manager-booking" element={<ProtectedRoute><MainLayout><FrontDeskDashboard /></MainLayout></ProtectedRoute>} />
+            <Route path="/stay" element={<ProtectedRoute><MainLayout><StayScreen /></MainLayout></ProtectedRoute>} />
+            <Route path="/housekeeping" element={<ProtectedRoute><MainLayout><HousekeepingDashboard /></MainLayout></ProtectedRoute>} />
 
             {/* 5.2 Inventory & Finance */}
-            <Route path="/inventory" element={<MainLayout><InventoryScreen /></MainLayout>} />
-            {/* Sub-routes cho Furniture Inventory (Giữ nguyên cấu trúc file 1) */}
+            <Route path="/inventory" element={<ProtectedRoute><MainLayout><InventoryScreen /></MainLayout></ProtectedRoute>} />
 
-            <Route path="/furniture/report" element={<MainLayout><InventoryReport /></MainLayout>} />
-            <Route path="/furniture/history" element={<MainLayout><ImportHistory /></MainLayout>} />
-            <Route path="/furniture/furniture" element={<MainLayout><FurnitureInventory /></MainLayout>} />
+            <Route path="/furniture/report" element={<ProtectedRoute><MainLayout><InventoryReport /></MainLayout></ProtectedRoute>} />
+            <Route path="/furniture/history" element={<ProtectedRoute><MainLayout><ImportHistory /></MainLayout></ProtectedRoute>} />
+            <Route path="/furniture/furniture" element={<ProtectedRoute><MainLayout><FurnitureInventory /></MainLayout></ProtectedRoute>} />
 
-            <Route path="/finance/cashflow" element={<MainLayout><CashflowScreen /></MainLayout>} />
+            <Route path="/finance/cashflow" element={<ProtectedRoute><MainLayout><CashflowScreen /></MainLayout></ProtectedRoute>} />
 
             {/* 5.3 Profile */}
-            <Route path="/profile" element={<MainLayout><UserProfile /></MainLayout>} />
-            <Route path="/profile/edit" element={<MainLayout><UpdateProfile /></MainLayout>} />
+            <Route path="/profile" element={<ProtectedRoute><MainLayout><UserProfile /></MainLayout></ProtectedRoute>} />
+            <Route path="/profile/edit" element={<ProtectedRoute><MainLayout><UpdateProfile /></MainLayout></ProtectedRoute>} />
 
             {/* 5.4 Reports */}
-            <Route path="/report/revenue" element={<MainLayout><RevenueReportScreen /></MainLayout>} />
-            <Route path="/report/expense" element={<MainLayout><ExpenseReportScreen /></MainLayout>} />
-            <Route path="/report/services" element={<MainLayout><ServiceRevenueReportScreen /></MainLayout>} />
-            <Route path="/report/aggregated" element={<MainLayout><AggregatedReportScreen /></MainLayout>} />
-            <Route path="/report/multi-branch" element={<MainLayout><MultiBranchReportScreen /></MainLayout>} />
-            <Route path="/report/detail/:category" element={<MainLayout><ReportDetailScreen /></MainLayout>} />
+            <Route path="/report/revenue" element={<ProtectedRoute><MainLayout><RevenueReportScreen /></MainLayout></ProtectedRoute>} />
+            <Route path="/report/expense" element={<ProtectedRoute><MainLayout><ExpenseReportScreen /></MainLayout></ProtectedRoute>} />
+            <Route path="/report/services" element={<ProtectedRoute><MainLayout><ServiceRevenueReportScreen /></MainLayout></ProtectedRoute>} />
+            <Route path="/report/aggregated" element={<ProtectedRoute><MainLayout><AggregatedReportScreen /></MainLayout></ProtectedRoute>} />
+            <Route path="/report/multi-branch" element={<ProtectedRoute><MainLayout><MultiBranchReportScreen /></MainLayout></ProtectedRoute>} />
+            <Route path="/report/detail/:category" element={<ProtectedRoute><MainLayout><ReportDetailScreen /></MainLayout></ProtectedRoute>} />
 
-            {/* --- NHÓM 6: ADMIN / MANAGER ONLY PAGES (Main Layout + RequireManagerOrAdmin) --- */}
+            {/* --- NHÓM 6: ADMIN / MANAGER ONLY PAGES (ProtectedRoute + RequireManagerOrAdmin) --- */}
 
             {/* 6.1 Admin Infrastructure Management */}
-            <Route path="/admin/rooms" element={<MainLayout><RoomManagement /></MainLayout>} />
-            <Route path="/admin/furniture" element={<MainLayout><FurnitureManagement /></MainLayout>} />
-            <Route path="/admin/branches" element={<MainLayout><BranchManagement /></MainLayout>} />
-            <Route path="/admin/room-types" element={<MainLayout><RoomTypeManagement /></MainLayout>} />
-            <Route path="/admin/room-types/:roomTypeId/price-modifiers" element={<MainLayout><PriceModifierManagement /></MainLayout>} />
-            <Route path="/admin/room-inventories" element={<MainLayout><RoomInventoryManagement /></MainLayout>} />
-            <Route path="/admin/branches/:branchId/cancellation-policies" element={<MainLayout><RefundPolicyManagement /></MainLayout>} />
+            <Route path="/admin/rooms" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><RoomManagement /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
+            <Route path="/admin/furniture" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><FurnitureManagement /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
+            <Route path="/admin/branches" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><BranchManagement /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
+            <Route path="/admin/room-types" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><RoomTypeManagement /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
+            <Route path="/admin/room-types/:roomTypeId/price-modifiers" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><PriceModifierManagement /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
+            <Route path="/admin/room-inventories" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><RoomInventoryManagement /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
+            <Route path="/admin/branches/:branchId/cancellation-policies" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><RefundPolicyManagement /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
 
             {/* 6.2 Services Management */}
-            <Route path="/services" element={<MainLayout><RequireManagerOrAdmin><ServiceList /></RequireManagerOrAdmin></MainLayout>} />
+            <Route path="/services" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><ServiceList /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
 
             {/* 6.3 Account Management */}
-            <Route path="/accounts" element={<MainLayout><RequireManagerOrAdmin><AccountList /></RequireManagerOrAdmin></MainLayout>} />
-            <Route path="/accounts/create" element={<MainLayout><RequireManagerOrAdmin><CreateAccount /></RequireManagerOrAdmin></MainLayout>} />
-            <Route path="/accounts/:id" element={<MainLayout><RequireManagerOrAdmin><UserDetail /></RequireManagerOrAdmin></MainLayout>} />
-            <Route path="/accounts/:id/edit" element={<MainLayout><RequireManagerOrAdmin><EditStaff /></RequireManagerOrAdmin></MainLayout>} />
+            <Route path="/accounts" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><AccountList /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
+            <Route path="/accounts/create" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><CreateAccount /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
+            <Route path="/accounts/:id" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><UserDetail /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
+            <Route path="/accounts/:id/edit" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><EditStaff /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
 
             {/* --- NHÓM 7: CATCH-ALL (Redirect to Login) --- */}
             <Route path="*" element={<Navigate to="/login" replace />} />
@@ -191,6 +208,7 @@ const AppRouter = () => {
 };
 
 export default AppRouter;
+
 
 
 

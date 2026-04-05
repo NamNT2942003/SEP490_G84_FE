@@ -24,6 +24,18 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle 401 Unauthorized — token expired or invalid
+    if (error.response && error.response.status === 401) {
+      // Only redirect if we're not already on the login/auth pages
+      const isAuthRequest = error.config?.url?.includes('/auth/');
+      if (!isAuthRequest) {
+        localStorage.removeItem('accessToken');
+        // Use window.location to hard redirect (works outside React Router context)
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+    }
+
     // If there is no response, it's likely a network error / backend unreachable
     if (!error.response) {
       const base = apiClient.defaults.baseURL || 'API server';
