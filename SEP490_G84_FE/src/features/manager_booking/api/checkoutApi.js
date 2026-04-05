@@ -1,34 +1,21 @@
-import axios from 'axios';
-import { STORAGE_ACCESS_TOKEN } from '@/constants';
-
-const BASE_URL = 'http://localhost:8081/api/checkout';
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem(STORAGE_ACCESS_TOKEN);
-  return { 'Authorization': `Bearer ${token}` };
-};
+import apiClient from '@/services/apiClient';
 
 export const checkoutApi = {
   getBillingInfo: async (bookingId) => {
-    const response = await axios.get(`${BASE_URL}/bookings/${bookingId}/billing`, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
+    const { data } = await apiClient.get(`/checkout/bookings/${bookingId}/billing`);
+    return data;
   },
 
   getRoomBillingInfo: async (bookingId) => {
-    const response = await axios.get(`${BASE_URL}/bookings/${bookingId}/room-billing`, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
+    const { data } = await apiClient.get(`/checkout/bookings/${bookingId}/room-billing`);
+    return data;
   },
 
   processCheckout: async (bookingId, paymentMethod = 'CASH') => {
-    const response = await axios.post(
-      `${BASE_URL}/bookings/${bookingId}/process`,
-      { paymentMethod },
-      { headers: getAuthHeaders() }
+    const { data } = await apiClient.post(
+      `/checkout/bookings/${bookingId}/process`,
+      { paymentMethod }
     );
-    return response.data;
+    return data;
   }
 };

@@ -1,122 +1,84 @@
-import axios from 'axios';
-
-import { STORAGE_ACCESS_TOKEN } from '@/constants';
-
-
-// Đổi port này nếu Spring Boot của bạn chạy port khác (VD: 8080)
-const API_BASE_URL = 'http://localhost:8081/api/front-desk';
-
-// Hàm lấy Token để nhét vào Header (vì BE của bạn dùng JWT)
-const getAuthHeaders = () => {
-  const token = localStorage.getItem(STORAGE_ACCESS_TOKEN);
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
-  };
-};
+import apiClient from '@/services/apiClient';
 
 export const checkInApi = {
-  // 1. Lấy danh sách booking
+  // 1. Get dashboard bookings
   getDashboardBookings: async (branchId, status) => {
     const params = { branchId };
     if (status) params.status = status;
-    
-    const response = await axios.get(`${API_BASE_URL}/bookings`, {
-      params,
-      headers: getAuthHeaders()
-    });
-    return response.data;
+
+    const { data } = await apiClient.get('/front-desk/bookings', { params });
+    return data;
   },
 
-  // 2. Lấy danh sách phòng rảnh để đổ vào form Check-in
+  // 2. Get available rooms for check-in form
   getAvailableRooms: async (branchId) => {
-    const response = await axios.get(`${API_BASE_URL}/rooms/available`, {
-      params: { branchId },
-      headers: getAuthHeaders()
+    const { data } = await apiClient.get('/front-desk/rooms/available', {
+      params: { branchId }
     });
-    return response.data;
+    return data;
   },
 
-  // 3. Thực hiện Check-in
+  // 3. Process check-in
   processCheckIn: async (bookingId, payload) => {
-    const response = await axios.post(`${API_BASE_URL}/bookings/${bookingId}/check-in`, payload, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
+    const { data } = await apiClient.post(`/front-desk/bookings/${bookingId}/check-in`, payload);
+    return data;
   },
 
-  // 4. Đánh dấu khách đến & Gửi hành lý
+  // 4. Mark as arrived & luggage
   markAsArrived: async (bookingId, luggageNote) => {
-    const response = await axios.post(`${API_BASE_URL}/bookings/${bookingId}/mark-arrived`, { luggageNote }, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
+    const { data } = await apiClient.post(`/front-desk/bookings/${bookingId}/mark-arrived`, { luggageNote });
+    return data;
   },
 
-  // 5. Undo Check-in
+  // 5. Undo check-in
   undoCheckIn: async (bookingId) => {
-    const response = await axios.post(`${API_BASE_URL}/bookings/${bookingId}/undo-checkin`, {}, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
+    const { data } = await apiClient.post(`/front-desk/bookings/${bookingId}/undo-checkin`);
+    return data;
   },
 
-  // 6. Update thông tin khách
+  // 6. Update guest info
   updateGuestInfo: async (guestId, payload) => {
-    const response = await axios.put(`${API_BASE_URL}/guests/${guestId}`, payload, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
+    const { data } = await apiClient.put(`/front-desk/guests/${guestId}`, payload);
+    return data;
   },
 
-  // 7. Lấy danh sách cơ sở mà user quản lý
+  // 7. Get user's managed branches
   getMyBranches: async () => {
-    const response = await axios.get(`${API_BASE_URL}/my-branches`, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
+    const { data } = await apiClient.get('/front-desk/my-branches');
+    return data;
   },
 
-  // 8. Gửi email cảnh báo No-Show (không đổi status)
+  // 8. Send no-show warning email (doesn't change status)
   notifyNoShow: async (bookingId) => {
-    const response = await axios.post(`http://localhost:8081/api/bookings/${bookingId}/notify-noshow`, {}, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
+    const { data } = await apiClient.post(`/bookings/${bookingId}/notify-noshow`);
+    return data;
   },
 
-  // 9. Đổi trạng thái booking thành NO_SHOW (không gửi email)
+  // 9. Mark booking as NO_SHOW (doesn't send email)
   markNoShow: async (bookingId) => {
-    const response = await axios.put(`http://localhost:8081/api/bookings/${bookingId}/no-show`, {}, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
+    const { data } = await apiClient.put(`/bookings/${bookingId}/no-show`);
+    return data;
   },
 
-  // 10. Gửi email nhắc nhở checkout (không đổi status)
+  // 10. Send checkout reminder email (doesn't change status)
   notifyCheckout: async (bookingId) => {
-    const response = await axios.post(`http://localhost:8081/api/bookings/${bookingId}/notify-checkout`, {}, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
+    const { data } = await apiClient.post(`/bookings/${bookingId}/notify-checkout`);
+    return data;
   },
 
-  // 11. Lấy bộ thống kê dashboard cards (logic tính toán từ BE)
+  // 11. Get dashboard stats
   getDashboardStats: async (branchId) => {
-    const response = await axios.get(`${API_BASE_URL}/stats`, {
-      params: { branchId },
-      headers: getAuthHeaders()
+    const { data } = await apiClient.get('/front-desk/stats', {
+      params: { branchId }
     });
-    return response.data;
+    return data;
   },
 
-  // 12. Kiểm tra hạng phòng mới có đủ tồn kho cho toàn bộ số đêm của booking không
+  // 12. Check room upgrade availability
   checkUpgradeAvailability: async (bookingId, newRoomTypeName) => {
-    const response = await axios.get(`${API_BASE_URL}/rooms/check-upgrade`, {
-      params: { bookingId, newRoomTypeName },
-      headers: getAuthHeaders()
+    const { data } = await apiClient.get('/front-desk/rooms/check-upgrade', {
+      params: { bookingId, newRoomTypeName }
     });
-    return response.data; // { available: true/false }
+    return data; // { available: true/false }
   },
-
 };

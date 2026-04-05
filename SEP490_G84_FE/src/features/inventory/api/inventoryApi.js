@@ -1,54 +1,47 @@
-const BASE_URL = 'http://localhost:8081/api/inventory-report';
+import apiClient from '@/services/apiClient';
 
 export const inventoryApi = {
-    /** Lấy tổng quan 12 tháng trong năm */
+    /** Get yearly overview (12 months) */
     getYearOverview: async (branchId, year) => {
-        const res = await fetch(`${BASE_URL}/overview?branchId=${branchId}&year=${year}`);
-        if (!res.ok) throw new Error('Error fetching inventory year overview');
-        return res.json();
+        const { data } = await apiClient.get('/inventory-report/overview', {
+            params: { branchId, year }
+        });
+        return data;
     },
 
-    /** Lấy báo cáo chi tiết 1 tháng */
+    /** Get detailed monthly report */
     getMonthlyReport: async (branchId, year, month) => {
-        const res = await fetch(`${BASE_URL}/report?branchId=${branchId}&year=${year}&month=${month}`);
-        if (!res.ok) throw new Error('Error fetching inventory monthly report');
-        return res.json();
+        const { data } = await apiClient.get('/inventory-report/report', {
+            params: { branchId, year, month }
+        });
+        return data;
     },
 
-    /** Lấy danh sách mặt hàng kho (cho dropdown) */
+    /** Get inventory items for dropdown */
     getInventoryItems: async (branchId) => {
-        const res = await fetch(`${BASE_URL}/items?branchId=${branchId}`);
-        if (!res.ok) throw new Error('Error fetching inventory items');
-        return res.json();
+        const { data } = await apiClient.get('/inventory-report/items', {
+            params: { branchId }
+        });
+        return data;
     },
 
-    /** Tạo đơn nhập hàng */
+    /** Create import receipt */
     createImportReceipt: async (branchId, payload) => {
-        const res = await fetch(`${BASE_URL}/receipt?branchId=${branchId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+        const { data } = await apiClient.post('/inventory-report/receipt', payload, {
+            params: { branchId }
         });
-        if (!res.ok) throw new Error('Error creating import receipt');
-        return res.json();
+        return data;
     },
 
-    /** Chốt báo cáo tháng */
+    /** Save/finalize monthly report */
     saveMonthlyReport: async (payload) => {
-        const res = await fetch(`${BASE_URL}/report/save`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error('Error saving monthly report');
+        await apiClient.post('/inventory-report/report/save', payload);
     },
 
-    /** Mở lại báo cáo đã chốt */
+    /** Unsave/reopen a finalized report */
     unsaveMonthlyReport: async (branchId, year, month) => {
-        const res = await fetch(
-            `${BASE_URL}/report/unsave?branchId=${branchId}&year=${year}&month=${month}`,
-            { method: 'POST' }
-        );
-        if (!res.ok) throw new Error('Error unsaving monthly report');
+        await apiClient.post('/inventory-report/report/unsave', null, {
+            params: { branchId, year, month }
+        });
     },
 };
