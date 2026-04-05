@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect } from "react";
 import bookingManagementApi from "../api/bookingManagementApi";
 import "./BookingDetailModal.css";
-
-const BRAND = "#5C6F4E";
+import Buttons from "@/components/ui/Buttons";
+import Swal from "sweetalert2";
+import { COLORS } from "@/constants";
 
 const STATUS_CONFIG = {
     CONFIRMED: { bg: "rgba(25,135,84,0.12)", text: "#198754", dot: "#198754" },
@@ -27,10 +28,9 @@ const formatVND = (amount) =>
 // ─── Sub-components ────────────────────────────────────────────────────────
 
 const StatusBadge = ({ status }) => {
-    const cfg = STATUS_CONFIG[status] || { bg: "rgba(108,117,125,0.12)", text: "#495057", dot: "#6c757d" };
+    const cfg = STATUS_CONFIG[status] || { bg: "rgba(108,117,125,0.12)", text: "#495057" };
     return (
         <span className="status-badge" style={{ backgroundColor: cfg.bg, color: cfg.text }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: cfg.dot, display: "inline-block" }} />
             {status}
         </span>
     );
@@ -105,7 +105,17 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
     };
 
     const handleCancel = async () => {
-        if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+        const result = await Swal.fire({
+            title: 'Cancel Booking?',
+            text: 'This action cannot be undone. The booking will be cancelled immediately.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: COLORS.PRIMARY,
+            confirmButtonText: 'Yes, cancel it',
+            cancelButtonText: 'Go back'
+        });
+        if (!result.isConfirmed) return;
         try {
             setActionLoading(true);
             setError("");
@@ -196,21 +206,23 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                                 ))}
                                             </select>
                                         </div>
-                                        <button
-                                            className="btn btn-sm"
-                                            style={{ backgroundColor: BRAND, color: "white" }}
+                                        <Buttons
+                                            variant="primary"
+                                            className="btn-sm"
+                                            isLoading={actionLoading}
+                                            disabled={newStatus === booking.status}
                                             onClick={handleUpdateStatus}
-                                            disabled={actionLoading || newStatus === booking.status}
                                         >
-                                            {actionLoading ? <span className="spinner-border spinner-border-sm" /> : "Save"}
-                                        </button>
-                                        <button
-                                            className="btn btn-sm btn-outline-secondary"
-                                            onClick={() => { setShowStatusPanel(false); setNewStatus(booking.status); }}
+                                            Save
+                                        </Buttons>
+                                        <Buttons
+                                            variant="outline"
+                                            className="btn-sm"
                                             disabled={actionLoading}
+                                            onClick={() => { setShowStatusPanel(false); setNewStatus(booking.status); }}
                                         >
                                             Cancel
-                                        </button>
+                                        </Buttons>
                                     </div>
                                 )}
                             </InfoSection>
@@ -299,22 +311,20 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                 {/* Footer */}
                 <div className="bm-modal-footer">
                     {booking?.status !== "CANCELLED" && (
-                        <button
-                            className="btn btn-sm btn-danger"
+                        <Buttons
+                            variant="danger"
+                            className="btn-sm"
+                            icon={<i className="bi bi-x-circle" />}
+                            isLoading={actionLoading}
+                            disabled={loading}
                             onClick={handleCancel}
-                            disabled={actionLoading || loading}
                         >
-                            {actionLoading ? (
-                                <span className="spinner-border spinner-border-sm me-2" role="status" />
-                            ) : (
-                                <i className="bi bi-x-circle me-2" />
-                            )}
                             Cancel Booking
-                        </button>
+                        </Buttons>
                     )}
-                    <button className="btn btn-sm btn-outline-secondary" onClick={onHide} disabled={actionLoading}>
+                    <Buttons variant="outline" className="btn-sm" onClick={onHide} disabled={actionLoading}>
                         Close
-                    </button>
+                    </Buttons>
                 </div>
             </div>
         </div>

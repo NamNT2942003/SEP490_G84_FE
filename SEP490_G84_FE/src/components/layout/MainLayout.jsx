@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import AdminHeader from './AdminHeader';
 import AdminFooter from './AdminFooter';
 
-const SIDEBAR_EXPANDED = 260;
+const SIDEBAR_EXPANDED = 240;
 const SIDEBAR_COLLAPSED = 64;
 
 const MainLayout = ({ children }) => {

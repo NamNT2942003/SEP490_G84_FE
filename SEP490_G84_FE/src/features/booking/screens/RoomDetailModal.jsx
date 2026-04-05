@@ -51,7 +51,7 @@ const RoomDetailModal = ({ room, show, onClose }) => {
                     <div className="modal-content">
                         <div
                             className="modal-header"
-                            style={{ backgroundColor: "#5C6F4E" }}
+                            style={{ backgroundColor: "#465c47" }}
                         >
                             <h5 className="modal-title text-white">{roomData.name}</h5>
                             <button
@@ -66,7 +66,7 @@ const RoomDetailModal = ({ room, show, onClose }) => {
                                     <div
                                         className="spinner-border"
                                         role="status"
-                                        style={{ color: "#5C6F4E" }}
+                                        style={{ color: "#465c47" }}
                                     >
                                         <span className="visually-hidden">Loading...</span>
                                     </div>
@@ -175,7 +175,7 @@ const RoomDetailModal = ({ room, show, onClose }) => {
                             <button
                                 type="button"
                                 className="btn btn-primary"
-                                style={{ backgroundColor: "#5C6F4E", borderColor: "#5C6F4E" }}
+                                style={{ backgroundColor: "#465c47", borderColor: "#465c47" }}
                             >
                                 Book This Room
                             </button>

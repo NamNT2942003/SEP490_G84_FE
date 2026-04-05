@@ -121,8 +121,8 @@ const AppRouter = () => {
             <Route path="/search" element={<ClientLayout><SearchRoom /></ClientLayout>} />
             <Route path="/BookingSummary" element={<ClientLayout><BookingSummary /></ClientLayout>} />
             <Route path="/guest-information" element={<ClientLayout><GuestInformation/></ClientLayout>} />
-            <Route path="/payment-selection" element={<PaymentSelection/>} />
-            <Route path="/payment/result" element={<PaymentResult/>} />
+            <Route path="/payment-selection" element={<ClientLayout><PaymentSelection/></ClientLayout>} />
+            <Route path="/payment/result" element={<ClientLayout><PaymentResult/></ClientLayout>} />
 
             {/* --- NHÓM 4: TEST / BOOTSTRAP (Dev only) --- */}
             <Route path="/test" element={<ImportInventoryBootstrap />} />

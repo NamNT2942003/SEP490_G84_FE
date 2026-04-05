@@ -32,16 +32,16 @@ const SmartPagination = ({ currentPage, totalPages, totalElements, pageSize, onP
         .sp-info b{color:#333;font-weight:700}
         .sp-nav{display:flex;align-items:center;gap:4px}
         .sp-btn{min-width:38px;height:38px;border:1.5px solid #e8e8e8;border-radius:10px;background:#fff;color:#555;font-size:.84rem;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;padding:0 6px}
-        .sp-btn:hover:not(:disabled):not(.sp-ell){border-color:#5C6F4E;color:#5C6F4E;background:#f8faf6;transform:translateY(-1px);box-shadow:0 2px 8px rgba(92,111,78,.12)}
-        .sp-btn.active{background:linear-gradient(135deg,#5C6F4E,#4a5b3f);color:#fff;border-color:#5C6F4E;box-shadow:0 3px 10px rgba(92,111,78,.25);transform:translateY(-1px)}
+        .sp-btn:hover:not(:disabled):not(.sp-ell){border-color:#465c47;color:#465c47;background:#f8faf6;transform:translateY(-1px);box-shadow:0 2px 8px rgba(92,111,78,.12)}
+        .sp-btn.active{background:linear-gradient(135deg,#465c47,#384a39);color:#fff;border-color:#465c47;box-shadow:0 3px 10px rgba(92,111,78,.25);transform:translateY(-1px)}
         .sp-btn:disabled{opacity:.35;cursor:not-allowed}
         .sp-ell{border:none;background:transparent;cursor:default;color:#bbb;font-size:1rem;min-width:28px}
         .sp-arrow{font-size:.78rem}
         .sp-jump{display:flex;align-items:center;gap:6px;font-size:.8rem;color:#888}
         .sp-jump input{width:50px;height:32px;border:1.5px solid #e8e8e8;border-radius:8px;text-align:center;font-size:.82rem;font-weight:600;color:#333}
-        .sp-jump input:focus{border-color:#5C6F4E;outline:none;box-shadow:0 0 0 2px rgba(92,111,78,.1)}
-        .sp-jump button{height:32px;padding:0 12px;border:none;border-radius:8px;background:#5C6F4E;color:#fff;font-size:.76rem;font-weight:700;cursor:pointer}
-        .sp-jump button:hover{background:#4a5b3f}
+        .sp-jump input:focus{border-color:#465c47;outline:none;box-shadow:0 0 0 2px rgba(92,111,78,.1)}
+        .sp-jump button{height:32px;padding:0 12px;border:none;border-radius:8px;background:#465c47;color:#fff;font-size:.76rem;font-weight:700;cursor:pointer}
+        .sp-jump button:hover{background:#384a39}
         @media(max-width:576px){.sp{flex-direction:column;text-align:center}.sp-nav{order:-1}}
       `}</style>
             <div className="sp">

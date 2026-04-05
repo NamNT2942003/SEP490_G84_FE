@@ -214,8 +214,6 @@ const SearchRoom = () => {
             }
             setSelectedCart(prev => [...prev, { ...roomForCart, quantity: 1 }]);
         }
-
-        showUiMessage("success", `${roomForCart.name} has been added to your selection.`);
     };
 
     const handleRemoveFromCart = (roomTypeId) => {
@@ -290,7 +288,8 @@ const SearchRoom = () => {
             console.log("🔄 Refetch due to filter change");
             refetchRooms();
         }
-    }, [filters.branchId, filters.sortPrice, filters.page, searchParams, isInitialized, refetchRooms]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filters.branchId, filters.sortPrice, filters.page]);
 
     useEffect(() => {
         if (!uiMessage) return;
@@ -312,24 +311,21 @@ const SearchRoom = () => {
     return (
         <div style={{ background: '#f5f6f8', minHeight: '100vh' }}>
             <style>{`
-                .hero{background:linear-gradient(135deg,#5C6F4E 0%,#3d4a33 100%);padding:36px 0 48px;margin-bottom:-22px;position:relative;z-index:10;overflow:visible}
+                .hero{background:linear-gradient(135deg,#465c47 0%,#3d4a33 100%);padding:36px 0 48px;margin-bottom:-22px;position:relative;z-index:10;overflow:visible}
                 .hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:36px;background:#f5f6f8;border-radius:20px 20px 0 0;z-index:-1;pointer-events:none}
                 .hero-txt{text-align:center;margin-bottom:20px;color:#fff}
                 .hero-txt h2{font-weight:800;font-size:1.5rem;margin-bottom:4px}
                 .hero-txt p{color:rgba(255,255,255,.7);font-size:.9rem;margin:0}
                 .res-hdr{background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,.04);border:1px solid #eee;margin-bottom:16px}
                 .res-cnt{font-size:1rem;font-weight:700;color:#333}
-                .res-cnt span{color:#5C6F4E}
+                .res-cnt span{color:#465c47}
                 .sort-sel{border:1px solid #dee2e6;border-radius:10px;padding:7px 12px;font-size:.84rem;color:#555;background:#fafafa;cursor:pointer}
-                .sort-sel:focus{border-color:#5C6F4E;box-shadow:0 0 0 3px rgba(92,111,78,.1)}
+                .sort-sel:focus{border-color:#465c47;box-shadow:0 0 0 3px rgba(92,111,78,.1)}
                 .empty-st{background:#fff;border-radius:16px;padding:50px 30px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)}
                 .empty-st i{font-size:3.5rem;color:#ddd;margin-bottom:12px}
                 .load-st{background:#fff;border-radius:16px;padding:50px 30px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)}
                 .err-c{background:#fff;border-radius:14px;border-left:4px solid #dc3545;padding:18px 22px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-                .bc-bar{padding:12px 0 0}
-                .bc-bar .breadcrumb{margin-bottom:0;font-size:.85rem}
-                .bc-bar .breadcrumb a{color:#5C6F4E;text-decoration:none;font-weight:500}
-                .bc-bar .breadcrumb a:hover{text-decoration:underline}
+                .bc-bar{padding:16px 0 8px; display: flex; flex-direction: column; align-items: flex-end;}
                 .ux-msg{margin-top:12px;border-radius:12px;padding:11px 14px;font-size:.88rem;font-weight:600;display:flex;align-items:center;gap:8px}
                 .ux-msg.warn{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
                 .ux-msg.success{background:#ecfdf3;color:#166534;border:1px solid #b7ebc6}
@@ -354,12 +350,7 @@ const SearchRoom = () => {
             </div>
 
             <div className="container bc-bar" style={{ position: 'relative', zIndex: 1 }}>
-                <nav aria-label="breadcrumb">
-                    <ol className="breadcrumb">
-                        <li className="breadcrumb-item"><a href="/public"><i className="bi bi-house-door me-1"></i>Home</a></li>
-                        <li className="breadcrumb-item active">Search Results</li>
-                    </ol>
-                </nav>
+                {/* Breadcrumb removed as requested */}
                 {uiMessage && (
                     <div className={`ux-msg ${uiMessage.type === "success" ? "success" : "warn"}`} role="alert" aria-live="polite">
                         <i className={`bi ${uiMessage.type === "success" ? "bi-check-circle" : "bi-exclamation-triangle"}`}></i>
@@ -374,7 +365,7 @@ const SearchRoom = () => {
                         {/* Selected Rooms Cart Panel */}
                         <style>{`
                             .cart-panel {
-                                background: linear-gradient(135deg, #5C6F4E 0%, #4a5b3f 100%);
+                                background: linear-gradient(135deg, #465c47 0%, #384a39 100%);
                                 color: white;
                                 position: sticky;
                                 top: 90px;
@@ -406,7 +397,7 @@ const SearchRoom = () => {
                             .cart-room-name {
                                 font-weight: 700;
                                 font-size: 0.95rem;
-                                color: #5C6F4E;
+                                color: #465c47;
                                 margin-bottom: 4px;
                             }
                             .cart-room-price {
@@ -426,7 +417,7 @@ const SearchRoom = () => {
                             .cart-qty-control button {
                                 background: white;
                                 border: 1px solid #ddd;
-                                color: #5C6F4E;
+                                color: #465c47;
                                 width: 28px;
                                 height: 28px;
                                 padding: 0;
@@ -435,9 +426,9 @@ const SearchRoom = () => {
                                 transition: all 0.2s;
                             }
                             .cart-qty-control button:hover {
-                                background: #5C6F4E;
+                                background: #465c47;
                                 color: white;
-                                border-color: #5C6F4E;
+                                border-color: #465c47;
                             }
                             .cart-qty-control button:disabled {
                                 background: #f5f5f5;
@@ -460,7 +451,7 @@ const SearchRoom = () => {
                                 background: transparent !important;
                                 font-weight: 700;
                                 font-size: 1.1rem !important;
-                                color: #5C6F4E !important;
+                                color: #465c47 !important;
                                 padding: 0 !important;
                                 line-height: 28px !important;
                                 box-shadow: none !important;
@@ -527,7 +518,7 @@ const SearchRoom = () => {
                             }
                             .cart-room-total-amount {
                                 font-weight: 700;
-                                color: #5C6F4E;
+                                color: #465c47;
                             }
                             .cart-delete-btn {
                                 background: #ff4757;
@@ -619,7 +610,7 @@ const SearchRoom = () => {
                                                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
                                                     <div style={{flex: 1}}>
                                                         <div className="cart-room-name">
-                                                            <i className="bi bi-door-open me-2" style={{color: '#5C6F4E'}}></i>
+                                                            <i className="bi bi-door-open me-2" style={{color: '#465c47'}}></i>
                                                             {room.name}
                                                         </div>
                                                         <div className="cart-room-price">
@@ -711,7 +702,7 @@ const SearchRoom = () => {
 
                     <div className="col-lg-9 col-md-8" style={{ position: 'relative', zIndex: 0 }}>
                         <div className="res-hdr d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div className="res-cnt"><i className="bi bi-building me-2" style={{ color: '#5C6F4E' }}></i>Available Rooms: <span>{totalElements}</span></div>
+                            <div className="res-cnt"><i className="bi bi-building me-2" style={{ color: '#465c47' }}></i>Available Rooms: <span>{totalElements}</span></div>
                             <div className="d-flex align-items-center gap-2">
                                 <span className="text-muted" style={{ fontSize: '.82rem' }}><i className="bi bi-sort-down me-1"></i>Sort by:</span>
                                 <select className="sort-sel" value={filters.sortPrice} onChange={handleSortChange}>
@@ -721,9 +712,9 @@ const SearchRoom = () => {
                             </div>
                         </div>
 
-                        {loading && (
+                        {loading && rooms.length === 0 && (
                             <div className="load-st">
-                                <div className="spinner-border mb-3" role="status" style={{ color: '#5C6F4E', width: '2.5rem', height: '2.5rem' }}><span className="visually-hidden">Loading...</span></div>
+                                <div className="spinner-border mb-3" role="status" style={{ color: '#465c47', width: '2.5rem', height: '2.5rem' }}><span className="visually-hidden">Loading...</span></div>
                                 <p className="text-muted mb-0">Searching for available rooms...</p>
                             </div>
                         )}
@@ -750,8 +741,8 @@ const SearchRoom = () => {
                             </div>
                         )}
 
-                        {!loading && !error && rooms.length > 0 && (
-                            <div>
+                        {!error && rooms.length > 0 && (
+                            <div style={{ opacity: loading ? 0.5 : 1, pointerEvents: loading ? 'none' : 'auto', transition: 'opacity 0.25s ease-in-out' }}>
                                 {rooms.map((rt) => (
                                     <RoomCard
                                         key={rt.roomTypeId}

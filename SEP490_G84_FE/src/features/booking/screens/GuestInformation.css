@@ -4,7 +4,7 @@
     padding: 24px;
     margin-bottom: 24px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-    border-left: 4px solid #5C6F4E;
+    border-left: 4px solid #465c47;
     transition: all 0.3s ease;
 }
 
@@ -13,7 +13,7 @@
 }
 
 .guest-section h5 {
-    color: #5C6F4E;
+    color: #465c47;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -31,13 +31,13 @@
 }
 
 .room-item:hover {
-    box-shadow: 0 4px 12px rgba(92, 111, 78, 0.08);
-    border-color: #5C6F4E;
+    box-shadow: 0 4px 12px rgba(70, 92, 71, 0.08);
+    border-color: #465c47;
 }
 
 .room-name {
     font-weight: 700;
-    color: #5C6F4E;
+    color: #465c47;
     font-size: 1rem;
     margin-bottom: 6px;
 }
@@ -61,7 +61,7 @@
 .qty-control button {
     background: white;
     border: 1px solid #ddd;
-    color: #5C6F4E;
+    color: #465c47;
     width: 28px;
     height: 28px;
     padding: 0;
@@ -76,9 +76,9 @@
 }
 
 .qty-control button:hover:not(:disabled) {
-    background: #5C6F4E;
+    background: #465c47;
     color: white;
-    border-color: #5C6F4E;
+    border-color: #465c47;
     transform: scale(1.05);
 }
 
@@ -97,7 +97,7 @@
     background: transparent !important;
     font-weight: 700;
     font-size: 1.1rem !important;
-    color: #5C6F4E !important;
+    color: #465c47 !important;
     padding: 0 !important;
     line-height: 28px !important;
     height: 28px !important;
@@ -116,6 +116,7 @@
 
 .qty-input[type=number] {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .delete-btn {
@@ -140,7 +141,7 @@
 }
 
 .room-total {
-    color: #5C6F4E;
+    color: #465c47;
     font-weight: 700;
     font-size: 0.95rem;
 }

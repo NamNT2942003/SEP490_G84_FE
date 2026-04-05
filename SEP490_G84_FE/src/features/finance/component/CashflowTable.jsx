@@ -49,10 +49,10 @@ const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalEl
   return (
     <div className="table-responsive">
       <table className="table table-hover mb-0" style={{ fontSize: '0.875rem' }}>
-        <thead style={{ background: '#f9fafb' }}>
-          <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+        <thead style={{ background: '#f8f9fb' }}>
+          <tr>
             {['Txn ID', 'Date & Time', 'Branch', 'Booking', 'Type', 'Amount', 'Method', 'Collected by', ''].map((h) => (
-              <th key={h} className="py-3 px-3 fw-semibold text-muted" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{h}</th>
+              <th key={h} className="py-3 px-3" style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6c757d', border: 'none', whiteSpace: 'nowrap' }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -93,11 +93,11 @@ const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalEl
                 </td>
                 <td className="py-3 px-3 text-end">
                   <button
-                    className="btn btn-sm"
-                    style={{ fontSize: '0.78rem', color: COLORS.PRIMARY, background: 'transparent', border: `1px solid ${COLORS.PRIMARY}40`, borderRadius: 5, padding: '2px 10px' }}
+                    className="btn btn-sm btn-outline-secondary"
+                    style={{ fontSize: '0.78rem', padding: '3px 10px' }}
                     onClick={(e) => { e.stopPropagation(); onSelectItem && onSelectItem(item); }}
                   >
-                    View
+                    <i className="bi bi-eye me-1" />View
                   </button>
                 </td>
               </tr>
@@ -109,27 +109,25 @@ const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalEl
       {totalPages > 1 && (
         <div className="d-flex justify-content-between align-items-center py-2 px-3 border-top" style={{ background: '#fff' }}>
           <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-            Showing {page * pageSize + 1} to {Math.min((page + 1) * pageSize, totalElements)} of {totalElements} transactions
+            Showing {page * pageSize + 1}–{Math.min((page + 1) * pageSize, totalElements)} of {totalElements} transactions
           </span>
-          <div className="d-flex gap-1">
-            <button 
-              className="btn btn-sm btn-outline-secondary" 
-              disabled={page <= 0} 
+          <div className="d-flex gap-2">
+            <button
+              className="btn btn-sm btn-outline-secondary pagination-btn"
+              disabled={page <= 0}
               onClick={() => setPage(p => p - 1)}
-              style={{ fontSize: '0.8rem', padding: '2px 8px' }}
             >
-              Prev
+              <i className="bi bi-chevron-left me-1" />Prev
             </button>
-            <span className="btn btn-sm" style={{ pointerEvents: 'none', fontSize: '0.8rem', padding: '2px 8px', border: 'none' }}>
+            <span className="text-muted small d-flex align-items-center" style={{ fontSize: '0.82rem' }}>
               Page {page + 1} / {totalPages}
             </span>
-            <button 
-              className="btn btn-sm btn-outline-secondary" 
-              disabled={page >= totalPages - 1} 
+            <button
+              className="btn btn-sm btn-outline-secondary pagination-btn"
+              disabled={page >= totalPages - 1}
               onClick={() => setPage(p => p + 1)}
-              style={{ fontSize: '0.8rem', padding: '2px 8px' }}
             >
-              Next
+              Next<i className="bi bi-chevron-right ms-1" />
             </button>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { reportApi } from '../../report/api/reportApi';
 import CashflowStatsCards from '../component/CashflowStatsCards';
 import CashflowTable from '../component/CashflowTable';
 import CashflowDetailDrawer from '../component/CashflowDetailDrawer';
+import Buttons from '@/components/ui/Buttons';
 
 const POLL_INTERVAL_MS = 30_000;
 
@@ -89,23 +90,22 @@ const CashflowScreen = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h4 className="fw-bold mb-0" style={{ color: COLORS.PRIMARY }}>
-            Báo cáo thu tiền
+            Cash Flow Report
           </h4>
           <small className="text-muted">
             Auto-refreshes every 30 seconds &nbsp;·&nbsp;
             Last updated: <strong>{fmtUpdated(lastUpdated)}</strong>
           </small>
         </div>
-
-        <button
-          className="btn btn-sm"
-          style={{ borderColor: COLORS.PRIMARY, color: COLORS.PRIMARY, borderWidth: 2, borderStyle: 'solid', borderRadius: 8, fontWeight: 600 }}
+        <Buttons
+          variant="outline"
+          className="btn-sm"
+          icon={<i className={`bi bi-arrow-clockwise ${loading ? 'spin' : ''}`} />}
           onClick={() => fetchData(false)}
-          disabled={loading}
+          isLoading={loading}
         >
-          <i className={`bi bi-arrow-clockwise me-1 ${loading ? 'spin' : ''}`} />
           Refresh
-        </button>
+        </Buttons>
       </div>
 
       {/* FILTER BAR */}
@@ -123,7 +123,6 @@ const CashflowScreen = () => {
                 value={startDate}
                 max={endDate}
                 onChange={e => setStartDate(e.target.value)}
-                style={{ borderColor: COLORS.PRIMARY, borderRadius: 8 }}
               />
             </div>
 
@@ -137,7 +136,6 @@ const CashflowScreen = () => {
                 value={endDate}
                 min={startDate}
                 onChange={e => setEndDate(e.target.value)}
-                style={{ borderColor: COLORS.PRIMARY, borderRadius: 8 }}
               />
             </div>
 
@@ -150,7 +148,6 @@ const CashflowScreen = () => {
                 value={branchId}
                 onChange={e => setBranchId(e.target.value)}
                 disabled={branches.length <= 1}
-                style={{ borderColor: COLORS.PRIMARY, borderRadius: 8 }}
               >
                 {branches.length > 1 && <option value="">All branches</option>}
                 {branches.length === 0 && <option value="">Loading...</option>}
@@ -168,7 +165,6 @@ const CashflowScreen = () => {
                 className="form-select"
                 value={paymentMethod}
                 onChange={e => setPaymentMethod(e.target.value)}
-                style={{ borderColor: COLORS.PRIMARY, borderRadius: 8 }}
               >
                 <option value="">All methods</option>
                 <option value="CASH">Cash</option>
@@ -179,13 +175,9 @@ const CashflowScreen = () => {
             </div>
 
             <div className="col-md-2 d-flex align-items-end">
-              <button
-                className="btn w-100 text-white fw-semibold"
-                style={{ backgroundColor: COLORS.PRIMARY, borderRadius: 8 }}
-                onClick={() => fetchData(false)}
-              >
+              <Buttons variant="primary" className="w-100" onClick={() => fetchData(false)} isLoading={loading}>
                 Apply
-              </button>
+              </Buttons>
             </div>
           </div>
         </div>

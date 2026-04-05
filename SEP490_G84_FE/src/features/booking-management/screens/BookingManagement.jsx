@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useState } from "react";
 import bookingManagementApi from "../api/bookingManagementApi";
 import BookingDetailModal from "../components/BookingDetailModal";
 import "./BookingManagement.css";
+import Buttons from "@/components/ui/Buttons";
+import { COLORS } from "@/constants";
+import Swal from "sweetalert2";
 
-const BRAND = "#5C6F4E";
 const PAGE_SIZE = 10;
 
 const STATUS_CONFIG = {
@@ -14,7 +16,7 @@ const STATUS_CONFIG = {
 };
 
 const STAT_CARDS = [
-    { key: "total",     label: "Total",     icon: "bi-journals",     color: BRAND,     bg: "rgba(92,111,78,0.10)" },
+    { key: "total",     label: "Total",     icon: "bi-journals",     color: COLORS.PRIMARY,     bg: "rgba(92,111,78,0.10)" },
     { key: "confirmed", label: "Confirmed", icon: "bi-check2-circle",color: "#198754", bg: "rgba(25,135,84,0.10)" },
     { key: "pending",   label: "Pending",   icon: "bi-clock-history",color: "#997404", bg: "rgba(255,193,7,0.14)" },
     { key: "cancelled", label: "Cancelled", icon: "bi-x-circle",     color: "#b02a37", bg: "rgba(220,53,69,0.10)" },
@@ -25,7 +27,7 @@ const STAT_CARDS = [
 const formatDate = (value) => {
     if (!value) return "-";
     const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("vi-VN");
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("en-GB");
 };
 
 const formatVND = (amount) =>
@@ -37,7 +39,6 @@ const StatusBadge = ({ status }) => {
     const cfg = STATUS_CONFIG[status] || { bg: "rgba(108,117,125,0.12)", text: "#495057", dot: "#6c757d" };
     return (
         <span className="status-badge" style={{ backgroundColor: cfg.bg, color: cfg.text }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: cfg.dot, display: "inline-block" }} />
             {status}
         </span>
     );
@@ -145,23 +146,17 @@ export default function BookingManagement() {
             {/* Breadcrumb + title */}
             <div className="bm-title-row">
                 <div>
-                    <p className="text-muted small mb-1">
-                        <i className="bi bi-house me-1" />
-                        Admin
-                        <i className="bi bi-chevron-right mx-1" style={{ fontSize: "0.65rem" }} />
-                        Booking Management
-                    </p>
                     <h4 className="fw-bold mb-0">Booking Management</h4>
                 </div>
-                <button
-                    className="btn btn-sm"
-                    style={{ backgroundColor: BRAND, color: "white" }}
+                <Buttons
+                    variant="primary"
+                    className="btn-sm"
+                    icon={<i className="bi bi-arrow-clockwise" />}
                     onClick={fetchBookings}
-                    disabled={loading}
+                    isLoading={loading}
                 >
-                    <i className="bi bi-arrow-clockwise me-2" />
                     Refresh
-                </button>
+                </Buttons>
             </div>
 
             {/* Stat Cards */}
@@ -200,13 +195,17 @@ export default function BookingManagement() {
                             <option value="CANCELLED">Cancelled</option>
                         </select>
                         <div className="bm-btn-group">
-                            <button type="submit" className="btn btn-sm" style={{ backgroundColor: BRAND, color: "white" }}>
-                                <i className="bi bi-search me-1 d-none d-sm-inline" />
+                            <Buttons
+                                variant="primary"
+                                type="submit"
+                                className="btn-sm"
+                                icon={<i className="bi bi-search d-none d-sm-inline" />}
+                            >
                                 Search
-                            </button>
-                            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={clearFilters}>
+                            </Buttons>
+                            <Buttons variant="outline" className="btn-sm" onClick={clearFilters}>
                                 Clear
-                            </button>
+                            </Buttons>
                         </div>
                     </form>
                     <span className="text-muted small flex-shrink-0">
@@ -230,7 +229,8 @@ export default function BookingManagement() {
                                 <th className="ps-4">Booking</th>
                                 <th>Guest</th>
                                 <th>Branch</th>
-                                <th>Stay</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
                                 <th>Amount</th>
                                 <th>Status</th>
                                 <th className="text-end pe-4">Actions</th>
@@ -255,7 +255,7 @@ export default function BookingManagement() {
                                 bookings.map((booking) => (
                                     <tr key={booking.bookingId}>
                                         <td className="ps-4">
-                                            <div className="fw-semibold" style={{ color: BRAND }}>#{booking.bookingId}</div>
+                                            <div className="fw-semibold" style={{ color: COLORS.PRIMARY }}>#{booking.bookingId}</div>
                                             <div className="text-muted" style={{ fontSize: "0.75rem" }}>
                                                 {formatDate(booking.createdAt)}
                                             </div>
@@ -267,29 +267,29 @@ export default function BookingManagement() {
                                         <td>
                                             <div className="small">{booking.branchName || "-"}</div>
                                         </td>
-                                        <td>
-                                            <div className="small">{formatDate(booking.checkInDate)}</div>
-                                            <div className="text-muted small">→ {formatDate(booking.checkOutDate)}</div>
-                                        </td>
+                                        <td className="small">{formatDate(booking.checkInDate)}</td>
+                                        <td className="small">{formatDate(booking.checkOutDate)}</td>
                                         <td className="fw-semibold">{formatVND(booking.totalAmount)}</td>
                                         <td><StatusBadge status={booking.status} /></td>
                                         <td className="text-end pe-4">
                                             <button
-                                                className="action-btn me-1"
-                                                style={{ backgroundColor: "rgba(13,110,253,0.08)", color: "#0d6efd" }}
+                                                className="btn btn-sm btn-outline-secondary me-1"
+                                                style={{ fontSize: "0.78rem", padding: "3px 10px" }}
                                                 title="View Details"
                                                 onClick={() => openDetail(booking.bookingId)}
                                             >
-                                                <i className="bi bi-eye" />
+                                                <i className="bi bi-eye me-1" />
+                                                View
                                             </button>
                                             {booking.status !== "CANCELLED" && (
                                                 <button
-                                                    className="action-btn"
-                                                    style={{ backgroundColor: "rgba(220,53,69,0.08)", color: "#dc3545" }}
+                                                    className="btn btn-sm btn-outline-danger"
+                                                    style={{ fontSize: "0.78rem", padding: "3px 10px" }}
                                                     title="Cancel Booking"
                                                     onClick={() => openDetail(booking.bookingId)}
                                                 >
-                                                    <i className="bi bi-x-circle" />
+                                                    <i className="bi bi-x-circle me-1" />
+                                                    Cancel
                                                 </button>
                                             )}
                                         </td>

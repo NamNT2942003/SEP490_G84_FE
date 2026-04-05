@@ -1,19 +1,51 @@
-// src/features/payment/screens/PaymentResult.jsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import paymentService from '@/features/payment/api/paymentService';
 import './PaymentResult.css';
 
 const PaymentResult = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    
+    // Status and Payment ID from URL
+    const statusParam = searchParams.get('status') || 'success';
+    const paymentId = searchParams.get('paymentId');
+    const isSuccess = statusParam === 'success';
 
-    const status = searchParams.get('status') || 'success';
-    const isSuccess = status === 'success';
+    // State for dynamic data
+    const [paymentData, setPaymentData] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    // Current date for the receipt
+    useEffect(() => {
+        const fetchStatus = async () => {
+            if (!paymentId) {
+                setLoading(false);
+                return;
+            }
+            try {
+                const data = await paymentService.getPaymentStatus(paymentId);
+                setPaymentData(data);
+            } catch (error) {
+                console.error("Fetch payment status error:", error);
+            }
+            setLoading(false);
+        };
+        fetchStatus();
+    }, [paymentId]);
+
+    const formatCurrency = (amount) => {
+        if (amount == null) return "VND 0";
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    };
+
     const today = new Date().toLocaleDateString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric'
     });
+
+    // Resolve dynamic values
+    const bookingRef = paymentData?.bookingRef || searchParams.get('bookingRef') || 'Unknown';
+    const methodStr = paymentData?.method === 'STRIPE' ? 'Credit Card' : paymentData?.method === 'SEPAY' ? 'Bank Transfer' : 'Credit Card';
+    const totalAmount = paymentData ? formatCurrency(paymentData.amount) : 'Loading...';
 
     const SuccessIcon = () => (
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -56,7 +88,7 @@ const PaymentResult = () => {
                     <div className="receipt-box">
                         <div className="receipt-row">
                             <span className="receipt-label">Booking Ref</span>
-                            <span className="receipt-value">#AN-84BMS</span>
+                            <span className="receipt-value">{loading ? '...' : bookingRef}</span>
                         </div>
                         <div className="receipt-row">
                             <span className="receipt-label">Date</span>
@@ -64,11 +96,11 @@ const PaymentResult = () => {
                         </div>
                         <div className="receipt-row">
                             <span className="receipt-label">Payment Method</span>
-                            <span className="receipt-value">Credit Card</span>
+                            <span className="receipt-value">{loading ? '...' : methodStr}</span>
                         </div>
                         <div className="receipt-row">
                             <span className="receipt-label">Total Amount</span>
-                            <span className="receipt-value total">VND 2,500,000</span>
+                            <span className="receipt-value total">{loading ? '...' : totalAmount}</span>
                         </div>
                     </div>
                 )}
@@ -76,7 +108,7 @@ const PaymentResult = () => {
                 {/* Actions */}
                 <button 
                     className="btn btn-luxury w-100"
-                    onClick={() => navigate('/')} 
+                    onClick={() => navigate(isSuccess ? '/guest/bookings' : '/')} 
                 >
                     {isSuccess ? 'View My Booking' : 'Try Again'}
                 </button>

@@ -30,11 +30,10 @@ const Sidebar = ({ collapsed }) => {
     {
       groupLabel: "Operations",
       items: [
-        { path: "/manager-booking", label: "Check-in", icon: "bi-key", show: !isHousekeeper },
+        { path: "/manager-booking", label: "Front Desk", icon: "bi-key", show: !isHousekeeper },
         { path: "/stay", label: "In-house (Stay)", icon: "bi-house-door", show: !isHousekeeper },
         { path: "/housekeeping", label: "Housekeeping", icon: "bi-stars", show: true },
         { path: "/bookings", label: "Bookings", icon: "bi-calendar-check", show: !isHousekeeper },
-        // Ẩn Services đối với role Staff và Housekeeper
         { path: "/services", label: "Services", icon: "bi-cup-hot", show: !isStaff && !isHousekeeper },
       ],
     },
@@ -77,7 +76,7 @@ const Sidebar = ({ collapsed }) => {
           icon: "bi-box-seam",
           show: isAdmin || isManager,
         },
-        // Đã merge Item Inventory (Furniture) từ bản 2 vào đây dạng Dropdown
+        // Item Inventory (Furniture) dropdown
         {
           label: "Item Inventory",
           icon: "bi-box",
@@ -112,11 +111,11 @@ const Sidebar = ({ collapsed }) => {
           ],
         },
         {
-          label: "Dòng tiền",
+          label: "Finance",
           icon: "bi-cash-coin",
           show: isAdmin || isManager,
           children: [
-            { path: "/finance/cashflow", label: "Báo cáo thu tiền", icon: "bi-arrow-down-circle" },
+            { path: "/finance/cashflow", label: "Cash Flow Report", icon: "bi-arrow-down-circle" },
           ],
         },
       ],
@@ -158,7 +157,7 @@ const Sidebar = ({ collapsed }) => {
 
   const handleViewProfile = () => navigate("/profile");
   const handleEditProfile = (e) => {
-    e.stopPropagation(); // Ngăn sự kiện bubble lên thẻ cha gây chuyển hướng sai
+    e.stopPropagation();
     navigate("/profile/edit");
   };
 
@@ -170,60 +169,60 @@ const Sidebar = ({ collapsed }) => {
         backgroundColor: COLORS.PRIMARY,
         display: "flex",
         flexDirection: "column",
-        paddingTop: "12px",
+        paddingTop: "8px",
         transition: "all 0.3s ease",
       }}
     >
-      {/* Scrollable Area cho Menu */}
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingBottom: "16px" }}>
+      {/* Scrollable Menu Area */}
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingBottom: "8px" }}>
         {/* Logo / Brand */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "10px",
-            padding: collapsed ? "0 14px 16px" : "0 20px 18px",
-            borderBottom: "1px solid rgba(255,255,255,0.15)",
-            marginBottom: "8px",
+            gap: "8px",
+            padding: collapsed ? "0 14px 12px" : "0 16px 14px",
+            borderBottom: "1px solid rgba(255,255,255,0.12)",
+            marginBottom: "4px",
             overflow: "hidden",
             whiteSpace: "nowrap",
           }}
         >
-          <i className="bi bi-building-fill" style={{ fontSize: "1.5rem", color: "#fff", flexShrink: 0 }}></i>
+          <i className="bi bi-building-fill" style={{ fontSize: "1.25rem", color: "#fff", flexShrink: 0 }}></i>
           {!collapsed && (
-            <span style={{ fontWeight: "800", fontSize: "1.1rem", color: "#fff", letterSpacing: "0.5px" }}>
+            <span style={{ fontWeight: "800", fontSize: "1rem", color: "#fff", letterSpacing: "0.5px" }}>
               AN-IHBMS
             </span>
           )}
         </div>
 
         {/* Menu Groups */}
-        <nav style={{ padding: collapsed ? "0 8px" : "0 12px" }}>
+        <nav style={{ padding: collapsed ? "0 6px" : "0 10px" }}>
           {menuGroups.map((group, gi) => {
             const visibleItems = group.items.filter((item) => item.show !== false);
             if (visibleItems.length === 0) return null;
             return (
-              <div key={gi} style={{ marginBottom: "8px" }}>
+              <div key={gi} style={{ marginBottom: "4px" }}>
                 {/* Group label */}
                 {!collapsed && (
                   <div
                     style={{
-                      fontSize: "0.68rem",
+                      fontSize: "0.62rem",
                       fontWeight: "700",
                       letterSpacing: "0.9px",
                       textTransform: "uppercase",
-                      color: "rgba(255,255,255,0.45)",
-                      padding: "10px 10px 4px",
+                      color: "rgba(255,255,255,0.4)",
+                      padding: "6px 10px 2px",
                     }}
                   >
                     {group.groupLabel}
                   </div>
                 )}
                 {collapsed && gi > 0 && (
-                  <div style={{ height: "1px", background: "rgba(255,255,255,0.12)", margin: "8px 4px" }} />
+                  <div style={{ height: "1px", background: "rgba(255,255,255,0.1)", margin: "4px 4px" }} />
                 )}
 
-                <ul className="nav flex-column" style={{ gap: "2px" }}>
+                <ul className="nav flex-column" style={{ gap: "1px" }}>
                   {visibleItems.map((item, idx) => {
                     if (item.children) {
                       const isOpen = openMenus[item.label] && !collapsed;
@@ -238,8 +237,8 @@ const Sidebar = ({ collapsed }) => {
                               display: "flex",
                               alignItems: "center",
                               justifyContent: collapsed ? "center" : "space-between",
-                              padding: collapsed ? "10px 0" : "9px 12px",
-                              borderRadius: "8px",
+                              padding: collapsed ? "8px 0" : "7px 10px",
+                              borderRadius: "6px",
                               cursor: "pointer",
                               backgroundColor: isAnyChildActive
                                 ? "rgba(255,255,255,0.18)"
@@ -254,9 +253,9 @@ const Sidebar = ({ collapsed }) => {
                             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                               <i
                                 className={`bi ${item.icon}`}
-                                style={{ fontSize: "1.1rem", flexShrink: 0, color: "#fff" }}
+                                style={{ fontSize: "1rem", flexShrink: 0, color: "#fff" }}
                               ></i>
-                              {!collapsed && <span style={{ fontSize: "0.92rem" }}>{item.label}</span>}
+                              {!collapsed && <span style={{ fontSize: "0.85rem" }}>{item.label}</span>}
                             </div>
                             {!collapsed && (
                               <i
@@ -275,7 +274,7 @@ const Sidebar = ({ collapsed }) => {
                                 transition: "max-height 0.3s ease",
                               }}
                             >
-                              <ul className="nav flex-column" style={{ paddingLeft: "12px", gap: "2px", marginTop: "4px" }}>
+                              <ul className="nav flex-column" style={{ paddingLeft: "10px", gap: "1px", marginTop: "2px" }}>
                                 {item.children.map((child, ci) => (
                                   <li key={ci}>
                                     <NavLink
@@ -285,9 +284,9 @@ const Sidebar = ({ collapsed }) => {
                                     >
                                       <i
                                         className={`bi ${child.icon || "bi-dot"}`}
-                                        style={{ fontSize: "0.85rem", flexShrink: 0 }}
+                                        style={{ fontSize: "0.8rem", flexShrink: 0 }}
                                       ></i>
-                                      <span style={{ fontSize: "0.88rem" }}>{child.label}</span>
+                                      <span style={{ fontSize: "0.82rem" }}>{child.label}</span>
                                     </NavLink>
                                   </li>
                                 ))}
@@ -307,7 +306,7 @@ const Sidebar = ({ collapsed }) => {
                           style={({ isActive }) => ({
                             ...navLinkStyle({ isActive }),
                             justifyContent: collapsed ? "center" : "flex-start",
-                            padding: collapsed ? "10px 0" : "9px 12px",
+                            padding: collapsed ? "8px 0" : "7px 10px",
                             whiteSpace: "nowrap",
                             overflow: "hidden",
                           })}
@@ -315,9 +314,9 @@ const Sidebar = ({ collapsed }) => {
                         >
                           <i
                             className={`bi ${item.icon}`}
-                            style={{ fontSize: "1.1rem", flexShrink: 0 }}
+                            style={{ fontSize: "1rem", flexShrink: 0 }}
                           ></i>
-                          {!collapsed && <span style={{ fontSize: "0.92rem" }}>{item.label}</span>}
+                          {!collapsed && <span style={{ fontSize: "0.85rem" }}>{item.label}</span>}
                         </NavLink>
                       </li>
                     );
@@ -328,96 +327,6 @@ const Sidebar = ({ collapsed }) => {
           })}
         </nav>
       </div>
-
-      {/* User info & Profile Actions ở đáy Sidebar */}
-      {currentUser && (
-        <div
-          style={{
-            padding: collapsed ? "16px 0" : "12px 16px",
-            borderTop: "1px solid rgba(255,255,255,0.15)",
-            display: "flex",
-            flexDirection: collapsed ? "column" : "row",
-            alignItems: "center",
-            justifyContent: collapsed ? "center" : "space-between",
-            gap: "10px",
-            backgroundColor: "rgba(0,0,0,0.1)", // Highlighting the bottom section slightly
-          }}
-        >
-          <div
-            onClick={handleViewProfile}
-            title="View Profile"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              cursor: "pointer",
-              flex: collapsed ? "none" : 1,
-              overflow: "hidden",
-            }}
-          >
-            <div
-              className="rounded-circle d-flex align-items-center justify-content-center"
-              style={{
-                width: 34,
-                height: 34,
-                backgroundColor: "rgba(255,255,255,0.2)",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#fff",
-                flexShrink: 0,
-              }}
-            >
-              {initials}
-            </div>
-            {!collapsed && (
-              <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                <strong
-                  style={{
-                    fontSize: 13,
-                    lineHeight: 1.2,
-                    margin: 0,
-                    color: "#fff",
-                    whiteSpace: "nowrap",
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
-                  }}
-                >
-                  {currentUser?.fullName || currentUser?.username || "User"}
-                </strong>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>
-                  {currentUser?.role || (isAdmin ? "Admin" : isManager ? "Manager" : isHousekeeper ? "Housekeeper" : "Staff")}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {!collapsed && (
-            <button
-              type="button"
-              onClick={handleEditProfile}
-              title="Update Profile"
-              style={{
-                flexShrink: 0,
-                width: 32,
-                height: 32,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "transparent",
-                border: "none",
-                color: "#fff",
-                cursor: "pointer",
-                borderRadius: "4px",
-                transition: "background 0.2s",
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
-              onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
-            >
-              <i className="bi bi-pencil-square" style={{ fontSize: 16 }} />
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 };

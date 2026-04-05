@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import BookingSummary from '@/features/booking/components/BookingSummary';
 import Input from '@/components/ui/Input';
 import bookingService from '@/features/booking/api/bookingService';
+import Swal from 'sweetalert2';
 import './GuestInformation.css';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -17,18 +18,18 @@ const formatVND = (amount) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
 const getCancellationText = (cancellationType, freeCancelBeforeDays) => {
-    if (cancellationType === 'NON_REFUNDABLE') return 'Khong hoan tien';
+    if (cancellationType === 'NON_REFUNDABLE') return 'Non-refundable';
     if (cancellationType === 'REFUNDABLE' && freeCancelBeforeDays > 0) {
-        return `Mien phi huy truoc ${freeCancelBeforeDays} ngay`;
+        return `Free cancellation before ${freeCancelBeforeDays} days`;
     }
-    if (cancellationType === 'REFUNDABLE') return 'Mien phi huy';
-    return 'Chinh sach huy theo phong';
+    if (cancellationType === 'REFUNDABLE') return 'Free cancellation';
+    return 'Cancellation policy per room';
 };
 
 const getPaymentText = (paymentType) => {
-    if (paymentType === 'PREPAID') return 'Thanh toan truoc';
-    if (paymentType === 'PAY_AT_HOTEL') return 'Thanh toan tai khach san';
-    return 'Hinh thuc thanh toan theo phong';
+    if (paymentType === 'PREPAID') return 'Prepaid';
+    if (paymentType === 'PAY_AT_HOTEL') return 'Pay at hotel';
+    return 'Payment method per room';
 };
 
 const calculateRoomUnitPrice = (room) => {
@@ -89,7 +90,7 @@ const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove, onSelec
                 .promo-list { display: flex; flex-direction: column; gap: 12px; }
                 .promo-card { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; background: #fff; border: 1.5px solid #edf2f7; border-radius: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
                 .promo-card:hover { border-color: #cbd5e0; background: #f8fafc; }
-                .promo-card.active { border-color: #5C6F4E; background: #f2f7ec; box-shadow: 0 4px 12px rgba(92,111,78,0.1); }
+                .promo-card.active { border-color: #465c47; background: #f2f7ec; box-shadow: 0 4px 12px rgba(70,111,71,0.1); }
                 .promo-card.no-promo.active { border-color: #a0aec0; background: #fdfdfd; }
                 .promo-radio { font-size: 1.2rem; line-height: 1; margin-top: 2px; }
                 .promo-content { flex: 1; display:flex; flex-direction: column; }
@@ -105,7 +106,7 @@ const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove, onSelec
                     <div>
                         <div className="room-name fs-5 fw-bold text-dark mb-1" style={{fontFamily: "'Playfair Display', serif"}}>{room.name}</div>
                         <div className="room-price fw-semibold text-secondary mb-2" style={{fontSize: '0.9rem'}}>
-                            💵 {new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ đêm</span>
+                            💵 {new Intl.NumberFormat('vi-VN').format(unitPrice)} VND <span className="fw-normal">/ night</span>
                         </div>
                         <div className="d-flex gap-3">
                             <div className="small px-2 py-1 rounded" style={{background: '#ebf4ff', color: '#3182ce', fontWeight: 600}}>
@@ -159,7 +160,7 @@ const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove, onSelec
                             <i className="bi bi-plus fw-bold" />
                         </button>
                     </div>
-                    <div className="room-total fs-4 fw-bold" style={{color: '#5C6F4E'}}>
+                    <div className="room-total fs-4 fw-bold" style={{color: '#465c47'}}>
                         {formatVND(unitPrice * qty * nights)}
                     </div>
                 </div>
@@ -167,14 +168,14 @@ const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove, onSelec
 
             {room.manualSelectPromotions?.length > 0 && (
                 <div className="promo-container">
-                    <h6 className="promo-title mb-3"><i className="bi bi-gift-fill me-2" style={{color: '#D4AF37'}}></i>Khuyến Mãi Đặc Quyền</h6>
+                    <h6 className="promo-title mb-3"><i className="bi bi-gift-fill me-2" style={{color: '#D4AF37'}}></i>Exclusive Promotions</h6>
                     <div className="promo-list">
                         {room.manualSelectPromotions.map((promo, idx) => {
                             const isChecked = room.selectedManualPromotion?.priceModifierId === promo.priceModifierId;
                             return (
                                 <div className={`promo-card ${isChecked ? 'active' : ''}`} key={`${room.roomTypeId}-promo-${idx}`} onClick={() => onSelectPromo(room.roomTypeId, promo)}>
                                     <div className="promo-radio">
-                                        <i className={`bi ${isChecked ? 'bi-check-circle-fill' : 'bi-circle'}`} style={{color: isChecked ? '#5C6F4E' : '#cbd5e0'}}></i>
+                                        <i className={`bi ${isChecked ? 'bi-check-circle-fill' : 'bi-circle'}`} style={{color: isChecked ? '#465c47' : '#cbd5e0'}}></i>
                                     </div>
                                     <div className="promo-content">
                                         <div className="promo-header">
@@ -191,7 +192,7 @@ const RoomItem = ({ room, checkIn, checkOut, onQuantityChange, onRemove, onSelec
                                 <i className={`bi ${!room.selectedManualPromotion ? 'bi-check-circle-fill text-secondary' : 'bi-circle'}`} style={{color: !room.selectedManualPromotion ? '' : '#cbd5e0'}}></i>
                             </div>
                             <div className="promo-content justify-content-center">
-                                <span className="text-secondary fw-semibold">Không sử dụng ưu đãi ngay lúc này</span>
+                                <span className="text-secondary fw-semibold">Do not use offer right now</span>
                             </div>
                         </div>
                     </div>
@@ -234,7 +235,7 @@ const GuestInformation = () => {
         }
         const room = rooms.find((r) => r.roomTypeId === roomTypeId);
         if (room && newQty > (room.availableCount || 999)) {
-            alert(`Only ${room.availableCount} room(s) available for ${room.name}`);
+            Swal.fire({ icon: 'warning', title: 'Limit Reached', text: `Only ${room.availableCount} room(s) available for ${room.name}`, confirmButtonColor: '#465c47' });
             return;
         }
         setRooms((prev) =>
@@ -262,16 +263,16 @@ const GuestInformation = () => {
 
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
-            alert('Vui lòng điền đầy đủ thông tin khách hàng.');
+            Swal.fire({ icon: 'warning', title: 'Missing Information', text: 'Please fill in all customer information.', confirmButtonColor: '#465c47' });
             return;
         }
         if (rooms.length === 0) {
-            alert('Vui lòng chọn ít nhất một phòng.');
+            Swal.fire({ icon: 'warning', title: 'No Rooms Selected', text: 'Please select at least one room.', confirmButtonColor: '#465c47' });
             return;
         }
 
         if (!checkIn || !checkOut || new Date(checkOut) <= new Date(checkIn)) {
-            alert('Ngay khong hop le. Vui long chon check-out sau check-in (yyyy-MM-dd).');
+            Swal.fire({ icon: 'error', title: 'Invalid Dates', text: 'Please select valid check-in and check-out dates.', confirmButtonColor: '#465c47' });
             return;
         }
 
@@ -282,7 +283,7 @@ const GuestInformation = () => {
             const createdBookingId = data?.bookingId ?? data?.id;
 
             if (!createdBookingId) {
-                alert('Lỗi đặt phòng: Không nhận được mã đặt phòng từ server.');
+                Swal.fire({ icon: 'error', title: 'Booking Error', text: 'Did not receive booking ID from server.', confirmButtonColor: '#465c47' });
                 return;
             }
 
@@ -298,15 +299,15 @@ const GuestInformation = () => {
             });
         } catch (error) {
             console.error('Booking error:', error);
-            const message = error?.response?.data?.message || error?.friendlyMessage || error.message || 'Không thể tạo booking';
-            alert('Lỗi đặt phòng: ' + message);
+            const message = error?.response?.data?.message || error?.friendlyMessage || error.message || 'Unable to create booking';
+            Swal.fire({ icon: 'error', title: 'Booking Failed', text: message, confirmButtonColor: '#465c47' });
         }
     };
 
     return (
         <div className="bg-light" style={{ minHeight: '100vh', paddingBottom: '120px' }}>
             {/* Header */}
-            <header className="bg-olive p-3 sticky-top shadow-sm" style={{ zIndex: 1030 }}>
+            <header className="p-3 sticky-top shadow-sm" style={{ backgroundColor: '#465c47', zIndex: 1030 }}>
                 <div className="container d-flex align-items-center">
                     <button className="btn text-white p-0 me-3 fs-5" onClick={() => navigate(-1)}>
                         <i className="bi bi-arrow-left" />
@@ -422,12 +423,13 @@ const GuestInformation = () => {
                 <div className="container d-flex justify-content-between align-items-center">
                     <div>
                         <small className="text-muted fw-bold text-uppercase">Total Price</small>
-                        <h4 className="mb-0 fw-bold" style={{ color: '#5C6F4E' }}>
+                        <h4 className="mb-0 fw-bold" style={{ color: '#465c47' }}>
                             {formatVND(calculateTotalPrice())}
                         </h4>
                     </div>
                     <button
-                        className="btn btn-gold px-4 py-2 fw-bold rounded-3"
+                        className="btn px-4 py-2 fw-bold rounded-3"
+                        style={{ background: 'linear-gradient(135deg, #FFD700 0%, #FFC700 100%)', color: '#333', border: 'none' }}
                         onClick={handleContinue}
                         disabled={rooms.length === 0}
                     >

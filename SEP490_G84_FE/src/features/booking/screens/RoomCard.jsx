@@ -26,7 +26,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
     return (
         <>
             <style>{`
-        :root { --olive: #5C6F4E; --olive-dark: #4a5b3f; --gold: #D4AF37; --bg-light: #fafbf8; }
+        :root { --olive: #465c47; --olive-dark: #384a39; --gold: #D4AF37; --bg-light: #fafbf8; }
         .rc { background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid rgba(92,111,78,0.1); margin-bottom: 24px; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
         .rc:hover { box-shadow: 0 12px 30px rgba(92,111,78,0.12); transform: translateY(-4px); }
         .rc-row { display: flex; flex-direction: row; }
@@ -50,7 +50,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
         .rc-opt { background: #fff; border: 1.5px solid #edf2f7; border-radius: 16px; padding: 18px; transition: all 0.2s; position: relative; overflow: hidden; display: flex; flex-direction: column; }
         .rc-opt:hover { border-color: var(--gold); box-shadow: 0 8px 16px rgba(212,175,55,0.08); }
         .rc-opt-highlight { border-color: var(--olive); background: linear-gradient(to right, #ffffff, #f9fbf8); }
-        .rc-opt-highlight::before { content: 'GÓI ĐỀ XUẤT'; position: absolute; top: 0; right: 0; background: var(--gold); color: #fff; font-size: 0.6rem; font-weight: 800; padding: 3px 10px; border-bottom-left-radius: 10px; }
+        .rc-opt-highlight::before { content: 'RECOMMENDED'; position: absolute; top: 0; right: 0; background: var(--gold); color: #fff; font-size: 0.6rem; font-weight: 800; padding: 3px 10px; border-bottom-left-radius: 10px; }
         
         .rc-opt-header { background: #f8fafc; padding: 8px 12px; border-radius: 10px; margin-bottom: 12px; display: inline-block; width: max-content; }
         .rc-opt-mode { font-size: 0.85rem; font-weight: 800; color: var(--olive-dark); letter-spacing: 0.5px;}
@@ -88,32 +88,32 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                     <div className="rc-img">
                         <img src={imageSrc} alt={room.name} onError={(e) => { e.target.src = getPlaceholderImage(room.name); }} />
                         {room.availableCount > 0 && room.availableCount <= 3 && (
-                            <div className="rc-badge urgent"><i className="bi bi-fire"></i> Chỉ còn {room.availableCount} phòng!</div>
+                            <div className="rc-badge urgent"><i className="bi bi-fire"></i> Only {room.availableCount} rooms left!</div>
                         )}
                         {room.availableCount > 3 && (
-                            <div className="rc-badge"><i className="bi bi-check-circle-fill" style={{color: '#9ae6b4'}}></i> Sẵn sàng: {room.availableCount} phòng</div>
+                            <div className="rc-badge"><i className="bi bi-check-circle-fill" style={{color: '#9ae6b4'}}></i> Available: {room.availableCount} rooms</div>
                         )}
                     </div>
                     
                     <div className="rc-info">
                         <div className="rc-name">{room.name}</div>
                         <div className="rc-tags">
-                            <span className="rc-tag"><i className="bi bi-people-fill"></i> Tối đa {room.maxAdult + (room.maxChildren || 0)} khách</span>
+                            <span className="rc-tag"><i className="bi bi-people-fill"></i> Max {room.maxAdult + (room.maxChildren || 0)} guests</span>
                             <span className="rc-tag"><i className="bi bi-arrows-fullscreen"></i> {room.area} m²</span>
-                            <span className="rc-tag"><i className="bi bi-person-fill"></i> N.Lớn: {room.maxAdult}</span>
-                            {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile"></i> T.Em: {room.maxChildren}</span>}
+                            <span className="rc-tag"><i className="bi bi-person-fill"></i> Adults: {room.maxAdult}</span>
+                            {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile"></i> Children: {room.maxChildren}</span>}
                         </div>
                         <div className="rc-desc">{room.description}</div>
                         
                         <button className="rc-side-btn" onClick={() => onViewDetail(room)}>
-                            <i className="bi bi-info-circle me-1"></i> Xem thông tin chi tiết
+                            <i className="bi bi-info-circle me-1"></i> View details
                         </button>
                     </div>
 
                     <div className="rc-pricing">
                         <div className="rc-pricing-hd">
-                            <span><i className="bi bi-tag-fill me-1"></i> Các Gói Giá</span>
-                            <span className="badge bg-secondary" style={{fontSize: '0.65rem'}}>{options.length} Lựa chọn</span>
+                            <span><i className="bi bi-tag-fill me-1"></i> Price Packages</span>
+                            <span className="badge bg-secondary" style={{fontSize: '0.65rem'}}>{options.length} Options</span>
                         </div>
                         
                         <div className="rc-pricing-options">
@@ -125,7 +125,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                                     <div className={`rc-opt ${isRecommended ? 'rc-opt-highlight' : ''}`} key={`${room.roomTypeId}-${option.mode}-${idx}`}>
                                         <div className="rc-opt-header">
                                             <div className="rc-opt-mode">
-                                                {option.mode?.startsWith("POLICY_") ? "Gói Thanh Toán Chuẩn" : (option.mode || "Gói Tiêu Chuẩn")}
+                                                {option.mode?.startsWith("POLICY_") ? "Standard Payment Package" : (option.mode || "Standard Package")}
                                             </div>
                                         </div>
                                         
@@ -134,7 +134,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                                                 {hasDiscount && <div className="rc-opt-base">{formatPrice(option.basePrice)}</div>}
                                                 <div className="rc-opt-amt">
                                                     {formatPrice(option.finalPrice || 0)}
-                                                    <span className="rc-opt-per">/ đêm</span>
+                                                    <span className="rc-opt-per">/ night</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -158,15 +158,15 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                                             disabled={sold}
                                         >
                                             {sold
-                                                ? <><i className="bi bi-x-octagon-fill"></i> Đã Hết Phòng</>
-                                                : <><i className="bi bi-cart-plus-fill"></i> Chọn Gói Này</>}
+                                                ? <><i className="bi bi-x-octagon-fill"></i> No Rooms Available</>
+                                                : <><i className="bi bi-cart-plus-fill"></i> Select Package</>}
                                         </button>
                                     </div>
                                 );
                             }) : (
                                 <div className="rc-pricing-empty">
                                     <i className="bi bi-calendar-x fs-1 text-muted d-block mb-2"></i>
-                                    Không tìm thấy mức giá áp dụng cho ngày này.
+                                    No applicable rates found for this date.
                                 </div>
                             )}
                         </div>

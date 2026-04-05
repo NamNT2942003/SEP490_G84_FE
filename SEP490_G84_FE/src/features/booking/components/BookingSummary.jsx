@@ -3,18 +3,18 @@ import React from 'react';
 const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
 
     const getCancellationText = (cancellationType, freeCancelBeforeDays) => {
-        if (cancellationType === 'NON_REFUNDABLE') return 'Khong hoan tien';
+        if (cancellationType === 'NON_REFUNDABLE') return 'Non-refundable';
         if (cancellationType === 'REFUNDABLE' && freeCancelBeforeDays > 0) {
-            return `Mien phi huy truoc ${freeCancelBeforeDays} ngay`;
+            return `Free cancellation before ${freeCancelBeforeDays} days`;
         }
-        if (cancellationType === 'REFUNDABLE') return 'Mien phi huy';
-        return 'Chinh sach huy theo phong';
+        if (cancellationType === 'REFUNDABLE') return 'Free cancellation';
+        return 'Cancellation policy per room';
     };
 
     const getPaymentText = (paymentType) => {
-        if (paymentType === 'PREPAID') return 'Thanh toan truoc';
-        if (paymentType === 'PAY_AT_HOTEL') return 'Thanh toan tai khach san';
-        return 'Hinh thuc thanh toan theo phong';
+        if (paymentType === 'PREPAID') return 'Prepaid';
+        if (paymentType === 'PAY_AT_HOTEL') return 'Pay at hotel';
+        return 'Payment method per room';
     };
 
     const calculateNights = (start, end) => {
@@ -57,7 +57,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                 <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: '10px', letterSpacing: '1px' }}>
                     Booking Overview
                 </p>
-                <p className="fw-bold text-olive-dark mb-0 fs-6">Grand Heritage Resort</p>
+                <p className="fw-bold mb-0 fs-6" style={{ color: '#384a39' }}>Grand Heritage Resort</p>
             </div>
 
             <div className="mb-3">
@@ -92,7 +92,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                     Stay Dates
                 </p>
                 <div className="d-flex align-items-center gap-2 fw-semibold text-dark small">
-                    <i className="fa-solid fa-calendar text-olive"></i>
+                    <i className="fa-solid fa-calendar" style={{ color: '#465c47' }}></i>
                     <span>
             {formatDateDisplay(checkIn)} - {formatDateDisplay(checkOut)} ({nights} {nights > 1 ? 'Nights' : 'Night'})
           </span>
@@ -102,7 +102,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
             <div className="pt-3 border-top mt-2">
                 <div className="d-flex justify-content-between align-items-center">
                     <span className="fw-bold text-dark">Subtotal</span>
-                    <span className="fw-bold text-olive">{formatCurrency(subtotal)}</span>
+                    <span className="fw-bold" style={{ color: '#465c47' }}>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="mt-2">
                     <p className="text-muted small mb-1">

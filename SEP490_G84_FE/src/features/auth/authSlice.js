@@ -36,7 +36,7 @@ export const loginUser = createAsyncThunk(
             const response = await authApi.login(userData);
             return response;
         } catch (error) {
-            return rejectWithValue(error.response?.data || 'Đăng nhập thất bại');
+            return rejectWithValue(error.response?.data || 'Login failed');
         }
     }
 );

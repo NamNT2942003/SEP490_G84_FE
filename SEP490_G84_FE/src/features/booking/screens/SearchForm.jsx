@@ -68,7 +68,8 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         }, 300); // optional debounce for rapid clicks
 
         return () => clearTimeout(timer);
-    }, [sp, onSearch]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sp]);
 
     return (
         <>
@@ -81,22 +82,22 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         .sf-g.gu{flex:0 0 170px;position:relative}
         .sf-g.ac{flex:0 0 auto}
         .sf-l{font-size:.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;display:flex;align-items:center;gap:4px}
-        .sf-l i{color:#5C6F4E;font-size:.78rem}
+        .sf-l i{color:#465c47;font-size:.78rem}
         .sf-w{position:relative}
-        .sf-w .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#5C6F4E;font-size:.95rem;pointer-events:none;z-index:2}
+        .sf-w .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#465c47;font-size:.95rem;pointer-events:none;z-index:2}
         .sf-sel{width:100%;height:46px;border:2px solid #e8e8e8;border-radius:10px;background:#fafafa;padding:0 12px 0 38px;font-size:.88rem;font-weight:500;color:#333;cursor:pointer;transition:border-color .2s,box-shadow .2s;appearance:auto}
         .sf-sel:hover{border-color:#ccc;background:#fff}
-        .sf-sel:focus{border-color:#5C6F4E;box-shadow:0 0 0 3px rgba(92,111,78,.1);background:#fff;outline:none}
+        .sf-sel:focus{border-color:#465c47;box-shadow:0 0 0 3px rgba(92,111,78,.1);background:#fff;outline:none}
         .sf-dr{display:flex;gap:6px;align-items:stretch}
         .sf-db{flex:1;display:flex;align-items:center;gap:8px;padding:6px 12px;border:2px solid #e8e8e8;border-radius:10px;background:#fafafa;cursor:pointer;transition:border-color .2s;height:46px;position:relative}
         .sf-db:hover{border-color:#ccc;background:#fff}
-        .sf-db .di{color:#5C6F4E;font-size:1rem;flex-shrink:0}
+        .sf-db .di{color:#465c47;font-size:1rem;flex-shrink:0}
         .sf-db .dm{font-size:.82rem;font-weight:600;color:#333;line-height:1.2}
         .sf-db .ds{font-size:.66rem;color:#999}
-        .sf-nb{display:flex;align-items:center;justify-content:center;background:#f0f4ec;color:#5C6F4E;border-radius:8px;font-size:.68rem;font-weight:700;padding:4px 8px;white-space:nowrap;height:46px}
+        .sf-nb{display:flex;align-items:center;justify-content:center;background:#f0f4ec;color:#465c47;border-radius:8px;font-size:.68rem;font-weight:700;padding:4px 8px;white-space:nowrap;height:46px}
         .gt{width:100%;height:46px;border:2px solid #e8e8e8;border-radius:10px;background:#fafafa;padding:0 12px 0 38px;font-size:.88rem;font-weight:500;color:#333;cursor:pointer;transition:border-color .2s;display:flex;align-items:center;user-select:none;position:relative}
         .gt:hover{border-color:#ccc;background:#fff}
-        .gt.op{border-color:#5C6F4E;box-shadow:0 0 0 3px rgba(92,111,78,.1);background:#fff}
+        .gt.op{border-color:#465c47;box-shadow:0 0 0 3px rgba(92,111,78,.1);background:#fff}
         .gt .ch{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#999;font-size:.7rem;transition:transform .2s}
         .gt.op .ch{transform:translateY(-50%) rotate(180deg)}
         .gdd{position:absolute;top:calc(100% + 6px);left:0;right:0;min-width:250px;background:#fff;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.12);z-index:1060;padding:16px 20px;animation:gF .2s}
@@ -106,13 +107,13 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         .grl{font-size:.9rem;font-weight:600;color:#333}
         .grh{font-size:.72rem;color:#999}
         .gc{display:flex;align-items:center;gap:12px}
-        .gb{width:32px;height:32px;border:2px solid #ddd;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#5C6F4E;cursor:pointer;transition:all .15s;padding:0}
-        .gb:hover:not(:disabled){border-color:#5C6F4E;background:rgba(92,111,78,.06)}
+        .gb{width:32px;height:32px;border:2px solid #ddd;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#465c47;cursor:pointer;transition:all .15s;padding:0}
+        .gb:hover:not(:disabled){border-color:#465c47;background:rgba(92,111,78,.06)}
         .gb:disabled{border-color:#eee;color:#ccc;cursor:not-allowed}
         .gv{font-size:1rem;font-weight:700;color:#222;min-width:18px;text-align:center}
-        .gdone{width:100%;margin-top:10px;padding:9px;border:none;border-radius:10px;background:#5C6F4E;color:#fff;font-size:.84rem;font-weight:700;cursor:pointer}
-        .gdone:hover{background:#4a5b3f}
-        .sf-btn{height:46px;padding:0 26px;background:linear-gradient(135deg,#5C6F4E,#4a5b3f);color:#fff;border:none;border-radius:10px;font-size:.9rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(92,111,78,.3);white-space:nowrap}
+        .gdone{width:100%;margin-top:10px;padding:9px;border:none;border-radius:10px;background:#465c47;color:#fff;font-size:.84rem;font-weight:700;cursor:pointer}
+        .gdone:hover{background:#384a39}
+        .sf-btn{height:46px;padding:0 26px;background:linear-gradient(135deg,#465c47,#384a39);color:#fff;border:none;border-radius:10px;font-size:.9rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(92,111,78,.3);white-space:nowrap}
         .sf-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(92,111,78,.4)}
         .sf-btn:disabled{opacity:.6;cursor:not-allowed}
         .sf-btn .spinner-border{width:16px;height:16px;border-width:2px}
@@ -225,14 +226,8 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                             <span>{validationMessage}</span>
                         </div>
                     )}
-                    <div className="sf-help" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div className="sf-help">
                         <span>Tip: Select your dates first, then choose guests to get accurate room availability.</span>
-                        {loading && (
-                            <span style={{ color: '#5C6F4E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span className="spinner-border spinner-border-sm" role="status"></span>
-                                Updating results...
-                            </span>
-                        )}
                     </div>
                 </div>
             </div>
