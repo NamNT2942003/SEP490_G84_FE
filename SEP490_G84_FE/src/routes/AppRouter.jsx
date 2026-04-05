@@ -39,6 +39,7 @@ import Dashboard from "@/features/dashboard/screens/Dashboard";
 import BookingManagement from "@/features/booking-management/screens/BookingManagement.jsx";
 import FrontDeskDashboard from "@/features/manager_booking/screens/FrontDeskDashboard";
 import StayScreen from "@/features/stay/screens/StayScreen";
+import { HousekeepingDashboard } from "@/features/housekeeping/component/HousekeepingDashboard.jsx";
 
 // =====================================================================
 // --- 6. ADMIN & MANAGEMENT PAGES ---
@@ -95,7 +96,7 @@ import InventoryReportPage from "@/features/test/InventoryReportPage";
  */
 const RequireManagerOrAdmin = ({ children }) => {
     const currentUser = useCurrentUser();
-    if (currentUser?.permissions?.isStaff) {
+    if (currentUser?.permissions?.isStaff || currentUser?.permissions?.isHousekeeper) {
         return <Navigate to="/dashboard" replace />;
     }
     return children;
@@ -138,6 +139,7 @@ const AppRouter = () => {
             <Route path="/bookings" element={<MainLayout><BookingManagement /></MainLayout>} />
             <Route path="/manager-booking" element={<MainLayout><FrontDeskDashboard /></MainLayout>} />
             <Route path="/stay" element={<MainLayout><StayScreen /></MainLayout>} />
+            <Route path="/housekeeping" element={<MainLayout><HousekeepingDashboard /></MainLayout>} />
 
             {/* 5.2 Inventory & Finance */}
             <Route path="/inventory" element={<MainLayout><InventoryScreen /></MainLayout>} />

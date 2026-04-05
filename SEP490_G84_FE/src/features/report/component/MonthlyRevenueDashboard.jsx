@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import RevenueChart from './RevenueChart';
 import RevenueTable from './RevenueTable';
 import RoomRevenuePieChart from './RoomRevenuePieChart';
+import DailyOccupancyChart from './DailyOccupancyChart';
 import { COLORS } from '@/constants';
 
 const MonthlyRevenueDashboard = ({ monthlyData }) => {
@@ -48,6 +49,26 @@ const MonthlyRevenueDashboard = ({ monthlyData }) => {
                     </div>
                 </div>
             </div>
+
+            {/* Daily Occupancy Line Chart */}
+            {monthlyData.dailyOccupancy && monthlyData.dailyOccupancy.length > 0 && (
+                <div className="row mb-3">
+                    <div className="col-12">
+                        <div className="card shadow-sm border-0 rounded-3">
+                            <div className="card-header bg-white border-bottom-0 pt-3 pb-0">
+                                <h6 className="card-title mb-0 fw-bold text-dark">
+                                    <i className="bi bi-graph-up me-2" style={{ color: '#667eea' }}></i>
+                                    Daily Occupancy Rate
+                                </h6>
+                                <p className="text-muted small mb-0">Room occupancy percentage for each day of the month</p>
+                            </div>
+                            <div className="card-body pt-2">
+                                <DailyOccupancyChart data={monthlyData.dailyOccupancy} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Chart / Table section + Pie Chart side by side */}
             <div className="row g-4 mt-0">

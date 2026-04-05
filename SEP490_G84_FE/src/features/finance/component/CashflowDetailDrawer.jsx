@@ -23,6 +23,7 @@ const ITEM_TYPE_MAP = {
   ROOM:      { label: 'Room Charge',   bg: '#eff6ff', color: '#1d4ed8' },
   SERVICE:   { label: 'Service',       bg: '#fef3c7', color: '#d97706' },
   SURCHARGE: { label: 'Surcharge',     bg: '#fff7ed', color: '#ea580c' },
+  DAMAGE:    { label: 'Damage',        bg: '#fee2e2', color: '#991b1b' },
   TAX:       { label: 'Tax / Fee',     bg: '#f5f3ff', color: '#7c3aed' },
   DISCOUNT:  { label: 'Discount',      bg: '#f0fdf4', color: '#16a34a' },
 };
@@ -75,9 +76,7 @@ const CashflowDetailDrawer = ({ payment, onClose }) => {
 
   const method = METHOD_MAP[payment?.paymentMethod?.toUpperCase()] ?? {};
 
-  const typeLabel = payment?.paymentType === 'Tiền phòng' ? 'Room Charge'
-                  : payment?.paymentType === 'Tiền dịch vụ' ? 'Service Charge'
-                  : payment?.paymentType ?? '—';
+  const typeLabel = payment?.paymentType || '—';
 
   return (
     <>
@@ -131,6 +130,9 @@ const CashflowDetailDrawer = ({ payment, onClose }) => {
 
           <Section title="Transaction Info">
             <InfoRow label="Transaction ID" value={`PT-${payment?.paymentId}`} valueStyle={{ fontFamily: 'monospace', color: COLORS.PRIMARY }} />
+            {payment?.providerTxnId && (
+              <InfoRow label="Bank Txn ID" value={payment.providerTxnId} valueStyle={{ fontFamily: 'monospace', fontWeight: 700 }} />
+            )}
             <InfoRow label="Payment Method" value={
               <span style={{ color: method.color, fontWeight: 700 }}>{method.label ?? payment?.paymentMethod}</span>
             } />
@@ -150,8 +152,12 @@ const CashflowDetailDrawer = ({ payment, onClose }) => {
             <InfoRow label="Checkout date" value={payment?.departureDate ? fmtTime(payment.departureDate) : null} />
             <InfoRow label="Charge type" value={
               <span style={{
-                background: payment?.paymentType === 'Tiền phòng' ? '#ecfeff' : '#fef3c7',
-                color: payment?.paymentType === 'Tiền phòng' ? '#0891b2' : '#d97706',
+                background: typeLabel === 'Room Charge' ? '#e0f2fe'
+                          : typeLabel === 'Damage Compensation' ? '#fee2e2'
+                          : '#fef3c7',
+                color: typeLabel === 'Room Charge' ? '#0369a1'
+                     : typeLabel === 'Damage Compensation' ? '#991b1b'
+                     : '#92400e',
                 padding: '2px 10px', borderRadius: 20, fontSize: '0.82rem', fontWeight: 700,
               }}>
                 {typeLabel}

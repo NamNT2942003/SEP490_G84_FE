@@ -84,5 +84,15 @@ getAvailableRooms: async (branchId, stayId) => {
       console.error('Lỗi khi đổi phòng:', error);
       throw error;
     }
+  },
+
+  reportDamage: async (payload) => {
+    try {
+      const response = await axios.post(`${BASE_URL}/report-damage`, payload, { headers: getAuthHeaders() });
+      return response.data;
+    } catch (error) {
+      console.error('Lỗi khi báo cáo thiệt hại:', error);
+      throw error;
+    }
   }
 };

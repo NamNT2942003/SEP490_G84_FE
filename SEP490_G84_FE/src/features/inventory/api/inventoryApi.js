@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:8081/api/inventory';
+const BASE_URL = 'http://localhost:8081/api/inventory-report';
 
 export const inventoryApi = {
     /** Lấy tổng quan 12 tháng trong năm */

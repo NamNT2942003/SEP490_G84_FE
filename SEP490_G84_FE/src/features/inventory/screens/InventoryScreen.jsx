@@ -5,6 +5,7 @@ import InventoryReport from '../components/InventoryReport';
 import InventoryOrderModal from '../components/InventoryOrderModal';
 import { reportApi } from '@/features/report/api/reportApi';
 import { COLORS } from '@/constants';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 
 
@@ -17,6 +18,9 @@ const MONTHS_EN = [
 const today = new Date();
 
 const InventoryScreen = () => {
+  const user = useCurrentUser();
+  const isAdmin = user?.permissions?.isAdmin || user?.role === 'ADMIN';
+
   const [view, setView]         = useState('home');
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
@@ -205,19 +209,25 @@ const InventoryScreen = () => {
           {(yearOverview.length > 0
             ? yearOverview
             : Array.from({ length: 12 }, (_, i) => ({ month: i + 1, year: curYear, saved: false, totalReceipts: 0 }))
-          ).map(mo => (
+          ).map(mo => {
+            const isCurrent = mo.year === nowY && mo.month === nowM;
+            const icon = mo.saved ? '📁' : (isCurrent || isAdmin ? '📄' : '🔒');
+            const statusText = mo.saved ? 'SAVED' : (isCurrent ? 'OPEN' : (isAdmin ? 'OPEN (Admin)' : 'UNOPENED'));
+            const statusClass = mo.saved ? 'saved' : (isCurrent || isAdmin ? 'open' : '');
+            
+            return (
             <div
               key={mo.month}
-              className={`inv-month-card ${mo.saved ? 'saved' : ''} ${mo.year === nowY && mo.month === nowM ? 'current' : ''}`}
+              className={`inv-month-card ${statusClass} ${isCurrent ? 'current' : ''}`}
               onClick={() => goReport(mo.month)}
             >
-              <div className="inv-mc-icon">{mo.saved ? '📁' : (mo.year === nowY && mo.month === nowM ? '📄' : '🔒')}</div>
+              <div className="inv-mc-icon">{icon}</div>
               <div className="inv-mc-name">{MONTHS_EN[mo.month - 1]}</div>
               <div className="inv-mc-year">{mo.year}</div>
               <div className="inv-mc-meta">
-                <span className={`inv-mc-status ${mo.saved ? 'saved' : (mo.year === nowY && mo.month === nowM ? 'open' : '')}`}
-                  style={(!mo.saved && !(mo.year === nowY && mo.month === nowM)) ? { color: '#adb5bd' } : {}}>
-                  {mo.saved ? 'SAVED' : (mo.year === nowY && mo.month === nowM ? 'OPEN' : 'UNOPENED')}
+                <span className={`inv-mc-status ${statusClass}`}
+                  style={(!mo.saved && !isCurrent && !isAdmin) ? { color: '#adb5bd' } : {}}>
+                  {statusText}
                 </span>
                 <span className={`inv-mc-orders ${mo.totalReceipts > 0 ? 'has' : ''}`}>
                   {mo.totalReceipts > 0 ? `${mo.totalReceipts} receipts` : 'No receipts'}
@@ -226,7 +236,7 @@ const InventoryScreen = () => {
 
               <div className="inv-mc-arrow">→</div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>

@@ -35,6 +35,7 @@ export function useCurrentUser() {
           isStaff: !!permissions.isStaff,
           isManager: !!permissions.isManager,
           isAdmin: !!permissions.isAdmin,
+          isHousekeeper: !!permissions.isHousekeeper,
         },
       };
     } catch {

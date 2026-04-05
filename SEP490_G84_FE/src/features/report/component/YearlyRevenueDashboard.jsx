@@ -2,6 +2,7 @@ import React from 'react';
 import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Line } from 'recharts';
 
 const PIE_COLORS = ['#5396ff', '#f39c12', '#198754', '#8b5cf6', '#e07b39', '#ec4899', '#14b8a6', '#e74c3c'];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const RADIAN = Math.PI / 180;
 
@@ -44,7 +45,7 @@ const YearlyRevenueDashboard = ({ yearlyData, selectedYear, handleDrillDown }) =
         if (active && payload && payload.length) {
             return (
                 <div className="bg-white p-3 border rounded shadow-sm">
-                    <p className="fw-bold mb-2">Month {label}</p>
+                    <p className="fw-bold mb-2">{MONTH_NAMES[label - 1] || `Month ${label}`}</p>
                     {payload.map((entry, index) => (
                         <p key={index} className="mb-1" style={{ color: entry.color || entry.fill }}>
                             {entry.name}: {entry.name.includes('Growth') || entry.name.includes('Occupancy')
@@ -115,9 +116,9 @@ const YearlyRevenueDashboard = ({ yearlyData, selectedYear, handleDrillDown }) =
                             <ResponsiveContainer>
                                 <ComposedChart data={yearlyData.monthlyDetails} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.4} />
-                                    <XAxis dataKey="month" tickFormatter={(v) => `M${v}`} axisLine={false} tickLine={false} style={{ fontSize: '0.82rem' }} />
+                                    <XAxis dataKey="month" tickFormatter={(v) => MONTH_NAMES[v - 1] || `M${v}`} axisLine={false} tickLine={false} style={{ fontSize: '0.82rem' }} />
                                     <YAxis yAxisId="left" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} axisLine={false} tickLine={false} style={{ fontSize: '0.82rem' }} width={45} />
-                                    <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} style={{ fontSize: '0.82rem' }} width={35} />
+                                    <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} style={{ fontSize: '0.82rem' }} width={35} />
                                     <Tooltip content={<CustomTooltipYearly />} />
                                     <Legend verticalAlign="top" height={36} iconType="square" wrapperStyle={{ paddingBottom: '8px' }} />
                                     <Bar yAxisId="left" name="Revenue" dataKey="totalRevenue" radius={[4, 4, 0, 0]} barSize={22} onClick={(data) => handleDrillDown(data.month)} style={{ cursor: 'pointer' }}>
@@ -125,7 +126,7 @@ const YearlyRevenueDashboard = ({ yearlyData, selectedYear, handleDrillDown }) =
                                             <Cell key={`cell-${index}`} fill={entry.month === yearlyData.bestMonth ? '#f39c12' : '#5396ff'} />
                                         ))}
                                     </Bar>
-                                    <Line yAxisId="right" name="MoM Growth" type="monotone" dataKey="momGrowth" stroke="#0d6efd" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                                    <Line yAxisId="right" name="Occupancy Rate" type="monotone" dataKey="occupancyRate" stroke="#6f42c1" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                                 </ComposedChart>
                             </ResponsiveContainer>
                         </div>
@@ -195,7 +196,7 @@ const YearlyRevenueDashboard = ({ yearlyData, selectedYear, handleDrillDown }) =
                                         onClick={() => handleDrillDown(m.month)}
                                     >
                                         <td className="text-start ps-4 fw-bold py-2 text-dark">
-                                            M{m.month}
+                                            {MONTH_NAMES[m.month - 1]}
                                             {m.month === yearlyData.bestMonth && <i className="bi bi-star-fill text-warning ms-1" style={{ fontSize: '0.75rem' }}></i>}
                                             {m.month === yearlyData.worstMonth && <i className="bi bi-arrow-down-circle text-danger ms-1" style={{ fontSize: '0.75rem' }}></i>}
                                         </td>

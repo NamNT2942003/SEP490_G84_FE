@@ -20,12 +20,13 @@ const METHOD_LABEL = {
 const getMethod = (m) => METHOD_LABEL[m?.toUpperCase()] ?? (m || '—');
 
 const TYPE_STYLE = {
-  'Tiền phòng':   { color: '#0369a1', bg: '#e0f2fe', label: 'Room Charge' },
-  'Tiền dịch vụ': { color: '#92400e', bg: '#fef3c7', label: 'Service Charge' },
+  'Room Charge':           { color: '#0369a1', bg: '#e0f2fe', label: 'Room Charge' },
+  'Service Charge':        { color: '#92400e', bg: '#fef3c7', label: 'Service Charge' },
+  'Damage Compensation':   { color: '#991b1b', bg: '#fee2e2', label: 'Damage Compensation' },
 };
 const getTypeStyle = (t) => TYPE_STYLE[t] ?? { color: '#374151', bg: '#f3f4f6', label: t || '—' };
 
-const CashflowTable = ({ items, loading, onSelectItem }) => {
+const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalElements, setPage }) => {
   if (loading) {
     return (
       <div className="text-center py-5 text-muted">
@@ -42,6 +43,8 @@ const CashflowTable = ({ items, loading, onSelectItem }) => {
       </div>
     );
   }
+
+  const pageSize = 10;
 
   return (
     <div className="table-responsive">
@@ -102,6 +105,35 @@ const CashflowTable = ({ items, loading, onSelectItem }) => {
           })}
         </tbody>
       </table>
+      
+      {totalPages > 1 && (
+        <div className="d-flex justify-content-between align-items-center py-2 px-3 border-top" style={{ background: '#fff' }}>
+          <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+            Showing {page * pageSize + 1} to {Math.min((page + 1) * pageSize, totalElements)} of {totalElements} transactions
+          </span>
+          <div className="d-flex gap-1">
+            <button 
+              className="btn btn-sm btn-outline-secondary" 
+              disabled={page <= 0} 
+              onClick={() => setPage(p => p - 1)}
+              style={{ fontSize: '0.8rem', padding: '2px 8px' }}
+            >
+              Prev
+            </button>
+            <span className="btn btn-sm" style={{ pointerEvents: 'none', fontSize: '0.8rem', padding: '2px 8px', border: 'none' }}>
+              Page {page + 1} / {totalPages}
+            </span>
+            <button 
+              className="btn btn-sm btn-outline-secondary" 
+              disabled={page >= totalPages - 1} 
+              onClick={() => setPage(p => p + 1)}
+              style={{ fontSize: '0.8rem', padding: '2px 8px' }}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

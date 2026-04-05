@@ -3,6 +3,8 @@ import './Inventory.css';
 import InventoryDrawer from './InventoryDrawer';
 import InventoryOrders from './InventoryOrders';
 import { COLORS } from '@/constants';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import * as XLSX from 'xlsx';
 
 const MONTHS_EN = [
   'January','February','March','April','May','June',
@@ -29,10 +31,12 @@ const InventoryReport = ({
   const monthLabel = MONTHS_EN[month - 1];
   const isSaved   = reportData?.saved;
 
+  const user = useCurrentUser();
+  const isAdmin = user?.permissions?.isAdmin || user?.role === 'ADMIN';
 
-  // Chỉ tháng hiện tại mới được chỉnh sửa
+  // Chỉ tháng hiện tại mới được chỉnh sửa (hoặc là admin)
   const isCurrentMonth = (year === CURRENT_YEAR && month === CURRENT_MONTH);
-  const canEdit        = isCurrentMonth && !isSaved;
+  const canEdit        = isAdmin || (isCurrentMonth && !isSaved);
 
   // Tự tính: Sử dụng = Tồn đầu + Nhập - Tồn cuối
   const calcUsed = (item) => {
@@ -41,6 +45,34 @@ const InventoryReport = ({
     const closing = closingMap[item.inventoryId]?.closing ?? item.closingStock ?? 0;
     const used    = opening + imp - closing;
     return Math.max(0, used);
+  };
+
+  const handleExportExcel = () => {
+    const exportData = items.map((item, index) => {
+      const imp = item.importQuantity || 0;
+      const opening = item.openingStock || 0;
+      const tot = opening + imp;
+      const closing = closingMap[item.inventoryId]?.closing ?? item.closingStock ?? 0;
+      const used = calcUsed(item);
+      const note = closingMap[item.inventoryId]?.note ?? item.note ?? '';
+
+      return {
+        '#': index + 1,
+        'Inventory Item': item.inventoryName,
+        'Unit': item.unit,
+        'Opening Stock': opening,
+        'Imported': imp,
+        'Total': tot,
+        'Used Quantity': used,
+        'Closing Stock': closing,
+        'Note': note
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, `Report ${month}-${year}`);
+    XLSX.writeFile(workbook, `Inventory_Report_${month}_${year}.xlsx`);
   };
 
   const filtered = items.filter(it =>
@@ -65,15 +97,18 @@ const InventoryReport = ({
           <small className="text-muted">Inventory Report · {items.length} items</small>
         </div>
         <div className="d-flex gap-2 flex-wrap justify-content-end">
+          <button className="btn btn-sm text-white" style={{ background: '#198754' }} onClick={handleExportExcel}>
+            <i className="bi bi-file-earmark-excel me-1" /> Export Excel
+          </button>
           <button className="btn btn-outline-secondary btn-sm" onClick={() => setOrdersOpen(true)}>
             <i className="bi bi-box me-1" /> Receipts ({reportData?.totalImportReceipts || 0})
           </button>
-          {isCurrentMonth && (
+          {canEdit && (
             <button className="btn btn-outline-secondary btn-sm" onClick={onAddOrder}>
               <i className="bi bi-plus-lg me-1" /> Add Receipt
             </button>
           )}
-          {isCurrentMonth && (
+          {(isAdmin || isCurrentMonth) && (
             isSaved
               ? <button className="btn btn-outline-warning btn-sm" onClick={onUnsave}>
                   <i className="bi bi-unlock me-1" /> Unsave
@@ -87,13 +122,13 @@ const InventoryReport = ({
 
 
       {/* ── Alerts ── */}
-      {isSaved && isCurrentMonth && (
+      {isSaved && (isCurrentMonth || isAdmin) && (
         <div className="inv-saved-bar mb-3">
           <i className="bi bi-check-circle-fill" />
-          Report saved · Closing stock is locked.
+          Report saved · {isAdmin ? 'Admin mode active.' : 'Closing stock is locked.'}
         </div>
       )}
-      {!isCurrentMonth && (
+      {!isCurrentMonth && !isAdmin && (
         <div className="alert alert-light border d-flex align-items-center gap-2 py-2 mb-3" style={{ fontSize: '.84rem' }}>
           <i className="bi bi-eye text-muted" />
           <span className="text-muted">

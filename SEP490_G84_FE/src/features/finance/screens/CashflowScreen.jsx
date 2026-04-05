@@ -23,6 +23,9 @@ const CashflowScreen = () => {
   const [branches, setBranches]           = useState([]);
   const [branchId, setBranchId]           = useState('');
   const [items, setItems]                 = useState([]);
+  const [page, setPage]                   = useState(0);
+  const [totalPages, setTotalPages]       = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [summary, setSummary]             = useState(null);
   const [loading, setLoading]             = useState(false);
   const [lastUpdated, setLastUpdated]     = useState(null);
@@ -48,10 +51,12 @@ const CashflowScreen = () => {
     try {
       const filters = { startDate, endDate, paymentMethod: paymentMethod || undefined, branchId: branchId || undefined };
       const [itemsData, summaryData] = await Promise.all([
-        financeApi.getCashflow(filters),
+        financeApi.getCashflow({ ...filters, page, size: 10 }),
         financeApi.getCashflowSummary(filters),
       ]);
-      setItems(itemsData);
+      setItems(itemsData.content || []);
+      setTotalPages(itemsData.totalPages || itemsData.page?.totalPages || 1);
+      setTotalElements(itemsData.totalElements || itemsData.page?.totalElements || 0);
       setSummary(summaryData);
       setLastUpdated(new Date());
     } catch (err) {
@@ -59,7 +64,12 @@ const CashflowScreen = () => {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [startDate, endDate, paymentMethod, branchId]);
+  }, [startDate, endDate, paymentMethod, branchId, page]);
+
+  // Reset page to 0 when filters change (but don't do it in fetchData directly to avoid loops)
+  // Instead, let the Apply button or filter changes trigger it appropriately if needed. 
+  // For simplicity, whenever basic filters change we reset page
+  useEffect(() => { setPage(0); }, [startDate, endDate, paymentMethod, branchId]);
 
   useEffect(() => { fetchData(false); }, [fetchData]);
 
@@ -191,11 +201,19 @@ const CashflowScreen = () => {
             Transaction List
           </span>
           <span className="badge" style={{ background: COLORS.PRIMARY + '1a', color: COLORS.PRIMARY, fontSize: '0.85rem', padding: '6px 12px' }}>
-            {items.length} transaction{items.length !== 1 ? 's' : ''}
+            {totalElements} transaction{totalElements !== 1 ? 's' : ''}
           </span>
         </div>
         <div className="card-body p-0">
-          <CashflowTable items={items} loading={loading} onSelectItem={setSelectedPayment} />
+          <CashflowTable 
+            items={items} 
+            loading={loading} 
+            onSelectItem={setSelectedPayment}
+            page={page}
+            totalPages={totalPages}
+            totalElements={totalElements}
+            setPage={setPage}
+          />
         </div>
       </div>
 

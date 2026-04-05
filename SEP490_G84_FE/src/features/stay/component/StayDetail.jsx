@@ -3,6 +3,7 @@ import AddServiceModal from './AddServiceModal';
 import { stayApi } from '../api/stayApi';
 import { COLORS } from '@/constants';
 import ChangeRoomModal from './ChangeRoomModal';
+import ReportDamageModal from './ReportDamageModal';
 
 // ─── Inline styles ────────────────────────────────────────────────────────────
 const css = `
@@ -240,6 +241,23 @@ const css = `
   }
   .btn-change-room:hover { background: #8aab8b; color: #fff; }
 
+  .btn-report-damage {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border: 1.5px solid #dc3545;
+    border-radius: 7px;
+    background: transparent;
+    color: #dc3545;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    margin-right: 6px;
+  }
+  .btn-report-damage:hover { background: #dc3545; color: #fff; }
+
   .btn-cancel-svc {
     display: inline-flex;
     align-items: center;
@@ -352,6 +370,8 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
   const [cancelModalData, setCancelModalData] = useState({ isOpen: false, orderId: null, serviceName: '' });
   const [isChangeModalOpen, setIsChangeModalOpen]         = useState(false);
   const [selectedStayForChange, setSelectedStayForChange] = useState(null);
+  const [isDamageModalOpen, setIsDamageModalOpen]         = useState(false);
+  const [selectedStayForDamage, setSelectedStayForDamage] = useState(null);
 
   const handleOpenChangeRoom = (stay) => {
     setSelectedStayForChange({ ...stay, bookingId: booking.bookingId });
@@ -361,6 +381,11 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
   const handleOpenModal = (stay) => {
     setSelectedStay(stay);
     setIsModalOpen(true);
+  };
+
+  const handleOpenDamage = (stay) => {
+    setSelectedStayForDamage(stay);
+    setIsDamageModalOpen(true);
   };
 
   const triggerCancelClick = (orderId, serviceName) => {
@@ -449,6 +474,9 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
                           <button className="btn-add-service" onClick={() => handleOpenModal(stay)}>
                             ＋ Add Service
                           </button>
+                          <button className="btn-report-damage" onClick={() => handleOpenDamage(stay)}>
+                            ❗ Report Damage
+                          </button>
                           <button className="btn-change-room" onClick={() => handleOpenChangeRoom(stay)}>
                             ⇄ Change Room
                           </button>
@@ -485,7 +513,9 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
                 </thead>
                 <tbody>
                   {booking?.serviceOrders?.length > 0 ? (
-                    booking.serviceOrders.map((order) => {
+                    [...booking.serviceOrders]
+                    .sort((a, b) => (a.roomName || '').localeCompare(b.roomName || '', undefined, { numeric: true, sensitivity: 'base' }))
+                    .map((order) => {
                       const isCancelled = order.paymentStatus === 'CANCELED';
                       const statusInfo  = statusMap[order.paymentStatus] || { label: order.paymentStatus, cls: 'badge-unpaid' };
                       return (
@@ -538,6 +568,12 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
         show={isChangeModalOpen}
         onClose={() => setIsChangeModalOpen(false)}
         stayInfo={selectedStayForChange}
+        onSuccess={onRefresh}
+      />
+      <ReportDamageModal
+        show={isDamageModalOpen}
+        onClose={() => setIsDamageModalOpen(false)}
+        stayInfo={selectedStayForDamage}
         onSuccess={onRefresh}
       />
 
