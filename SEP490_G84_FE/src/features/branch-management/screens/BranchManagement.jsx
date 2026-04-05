@@ -2,6 +2,9 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Select from "react-select";
 import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
+import Buttons from "@/components/ui/Buttons";
+import { COLORS } from "@/constants";
+import Swal from "sweetalert2";
 import "./BranchManagement.css";
 
 
@@ -264,14 +267,24 @@ export default function BranchManagement() {
     const branchId = branch.branchId;
     if (!branchId) return;
 
-    const confirmed = window.confirm(`Delete branch "${branch.branchName || branchId}"?`);
-    if (!confirmed) return;
+    const result = await Swal.fire({
+      title: 'Delete Branch?',
+      text: `"${branch.branchName || branchId}" will be permanently removed.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: COLORS.PRIMARY,
+      confirmButtonText: 'Yes, delete it',
+      cancelButtonText: 'Cancel',
+    });
+    if (!result.isConfirmed) return;
 
     try {
       await branchManagementApi.deleteBranch(branchId);
       await fetchBranches();
+      Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Branch has been removed.', timer: 1800, showConfirmButton: false });
     } catch (err) {
-      window.alert(err?.response?.data?.error || err?.response?.data?.message || "Delete branch failed.");
+      Swal.fire({ icon: 'error', title: 'Failed', text: err?.response?.data?.error || err?.response?.data?.message || 'Delete branch failed.' });
     }
   };
 
@@ -280,27 +293,15 @@ export default function BranchManagement() {
       {/* Header */}
       <div className="branch-title-row">
         <div>
-          <p className="branch-breadcrumb mb-1">
-            <i className="bi bi-house me-1" />
-            Admin
-            <i className="bi bi-chevron-right mx-1" style={{ fontSize: "0.65rem" }} />
-            Branch Management
-          </p>
           <h4 className="branch-page-title">Branch Management</h4>
         </div>
         <div className="d-flex gap-2 align-items-center">
-          <button
-            type="button"
-            className="btn btn-outline-secondary btn-sm"
-            onClick={fetchBranches}
-            disabled={loading}
-          >
-            <i className="bi bi-arrow-clockwise me-1" /> Refresh
-          </button>
-          <button type="button" className="btn btn-brand btn-sm" onClick={openCreateModal}>
-            <i className="bi bi-plus-circle-fill me-1" />
+          <Buttons variant="outline" className="btn-sm" icon={<i className="bi bi-arrow-clockwise" />} onClick={fetchBranches} isLoading={loading}>
+            Refresh
+          </Buttons>
+          <Buttons variant="primary" className="btn-sm" icon={<i className="bi bi-plus-circle-fill" />} onClick={openCreateModal}>
             Add Branch
-          </button>
+          </Buttons>
         </div>
       </div>
 
@@ -322,20 +323,12 @@ export default function BranchManagement() {
             />
           </div>
           <div className="d-flex gap-2">
-            <button
-              type="button"
-              className="btn btn-brand btn-sm"
-              onClick={handleSearch}
-            >
-              <i className="bi bi-search me-1" />Search
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline-secondary btn-sm"
-              onClick={handleClearSearch}
-            >
+            <Buttons variant="primary" className="btn-sm" icon={<i className="bi bi-search" />} onClick={handleSearch}>
+              Search
+            </Buttons>
+            <Buttons variant="outline" className="btn-sm" onClick={handleClearSearch}>
               Clear
-            </button>
+            </Buttons>
           </div>
           <span className="text-muted ms-auto" style={{ fontSize: "0.82rem", whiteSpace: "nowrap" }}>
             {loading ? "Loading..." : `${filteredBranches.length} branch(es)`}
@@ -379,7 +372,10 @@ export default function BranchManagement() {
               )}
               {!loading && filteredBranches.map((branch) => (
                 <tr key={branch.branchId || `${branch.branchName}-${branch.address}`}>
-                  <td className="branch-value">{branch.branchName || "-"}</td>
+                  <td>
+                    <div className="fw-semibold" style={{ color: COLORS.PRIMARY }}>{branch.branchName || "-"}</div>
+                    {branch.branchId && <div className="text-muted" style={{ fontSize: "0.72rem" }}>ID #{branch.branchId}</div>}
+                  </td>
                   <td className="branch-value">{branch.propertyType || "-"}</td>
                   <td>
                     <div className="branch-value">{branch.address || "-"}</div>
@@ -387,30 +383,31 @@ export default function BranchManagement() {
                   </td>
                   <td className="branch-value">{branch.contactNumber || "-"}</td>
                   <td className="text-end">
-                    <div className="btn-group">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-success"
-                        onClick={() => navigate(`/admin/branches/${branch.branchId}/cancellation-policies`)}
-                        title="Cancellation Policy"
-                      >
-                        <i className="bi bi-shield-check me-1"></i>Cancellation Policy
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={() => openEditModal(branch)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => handleDelete(branch)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary me-1"
+                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
+                      onClick={() => navigate(`/admin/branches/${branch.branchId}/cancellation-policies`)}
+                      title="Cancellation Policy"
+                    >
+                      <i className="bi bi-shield-check me-1" />Policy
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary me-1"
+                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
+                      onClick={() => openEditModal(branch)}
+                    >
+                      <i className="bi bi-pencil me-1" />Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-danger"
+                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
+                      onClick={() => handleDelete(branch)}
+                    >
+                      <i className="bi bi-trash me-1" />Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -538,12 +535,12 @@ export default function BranchManagement() {
                   </div>
 
                   <div className="modal-footer border-top">
-                    <button type="button" className="btn btn-light" onClick={closeModal} disabled={submitLoading}>
+                    <Buttons variant="outline" className="btn-sm" onClick={closeModal} disabled={submitLoading}>
                       Cancel
-                    </button>
-                    <button type="submit" className="btn btn-brand" disabled={submitLoading}>
-                      {submitLoading ? "Saving..." : editingBranch ? "Update" : "Create"}
-                    </button>
+                    </Buttons>
+                    <Buttons variant="primary" type="submit" className="btn-sm" isLoading={submitLoading}>
+                      {editingBranch ? "Update" : "Create"}
+                    </Buttons>
                   </div>
                 </form>
               </div>
