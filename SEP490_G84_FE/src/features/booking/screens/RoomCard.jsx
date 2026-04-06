@@ -71,6 +71,11 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
         .rc-opt-book:disabled { opacity: 0.5; cursor: not-allowed; background: #cbd5e0; color: #fff; box-shadow: none; transform: none; }
         
         .rc-pricing-empty { padding: 20px; border: 2px dashed #edf2f7; border-radius: 16px; font-size: 0.9rem; color: #a0aec0; text-align: center; }
+
+        /* Refund info badge */
+        .rc-refund-badge { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; padding: 6px 12px; border-radius: 8px; margin-bottom: 12px; }
+        .rc-refund-badge.refundable { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+        .rc-refund-badge.non-refundable { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
         
         /* Thay vì 1100px cứng nhắc, tăng giới hạn chập khối lên 1399px vì màn hình chứa col-lg-9 hẹp hơn viewport thật */
         @media(max-width:1399px) { 
@@ -182,6 +187,26 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                                                 })}
                                             </div>
                                         )}
+
+                                        {/* Refund info badge */}
+                                        {(() => {
+                                            const rate = option.refundRate ?? 0;
+                                            const policyName = option.refundPolicyName;
+                                            if (rate > 0) {
+                                                return (
+                                                    <div className="rc-refund-badge refundable">
+                                                        <i className="bi bi-shield-check-fill" />
+                                                        Hoàn tiền {rate}% nếu hủy{policyName ? ` · ${policyName}` : ''}
+                                                    </div>
+                                                );
+                                            }
+                                            return (
+                                                <div className="rc-refund-badge non-refundable">
+                                                    <i className="bi bi-shield-x-fill" />
+                                                    Không hoàn tiền khi hủy
+                                                </div>
+                                            );
+                                        })()}
 
                                         <button
                                             className={`rc-opt-book ${isRecommended ? 'highlight-btn' : ''}`}
