@@ -50,9 +50,6 @@ const getAppliedModifierId = (room) => {
     return room.appliedPriceModifierId;
 };
 
-
-
-
 const buildBookingPayload = (formData, rooms, checkIn, checkOut) => ({
     otaReservationId: `WEB-${formData.phone.replace(/\s+/g, '')}-${checkIn}-${checkOut}`,
     arrivalDate: checkIn,
@@ -330,7 +327,6 @@ const GuestInformation = () => {
                                     <i className="bi bi-door-open" />
                                     Your Rooms ({rooms.length})
                                 </h5>
-
                                 {rooms.map((room) => (
                                     <RoomItem
                                         key={room.roomTypeId}
