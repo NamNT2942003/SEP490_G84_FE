@@ -14,8 +14,8 @@ export const API_ENDPOINTS = {
     DETAIL: "/rooms-detail",
   },
   BRANCHES: {
-    LIST: "/branches",
-    DETAIL: "/branches",
+    LIST: "/public/branches",
+    DETAIL: "/public/branches",
   },
   ROOM_TYPES: {
     LIST: "/room-types",
