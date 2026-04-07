@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import BookingSummary from '@/features/booking/components/BookingSummary';
 import Input from '@/components/ui/Input';
 import bookingService from '@/features/booking/api/bookingService';
+import { roomService } from '@/features/booking/api/roomService';
 import Swal from 'sweetalert2';
 import './GuestInformation.css';
 
@@ -41,32 +42,115 @@ const calculateRoomUnitPrice = (room) => {
     return finalPrice > 0 ? finalPrice : 0;
 };
 
-const getAppliedModifierId = (room) => {
-    if (room.selectedManualPromotion) return room.selectedManualPromotion.priceModifierId;
-    if (room.selectedPricingOption?.modifiers) {
-        const policyMod = room.selectedPricingOption.modifiers.find(m => m.type === 'POLICY');
-        if (policyMod) return policyMod.priceModifierId;
-    }
-    return room.appliedPriceModifierId;
+const DETAIL_LEVEL_TYPES = new Set(['ADVANCE_BOOKING', 'AVAILABILITY', 'POLICY']);
+const BOOKING_LEVEL_TYPES = new Set(['LENGTH_OF_STAY', 'OCCUPANCY', 'USER_HISTORY_DISCOUNT']);
+
+const uniqueIds = (items) => [...new Set((items || []).filter((v) => v !== null && v !== undefined && `${v}`.trim() !== '').map((v) => `${v}`))];
+
+const getOptionModifiers = (room) => Array.isArray(room?.selectedPricingOption?.modifiers) ? room.selectedPricingOption.modifiers : [];
+
+const getRoomDetailModifierIds = (room) => {
+    const optionDetailIds = getOptionModifiers(room)
+        .filter((m) => DETAIL_LEVEL_TYPES.has(m?.type))
+        .map((m) => m?.priceModifierId);
+
+    const manualId = room?.selectedManualPromotion?.priceModifierId;
+    const fallbackId = room?.appliedPriceModifierId;
+
+    return uniqueIds([...optionDetailIds, manualId, fallbackId]);
 };
 
-const buildBookingPayload = (formData, rooms, checkIn, checkOut) => ({
-    otaReservationId: `WEB-${formData.phone.replace(/\s+/g, '')}-${checkIn}-${checkOut}`,
-    arrivalDate: checkIn,
-    departureDate: checkOut,
-    rooms: rooms.map((room) => ({
-        roomTypeId: room.roomTypeId,
-        price: calculateRoomUnitPrice(room),
-        quantity: room.quantity || 1,
-        priceModifierId: getAppliedModifierId(room)
-    })),
-    customer: {
-        fullName: formData.fullName,
-        email: formData.email,
-        phone: formData.phone,
-    },
-    specialRequests: formData.specialRequests,
+const getRoomBookingLevelModifierIds = (room) => {
+    const ids = getOptionModifiers(room)
+        .filter((m) => BOOKING_LEVEL_TYPES.has(m?.type))
+        .map((m) => m?.priceModifierId);
+    return uniqueIds(ids);
+};
+
+const getAppliedModifierId = (room) => {
+    const detailIds = getRoomDetailModifierIds(room);
+    if (detailIds.length > 0) return detailIds[0];
+
+    const bookingIds = getRoomBookingLevelModifierIds(room);
+    if (bookingIds.length > 0) return bookingIds[0];
+
+    return room?.appliedPriceModifierId ?? null;
+};
+
+const normalizeEmailForSearch = (emailRaw) => {
+    const email = String(emailRaw || '').trim();
+    if (!email) return '';
+    return /.+@.+\..+/.test(email) ? email : '';
+};
+
+const toPricingOption = (option = {}) => ({
+    optionCode: option?.optionCode || option?.combinationKey || option?.mode || 'UNKNOWN',
+    mode: option?.mode || 'UNKNOWN',
+    basePrice: Number(option?.basePrice ?? 0),
+    finalPrice: Number(option?.finalPrice ?? 0),
+    delta: Number(option?.delta ?? 0),
+    modifierIds: Array.isArray(option?.modifierIds) ? option.modifierIds : [],
+    modifierNames: Array.isArray(option?.modifierNames) ? option.modifierNames : [],
+    reasons: Array.isArray(option?.reasons) ? option.reasons : [],
+    modifiers: Array.isArray(option?.modifiers) ? option.modifiers : [],
+    combinationKey: option?.combinationKey || option?.optionCode || option?.mode || 'UNKNOWN',
 });
+
+const pricingOptionSignature = (option) => {
+    if (!option) return '';
+    return `${option.mode || ''}-${option.finalPrice || 0}-${(option.modifierIds || []).join('_')}`;
+};
+
+const withPricingState = (room, preferredOption = null) => {
+    const options = (Array.isArray(room?.pricingOptions) ? room.pricingOptions : [])
+        .map(toPricingOption)
+        .sort((a, b) => a.finalPrice - b.finalPrice);
+
+    const selectedOption = options.find(
+        (opt) => pricingOptionSignature(opt) === pricingOptionSignature(preferredOption),
+    ) || options[0] || null;
+
+    const selectedPrice = selectedOption?.finalPrice
+        ?? Number(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0);
+
+    return {
+        ...room,
+        pricingOptions: options,
+        selectedPricingOption: selectedOption,
+        selectedPrice,
+    };
+};
+
+const buildBookingPayload = (formData, rooms, checkIn, checkOut) => {
+    const bookingLevelIds = uniqueIds(
+        rooms.flatMap((room) => getRoomBookingLevelModifierIds(room)),
+    );
+
+    return {
+        otaReservationId: `WEB-${formData.phone.replace(/\s+/g, '')}-${checkIn}-${checkOut}`,
+        arrivalDate: checkIn,
+        departureDate: checkOut,
+        rooms: rooms.map((room) => {
+            const roomLevelIds = getRoomDetailModifierIds(room);
+            const fallbackId = getAppliedModifierId(room);
+            const allIds = uniqueIds([...roomLevelIds, fallbackId]);
+            return {
+                roomTypeId: room.roomTypeId,
+                price: calculateRoomUnitPrice(room),
+                quantity: room.quantity || 1,
+                priceModifierId: allIds[0] || null,
+                priceModifierIds: allIds,
+            };
+        }),
+        bookingPriceModifierIds: bookingLevelIds,
+        customer: {
+            fullName: formData.fullName,
+            email: formData.email,
+            phone: formData.phone,
+        },
+        specialRequests: formData.specialRequests,
+    };
+};
 
 // ─── RoomItem ──────────────────────────────────────────────────────────────
 
@@ -206,15 +290,17 @@ const GuestInformation = () => {
         checkIn = '',
         checkOut = '',
         branchId = null,
+        prefillEmail = '',
     } = location.state || {};
 
     const [rooms, setRooms] = useState(selectedRooms);
     const [formData, setFormData] = useState({
         fullName: '',
-        email: '',
+        email: prefillEmail || '',
         phone: '',
         specialRequests: '',
     });
+    const latestPricingRequestIdRef = useRef(0);
 
     const handleInputChange = (e) => {
         const { id, name, value } = e.target;
@@ -251,6 +337,74 @@ const GuestInformation = () => {
         );
     };
 
+    const refreshRoomsByEmail = useCallback(async () => {
+        if (!checkIn || !checkOut || rooms.length === 0) return;
+
+        const requestId = ++latestPricingRequestIdRef.current;
+        const roomTypeIds = [...new Set(rooms.map((r) => r.roomTypeId).filter(Boolean))];
+        if (roomTypeIds.length === 0) return;
+
+        const params = {
+            branchId: branchId || 1,
+            checkIn,
+            checkOut,
+            adults: 1,
+            children: 0,
+            roomTypeIds,
+            size: Math.max(rooms.length, 10),
+            page: 0,
+            sortPrice: 'priceAsc',
+        };
+
+        const normalizedEmail = normalizeEmailForSearch(formData.email);
+        if (normalizedEmail) {
+            params.customerEmail = normalizedEmail;
+        }
+
+        try {
+            const res = await roomService.searchRooms(params);
+            if (requestId !== latestPricingRequestIdRef.current) {
+                return;
+            }
+
+            const latestRoomMap = new Map((res?.content || []).map((room) => [room.roomTypeId, room]));
+            setRooms((prev) => prev.map((oldRoom) => {
+                const latest = latestRoomMap.get(oldRoom.roomTypeId);
+                if (!latest) return oldRoom;
+
+                const merged = withPricingState(latest, oldRoom.selectedPricingOption);
+
+                let nextManual = oldRoom.selectedManualPromotion;
+                if (nextManual && Array.isArray(merged.manualSelectPromotions)) {
+                    const stillExists = merged.manualSelectPromotions.some(
+                        (promo) => promo?.priceModifierId === nextManual?.priceModifierId,
+                    );
+                    if (!stillExists) {
+                        nextManual = null;
+                    }
+                }
+
+                return {
+                    ...oldRoom,
+                    ...merged,
+                    quantity: oldRoom.quantity || 1,
+                    selectedManualPromotion: nextManual,
+                };
+            }));
+        } catch (error) {
+            // Ignore transient repricing failures to avoid interrupting typing flow.
+            console.warn('Failed to refresh room pricing by email', error);
+        }
+    }, [branchId, checkIn, checkOut, formData.email, rooms]);
+
+    useEffect(() => {
+        if (!checkIn || !checkOut || rooms.length === 0) return;
+        const timer = setTimeout(() => {
+            refreshRoomsByEmail();
+        }, 350);
+        return () => clearTimeout(timer);
+    }, [formData.email, checkIn, checkOut, rooms.length, refreshRoomsByEmail]);
+
     const calculateTotalPrice = () => {
         return rooms.reduce(
             (sum, room) => sum + calculateRoomUnitPrice(room) * (room.quantity || 1),
@@ -270,6 +424,21 @@ const GuestInformation = () => {
 
         if (!checkIn || !checkOut || new Date(checkOut) <= new Date(checkIn)) {
             Swal.fire({ icon: 'warning', title: 'Invalid Date', text: 'Please select a check-out date after check-in (yyyy-MM-dd).', confirmButtonColor: '#5C6F4E' });
+            return;
+        }
+
+        const roomMissingModifier = rooms.find((room) => {
+            const ids = uniqueIds([...getRoomDetailModifierIds(room), ...getRoomBookingLevelModifierIds(room), getAppliedModifierId(room)]);
+            return ids.length === 0;
+        });
+
+        if (roomMissingModifier) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Pricing Selection',
+                text: `Room ${roomMissingModifier.name || roomMissingModifier.roomTypeId} does not have a valid price modifier. Please re-select a pricing option.`,
+                confirmButtonColor: '#5C6F4E',
+            });
             return;
         }
 

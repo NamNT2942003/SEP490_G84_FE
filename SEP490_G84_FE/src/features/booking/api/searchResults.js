@@ -5,12 +5,25 @@ const cleanRoomType = (room) => {
 
     const pricingOptions = Array.isArray(room.pricingOptions)
         ? room.pricingOptions.map((option) => ({
+            optionCode: option?.optionCode || option?.combinationKey || option?.mode || "UNKNOWN",
             mode: option?.mode || "UNKNOWN",
+            basePrice: Number(option?.basePrice ?? 0),
             finalPrice: Number(option?.finalPrice ?? 0),
             delta: Number(option?.delta ?? 0),
             modifierIds: Array.isArray(option?.modifierIds) ? option.modifierIds : [],
             modifierNames: Array.isArray(option?.modifierNames) ? option.modifierNames : [],
             reasons: Array.isArray(option?.reasons) ? option.reasons : [],
+            modifiers: Array.isArray(option?.modifiers)
+                ? option.modifiers.map((m) => ({
+                    priceModifierId: m?.priceModifierId,
+                    name: m?.name,
+                    type: m?.type,
+                    adjustmentType: m?.adjustmentType,
+                    adjustmentValue: Number(m?.adjustmentValue ?? 0),
+                    reason: m?.reason,
+                }))
+                : [],
+            combinationKey: option?.combinationKey || option?.optionCode || option?.mode || "UNKNOWN",
         }))
         : [];
 

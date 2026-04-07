@@ -162,6 +162,29 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
             );
         }
 
+        if (t === 'USER_HISTORY_DISCOUNT') {
+            return (
+                <div className="row g-3">
+                    <div className="col-md-6">
+                        <label className="form-label small text-muted">Minimum Historical Bookings</label>
+                        <input
+                            type="number"
+                            min="0"
+                            className="form-control"
+                            value={m.minBookings ?? ''}
+                            onChange={(e) => handleMetaChange('minBookings', e.target.value ? parseInt(e.target.value, 10) : null)}
+                            required
+                        />
+                    </div>
+                    <div className="col-12">
+                        <div className="form-text">
+                            When multiple USER_HISTORY_DISCOUNT rules match, the system auto-applies the highest minBookings tier.
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         if (t === 'POLICY') {
             return (
                 <div>
@@ -265,7 +288,8 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
                                         <option value="DAY_OF_WEEK">Day of Week</option>
                                         <option value="ADVANCE_BOOKING">Advance Booking</option>
                                         <option value="LENGTH_OF_STAY">Length of Stay</option>
-                                        <option value="OCCUPANCY">Occupancy</option>
+                                        <option value="OCCUPANCY">Booking Volume</option>
+                                        <option value="USER_HISTORY_DISCOUNT">Returning Guest Discount</option>
                                         <option value="AVAILABILITY">Availability Inventory</option>
                                         <option value="POLICY">Cancellation Policy</option>
                                     </select>

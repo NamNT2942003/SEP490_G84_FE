@@ -133,7 +133,8 @@ const PriceModifierManagement = () => {
             case 'DAY_OF_WEEK': return meta.days ? meta.days.join(", ") : "N/A";
             case 'ADVANCE_BOOKING': return `Min ${meta.minDaysBefore || 0}D, Max ${meta.maxDaysBefore || '∞'}D before`;
             case 'LENGTH_OF_STAY': return `Min ${meta.minNights || 1}N, Max ${meta.maxNights || '∞'}N`;
-            case 'OCCUPANCY': return `Min ${meta.minRooms || 1} Rm, Max ${meta.maxRooms || '∞'} Rm`;
+            case 'OCCUPANCY': return `Booking Volume: Min ${meta.minRooms || 1} room, Max ${meta.maxRooms || '∞'} rooms`;
+            case 'USER_HISTORY_DISCOUNT': return `Returning Guest: Min ${meta.minBookings || 0} historical bookings`;
             case 'AVAILABILITY': return `Min ${meta.minAvailableRooms || 0} Avail, Max ${meta.maxAvailableRooms || '∞'} Avail`;
             case 'POLICY': {
                 const selected = branchPolicies.find((p) => Number(p.id) === Number(meta.policyId));

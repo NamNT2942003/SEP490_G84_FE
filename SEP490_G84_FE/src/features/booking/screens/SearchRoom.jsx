@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import SearchForm from "./SearchForm.jsx";
 import RoomCard from "./RoomCard.jsx";
@@ -27,6 +27,9 @@ const SearchRoom = () => {
     const [selectedCart, setSelectedCart] = useState([]); // Giỏ hàng chọn phòng
     const [isInitialized, setIsInitialized] = useState(false);
     const [uiMessage, setUiMessage] = useState(null);
+    const [customerHistoryEmail, setCustomerHistoryEmail] = useState("");
+    const customerHistoryEmailRef = useRef("");
+    const latestRequestIdRef = useRef(0);
 
     const safeNumber = (value, fallback = 0) => {
         const parsed = Number(value);
@@ -34,12 +37,25 @@ const SearchRoom = () => {
     };
 
     const toPricingOption = (option = {}) => ({
+        optionCode: option?.optionCode || option?.combinationKey || option?.mode || "UNKNOWN",
         mode: option?.mode || "UNKNOWN",
+        basePrice: safeNumber(option?.basePrice, 0),
         finalPrice: safeNumber(option?.finalPrice, 0),
         delta: safeNumber(option?.delta, 0),
         modifierIds: Array.isArray(option?.modifierIds) ? option.modifierIds : [],
         modifierNames: Array.isArray(option?.modifierNames) ? option.modifierNames : [],
         reasons: Array.isArray(option?.reasons) ? option.reasons : [],
+        modifiers: Array.isArray(option?.modifiers)
+            ? option.modifiers.map((m) => ({
+                priceModifierId: m?.priceModifierId,
+                name: m?.name,
+                type: m?.type,
+                adjustmentType: m?.adjustmentType,
+                adjustmentValue: safeNumber(m?.adjustmentValue, 0),
+                reason: m?.reason,
+            }))
+            : [],
+        combinationKey: option?.combinationKey || option?.optionCode || option?.mode || "UNKNOWN",
     });
 
     const pricingOptionSignature = (option) => {
@@ -105,6 +121,34 @@ const SearchRoom = () => {
         setUiMessage({ type, text });
     };
 
+    const normalizeEmailForSearch = (emailRaw) => {
+        const email = String(emailRaw || "").trim();
+        if (!email) return "";
+        // Keep API calls lightweight by only sending likely-valid emails.
+        return /.+@.+\..+/.test(email) ? email : "";
+    };
+
+    const extractDeltaFromReason = (reason) => {
+        if (!reason) return null;
+        const match = String(reason).match(/\[\s*(-?\d+(?:\.\d+)?)\s*\]$/);
+        if (!match) return null;
+        return safeNumber(match[1], 0);
+    };
+
+    const calculateUserHistoryModifierUnitDelta = (room, modifier) => {
+        const fromReason = extractDeltaFromReason(modifier?.reason);
+        if (fromReason !== null) {
+            return fromReason;
+        }
+
+        const adjustmentValue = safeNumber(modifier?.adjustmentValue, 0);
+        if (modifier?.adjustmentType === "PERCENT" || modifier?.adjustmentType === "PERCENTAGE") {
+            const percentBase = safeNumber(room?.selectedPricingOption?.basePrice ?? room?.basePrice ?? room?.price ?? room?.selectedPrice, 0);
+            return (percentBase * adjustmentValue) / 100;
+        }
+        return adjustmentValue;
+    };
+
     // fetch branches once
     useEffect(() => {
         (async () => {
@@ -118,6 +162,7 @@ const SearchRoom = () => {
 
 
     const searchRooms = useCallback(async (sp) => {
+        const requestId = ++latestRequestIdRef.current;
         setLoading(true); setError(null); setSearchParams(sp);
         try {
             if (sp.checkIn && sp.checkOut) {
@@ -127,7 +172,14 @@ const SearchRoom = () => {
                 }
             }
             const params = { branchId: filters.branchId ?? 1, ...filters, ...sp };
+            const normalizedEmail = normalizeEmailForSearch(customerHistoryEmailRef.current);
+            if (normalizedEmail) {
+                params.customerEmail = normalizedEmail;
+            }
             const res = await roomService.searchRooms(params);
+            if (requestId !== latestRequestIdRef.current) {
+                return;
+            }
             const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
             setRooms(fetchedRooms);
             setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
@@ -144,6 +196,7 @@ const SearchRoom = () => {
 
     const refetchRooms = useCallback(async () => {
         if (!searchParams) return;
+        const requestId = ++latestRequestIdRef.current;
         setLoading(true); setError(null);
         try {
             if (searchParams.checkIn && searchParams.checkOut && new Date(searchParams.checkOut) <= new Date(searchParams.checkIn)) {
@@ -151,7 +204,14 @@ const SearchRoom = () => {
                 setLoading(false); return;
             }
             const params = { branchId: filters.branchId ?? 1, ...filters, ...searchParams };
+            const normalizedEmail = normalizeEmailForSearch(customerHistoryEmailRef.current);
+            if (normalizedEmail) {
+                params.customerEmail = normalizedEmail;
+            }
             const res = await roomService.searchRooms(params);
+            if (requestId !== latestRequestIdRef.current) {
+                return;
+            }
             const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
             setRooms(fetchedRooms);
             setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
@@ -247,7 +307,8 @@ const SearchRoom = () => {
                 checkIn: searchParams?.checkIn,
                 checkOut: searchParams?.checkOut,
                 branchId: filters.branchId,
-                totalPrice
+                totalPrice,
+                prefillEmail: customerHistoryEmail.trim() || undefined,
             }
         });
     };
@@ -275,6 +336,18 @@ const SearchRoom = () => {
     }, [filters.branchId, filters.sortPrice, filters.page, searchParams, isInitialized, refetchRooms]);
 
     useEffect(() => {
+        customerHistoryEmailRef.current = customerHistoryEmail;
+    }, [customerHistoryEmail]);
+
+    useEffect(() => {
+        if (!isInitialized || !searchParams) return;
+        const timer = setTimeout(() => {
+            refetchRooms();
+        }, 350);
+        return () => clearTimeout(timer);
+    }, [customerHistoryEmail, isInitialized, searchParams, refetchRooms]);
+
+    useEffect(() => {
         if (!uiMessage) return;
         const timer = setTimeout(() => setUiMessage(null), 3500);
         return () => clearTimeout(timer);
@@ -286,6 +359,26 @@ const SearchRoom = () => {
         const unitPrice = r.selectedPrice ?? r.appliedPrice ?? r.basePrice ?? r.price ?? 0;
         return sum + (unitPrice * (r.quantity || 1));
     }, 0);
+    const selectedCartHistoryModifiers = selectedCart
+        .map((room) => ({
+            room,
+            modifier: Array.isArray(room?.selectedPricingOption?.modifiers)
+                ? room.selectedPricingOption.modifiers.find((m) => m?.type === "USER_HISTORY_DISCOUNT")
+                : null,
+        }))
+        .filter((item) => item.modifier);
+    const userHistoryDiscountTotal = selectedCartHistoryModifiers.reduce((sum, item) => {
+        const qty = item.room.quantity || 1;
+        const unitDelta = calculateUserHistoryModifierUnitDelta(item.room, item.modifier);
+        return sum + (unitDelta * qty);
+    }, 0);
+    const userHistoryBookingCountLabel = selectedCartHistoryModifiers.length > 0
+        ? String(selectedCartHistoryModifiers[0].modifier?.reason || "")
+            .match(/\((\d+)\s+bookings?/i)?.[1]
+        : null;
+    const hasUserHistoryDiscount = selectedCartHistoryModifiers.length > 0;
+    const isEmailEntered = customerHistoryEmail.trim().length > 0;
+    const isEmailValid = normalizeEmailForSearch(customerHistoryEmail).length > 0;
     const hasValidStayDates =
         Boolean(searchParams?.checkIn) &&
         Boolean(searchParams?.checkOut) &&
@@ -551,6 +644,47 @@ const SearchRoom = () => {
                                 margin-bottom: 12px;
                                 font-size: 0.9rem;
                             }
+                            .cart-loyalty-box {
+                                margin-bottom: 12px;
+                                border: 1px solid rgba(255,255,255,0.28);
+                                background: rgba(255,255,255,0.08);
+                                border-radius: 10px;
+                                padding: 10px;
+                            }
+                            .cart-loyalty-label {
+                                font-size: 0.75rem;
+                                text-transform: uppercase;
+                                letter-spacing: 0.35px;
+                                opacity: 0.95;
+                                margin-bottom: 6px;
+                                font-weight: 700;
+                            }
+                            .cart-loyalty-input {
+                                width: 100%;
+                                border: 1px solid rgba(255,255,255,0.55);
+                                background: rgba(255,255,255,0.96);
+                                border-radius: 8px;
+                                padding: 8px 10px;
+                                color: #2f3a27;
+                                font-size: 0.85rem;
+                            }
+                            .cart-loyalty-input:focus {
+                                outline: none;
+                                border-color: #ffe27a;
+                                box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+                            }
+                            .cart-loyalty-note {
+                                margin-top: 7px;
+                                font-size: 0.76rem;
+                                line-height: 1.45;
+                                opacity: 0.95;
+                            }
+                            .cart-loyalty-note.ok {
+                                color: #dafbe1;
+                            }
+                            .cart-loyalty-note.warn {
+                                color: #ffe5b4;
+                            }
                             .cart-total-label {
                                 opacity: 0.9;
                                 font-weight: 600;
@@ -668,6 +802,37 @@ const SearchRoom = () => {
 
                             {selectedCart.length > 0 && (
                                 <div className="cart-footer">
+                                    <div className="cart-loyalty-box">
+                                        <div className="cart-loyalty-label">
+                                            <i className="bi bi-person-vcard me-1"></i>
+                                            Returning Guest Email
+                                        </div>
+                                        <input
+                                            type="email"
+                                            className="cart-loyalty-input"
+                                            value={customerHistoryEmail}
+                                            onChange={(e) => setCustomerHistoryEmail(e.target.value)}
+                                            placeholder="name@example.com"
+                                        />
+                                        {hasUserHistoryDiscount ? (
+                                            <div className="cart-loyalty-note ok">
+                                                <div>
+                                                    <i className="bi bi-check-circle me-1"></i>
+                                                    Auto-applied returning guest discount
+                                                    {userHistoryBookingCountLabel ? ` (${userHistoryBookingCountLabel} bookings)` : ""}.
+                                                </div>
+                                                <div>
+                                                    Adjustment: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(userHistoryDiscountTotal)}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className={`cart-loyalty-note ${isEmailEntered && !isEmailValid ? 'warn' : ''}`}>
+                                                {isEmailEntered && !isEmailValid
+                                                    ? 'Please enter a valid email to check returning guest discount.'
+                                                    : 'Enter guest email to auto-check returning guest discount in real time.'}
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="cart-total-section">
                                         <span className="cart-total-label"><i className="bi bi-wallet2 me-1"></i>Total:</span>
                                         <span className="cart-total-amount">
