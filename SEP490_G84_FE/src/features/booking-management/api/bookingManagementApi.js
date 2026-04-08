@@ -124,6 +124,11 @@ const bookingManagementApi = {
         return response.data;
     },
 
+    createBookingByStaff: async (payload) => {
+        const response = await apiClient.post(`${ADMIN_BOOKING_BASE}/create`, payload);
+        return response.data;
+    },
+
     getBookingStatistics: async () => {
         const endpoints = [
             `${ADMIN_BOOKING_BASE}/statistics`,

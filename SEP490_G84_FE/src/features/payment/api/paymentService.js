@@ -7,8 +7,9 @@ const buildPaymentPayload = ({ bookingId, amount, method }) => {
   }
 
   const numericAmount = Number(amount);
-  if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-    throw new Error("amount must be a positive number");
+  const normalizedMethod = String(method || '').toUpperCase();
+  if (!Number.isFinite(numericAmount) || numericAmount < 0 || (numericAmount === 0 && normalizedMethod !== 'CASH')) {
+    throw new Error("amount must be a non-negative number for CASH or a positive number for online payment methods");
   }
 
   if (!method) {

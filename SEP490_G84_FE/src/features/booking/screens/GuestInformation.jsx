@@ -22,6 +22,9 @@ const getCancellationText = (cancellationType, freeCancelBeforeDays) => {
 };
 
 const getPaymentText = (paymentType) => {
+    if (paymentType === 'FREE_CANCEL') return 'Free cancellation';
+    if (paymentType === 'PARTIAL_REFUND') return 'Partial refund';
+    if (paymentType === 'NON_REFUND') return 'Non-refundable';
     if (paymentType === 'PREPAID') return 'Prepaid';
     if (paymentType === 'PAY_AT_HOTEL') return 'Pay at hotel';
     return 'Room-based payment method';
@@ -89,6 +92,11 @@ const toPricingOption = (option = {}) => ({
     basePrice: Number(option?.basePrice ?? 0),
     finalPrice: Number(option?.finalPrice ?? 0),
     delta: Number(option?.delta ?? 0),
+    cancellationPolicyId: option?.cancellationPolicyId ?? null,
+    cancellationPolicyType: option?.cancellationPolicyType || '',
+    cancellationPolicyName: option?.cancellationPolicyName || '',
+    prepaidRate: Number(option?.prepaidRate ?? 0),
+    refunRate: Number(option?.refunRate ?? 0),
     modifierIds: Array.isArray(option?.modifierIds) ? option.modifierIds : [],
     modifierNames: Array.isArray(option?.modifierNames) ? option.modifierNames : [],
     reasons: Array.isArray(option?.reasons) ? option.reasons : [],
@@ -192,7 +200,7 @@ const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
                             </div>
                             <div className="small px-2 py-1 rounded" style={{ background: '#e6fffa', color: '#319795', fontWeight: 600 }}>
                                 <i className="bi bi-credit-card me-1" />
-                                {getPaymentText(room.paymentType)}
+                                {getPaymentText(room.selectedPricingOption?.cancellationPolicyType || room.paymentType)}
                             </div>
                         </div>
                     </div>

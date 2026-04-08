@@ -44,7 +44,7 @@ const PaymentResult = () => {
 
     // Resolve dynamic values
     const bookingRef = paymentData?.bookingRef || searchParams.get('bookingRef') || 'Unknown';
-    const methodStr = paymentData?.method === 'STRIPE' ? 'Credit Card' : paymentData?.method === 'SEPAY' ? 'Bank Transfer' : 'Credit Card';
+    const methodStr = paymentData?.method === 'STRIPE' ? 'Credit Card' : paymentData?.method === 'SEPAY' ? 'Bank Transfer' : paymentData?.method === 'CASH' ? 'Pay at hotel' : 'Credit Card';
     const totalAmount = paymentData ? formatCurrency(paymentData.amount) : 'Loading...';
 
     const SuccessIcon = () => (

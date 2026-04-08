@@ -57,6 +57,9 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
     };
 
     const getPaymentText = (paymentType) => {
+        if (paymentType === 'FREE_CANCEL') return 'Free cancellation';
+        if (paymentType === 'PARTIAL_REFUND') return 'Partial refund';
+        if (paymentType === 'NON_REFUND') return 'Non-refundable';
         if (paymentType === 'PREPAID') return 'Prepaid';
         if (paymentType === 'PAY_AT_HOTEL') return 'Pay at hotel';
         return 'Room-based payment method';
@@ -217,7 +220,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                                     {(room.quantity || 1)} {(room.quantity || 1) > 1 ? 'rooms' : 'room'} for selected stay
                                 </p>
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
-                                    {getCancellationText(room.cancellationType, room.freeCancelBeforeDays)} · {getPaymentText(room.paymentType)}
+                                    {getCancellationText(room.cancellationType, room.freeCancelBeforeDays)} · {getPaymentText(room.selectedPricingOption?.cancellationPolicyType || room.paymentType)}
                                 </p>
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                     Base: {formatCurrency(calculateRoomBaseUnitPrice(room))}

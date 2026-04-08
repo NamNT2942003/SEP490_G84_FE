@@ -9,6 +9,60 @@ import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe
 // TODO: Thay thế bằng Publishable Key MỚI TỪ STRIPE DASHBOARD (Bắt đầu bằng pk_test_...)
 const stripePromise = loadStripe('pk_test_XXX_THAY_MA_CUA_BAN_VAO_DAY_XXX');
 
+const normalizePolicyType = (value) => String(value || '').trim().toUpperCase();
+
+const getPolicyLabel = (policyType) => {
+    switch (normalizePolicyType(policyType)) {
+        case 'FREE_CANCEL':
+            return 'Free cancellation';
+        case 'PARTIAL_REFUND':
+            return 'Partial refund';
+        case 'NON_REFUND':
+            return 'Non-refundable';
+        case 'PAY_AT_HOTEL':
+            return 'Pay at hotel';
+        default:
+            return 'Policy-based payment';
+    }
+};
+
+const getPolicyRate = (room) => {
+    const option = room?.selectedPricingOption || {};
+    const rawRate = option?.prepaidRate ?? option?.prepaidPercent ?? room?.prepaidRate;
+    const rate = Number(rawRate);
+
+    if (Number.isFinite(rate) && rate >= 0) {
+        return Math.min(100, rate);
+    }
+
+    const policyType = normalizePolicyType(option?.cancellationPolicyType || room?.paymentType || room?.cancellationType);
+    if (policyType === 'PAY_AT_HOTEL') return 0;
+    return 100;
+};
+
+const getPolicyAmountForRoom = (room) => {
+    const unitPrice = Number(
+        room?.selectedPrice
+            ?? room?.selectedPricingOption?.finalPrice
+            ?? room?.appliedPrice
+            ?? room?.basePrice
+            ?? room?.price
+            ?? 0,
+    );
+    const quantity = Number(room?.quantity || 1);
+    const policyRate = getPolicyRate(room);
+    return Math.max(0, Math.round(unitPrice * quantity * policyRate / 100));
+};
+
+const getRoomPolicyType = (room) => {
+    return normalizePolicyType(
+        room?.selectedPricingOption?.cancellationPolicyType
+        || room?.selectedPricingOption?.policyType
+        || room?.paymentType
+        || room?.cancellationType,
+    );
+};
+
 const PaymentSelection = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -27,6 +81,24 @@ const PaymentSelection = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [qrData, setQrData] = useState(null);
     const [clientSecret, setClientSecret] = useState('');
+
+    const policyAmount = rooms.reduce((sum, room) => sum + getPolicyAmountForRoom(room), 0);
+    const effectiveAmount = policyAmount > 0 || rooms.some((room) => getRoomPolicyType(room) === 'PAY_AT_HOTEL')
+        ? policyAmount
+        : Number(totalAmount || 0);
+    const hasPolicyBasedPayment = rooms.some((room) => Boolean(room?.selectedPricingOption?.prepaidRate || room?.selectedPricingOption?.cancellationPolicyType));
+    const policyLabels = [...new Set(rooms.map((room) => getRoomPolicyType(room)).filter(Boolean))];
+
+    useEffect(() => {
+        if (effectiveAmount <= 0) {
+            setSelectedMethod('CASH');
+            return;
+        }
+
+        if (selectedMethod === 'CASH') {
+            setSelectedMethod('STRIPE');
+        }
+    }, [effectiveAmount]);
 
     useEffect(() => {
         let intervalId;
@@ -58,13 +130,28 @@ const PaymentSelection = () => {
     }
 
     const handleProcessPayment = async () => {
+        if (selectedMethod === 'CASH' && effectiveAmount <= 0) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Booking confirmed',
+                text: 'This booking follows a pay-at-hotel policy. No online payment is required.',
+                confirmButtonColor: '#465c47',
+            }).then(() => navigate('/guest/bookings'));
+            return;
+        }
+
         setIsLoading(true);
         try {
             const data = await paymentService.createPayment({
                 bookingId,
-                amount: totalAmount,
+                amount: effectiveAmount,
                 method: selectedMethod,
             });
+
+            if (data?.type === 'OFFLINE') {
+                navigate(`/payment/result?status=success&paymentId=${data.paymentId}`);
+                return;
+            }
 
             if (data?.type === 'REDIRECT' && data.payUrl) {
                 window.location.href = data.payUrl;
@@ -102,6 +189,27 @@ const PaymentSelection = () => {
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
+
+    const renderMethodCard = (value, title, description, icon, accentColor) => (
+        <div
+            className={`p-3 border rounded-3 d-flex align-items-center ${selectedMethod === value ? 'shadow-sm' : ''}`}
+            style={{ borderColor: selectedMethod === value ? '#465c47' : '#dee2e6', backgroundColor: selectedMethod === value ? '#fcfdfa' : '#fff', borderWidth: selectedMethod === value ? '2px' : '1px', cursor: 'pointer', transition: 'all 0.2s' }}
+            onClick={() => setSelectedMethod(value)}
+        >
+            <input
+                type="radio"
+                className="form-check-input me-3 mt-0"
+                checked={selectedMethod === value}
+                onChange={() => setSelectedMethod(value)}
+                style={{ cursor: 'pointer' }}
+            />
+            <div>
+                <h6 className="mb-0 fw-bold">{title}</h6>
+                <small className="text-muted">{description}</small>
+            </div>
+            <i className={`${icon} ms-auto fs-3`} style={{ color: accentColor }}></i>
+        </div>
+    );
 
     return (
         <div className="bg-light" style={{ minHeight: '100vh', paddingBottom: '120px' }}>
@@ -190,54 +298,48 @@ const PaymentSelection = () => {
                                         <i className="bi bi-wallet2 me-2"></i>Select Payment Method
                                     </h4>
 
-                                    <div className="bg-light p-3 rounded-3 mb-4 d-flex justify-content-between align-items-center">
+                                    <div className="bg-light p-3 rounded-3 mb-4 d-flex justify-content-between align-items-center gap-3 flex-wrap">
                                         <div>
-                                            <p className="text-muted mb-0 fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '1px' }}>Total Amount due</p>
+                                            <p className="text-muted mb-0 fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '1px' }}>Amount due by policy</p>
+                                            <div className="text-muted small mt-1">
+                                                {hasPolicyBasedPayment ? (
+                                                    <>
+                                                        {policyLabels.map((label) => label).join(' · ')}
+                                                    </>
+                                                ) : 'Standard booking payment'}
+                                            </div>
                                         </div>
-                                        <h3 className="fw-bold m-0" style={{ color: '#465c47' }}>{formatCurrency(totalAmount)}</h3>
+                                        <h3 className="fw-bold m-0" style={{ color: '#465c47' }}>{formatCurrency(effectiveAmount)}</h3>
                                     </div>
 
-                                    <div className="mb-4">
-                                        <div
-                                            className={`p-3 mb-3 border rounded-3 d-flex align-items-center ${selectedMethod === 'STRIPE' ? 'shadow-sm' : ''}`}
-                                            style={{ borderColor: selectedMethod === 'STRIPE' ? '#465c47' : '#dee2e6', backgroundColor: selectedMethod === 'STRIPE' ? '#fcfdfa' : '#fff', borderWidth: selectedMethod === 'STRIPE' ? '2px' : '1px', cursor: 'pointer', transition: 'all 0.2s' }}
-                                            onClick={() => setSelectedMethod('STRIPE')}
-                                        >
-                                            <input
-                                                type="radio"
-                                                className="form-check-input me-3 mt-0"
-                                                checked={selectedMethod === 'STRIPE'}
-                                                onChange={() => setSelectedMethod('STRIPE')}
-                                                style={{ cursor: 'pointer' }}
-                                            />
-                                            <div>
-                                                <h6 className="mb-0 fw-bold">Pay with VISA / MasterCard</h6>
-                                                <small className="text-muted">Secure payment via Stripe gateway</small>
-                                            </div>
-                                            <div className="ms-auto fs-3 d-flex gap-2 text-secondary">
-                                                <i className="fa-brands fa-cc-visa" style={{ color: '#1a1f71' }}></i>
-                                                <i className="fa-brands fa-cc-mastercard" style={{ color: '#eb001b' }}></i>
-                                            </div>
+                                    {hasPolicyBasedPayment && rooms.length > 0 && (
+                                        <div className="mb-4">
+                                            {rooms.map((room, index) => {
+                                                const roomAmount = getPolicyAmountForRoom(room);
+                                                const roomPolicy = getPolicyLabel(getRoomPolicyType(room));
+                                                return (
+                                                    <div key={`${room.roomTypeId || index}-policy`} className="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                                        <div>
+                                                            <div className="fw-semibold">{room.name || `Room ${index + 1}`}</div>
+                                                            <small className="text-muted">{roomPolicy} · {room.selectedPricingOption?.prepaidRate != null ? `${room.selectedPricingOption.prepaidRate}% payable now` : 'Policy rate applied'}</small>
+                                                        </div>
+                                                        <div className="fw-bold" style={{ color: '#465c47' }}>{formatCurrency(roomAmount)}</div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
+                                    )}
 
-                                        <div
-                                            className={`p-3 border rounded-3 d-flex align-items-center ${selectedMethod === 'SEPAY' ? 'shadow-sm' : ''}`}
-                                            style={{ borderColor: selectedMethod === 'SEPAY' ? '#465c47' : '#dee2e6', backgroundColor: selectedMethod === 'SEPAY' ? '#fcfdfa' : '#fff', borderWidth: selectedMethod === 'SEPAY' ? '2px' : '1px', cursor: 'pointer', transition: 'all 0.2s' }}
-                                            onClick={() => setSelectedMethod('SEPAY')}
-                                        >
-                                            <input
-                                                type="radio"
-                                                className="form-check-input me-3 mt-0"
-                                                checked={selectedMethod === 'SEPAY'}
-                                                onChange={() => setSelectedMethod('SEPAY')}
-                                                style={{ cursor: 'pointer' }}
-                                            />
-                                            <div>
-                                                <h6 className="mb-0 fw-bold">Bank Transfer (QR Code)</h6>
-                                                <small className="text-muted">Quick payment using banking app</small>
-                                            </div>
-                                            <i className="fa-solid fa-qrcode ms-auto fs-3 text-secondary"></i>
-                                        </div>
+                                    <div className="mb-4">
+                                        {effectiveAmount > 0 ? (
+                                            <>
+                                                {renderMethodCard('STRIPE', 'Pay with VISA / MasterCard', 'Secure payment via Stripe gateway', 'fa-brands fa-cc-visa', '#1a1f71')}
+                                                <div className="my-3" />
+                                                {renderMethodCard('SEPAY', 'Bank Transfer (QR Code)', 'Quick payment using banking app', 'fa-solid fa-qrcode', '#465c47')}
+                                            </>
+                                        ) : (
+                                            renderMethodCard('CASH', 'Pay at hotel', 'No online payment required for this policy', 'bi bi-building-check', '#0f766e')
+                                        )}
                                     </div>
                                 </>
                             )}
@@ -265,7 +367,7 @@ const PaymentSelection = () => {
                         <div>
                             <small className="text-muted fw-bold text-uppercase">Total Price</small>
                             <h4 className="mb-0 fw-bold" style={{ color: '#465c47' }}>
-                                {formatCurrency(totalAmount)}
+                                {formatCurrency(effectiveAmount)}
                             </h4>
                         </div>
                         <button
@@ -277,7 +379,7 @@ const PaymentSelection = () => {
                             {isLoading ? (
                                 <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Processing...</>
                             ) : (
-                                <>Access Payment Gateway <i className="bi bi-shield-lock-fill ms-2" /></>
+                                <>{selectedMethod === 'CASH' ? 'Confirm pay at hotel' : 'Access Payment Gateway'} <i className="bi bi-shield-lock-fill ms-2" /></>
                             )}
                         </button>
                     </div>

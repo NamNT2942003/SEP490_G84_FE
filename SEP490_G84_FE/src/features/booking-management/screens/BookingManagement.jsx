@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import bookingManagementApi from "../api/bookingManagementApi";
 import BookingDetailModal from "../components/BookingDetailModal";
+import CreateBookingByStaffModal from "../components/CreateBookingByStaffModal";
 import "./BookingManagement.css";
 import Buttons from "@/components/ui/Buttons";
 import { COLORS } from "@/constants";
@@ -80,6 +81,7 @@ export default function BookingManagement() {
 
     const [selectedBookingId, setSelectedBookingId] = useState(null);
     const [showDetail, setShowDetail] = useState(false);
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     const fetchBookings = useCallback(async () => {
         try {
@@ -141,6 +143,21 @@ export default function BookingManagement() {
         setSelectedBookingId(null);
     };
 
+    const handleCreateBooking = async (payload) => {
+        return bookingManagementApi.createBookingByStaff(payload);
+    };
+
+    const handleCreatedSuccess = async () => {
+        await Swal.fire({
+            icon: "success",
+            title: "Booking created",
+            text: "New booking was created successfully.",
+            timer: 1600,
+            showConfirmButton: false,
+        });
+        fetchBookings();
+    };
+
     return (
         <div className="bm-page">
             {/* Breadcrumb + title */}
@@ -148,15 +165,25 @@ export default function BookingManagement() {
                 <div>
                     <h4 className="fw-bold mb-0">Booking Management</h4>
                 </div>
-                <Buttons
-                    variant="primary"
-                    className="btn-sm"
-                    icon={<i className="bi bi-arrow-clockwise" />}
-                    onClick={fetchBookings}
-                    isLoading={loading}
-                >
-                    Refresh
-                </Buttons>
+                <div className="d-flex align-items-center gap-2">
+                    <Buttons
+                        variant="outline"
+                        className="btn-sm"
+                        icon={<i className="bi bi-plus-lg" />}
+                        onClick={() => setShowCreateModal(true)}
+                    >
+                        Create Booking
+                    </Buttons>
+                    <Buttons
+                        variant="primary"
+                        className="btn-sm"
+                        icon={<i className="bi bi-arrow-clockwise" />}
+                        onClick={fetchBookings}
+                        isLoading={loading}
+                    >
+                        Refresh
+                    </Buttons>
+                </div>
             </div>
 
             {/* Stat Cards */}
@@ -334,6 +361,13 @@ export default function BookingManagement() {
                 onHide={closeDetail}
                 onStatusChanged={fetchBookings}
                 onBookingCancelled={fetchBookings}
+            />
+
+            <CreateBookingByStaffModal
+                show={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSubmit={handleCreateBooking}
+                onSuccess={handleCreatedSuccess}
             />
         </div>
     );
