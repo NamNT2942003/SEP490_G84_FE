@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import SearchForm from "./SearchForm.jsx";
 import RoomCard from "./RoomCard.jsx";
 import RoomDetailModal from "./RoomDetailModal.jsx";
@@ -63,6 +63,32 @@ const SearchRoom = () => {
         return `${option.mode || ""}-${option.finalPrice || 0}-${(option.modifierIds || []).join("_")}`;
     };
 
+    const findPreferredPricingOption = (options, preferredOption) => {
+        if (!preferredOption || !Array.isArray(options) || options.length === 0) return null;
+
+        const preferredCode = preferredOption.optionCode || preferredOption.combinationKey || null;
+        if (preferredCode) {
+            const byCode = options.find(
+                (opt) => (opt.optionCode || opt.combinationKey || null) === preferredCode,
+            );
+            if (byCode) return byCode;
+        }
+
+        const preferredCombinationKey = preferredOption.combinationKey || null;
+        if (preferredCombinationKey) {
+            const byCombinationKey = options.find((opt) => opt.combinationKey === preferredCombinationKey);
+            if (byCombinationKey) return byCombinationKey;
+        }
+
+        const preferredSignature = pricingOptionSignature(preferredOption);
+        if (preferredSignature) {
+            const bySignature = options.find((opt) => pricingOptionSignature(opt) === preferredSignature);
+            if (bySignature) return bySignature;
+        }
+
+        return null;
+    };
+
     const withPricingState = (room, preferredOption = null) => {
         if (!room) return room;
 
@@ -70,9 +96,7 @@ const SearchRoom = () => {
             .map(toPricingOption)
             .sort((a, b) => a.finalPrice - b.finalPrice);
 
-        const selectedOption = options.find(
-            (opt) => pricingOptionSignature(opt) === pricingOptionSignature(preferredOption),
-        ) || options[0] || null;
+        const selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
 
         const selectedPrice = selectedOption?.finalPrice
             ?? safeNumber(room?.appliedPrice, NaN)
@@ -431,7 +455,7 @@ const SearchRoom = () => {
             <div className="container bc-bar" style={{ position: 'relative', zIndex: 1 }}>
                 <nav aria-label="breadcrumb">
                     <ol className="breadcrumb">
-                        <li className="breadcrumb-item"><a href="/public"><i className="bi bi-house-door me-1"></i>Home</a></li>
+                        <li className="breadcrumb-item"><Link to="/public"><i className="bi bi-house-door me-1"></i>Home</Link></li>
                         <li className="breadcrumb-item active">Search Results</li>
                     </ol>
                 </nav>

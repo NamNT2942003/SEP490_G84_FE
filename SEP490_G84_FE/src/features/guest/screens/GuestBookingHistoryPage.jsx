@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { guest } from "../api/guestService.js";
 import BookingCard from "../components/BookingCard.jsx";
+import { Link } from "react-router-dom";
 import { COLORS } from "../../../constants";
 
 /* ─── Colours – light theme ─── */
@@ -81,7 +82,7 @@ function StateScreen({ icon, title, msg, link, linkLabel }) {
             <h3 style={S.stateTitle}>{title}</h3>
             {msg && <p style={S.stateMsg}>{msg}</p>}
             {link && (
-                <a href={link} style={S.stateBtn}>{linkLabel}</a>
+                <Link to={link} style={S.stateBtn}>{linkLabel}</Link>
             )}
         </div>
     );
@@ -185,7 +186,7 @@ export default function GuestBookingHistoryPage() {
                                         Found <strong style={{ color: C.text }}>{bookings.length}</strong> bookings
                                     </p>
                                 </div>
-                                <a href="/guest-access" style={S.newSearchBtn}>+ New Search</a>
+                                <Link to="/guest-access" style={S.newSearchBtn}>+ New Search</Link>
                             </div>
 
                             {/* Summary */}

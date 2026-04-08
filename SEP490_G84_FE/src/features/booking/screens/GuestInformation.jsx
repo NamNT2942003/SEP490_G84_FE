@@ -109,14 +109,38 @@ const pricingOptionSignature = (option) => {
     return `${option.mode || ''}-${option.finalPrice || 0}-${(option.modifierIds || []).join('_')}`;
 };
 
+const findPreferredPricingOption = (options, preferredOption) => {
+    if (!preferredOption || !Array.isArray(options) || options.length === 0) return null;
+
+    const preferredCode = preferredOption.optionCode || preferredOption.combinationKey || null;
+    if (preferredCode) {
+        const byCode = options.find(
+            (opt) => (opt.optionCode || opt.combinationKey || null) === preferredCode,
+        );
+        if (byCode) return byCode;
+    }
+
+    const preferredCombinationKey = preferredOption.combinationKey || null;
+    if (preferredCombinationKey) {
+        const byCombinationKey = options.find((opt) => opt.combinationKey === preferredCombinationKey);
+        if (byCombinationKey) return byCombinationKey;
+    }
+
+    const preferredSignature = pricingOptionSignature(preferredOption);
+    if (preferredSignature) {
+        const bySignature = options.find((opt) => pricingOptionSignature(opt) === preferredSignature);
+        if (bySignature) return bySignature;
+    }
+
+    return null;
+};
+
 const withPricingState = (room, preferredOption = null) => {
     const options = (Array.isArray(room?.pricingOptions) ? room.pricingOptions : [])
         .map(toPricingOption)
         .sort((a, b) => a.finalPrice - b.finalPrice);
 
-    const selectedOption = options.find(
-        (opt) => pricingOptionSignature(opt) === pricingOptionSignature(preferredOption),
-    ) || options[0] || null;
+    const selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
 
     const selectedPrice = selectedOption?.finalPrice
         ?? Number(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0);
@@ -309,6 +333,11 @@ const GuestInformation = () => {
         specialRequests: '',
     });
     const latestPricingRequestIdRef = useRef(0);
+    const roomsRef = useRef(selectedRooms);
+
+    useEffect(() => {
+        roomsRef.current = rooms;
+    }, [rooms]);
 
     const handleInputChange = (e) => {
         const { id, name, value } = e.target;
@@ -346,10 +375,11 @@ const GuestInformation = () => {
     };
 
     const refreshRoomsByEmail = useCallback(async () => {
-        if (!checkIn || !checkOut || rooms.length === 0) return;
+        const roomsSnapshot = roomsRef.current;
+        if (!checkIn || !checkOut || roomsSnapshot.length === 0) return;
 
         const requestId = ++latestPricingRequestIdRef.current;
-        const roomTypeIds = [...new Set(rooms.map((r) => r.roomTypeId).filter(Boolean))];
+        const roomTypeIds = [...new Set(roomsSnapshot.map((r) => r.roomTypeId).filter(Boolean))];
         if (roomTypeIds.length === 0) return;
 
         const params = {
@@ -359,7 +389,7 @@ const GuestInformation = () => {
             adults: 1,
             children: 0,
             roomTypeIds,
-            size: Math.max(rooms.length, 10),
+            size: Math.max(roomsSnapshot.length, 10),
             page: 0,
             sortPrice: 'priceAsc',
         };
@@ -403,15 +433,15 @@ const GuestInformation = () => {
             // Ignore transient repricing failures to avoid interrupting typing flow.
             console.warn('Failed to refresh room pricing by email', error);
         }
-    }, [branchId, checkIn, checkOut, formData.email, rooms]);
+    }, [branchId, checkIn, checkOut, formData.email]);
 
     useEffect(() => {
-        if (!checkIn || !checkOut || rooms.length === 0) return;
+        if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
         const timer = setTimeout(() => {
             refreshRoomsByEmail();
         }, 350);
         return () => clearTimeout(timer);
-    }, [formData.email, checkIn, checkOut, rooms.length, refreshRoomsByEmail]);
+    }, [formData.email, checkIn, checkOut, refreshRoomsByEmail]);
 
     const calculateTotalPrice = () => {
         return rooms.reduce(

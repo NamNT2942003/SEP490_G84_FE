@@ -681,7 +681,7 @@ function RoomManagement() {
             </div>
             <button 
               className="btn btn-sm btn-outline-warning ms-3" 
-              onClick={() => window.location.reload()}
+              onClick={() => fetchAllData()}
               title="Retry connection"
             >
               <i className="bi bi-arrow-clockwise"></i> Retry
@@ -953,7 +953,7 @@ function RoomManagement() {
                   </button>
                   <button 
                     className="btn btn-primary btn-sm" 
-                    onClick={() => window.location.reload()}
+                    onClick={() => fetchAllData()}
                   >
                     <i className="bi bi-arrow-repeat me-1"></i> Refresh
                   </button>

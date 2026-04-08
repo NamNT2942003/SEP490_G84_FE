@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { roomManagementApi } from "../api/roomManagementApi";
 import MainLayout from "../../../components/layout/MainLayout";
-
+import { Link } from "react-router-dom";
 const BRAND = "#5C6F4E";
 
 export default function FurnitureManagement() {
@@ -463,7 +463,7 @@ export default function FurnitureManagement() {
       <div className="container bc-bar" style={{ position: 'relative', zIndex: 1 }}>
         <nav aria-label="breadcrumb">
           <ol className="breadcrumb">
-            <li className="breadcrumb-item"><a href="/admin"><i className="bi bi-house-door me-1"></i>Admin</a></li>
+            <li className="breadcrumb-item"><Link to="/admin"><i className="bi bi-house-door me-1"></i>Admin</Link></li>
             <li className="breadcrumb-item active">Furniture Management</li>
           </ol>
         </nav>
