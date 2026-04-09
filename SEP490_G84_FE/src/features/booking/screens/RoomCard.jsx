@@ -12,16 +12,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
 
     const imageSrc = room.image && !room.image.includes(".jpg") ? `/images/${room.image}` : getPlaceholderImage(room.name);
     const sold = room.availableCount <= 0;
-    const options = Array.isArray(room?.pricingOptions) ? room.pricingOptions : [];
-    const policy = room?.pricingCombinationPolicy;
-
-    const handleBookOption = (option) => {
-        onBooking({
-            ...room,
-            selectedPricingOption: option,
-            selectedPrice: option?.finalPrice ?? room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0,
-        });
-    };
+    const visiblePrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
 
     return (
         <>
@@ -44,33 +35,13 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
         .rc-side-btn:hover { border-color: var(--olive); color: var(--olive); background: #f0f4ec; }
         
         .rc-pricing { flex: 0 0 310px; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-light); border-left: 1px solid #f0f0f0; }
-        .rc-pricing-hd { font-size: 0.85rem; font-weight: 700; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; justify-content: space-between; }
-        .rc-pricing-options { display: flex; flex-direction: column; gap: 16px; }
-
-        .rc-opt { background: #fff; border: 1.5px solid #edf2f7; border-radius: 16px; padding: 18px; transition: all 0.2s; position: relative; overflow: hidden; display: flex; flex-direction: column; }
-        .rc-opt:hover { border-color: var(--gold); box-shadow: 0 8px 16px rgba(212,175,55,0.08); }
-        .rc-opt-highlight { border-color: var(--olive); background: linear-gradient(to right, #ffffff, #f9fbf8); }
-        .rc-opt-highlight::before { content: 'RECOMMENDED'; position: absolute; top: 0; right: 0; background: var(--gold); color: #fff; font-size: 0.6rem; font-weight: 800; padding: 3px 10px; border-bottom-left-radius: 10px; }
-        
-        .rc-opt-header { background: #f8fafc; padding: 8px 12px; border-radius: 10px; margin-bottom: 12px; display: inline-block; width: max-content; }
-        .rc-opt-mode { font-size: 0.85rem; font-weight: 800; color: var(--olive-dark); letter-spacing: 0.5px;}
-        
-        .rc-opt-prices { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
-        .rc-opt-base { font-size: 0.85rem; color: #a0aec0; text-decoration: line-through; font-weight: 600; margin-bottom: 2px; }
-        .rc-opt-amt { font-size: 1.35rem; font-weight: 800; color: #2d3748; line-height: 1; display:flex; gap: 4px; align-items:baseline;}
-        .rc-opt-per { font-size: 0.8rem; color: #a0aec0; font-weight: 600; }
-        
-        .rc-opt-meta { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; flex-grow: 1; }
-        .rc-promo-badge { font-size: 0.75rem; background: #ebf4ff; color: #3182ce; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; width: max-content; }
-        .rc-promo-reason { font-size: 0.75rem; color: #718096; font-style: italic; }
-        
-        .rc-opt-book { width: 100%; padding: 12px; border: none; border-radius: 12px; background: var(--olive); color: #fff; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: auto; }
-        .rc-opt-book:hover:not(:disabled) { background: var(--olive-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(92,111,78,0.3); }
-        .rc-opt-book.highlight-btn { background: var(--gold); color: #2d3748;}
-        .rc-opt-book.highlight-btn:hover:not(:disabled) { background: #b8962c; }
-        .rc-opt-book:disabled { opacity: 0.5; cursor: not-allowed; background: #cbd5e0; color: #fff; box-shadow: none; transform: none; }
-        
-        .rc-pricing-empty { padding: 20px; border: 2px dashed #edf2f7; border-radius: 16px; font-size: 0.9rem; color: #a0aec0; text-align: center; }
+        .rc-price-box { background: #fff; border: 1.5px solid #edf2f7; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+        .rc-price-label { font-size: 0.75rem; font-weight: 800; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px; }
+        .rc-price-value { font-size: 1.35rem; font-weight: 800; color: #2d3748; line-height: 1; display:flex; gap: 4px; align-items:baseline; }
+        .rc-price-note { font-size: 0.8rem; color: #718096; }
+        .rc-book-btn { width: 100%; padding: 12px; border: none; border-radius: 12px; background: var(--olive); color: #fff; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: auto; }
+        .rc-book-btn:hover:not(:disabled) { background: var(--olive-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(92,111,78,0.3); }
+        .rc-book-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #cbd5e0; color: #fff; box-shadow: none; transform: none; }
         
         /* Thay vì 1100px cứng nhắc, tăng giới hạn chập khối lên 1399px vì màn hình chứa col-lg-9 hẹp hơn viewport thật */
         @media(max-width:1399px) { 
@@ -111,96 +82,26 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                     </div>
 
                     <div className="rc-pricing">
-                        <div className="rc-pricing-hd">
-                            <span><i className="bi bi-tag-fill me-1"></i> Pricing options</span>
-                            <span className="badge bg-secondary" style={{ fontSize: '0.65rem' }}>{options.length} option(s)</span>
+                        <div className="rc-price-box">
+                            <div className="rc-price-label">Current price</div>
+                            <div className="rc-price-value">
+                                {formatPrice(visiblePrice)}
+                                <span className="rc-opt-per">/ night</span>
+                            </div>
+                            <div className="rc-price-note">
+                                Adjustments from policy and returning guest discounts are finalized in the guest information step.
+                            </div>
                         </div>
 
-                        <div className="rc-pricing-options">
-                            {options.length > 0 ? options.map((option, idx) => {
-                                const isRecommended = idx === 0 && options.length > 1; // Highlight first element
-                                const hasDiscount = option.delta < 0;
-
-                                return (
-                                    <div className={`rc-opt ${isRecommended ? 'rc-opt-highlight' : ''}`} key={`${room.roomTypeId}-${option.mode}-${idx}`}>
-                                        <div className="rc-opt-header">
-                                            <div className="rc-opt-mode">
-                                                {option.mode?.startsWith("POLICY_") ? "Standard payment plan" : (option.mode || "Standard plan")}
-                                            </div>
-                                        </div>
-
-                                        <div className="rc-opt-prices">
-                                            <div>
-                                                {hasDiscount && <div className="rc-opt-base">{formatPrice(option.basePrice)}</div>}
-                                                <div className="rc-opt-amt">
-                                                    {formatPrice(option.finalPrice || 0)}
-                                                    <span className="rc-opt-per">/ night</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {(option.modifiers && option.modifiers.length > 0) && (
-                                            <div className="rc-opt-meta">
-                                                {option.modifiers.map((m, i) => {
-                                                    const rawAmountMatch = m.reason ? m.reason.match(/\[\s*(-?\d+)\s*\]$/) : null;
-                                                    let displayReason = m.reason || "";
-                                                    let formattedAmount = '';
-                                                    let isDiscount = false;
-                                                    let isSurcharge = false;
-
-                                                    if (rawAmountMatch) {
-                                                        const amt = parseInt(rawAmountMatch[1], 10);
-                                                        isDiscount = amt < 0;
-                                                        isSurcharge = amt > 0;
-                                                        formattedAmount = formatPrice(Math.abs(amt));
-                                                        displayReason = displayReason.replace(/\[\s*-?\d+\s*\]$/, "").trim();
-                                                    } else if (m.adjustmentValue) {
-                                                        isDiscount = m.adjustmentValue < 0;
-                                                        isSurcharge = m.adjustmentValue > 0;
-                                                        const suffixType = m.adjustmentType === 'PERCENT' ? '%' : ' VNĐ';
-                                                        formattedAmount = Math.abs(m.adjustmentValue) + suffixType;
-                                                    }
-
-                                                    return (
-                                                        <div key={i} className="mb-2 p-2 rounded" style={{ background: isDiscount ? '#f0fdf4' : (isSurcharge ? '#fff5f5' : '#f8fafc'), border: `1px solid ${isDiscount ? '#bbf7d0' : (isSurcharge ? '#fed7d7' : '#e2e8f0')}` }}>
-                                                            <div className="d-flex justify-content-between align-items-start gap-2">
-                                                                <div className="rc-promo-badge" style={{ background: isDiscount ? '#dcfce7' : (isSurcharge ? '#fed7d7' : '#ebf4ff'), color: isDiscount ? '#166534' : (isSurcharge ? '#9b2c2c' : '#3182ce'), margin: 0 }}>
-                                                                    <i className={isDiscount ? "bi bi-tag-fill" : (isSurcharge ? "bi bi-graph-up-arrow" : "bi bi-info-circle")}></i> {m.name}
-                                                                </div>
-                                                                {formattedAmount && (
-                                                                    <div className="fw-bold" style={{ fontSize: '0.8rem', color: isDiscount ? '#16a34a' : (isSurcharge ? '#e53e3e' : '#4a5568') }}>
-                                                                        {isDiscount ? '-' : (isSurcharge ? '+' : '')}{formattedAmount}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <div className="rc-promo-reason mt-1 ms-1 d-flex gap-1" style={{ color: isDiscount ? '#15803d' : (isSurcharge ? '#c53030' : '#718096') }}>
-                                                                <i className="bi bi-arrow-return-right mt-1" style={{ fontSize: '0.7rem' }}></i>
-                                                                <span>{displayReason}</span>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-
-                                        <button
-                                            className={`rc-opt-book ${isRecommended ? 'highlight-btn' : ''}`}
-                                            onClick={() => handleBookOption(option)}
-                                            disabled={sold}
-                                        >
-                                            {sold
-                                                ? <><i className="bi bi-x-octagon-fill"></i> Sold out</>
-                                                : <><i className="bi bi-cart-plus-fill"></i> Select this plan</>}
-                                        </button>
-                                    </div>
-                                );
-                            }) : (
-                                <div className="rc-pricing-empty">
-                                    <i className="bi bi-calendar-x fs-1 text-muted d-block mb-2"></i>
-                                    No pricing options available for this date.
-                                </div>
-                            )}
-                        </div>
+                        <button
+                            className="rc-book-btn"
+                            onClick={() => onBooking({ ...room, selectedPrice: visiblePrice })}
+                            disabled={sold}
+                        >
+                            {sold
+                                ? <><i className="bi bi-x-octagon-fill"></i> Sold out</>
+                                : <><i className="bi bi-cart-plus-fill"></i> Add to cart</>}
+                        </button>
                     </div>
                 </div>
             </div>

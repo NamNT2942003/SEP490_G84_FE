@@ -9,6 +9,164 @@ import { branchService } from "../api/branchService.js";
 import { cancellationPolicyService } from "../api/cancellationPolicyService.js";
 import { getOrCreateCartId, getCart, saveCart } from "../../../utils/cartStorage.js";
 import Swal from "sweetalert2";
+import "./SearchRoom.css";
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+const safeNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const HIDDEN_PRICE_MODIFIER_TYPES = new Set(["POLICY", "USER_HISTORY_DISCOUNT"]);
+
+const toPricingOption = (option = {}) => ({
+    optionCode: option?.optionCode || option?.combinationKey || option?.mode || "UNKNOWN",
+    mode: option?.mode || "UNKNOWN",
+    basePrice: safeNumber(option?.basePrice, 0),
+    finalPrice: safeNumber(option?.finalPrice, 0),
+    delta: safeNumber(option?.delta, 0),
+    cancellationPolicyId: option?.cancellationPolicyId ?? null,
+    cancellationPolicyType: option?.cancellationPolicyType || "",
+    cancellationPolicyName: option?.cancellationPolicyName || "",
+    prepaidRate: safeNumber(option?.prepaidRate, 0),
+    refunRate: safeNumber(option?.refunRate, 0),
+    modifierIds: Array.isArray(option?.modifierIds) ? option.modifierIds : [],
+    modifierNames: Array.isArray(option?.modifierNames) ? option.modifierNames : [],
+    reasons: Array.isArray(option?.reasons) ? option.reasons : [],
+    modifiers: Array.isArray(option?.modifiers)
+        ? option.modifiers.map((m) => ({
+            priceModifierId: m?.priceModifierId,
+            name: m?.name,
+            type: m?.type,
+            adjustmentType: m?.adjustmentType,
+            adjustmentValue: safeNumber(m?.adjustmentValue, 0),
+            reason: m?.reason,
+        }))
+        : [],
+    combinationKey: option?.combinationKey || option?.optionCode || option?.mode || "UNKNOWN",
+});
+
+const extractDeltaFromReason = (reason) => {
+    if (!reason) return null;
+    const deltaRegex = new RegExp("\\[\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\]$");
+    const match = String(reason).match(deltaRegex);
+    if (!match) return null;
+    return safeNumber(match[1], 0);
+};
+
+const getModifierDelta = (room, modifier) => {
+    const fromReason = extractDeltaFromReason(modifier?.reason);
+    if (fromReason !== null) return fromReason;
+
+    const adjustmentValue = safeNumber(modifier?.adjustmentValue, 0);
+    if (modifier?.adjustmentType === "PERCENT" || modifier?.adjustmentType === "PERCENTAGE") {
+        const percentBase = safeNumber(room?.basePrice ?? room?.price ?? room?.selectedPrice, 0);
+        return (percentBase * adjustmentValue) / 100;
+    }
+    return adjustmentValue;
+};
+
+const getVisiblePriceFromOption = (room, option) => {
+    const effectiveOption = option || room?.selectedPricingOption || null;
+    if (!effectiveOption) return safeNumber(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0, 0);
+
+    const hiddenDelta = (Array.isArray(effectiveOption.modifiers) ? effectiveOption.modifiers : [])
+        .filter((modifier) => HIDDEN_PRICE_MODIFIER_TYPES.has(modifier?.type))
+        .reduce((sum, modifier) => sum + getModifierDelta(room, modifier), 0);
+
+    const visiblePrice = safeNumber(effectiveOption.finalPrice, 0) - hiddenDelta;
+    return visiblePrice > 0 ? visiblePrice : 0;
+};
+
+const pricingOptionSignature = (option) => {
+    if (!option) return "";
+    return `${option.mode || ""}-${option.finalPrice || 0}-${(option.modifierIds || []).join("_")}`;
+};
+
+const findPreferredPricingOption = (options, preferredOption) => {
+    if (!preferredOption || !Array.isArray(options) || options.length === 0) return null;
+
+    const preferredCode = preferredOption.optionCode || preferredOption.combinationKey || null;
+    if (preferredCode) {
+        const byCode = options.find(
+            (opt) => (opt.optionCode || opt.combinationKey || null) === preferredCode,
+        );
+        if (byCode) return byCode;
+    }
+
+    const preferredCombinationKey = preferredOption.combinationKey || null;
+    if (preferredCombinationKey) {
+        const byCombinationKey = options.find((opt) => opt.combinationKey === preferredCombinationKey);
+        if (byCombinationKey) return byCombinationKey;
+    }
+
+    const preferredSignature = pricingOptionSignature(preferredOption);
+    if (preferredSignature) {
+        const bySignature = options.find((opt) => pricingOptionSignature(opt) === preferredSignature);
+        if (bySignature) return bySignature;
+    }
+
+    return null;
+};
+
+const withPricingState = (room, preferredOption = null) => {
+    if (!room) return room;
+
+    const options = (Array.isArray(room?.pricingOptions) ? room.pricingOptions : [])
+        .map(toPricingOption)
+        .sort((a, b) => a.finalPrice - b.finalPrice);
+
+    const selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
+
+    const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
+
+    return {
+        ...room,
+        pricingOptions: options,
+        selectedPricingOption: selectedOption,
+        selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : safeNumber(room?.basePrice ?? room?.price, 0),
+        pricingCombinationPolicy: room?.pricingCombinationPolicy || null,
+    };
+};
+
+const syncCartWithLatestRooms = (prevCart, latestRooms) => {
+    if (!prevCart.length) return prevCart;
+    const roomMap = new Map((latestRooms || []).map((room) => [room.roomTypeId, room]));
+    return prevCart
+        .map((cartItem) => {
+            const latestRoom = roomMap.get(cartItem.roomTypeId);
+            if (!latestRoom) return null;
+            const mergedRoom = withPricingState(latestRoom, cartItem.selectedPricingOption);
+            return {
+                ...cartItem,
+                ...mergedRoom,
+                quantity: Math.min(cartItem.quantity || 1, mergedRoom.availableCount || 999),
+            };
+        })
+        .filter(Boolean);
+};
+
+const calculateNights = (checkIn, checkOut) => {
+    if (!checkIn || !checkOut) return 1;
+    const d1 = new Date(checkIn);
+    const d2 = new Date(checkOut);
+    const diffTime = Math.abs(d2 - d1);
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
+const normalizeEmailForSearch = (emailRaw) => {
+    const email = String(emailRaw || "").trim();
+    if (!email) return "";
+    const emailRegex = new RegExp(".+@.+\\..+");
+    return emailRegex.test(email) ? email : "";
+};
+
+const calculateUserHistoryModifierUnitDelta = (room, modifier) => {
+    return getModifierDelta(room, modifier);
+};
+
+// ─── Main Component ────────────────────────────────────────────────────────
 
 const SearchRoom = () => {
     const [rooms, setRooms] = useState([]);
@@ -27,7 +185,7 @@ const SearchRoom = () => {
     });
     const [searchParams, setSearchParams] = useState(null);
     const navigate = useNavigate();
-    const [selectedCart, setSelectedCart] = useState([]); // Giỏ hàng chọn phòng
+    const [selectedCart, setSelectedCart] = useState([]);
     const [cartId] = useState(getOrCreateCartId());
     const [policies, setPolicies] = useState([]);
     const [selectedPolicyId, setSelectedPolicyId] = useState(null);
@@ -37,212 +195,42 @@ const SearchRoom = () => {
     const customerHistoryEmailRef = useRef("");
     const latestRequestIdRef = useRef(0);
 
-    const safeNumber = (value, fallback = 0) => {
-        const parsed = Number(value);
-        return Number.isFinite(parsed) ? parsed : fallback;
-    };
+    const showUiMessage = (type, text) => setUiMessage({ type, text });
 
-    const toPricingOption = (option = {}) => ({
-        optionCode: option?.optionCode || option?.combinationKey || option?.mode || "UNKNOWN",
-        mode: option?.mode || "UNKNOWN",
-        basePrice: safeNumber(option?.basePrice, 0),
-        finalPrice: safeNumber(option?.finalPrice, 0),
-        delta: safeNumber(option?.delta, 0),
-        modifierIds: Array.isArray(option?.modifierIds) ? option.modifierIds : [],
-        modifierNames: Array.isArray(option?.modifierNames) ? option.modifierNames : [],
-        reasons: Array.isArray(option?.reasons) ? option.reasons : [],
-        modifiers: Array.isArray(option?.modifiers)
-            ? option.modifiers.map((m) => ({
-                priceModifierId: m?.priceModifierId,
-                name: m?.name,
-                type: m?.type,
-                adjustmentType: m?.adjustmentType,
-                adjustmentValue: safeNumber(m?.adjustmentValue, 0),
-                reason: m?.reason,
-            }))
-            : [],
-        combinationKey: option?.combinationKey || option?.optionCode || option?.mode || "UNKNOWN",
-    });
-
-    const pricingOptionSignature = (option) => {
-        if (!option) return "";
-        return `${option.mode || ""}-${option.finalPrice || 0}-${(option.modifierIds || []).join("_")}`;
-    };
-
-    const findPreferredPricingOption = (options, preferredOption) => {
-        if (!preferredOption || !Array.isArray(options) || options.length === 0) return null;
-
-        const preferredCode = preferredOption.optionCode || preferredOption.combinationKey || null;
-        if (preferredCode) {
-            const byCode = options.find(
-                (opt) => (opt.optionCode || opt.combinationKey || null) === preferredCode,
-            );
-            if (byCode) return byCode;
-        }
-
-        const preferredCombinationKey = preferredOption.combinationKey || null;
-        if (preferredCombinationKey) {
-            const byCombinationKey = options.find((opt) => opt.combinationKey === preferredCombinationKey);
-            if (byCombinationKey) return byCombinationKey;
-        }
-
-        const preferredSignature = pricingOptionSignature(preferredOption);
-        if (preferredSignature) {
-            const bySignature = options.find((opt) => pricingOptionSignature(opt) === preferredSignature);
-            if (bySignature) return bySignature;
-        }
-
-        return null;
-    };
-
-    const withPricingState = (room, preferredOption = null) => {
-        if (!room) return room;
-
-        const options = (Array.isArray(room?.pricingOptions) ? room.pricingOptions : [])
-            .map(toPricingOption)
-            .sort((a, b) => a.finalPrice - b.finalPrice);
-
-        const selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
-
-        const selectedPrice = selectedOption?.finalPrice
-            ?? safeNumber(room?.appliedPrice, NaN)
-            ?? safeNumber(room?.basePrice ?? room?.price, 0);
-
-        return {
-            ...room,
-            pricingOptions: options,
-            selectedPricingOption: selectedOption,
-            selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : safeNumber(room?.basePrice ?? room?.price, 0),
-            pricingCombinationPolicy: room?.pricingCombinationPolicy || null,
-        };
-    };
-
-    const syncCartWithLatestRooms = (prevCart, latestRooms) => {
-        if (!prevCart.length) return prevCart;
-
-        const roomMap = new Map(latestRooms.map((room) => [room.roomTypeId, room]));
-
-        return prevCart
-            .map((cartItem) => {
-                const latestRoom = roomMap.get(cartItem.roomTypeId);
-                if (!latestRoom) return null;
-
-                const mergedRoom = withPricingState(latestRoom, cartItem.selectedPricingOption);
-
-                return {
-                    ...cartItem,
-                    ...mergedRoom,
-                    quantity: Math.min(cartItem.quantity || 1, mergedRoom.availableCount || 999),
-                };
-            })
-            .filter(Boolean);
-    };
-
-
-    const calculateNights = (checkIn, checkOut) => {
-        if (!checkIn || !checkOut) return 1;
-        const d1 = new Date(checkIn);
-        const d2 = new Date(checkOut);
-        const diffTime = Math.abs(d2 - d1);
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    };
-
-    const showUiMessage = (type, text) => {
-        setUiMessage({ type, text });
-    };
-
-    const normalizeEmailForSearch = (emailRaw) => {
-        const email = String(emailRaw || "").trim();
-        if (!email) return "";
-        // Keep API calls lightweight by only sending likely-valid emails.
-        return /.+@.+\..+/.test(email) ? email : "";
-    };
-
-    const extractDeltaFromReason = (reason) => {
-        if (!reason) return null;
-        const match = String(reason).match(/\[\s*(-?\d+(?:\.\d+)?)\s*\]$/);
-        if (!match) return null;
-        return safeNumber(match[1], 0);
-    };
-
-    const calculateUserHistoryModifierUnitDelta = (room, modifier) => {
-        const fromReason = extractDeltaFromReason(modifier?.reason);
-        if (fromReason !== null) {
-            return fromReason;
-        }
-
-        const adjustmentValue = safeNumber(modifier?.adjustmentValue, 0);
-        if (modifier?.adjustmentType === "PERCENT" || modifier?.adjustmentType === "PERCENTAGE") {
-            const percentBase = safeNumber(room?.selectedPricingOption?.basePrice ?? room?.basePrice ?? room?.price ?? room?.selectedPrice, 0);
-            return (percentBase * adjustmentValue) / 100;
-        }
-        return adjustmentValue;
-    };
-
-    const syncCartWithLatestRooms = useCallback((cart, latest) => {
-        return cart.map(item => {
-            const found = latest.find(r => r.roomTypeId === item.roomTypeId);
-            if (found) {
-                return {
-                    ...item,
-                    price: found.price,
-                    selectedPrice: found.selectedPrice,
-                    availableCount: found.availableCount,
-                    // If the room is suddenly unavailable, we keep identity but flag it (or can remove)
-                };
-            }
-            return item;
-        });
-    }, []);
-
-    const refetchRooms = useCallback(() => {
-        searchRooms(searchParams);
-    }, [searchRooms, searchParams]);
-
-    // fetch branches once
     useEffect(() => {
         (async () => {
             try {
                 const data = await branchService.getAllBranches();
                 setBranches(data);
                 if (data.length > 0 && !filters.branchId) setFilters(p => ({ ...p, branchId: data[0].branchId }));
-            } catch (e) {
-                console.error("Branches error:", e);
-            }
+            } catch (e) { console.error("Branches error:", e); }
         })();
     }, [filters.branchId]);
 
-    // Fetch policies when branch changes
     useEffect(() => {
         if (filters.branchId) {
             (async () => {
                 try {
                     const data = await cancellationPolicyService.getPoliciesByBranch(filters.branchId);
                     setPolicies(data);
-                    if (data.length > 0) setSelectedPolicyId(data[0].policyId);
-                } catch (e) {
-                    console.error("Policies error:", e);
-                }
+                    if (data.length > 0) {
+                        const firstActivePolicy = data.find((policy) => policy?.active !== false) || data[0];
+                        setSelectedPolicyId(firstActivePolicy?.id ?? firstActivePolicy?.policyId ?? null);
+                    }
+                } catch (e) { console.error("Policies error:", e); }
             })();
         }
     }, [filters.branchId]);
 
-    // Load cart from LocalStorage on mount
     useEffect(() => {
         const savedCart = getCart();
-        if (savedCart && savedCart.length > 0) {
-            setSelectedCart(savedCart);
-        }
+        if (savedCart && savedCart.length > 0) setSelectedCart(savedCart);
         setIsInitialized(true);
     }, []);
 
-    // Save cart to LocalStorage whenever it changes
     useEffect(() => {
-        if (isInitialized) {
-            saveCart(selectedCart);
-        }
+        if (isInitialized) saveCart(selectedCart);
     }, [selectedCart, isInitialized]);
-
 
     const searchRooms = useCallback((sp) => {
         setSearchParams(sp);
@@ -258,8 +246,12 @@ const SearchRoom = () => {
                 setError("Check-out date must be after check-in date.");
                 setLoading(false); return;
             }
-                return;
-            }
+
+            const apiParams = { ...searchParams, ...filters };
+
+            const res = await roomService.searchRooms(apiParams);
+            if (requestId !== latestRequestIdRef.current) return;
+
             const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
             setRooms(fetchedRooms);
             setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
@@ -271,8 +263,39 @@ const SearchRoom = () => {
                 ? "Date format must be yyyy-MM-dd"
                 : (apiError || err.message || "Failed to search rooms");
             setError(message);
-        } finally { setLoading(false); }
+        } finally {
+            if (requestId === latestRequestIdRef.current) setLoading(false);
+        }
     }, [searchParams, filters]);
+
+    const refreshCartPricingByEmail = useCallback(async () => {
+        if (!searchParams || selectedCart.length === 0) return;
+
+        const roomTypeIds = [...new Set(selectedCart.map((room) => room?.roomTypeId).filter(Boolean))];
+        if (roomTypeIds.length === 0) return;
+
+        const apiParams = {
+            ...searchParams,
+            branchId: filters.branchId,
+            roomTypeIds,
+            page: 0,
+            size: Math.max(roomTypeIds.length, 10),
+            sortPrice: filters.sortPrice,
+        };
+
+        const normalizedEmail = normalizeEmailForSearch(customerHistoryEmailRef.current);
+        if (normalizedEmail) {
+            apiParams.customerEmail = normalizedEmail;
+        }
+
+        try {
+            const res = await roomService.searchRooms(apiParams);
+            const latestRooms = (res?.content || []).map((room) => withPricingState(room));
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, latestRooms));
+        } catch (err) {
+            console.error("Failed to refresh cart pricing by email:", err);
+        }
+    }, [searchParams, filters.branchId, filters.sortPrice, selectedCart]);
 
     const handleFilterChange = (nf) => setFilters(p => ({ ...p, ...nf, page: 0 }));
     const handleSortChange = (e) => setFilters(p => ({ ...p, sortPrice: e.target.value, page: 0 }));
@@ -280,46 +303,28 @@ const SearchRoom = () => {
 
     const handleBooking = (room) => {
         const roomForCart = withPricingState(room, room.selectedPricingOption);
-
-        // Kiểm tra xem phòng này đã có trong cart chưa
         const existingIndex = selectedCart.findIndex(r => r.roomTypeId === room.roomTypeId);
-
         if (existingIndex >= 0) {
-            // Nếu đã có → cập nhật gói giá đang chọn, giữ nguyên số lượng để tránh cộng dồn ngoài ý muốn
             setSelectedCart(prev => prev.map((r, idx) =>
                 idx === existingIndex
-                    ? {
-                        ...r,
-                        ...roomForCart,
-                        quantity: Math.min(r.quantity || 1, roomForCart.availableCount || (r.quantity || 1)),
-                    }
+                    ? { ...r, ...roomForCart, quantity: Math.min(r.quantity || 1, roomForCart.availableCount || (r.quantity || 1)) }
                     : r
             ));
             showUiMessage("success", `${roomForCart.name} pricing has been updated.`);
-            return;
         } else {
-            // Nếu chưa → thêm vào cart với quantity = 1
             if (roomForCart.availableCount <= 0) {
                 showUiMessage("warning", `${roomForCart.name} is fully booked.`);
                 return;
             }
             setSelectedCart(prev => [...prev, { ...roomForCart, quantity: 1 }]);
+            showUiMessage("success", `${roomForCart.name} has been added to your selection.`);
         }
-
-        showUiMessage("success", `${roomForCart.name} has been added to your selection.`);
     };
 
-    const handleRemoveFromCart = (roomTypeId) => {
-        setSelectedCart(prev => prev.filter(r => r.roomTypeId !== roomTypeId));
-    };
+    const handleRemoveFromCart = (roomTypeId) => setSelectedCart(prev => prev.filter(r => r.roomTypeId !== roomTypeId));
 
     const handleUpdateCartQuantity = (roomTypeId, newQuantity) => {
-        if (newQuantity <= 0) {
-            handleRemoveFromCart(roomTypeId);
-            return;
-        }
-
-        // Tìm phòng trong cart để lấy availableCount
+        if (newQuantity <= 0) { handleRemoveFromCart(roomTypeId); return; }
         const roomInCart = selectedCart.find(r => r.roomTypeId === roomTypeId);
         if (roomInCart) {
             const maxAvailable = roomInCart.availableCount || 999;
@@ -328,27 +333,20 @@ const SearchRoom = () => {
                 return;
             }
         }
-
-        setSelectedCart(prev => prev.map(r =>
-            r.roomTypeId === roomTypeId ? { ...r, quantity: newQuantity } : r
-        ));
+        setSelectedCart(prev => prev.map(r => r.roomTypeId === roomTypeId ? { ...r, quantity: newQuantity } : r));
     };
 
+    const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
+    const cartTotal = selectedCart.reduce((sum, r) => {
+        const unitPrice = r.selectedPrice ?? r.appliedPrice ?? r.basePrice ?? r.price ?? 0;
+        return sum + (unitPrice * (r.quantity || 1));
+    }, 0);
+
     const handleCheckout = () => {
-        if (selectedCart.length === 0) {
-            showUiMessage("warning", "Please select at least one room before continuing.");
-            return;
-        }
-
+        if (selectedCart.length === 0) { showUiMessage("warning", "Please select at least one room before continuing."); return; }
         if (searchParams?.checkIn && searchParams?.checkOut && new Date(searchParams.checkOut) <= new Date(searchParams.checkIn)) {
-            showUiMessage("warning", "Check-out date must be after check-in date.");
-            return;
+            showUiMessage("warning", "Check-out date must be after check-in date."); return;
         }
-
-        const totalPrice = selectedCart.reduce((sum, room) =>
-            sum + ((room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0) * (room.quantity || 1)), 0
-        );
-
         navigate('/guest-information', {
             state: {
                 selectedRooms: selectedCart,
@@ -368,18 +366,13 @@ const SearchRoom = () => {
         const fmtYmd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         const now = new Date(); now.setHours(0, 0, 0, 0);
         const tom = new Date(now); tom.setDate(now.getDate() + 1);
-
-        // Chỉ gọi lần đầu khi component mount
         if (!isInitialized) {
-            console.log("🔍 Initial search with default dates");
             searchRooms({ checkIn: fmtYmd(now), checkOut: fmtYmd(tom), adults: 1, children: 0 });
             setIsInitialized(true);
         }
     }, [isInitialized, searchRooms]);
 
-    useEffect(() => {
-        customerHistoryEmailRef.current = customerHistoryEmail;
-    }, [customerHistoryEmail]);
+    useEffect(() => { customerHistoryEmailRef.current = customerHistoryEmail; }, [customerHistoryEmail]);
 
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
@@ -388,7 +381,15 @@ const SearchRoom = () => {
             refetchRooms();
         }, 300);
         return () => clearTimeout(timer);
-    }, [filters, searchParams, customerHistoryEmail, isInitialized, refetchRooms]);
+    }, [filters, searchParams, isInitialized, refetchRooms]);
+
+    useEffect(() => {
+        if (!isInitialized || !searchParams || selectedCart.length === 0) return;
+        const timer = setTimeout(() => {
+            refreshCartPricingByEmail();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [customerHistoryEmail, isInitialized, searchParams, selectedCart.length, refreshCartPricingByEmail]);
 
     useEffect(() => {
         if (!uiMessage) return;
@@ -396,12 +397,7 @@ const SearchRoom = () => {
         return () => clearTimeout(timer);
     }, [uiMessage]);
 
-    const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
     const totalSelectedRooms = selectedCart.reduce((sum, r) => sum + (r.quantity || 1), 0);
-    const cartTotal = selectedCart.reduce((sum, r) => {
-        const unitPrice = r.selectedPrice ?? r.appliedPrice ?? r.basePrice ?? r.price ?? 0;
-        return sum + (unitPrice * (r.quantity || 1));
-    }, 0);
     const selectedCartHistoryModifiers = selectedCart
         .map((room) => ({
             room,
@@ -415,9 +411,14 @@ const SearchRoom = () => {
         const unitDelta = calculateUserHistoryModifierUnitDelta(item.room, item.modifier);
         return sum + (unitDelta * qty);
     }, 0);
+    const cartTotalAfterLoyalty = cartTotal + userHistoryDiscountTotal;
     const userHistoryBookingCountLabel = selectedCartHistoryModifiers.length > 0
-        ? String(selectedCartHistoryModifiers[0].modifier?.reason || "")
-            .match(/\((\d+)\s+bookings?/i)?.[1]
+        ? (() => {
+            const reason = selectedCartHistoryModifiers[0].modifier?.reason || "";
+            const countRegex = new RegExp('\\((\\d+)\\s+bookings?', 'i');
+            const match = reason.match(countRegex);
+            return match ? match[1] : null;
+        })()
         : null;
     const hasUserHistoryDiscount = selectedCartHistoryModifiers.length > 0;
     const isEmailEntered = customerHistoryEmail.trim().length > 0;
@@ -428,32 +429,7 @@ const SearchRoom = () => {
         new Date(searchParams.checkOut) > new Date(searchParams.checkIn);
 
     return (
-        <div style={{ background: '#f5f6f8', minHeight: '100vh' }}>
-            <style>{`
-                .hero{background:linear-gradient(135deg,#5C6F4E 0%,#3d4a33 100%);padding:36px 0 48px;margin-bottom:-22px;position:relative;z-index:10;overflow:visible}
-                .hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:36px;background:#f5f6f8;border-radius:20px 20px 0 0;z-index:-1;pointer-events:none}
-                .hero-txt{text-align:center;margin-bottom:20px;color:#fff}
-                .hero-txt h2{font-weight:800;font-size:1.5rem;margin-bottom:4px}
-                .hero-txt p{color:rgba(255,255,255,.7);font-size:.9rem;margin:0}
-                .res-hdr{background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,.04);border:1px solid #eee;margin-bottom:16px}
-                .res-cnt{font-size:1rem;font-weight:700;color:#333}
-                .res-cnt span{color:#5C6F4E}
-                .sort-sel{border:1px solid #dee2e6;border-radius:10px;padding:7px 12px;font-size:.84rem;color:#555;background:#fafafa;cursor:pointer}
-                .sort-sel:focus{border-color:#5C6F4E;box-shadow:0 0 0 3px rgba(92,111,78,.1)}
-                .empty-st{background:#fff;border-radius:16px;padding:50px 30px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-                .empty-st i{font-size:3.5rem;color:#ddd;margin-bottom:12px}
-                .load-st{background:#fff;border-radius:16px;padding:50px 30px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-                .err-c{background:#fff;border-radius:14px;border-left:4px solid #dc3545;padding:18px 22px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-                .bc-bar{padding:12px 0 0}
-                .bc-bar .breadcrumb{margin-bottom:0;font-size:.85rem}
-                .bc-bar .breadcrumb a{color:#5C6F4E;text-decoration:none;font-weight:500}
-                .bc-bar .breadcrumb a:hover{text-decoration:underline}
-                .ux-msg{margin-top:12px;border-radius:12px;padding:11px 14px;font-size:.88rem;font-weight:600;display:flex;align-items:center;gap:8px}
-                .ux-msg.warn{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
-                .ux-msg.success{background:#ecfdf3;color:#166534;border:1px solid #b7ebc6}
-                .cart-date-note{margin-top:10px;font-size:.78rem;color:rgba(255,255,255,.85);line-height:1.45}
-                .cart-date-note i{margin-right:4px}
-            `}</style>
+        <div className="search-room-page">
 
             <div className="hero">
                 <div className="container position-relative" style={{ zIndex: 2 }}>
@@ -489,321 +465,13 @@ const SearchRoom = () => {
             <div className="container pb-5">
                 <div className="row g-4">
                     <div className="col-lg-3 col-md-4">
-                        {/* Selected Rooms Cart Panel */}
-                        <style>{`
-                            .cart-panel {
-                                background: linear-gradient(135deg, #5C6F4E 0%, #4a5b3f 100%);
-                                color: white;
-                                position: sticky;
-                                top: 90px;
-                                z-index: 1020;
-                            }
-                            .cart-header {
-                                display: flex;
-                                align-items: center;
-                                gap: 10px;
-                                padding-bottom: 15px;
-                                border-bottom: 2px solid rgba(255,255,255,0.2);
-                            }
-                            .cart-header i {
-                                font-size: 1.4rem;
-                            }
-                            .cart-room-item {
-                                background: rgba(255,255,255,0.95);
-                                color: #333;
-                                border-radius: 12px;
-                                padding: 12px;
-                                margin-bottom: 12px;
-                                transition: all 0.3s ease;
-                                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-                            }
-                            .cart-room-item:hover {
-                                transform: translateY(-2px);
-                                box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-                            }
-                            .cart-room-name {
-                                font-weight: 700;
-                                font-size: 0.95rem;
-                                color: #5C6F4E;
-                                margin-bottom: 4px;
-                            }
-                            .cart-room-price {
-                                font-size: 0.8rem;
-                                color: #666;
-                                margin-bottom: 8px;
-                            }
-                            .cart-qty-control {
-                                display: flex;
-                                align-items: center;
-                                gap: 6px;
-                                background: #f0f4ec;
-                                border-radius: 8px;
-                                padding: 4px;
-                                margin-bottom: 8px;
-                            }
-                            .cart-qty-control button {
-                                background: white;
-                                border: 1px solid #ddd;
-                                color: #5C6F4E;
-                                width: 28px;
-                                height: 28px;
-                                padding: 0;
-                                border-radius: 6px;
-                                cursor: pointer;
-                                transition: all 0.2s;
-                            }
-                            .cart-qty-control button:hover {
-                                background: #5C6F4E;
-                                color: white;
-                                border-color: #5C6F4E;
-                            }
-                            .cart-qty-control button:disabled {
-                                background: #f5f5f5;
-                                color: #ccc;
-                                border-color: #e5e5e5;
-                                cursor: not-allowed;
-                                opacity: 0.6;
-                            }
-                            .cart-qty-control button:disabled:hover {
-                                background: #f5f5f5;
-                                color: #ccc;
-                                border-color: #e5e5e5;
-                                transform: none;
-                            }
-                            .cart-qty-input {
-                                width: 50px !important;
-                                height: 28px !important;
-                                text-align: center;
-                                border: none !important;
-                                background: transparent !important;
-                                font-weight: 700;
-                                font-size: 1.1rem !important;
-                                color: #5C6F4E !important;
-                                padding: 0 !important;
-                                line-height: 28px !important;
-                                box-shadow: none !important;
-                            }
-                            .cart-qty-input:focus {
-                                outline: none !important;
-                                border: none !important;
-                                box-shadow: none !important;
-                            }
-                            /* Ẩn spinner arrows của input number */
-                            .cart-qty-input::-webkit-outer-spin-button,
-                            .cart-qty-input::-webkit-inner-spin-button {
-                                -webkit-appearance: none;
-                                margin: 0;
-                            }
-                            .cart-qty-input[type=number] {
-                                -moz-appearance: textfield;
-                            }
-                            .cart-room-total {
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                padding-top: 8px;
-                                border-top: 1px solid #f0f0f0;
-                                font-size: 0.85rem;
-                                color: #666;
-                            }
-                            .cart-plan-box {
-                                margin: 10px 0;
-                                padding: 8px;
-                                border: 1px solid #e8ece4;
-                                border-radius: 8px;
-                                background: #f8fbf6;
-                            }
-                            .cart-plan-label {
-                                font-size: 0.72rem;
-                                color: #6f7569;
-                                font-weight: 700;
-                                text-transform: uppercase;
-                                letter-spacing: 0.3px;
-                                margin-bottom: 6px;
-                            }
-                            .cart-plan-select {
-                                width: 100%;
-                                border: 1px solid #d6decd;
-                                border-radius: 7px;
-                                padding: 6px 8px;
-                                font-size: 0.8rem;
-                                background: #fff;
-                                color: #333;
-                            }
-                            .cart-plan-note {
-                                font-size: 0.75rem;
-                                color: #7a8271;
-                                margin-top: 6px;
-                            }
-                            .cart-policy {
-                                margin-top: 6px;
-                                font-size: 0.75rem;
-                                color: #657061;
-                                display: flex;
-                                flex-direction: column;
-                                gap: 2px;
-                            }
-                            .cart-room-total-amount {
-                                font-weight: 700;
-                                color: #5C6F4E;
-                            }
-                            .cart-delete-btn {
-                                background: #ff4757;
-                                color: white;
-                                border: none;
-                                width: 28px;
-                                height: 28px;
-                                border-radius: 6px;
-                                cursor: pointer;
-                                transition: all 0.2s;
-                                font-size: 0.8rem;
-                            }
-                            .cart-delete-btn:hover {
-                                background: #ff3838;
-                                transform: scale(1.05);
-                            }
-                            .cart-empty {
-                                text-align: center;
-                                padding: 30px 20px;
-                                color: rgba(255,255,255,0.7);
-                            }
-                            .cart-empty i {
-                                font-size: 2.5rem;
-                                opacity: 0.5;
-                                display: block;
-                                margin-bottom: 10px;
-                            }
-                            .cart-footer {
-                                background: rgba(255,255,255,0.1);
-                                border-top: 2px solid rgba(255,255,255,0.2);
-                                padding: 15px;
-                                border-radius: 0 0 12px 12px;
-                                margin-top: 15px;
-                            }
-                            .cart-total-section {
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                margin-bottom: 12px;
-                                font-size: 0.9rem;
-                            }
-                            .cart-loyalty-box {
-                                margin-bottom: 12px;
-                                border: 1px solid rgba(255,255,255,0.28);
-                                background: rgba(255,255,255,0.08);
-                                border-radius: 10px;
-                                padding: 10px;
-                            }
-                            .cart-loyalty-label {
-                                font-size: 0.75rem;
-                                text-transform: uppercase;
-                                letter-spacing: 0.35px;
-                                opacity: 0.95;
-                                margin-bottom: 6px;
-                                font-weight: 700;
-                            }
-                            .cart-loyalty-input {
-                                width: 100%;
-                                border: 1px solid rgba(255,255,255,0.55);
-                                background: rgba(255,255,255,0.96);
-                                border-radius: 8px;
-                                padding: 8px 10px;
-                                color: #2f3a27;
-                                font-size: 0.85rem;
-                            }
-                            .cart-loyalty-input:focus {
-                                outline: none;
-                                border-color: #ffe27a;
-                                box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
-                            }
-                            .cart-loyalty-note {
-                                margin-top: 7px;
-                                font-size: 0.76rem;
-                                line-height: 1.45;
-                                opacity: 0.95;
-                            }
-                            .cart-loyalty-note.ok {
-                                color: #dafbe1;
-                            }
-                            .cart-loyalty-note.warn {
-                                color: #ffe5b4;
-                            }
-                            .cart-total-label {
-                                opacity: 0.9;
-                                font-weight: 600;
-                            }
-                            .cart-total-amount {
-                                font-size: 1.3rem;
-                                font-weight: 800;
-                            }
-                            .cart-continue-btn {
-                                width: 100%;
-                                background: linear-gradient(135deg, #FFD700 0%, #FFC700 100%);
-                                color: #333;
-                                border: none;
-                                padding: 12px;
-                                border-radius: 8px;
-                                font-weight: 700;
-                                cursor: pointer;
-                                transition: all 0.3s;
-                                font-size: 0.95rem;
-                            }
-                            .cart-continue-btn:hover {
-                                transform: translateY(-2px);
-                                box-shadow: 0 6px 20px rgba(255,215,0,0.4);
-                            }
-                            .cart-footer {
-                                margin-top: 20px;
-                                padding-top: 20px;
-                                border-top: 2px solid rgba(255,255,255,0.2);
-                            }
-                            .cart-summary-row {
-                                display: flex;
-                                justify-content: space-between;
-                                margin-bottom: 8px;
-                                font-size: 0.95rem;
-                            }
-                            .cart-total-amount {
-                                font-size: 1.25rem;
-                                font-weight: 800;
-                                color: #fff;
-                            }
-                            .cart-deposit-note {
-                                font-size: 0.8rem;
-                                color: #d1d9cc;
-                                font-style: italic;
-                                margin-bottom: 15px;
-                            }
-                            .email-section {
-                                margin-bottom: 15px;
-                                background: rgba(255,255,255,0.1);
-                                padding: 12px;
-                                border-radius: 10px;
-                            }
-                            .email-section label {
-                                font-size: 0.75rem;
-                                color: #e8ece4;
-                                margin-bottom: 5px;
-                                display: block;
-                            }
-                            .email-input {
-                                width: 100%;
-                                background: rgba(255,255,255,0.9);
-                                border: none;
-                                border-radius: 6px;
-                                padding: 8px 10px;
-                                font-size: 0.85rem;
-                                color: #333;
-                            }
-                            .policy-section {
-                                margin-bottom: 20px;
-                            }
-                        `}</style>
-
-                                <div><i className="bi bi-moon-stars"></i>{nights} {nights > 1 ? "nights" : "night"}</div>
+                        <div className="cart-panel shadow-sm rounded-4 overflow-hidden border-0">
+                            <div className="cart-header p-3 pb-0">
+                                <h5 className="mb-0 fw-bold text-white"><i className="bi bi-bag-check me-2"></i>Cart</h5>
+                                <div className="text-white-50 small mt-1">{nights} {nights > 1 ? "nights" : "night"} stay</div>
                             </div>
 
-                            <div style={{ marginTop: '15px', maxHeight: '450px', overflowY: 'auto', paddingRight: '8px' }}>
+                            <div className="cart-room-list">
                                 {selectedCart.length > 0 ? (
                                     selectedCart.map((room, idx) => {
                                         const roomUnitPrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
@@ -914,9 +582,14 @@ const SearchRoom = () => {
                                     <div className="cart-total-section">
                                         <span className="cart-total-label"><i className="bi bi-wallet2 me-1"></i>Total:</span>
                                         <span className="cart-total-amount">
-                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cartTotal)}
+                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cartTotalAfterLoyalty)}
                                         </span>
                                     </div>
+                                    {hasUserHistoryDiscount && (
+                                        <div className="text-end mb-2" style={{ fontSize: '0.76rem', opacity: 0.9 }}>
+                                            Before loyalty discount: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cartTotal)}
+                                        </div>
+                                    )}
                                     <button
                                         className="cart-continue-btn"
                                         onClick={handleCheckout}

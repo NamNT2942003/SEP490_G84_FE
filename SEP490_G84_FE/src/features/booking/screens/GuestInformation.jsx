@@ -4,6 +4,7 @@ import BookingSummary from '@/features/booking/components/BookingSummary';
 import Input from '@/components/ui/Input';
 import bookingService from '@/features/booking/api/bookingService';
 import { roomService } from '@/features/booking/api/roomService';
+import { cancellationPolicyService } from '@/features/booking/api/cancellationPolicyService';
 import Swal from 'sweetalert2';
 import './GuestInformation.css';
 
@@ -31,18 +32,60 @@ const getPaymentText = (paymentType) => {
 };
 
 const calculateRoomUnitPrice = (room) => {
-    const baseOptPrice = room.selectedPrice ?? room.selectedPricingOption?.finalPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
-    if (!room.selectedManualPromotion) return baseOptPrice;
+    return room.selectedPrice ?? room.selectedPricingOption?.finalPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+};
 
-    const promo = room.selectedManualPromotion;
-    let delta = 0;
-    if (promo.adjustmentType === 'PERCENT' || promo.adjustmentType === 'PERCENTAGE') {
-        delta = (room.basePrice * promo.adjustmentValue) / 100;
-    } else {
-        delta = promo.adjustmentValue;
+const normalizePolicyId = (policy) => policy?.id ?? policy?.policyId ?? null;
+
+const normalizePolicy = (policy) => {
+    if (!policy) return null;
+
+    return {
+        ...policy,
+        id: normalizePolicyId(policy),
+        prepaidRate: Number(policy?.prepaidRate ?? 0),
+        refunRate: Number(policy?.refunRate ?? 0),
+    };
+};
+
+const findPricingOptionForPolicy = (room, policyId) => {
+    const options = Array.isArray(room?.pricingOptions) ? room.pricingOptions : [];
+    if (!options.length || !policyId) return room?.selectedPricingOption || null;
+
+    const normalizedPolicyId = Number(policyId);
+    const matched = options.find((option) => Number(option?.cancellationPolicyId) === normalizedPolicyId);
+    return matched || room?.selectedPricingOption || options[0] || null;
+};
+
+const applyPolicySelectionToRoom = (room, policyId) => {
+    const selectedOption = findPricingOptionForPolicy(room, policyId);
+    if (!selectedOption) return room;
+
+    const selectedPrice = Number(selectedOption?.finalPrice ?? room?.selectedPrice ?? room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0);
+
+    return {
+        ...room,
+        selectedPricingOption: selectedOption,
+        selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : 0,
+    };
+};
+
+const formatPolicyTypeLabel = (type) => {
+    const normalized = String(type || '').trim().toUpperCase();
+    switch (normalized) {
+        case 'FREE_CANCEL':
+            return 'Free cancellation';
+        case 'PARTIAL_REFUND':
+            return 'Partial refund';
+        case 'NON_REFUND':
+            return 'Non-refundable';
+        case 'PREPAID':
+            return 'Prepaid';
+        case 'PAY_AT_HOTEL':
+            return 'Pay at hotel';
+        default:
+            return normalized || 'Standard policy';
     }
-    const finalPrice = baseOptPrice + delta;
-    return finalPrice > 0 ? finalPrice : 0;
 };
 
 const DETAIL_LEVEL_TYPES = new Set(['ADVANCE_BOOKING', 'AVAILABILITY', 'POLICY']);
@@ -57,10 +100,9 @@ const getRoomDetailModifierIds = (room) => {
         .filter((m) => DETAIL_LEVEL_TYPES.has(m?.type))
         .map((m) => m?.priceModifierId);
 
-    const manualId = room?.selectedManualPromotion?.priceModifierId;
     const fallbackId = room?.appliedPriceModifierId;
 
-    return uniqueIds([...optionDetailIds, manualId, fallbackId]);
+    return uniqueIds([...optionDetailIds, fallbackId]);
 };
 
 const getRoomBookingLevelModifierIds = (room) => {
@@ -83,7 +125,8 @@ const getAppliedModifierId = (room) => {
 const normalizeEmailForSearch = (emailRaw) => {
     const email = String(emailRaw || '').trim();
     if (!email) return '';
-    return /.+@.+\..+/.test(email) ? email : '';
+    const emailRegex = new RegExp('.+@.+\\..+');
+    return emailRegex.test(email) ? email : '';
 };
 
 const toPricingOption = (option = {}) => ({
@@ -149,17 +192,21 @@ const withPricingState = (room, preferredOption = null) => {
         ...room,
         pricingOptions: options,
         selectedPricingOption: selectedOption,
-        selectedPrice,
     };
 };
 
+const buildBookingPayload = (formData, rooms, checkIn, checkOut) => {
     const bookingLevelIds = uniqueIds(
         rooms.flatMap((room) => getRoomBookingLevelModifierIds(room)),
     );
 
+    const emailRegex = new RegExp('.+@.+\\..+');
+    const safePhone = (formData.phone || '').replace(new RegExp('\\s+', 'g'), '');
+    const otaId = `WEB-${safePhone || 'GUEST'}-${checkIn}-${checkOut}`;
+
     return {
         appliedPolicyId: formData.appliedPolicyId,
-        otaReservationId: `WEB-${formData.phone.replace(/\s+/g, '')}-${checkIn}-${checkOut}`,
+        otaReservationId: otaId,
         arrivalDate: checkIn,
         departureDate: checkOut,
         rooms: rooms.map((room) => {
@@ -186,30 +233,13 @@ const withPricingState = (room, preferredOption = null) => {
 
 // ─── RoomItem ──────────────────────────────────────────────────────────────
 
-const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
+const RoomItem = ({ room, onQuantityChange, onRemove }) => {
     const unitPrice = calculateRoomUnitPrice(room);
     const qty = room.quantity || 1;
     const maxQty = room.availableCount || 999;
 
     return (
         <div className="room-item shadow-sm border-0 rounded-4 overflow-hidden mb-4" style={{ background: '#fff', transition: 'all 0.3s' }}>
-            <style>{`
-                .promo-container { padding: 20px 24px; background: #fafbf8; border-top: 1px solid #f0f4ec; }
-                .promo-title { font-size: 0.95rem; font-weight: 700; color: #2d3748; letter-spacing: 0.5px; }
-                .promo-list { display: flex; flex-direction: column; gap: 12px; }
-                .promo-card { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; background: #fff; border: 1.5px solid #edf2f7; border-radius: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-                .promo-card:hover { border-color: #cbd5e0; background: #f8fafc; }
-                .promo-card.active { border-color: #5C6F4E; background: #f2f7ec; box-shadow: 0 4px 12px rgba(92,111,78,0.1); }
-                .promo-card.no-promo.active { border-color: #a0aec0; background: #fdfdfd; }
-                .promo-radio { font-size: 1.2rem; line-height: 1; margin-top: 2px; }
-                .promo-content { flex: 1; display:flex; flex-direction: column; }
-                .promo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-                .promo-name { font-weight: 700; font-size: 0.95rem; color: #2d3748; }
-                .promo-badge { font-weight: 800; font-size: 0.8rem; background: linear-gradient(135deg, #D4AF37, #b8962c); color: #fff; padding: 4px 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(212,175,55,0.3); }
-                .promo-reason { font-size: 0.8rem; color: #718096; line-height: 1.5; }
-                .room-item-body { padding: 24px; }
-                .room-total { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-            `}</style>
             <div className="room-item-body">
                 <div className="d-flex justify-content-between align-items-start mb-3">
                     <div>
@@ -275,38 +305,6 @@ const RoomItem = ({ room, onQuantityChange, onRemove, onSelectPromo }) => {
                 </div>
             </div>
 
-            {room.manualSelectPromotions?.length > 0 && (
-                <div className="promo-container">
-                    <h6 className="promo-title mb-3"><i className="bi bi-gift-fill me-2" style={{ color: '#D4AF37' }}></i>Exclusive Promotions</h6>
-                    <div className="promo-list">
-                        {room.manualSelectPromotions.map((promo, idx) => {
-                            const isChecked = room.selectedManualPromotion?.priceModifierId === promo.priceModifierId;
-                            return (
-                                <div className={`promo-card ${isChecked ? 'active' : ''}`} key={`${room.roomTypeId}-promo-${idx}`} onClick={() => onSelectPromo(room.roomTypeId, promo)}>
-                                    <div className="promo-radio">
-                                        <i className={`bi ${isChecked ? 'bi-check-circle-fill' : 'bi-circle'}`} style={{ color: isChecked ? '#5C6F4E' : '#cbd5e0' }}></i>
-                                    </div>
-                                    <div className="promo-content">
-                                        <div className="promo-header">
-                                            <span className="promo-name">{promo.name}</span>
-                                            <span className="promo-badge">{promo.adjustmentType === 'PERCENT' ? `-${promo.adjustmentValue}%` : `-${formatVND(promo.adjustmentValue)}`}</span>
-                                        </div>
-                                        <div className="promo-reason"><i className="bi bi-arrow-return-right me-1"></i>{promo.reason}</div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        <div className={`promo-card no-promo ${!room.selectedManualPromotion ? 'active' : ''}`} onClick={() => onSelectPromo(room.roomTypeId, null)}>
-                            <div className="promo-radio">
-                                <i className={`bi ${!room.selectedManualPromotion ? 'bi-check-circle-fill text-secondary' : 'bi-circle'}`} style={{ color: !room.selectedManualPromotion ? '' : '#cbd5e0' }}></i>
-                            </div>
-                            <div className="promo-content justify-content-center">
-                                <span className="text-secondary fw-semibold">Do not use a promotion right now</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
@@ -324,6 +322,7 @@ const GuestInformation = () => {
         totalPrice = 0,
         prefillEmail = '',
         appliedPolicyId = null,
+        branchId = 1,
     } = location.state || {};
 
     const [rooms, setRooms] = useState(selectedRooms);
@@ -334,12 +333,149 @@ const GuestInformation = () => {
         specialRequests: '',
         appliedPolicyId: appliedPolicyId,
     });
+    const [policies, setPolicies] = useState([]);
+    const [selectedPolicyId, setSelectedPolicyId] = useState(appliedPolicyId || null);
+    const [policyLoading, setPolicyLoading] = useState(false);
+    const [hasLoadedPolicies, setHasLoadedPolicies] = useState(false);
     const latestPricingRequestIdRef = useRef(0);
     const roomsRef = useRef(selectedRooms);
+    const selectedPolicyIdRef = useRef(appliedPolicyId || null);
+    const policySnapshotRef = useRef('');
+
+    useEffect(() => {
+        if (!location.state || selectedRooms.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No rooms selected',
+                text: 'Please select a room before providing guest details.',
+                confirmButtonColor: '#5C6F4E'
+            }).then(() => {
+                navigate('/search-room');
+            });
+        }
+    }, [location.state, selectedRooms.length, navigate]);
 
     useEffect(() => {
         roomsRef.current = rooms;
     }, [rooms]);
+
+    useEffect(() => {
+        selectedPolicyIdRef.current = selectedPolicyId;
+    }, [selectedPolicyId]);
+
+    useEffect(() => {
+        setRooms((prev) => prev.map((room) => applyPolicySelectionToRoom(room, selectedPolicyId)));
+    }, [selectedPolicyId]);
+
+    const refreshPolicies = useCallback(async (silent = true) => {
+        if (!branchId) return [];
+
+        const normalizeNullablePolicyId = (value) => (value === null || value === undefined || value === '' ? null : Number(value));
+
+        if (!silent && !hasLoadedPolicies) {
+            setPolicyLoading(true);
+        }
+        try {
+            const data = await cancellationPolicyService.getPoliciesByBranch(branchId);
+            const normalized = (Array.isArray(data) ? data : [])
+                .map(normalizePolicy)
+                .filter((policy) => policy && policy.active !== false)
+                .sort((a, b) => Number(a.id) - Number(b.id));
+
+            const snapshot = normalized
+                .map((p) => `${p.id}:${p.active}:${p.prepaidRate}:${p.refunRate}:${p.name || ''}`)
+                .join('|');
+
+            const currentSelected = selectedPolicyIdRef.current;
+            const hasCurrentSelected = normalized.some((policy) => Number(policy.id) === Number(currentSelected));
+            const hasAppliedPolicy = normalized.some((policy) => Number(policy.id) === Number(appliedPolicyId));
+
+            let nextSelectedPolicyId = null;
+            if (hasCurrentSelected) {
+                nextSelectedPolicyId = Number(currentSelected);
+            } else if (hasAppliedPolicy) {
+                nextSelectedPolicyId = Number(appliedPolicyId);
+            } else {
+                nextSelectedPolicyId = normalized[0]?.id ?? null;
+            }
+
+            const normalizedCurrent = normalizeNullablePolicyId(currentSelected);
+            const normalizedNext = normalizeNullablePolicyId(nextSelectedPolicyId);
+
+            // Silent/background refresh should not force UI updates when current selection is still valid.
+            if (silent && hasCurrentSelected) {
+                policySnapshotRef.current = snapshot;
+                return normalized;
+            }
+
+            if (snapshot !== policySnapshotRef.current) {
+                setPolicies(normalized);
+                policySnapshotRef.current = snapshot;
+            }
+
+            if (currentSelected && !hasCurrentSelected && !silent) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Policy Updated',
+                    text: 'The selected cancellation policy was deleted or deactivated. A valid policy has been selected automatically.',
+                    confirmButtonColor: '#5C6F4E',
+                });
+            }
+
+            selectedPolicyIdRef.current = nextSelectedPolicyId;
+            setSelectedPolicyId((prev) => {
+                const normalizedPrev = normalizeNullablePolicyId(prev);
+                return normalizedPrev === normalizedNext ? prev : nextSelectedPolicyId;
+            });
+            setHasLoadedPolicies(true);
+            return normalized;
+        } catch (error) {
+            console.error('Failed to load cancellation policies', error);
+            return [];
+        } finally {
+            if (!silent && !hasLoadedPolicies) {
+                setPolicyLoading(false);
+            }
+        }
+    }, [branchId, appliedPolicyId, hasLoadedPolicies]);
+
+    useEffect(() => {
+        refreshPolicies(false);
+    }, [refreshPolicies]);
+
+    useEffect(() => {
+        if (!branchId) return undefined;
+
+        const intervalId = setInterval(() => {
+            refreshPolicies(true);
+        }, 30000);
+
+        const handleWindowFocus = () => {
+            refreshPolicies(true);
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                refreshPolicies(true);
+            }
+        };
+
+        window.addEventListener('focus', handleWindowFocus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(intervalId);
+            window.removeEventListener('focus', handleWindowFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [branchId, refreshPolicies]);
+
+    useEffect(() => {
+        setFormData((prev) => ({
+            ...prev,
+            appliedPolicyId: selectedPolicyId,
+        }));
+    }, [selectedPolicyId]);
 
     const handleInputChange = (e) => {
         const { id, name, value } = e.target;
@@ -368,12 +504,6 @@ const GuestInformation = () => {
 
     const handleRemoveRoom = (roomTypeId) => {
         setRooms((prev) => prev.filter((r) => r.roomTypeId !== roomTypeId));
-    };
-
-    const handleSelectPromo = (roomTypeId, promo) => {
-        setRooms((prev) =>
-            prev.map((r) => (r.roomTypeId === roomTypeId ? { ...r, selectedManualPromotion: promo } : r))
-        );
     };
 
     const refreshRoomsByEmail = useCallback(async () => {
@@ -414,28 +544,17 @@ const GuestInformation = () => {
 
                 const merged = withPricingState(latest, oldRoom.selectedPricingOption);
 
-                let nextManual = oldRoom.selectedManualPromotion;
-                if (nextManual && Array.isArray(merged.manualSelectPromotions)) {
-                    const stillExists = merged.manualSelectPromotions.some(
-                        (promo) => promo?.priceModifierId === nextManual?.priceModifierId,
-                    );
-                    if (!stillExists) {
-                        nextManual = null;
-                    }
-                }
-
                 return {
                     ...oldRoom,
                     ...merged,
                     quantity: oldRoom.quantity || 1,
-                    selectedManualPromotion: nextManual,
                 };
-            }));
+            }).map((room) => applyPolicySelectionToRoom(room, selectedPolicyId)));
         } catch (error) {
             // Ignore transient repricing failures to avoid interrupting typing flow.
             console.warn('Failed to refresh room pricing by email', error);
         }
-    }, [branchId, checkIn, checkOut, formData.email]);
+    }, [branchId, checkIn, checkOut, formData.email, selectedPolicyId]);
 
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
@@ -452,6 +571,11 @@ const GuestInformation = () => {
         );
     };
 
+    const selectedPolicy = policies.find((policy) => Number(policy.id) === Number(selectedPolicyId)) || null;
+    const selectedPolicyRate = selectedPolicy ? Number(selectedPolicy.prepaidRate ?? 0) : 100;
+    const effectiveDepositRate = Number.isFinite(selectedPolicyRate) ? Math.min(100, Math.max(0, selectedPolicyRate)) : 100;
+    const estimatedDepositAmount = Math.max(0, Math.round(calculateTotalPrice() * effectiveDepositRate / 100));
+
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
             Swal.fire({ icon: 'warning', title: 'Missing Information', text: 'Please fill in all guest information.', confirmButtonColor: '#5C6F4E' });
@@ -464,6 +588,20 @@ const GuestInformation = () => {
 
         if (!checkIn || !checkOut || new Date(checkOut) <= new Date(checkIn)) {
             Swal.fire({ icon: 'warning', title: 'Invalid Date', text: 'Please select a check-out date after check-in (yyyy-MM-dd).', confirmButtonColor: '#5C6F4E' });
+            return;
+        }
+
+        // Re-check latest policies before booking confirmation to avoid stale/deleted selection.
+        const refreshedPolicies = await refreshPolicies(true);
+        const currentPolicyId = selectedPolicyIdRef.current;
+        const activeSelectedPolicy = refreshedPolicies.find((policy) => Number(policy.id) === Number(currentPolicyId));
+        if (currentPolicyId && !activeSelectedPolicy) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Policy No Longer Available',
+                text: 'Selected policy was changed or removed. Please review policy selection before continuing.',
+                confirmButtonColor: '#5C6F4E',
+            });
             return;
         }
 
@@ -487,6 +625,8 @@ const GuestInformation = () => {
             const currentBranchId = branchId || 1;
             const data = await bookingService.createFromFrontend(currentBranchId, payload);
             const createdBookingId = data?.bookingId ?? data?.id;
+            const bookingDepositAmount = Number(data?.prepaidAmount ?? estimatedDepositAmount);
+            const bookingTotalAmount = Number(data?.totalAmount ?? calculateTotalPrice());
 
             if (!createdBookingId) {
                 Swal.fire({ icon: 'error', title: 'Booking Error', text: 'Did not receive a booking ID from the server.', confirmButtonColor: '#d33' });
@@ -496,11 +636,21 @@ const GuestInformation = () => {
             navigate('/payment-selection', {
                 state: {
                     bookingId: createdBookingId,
-                    totalAmount: calculateTotalPrice(),
+                    totalAmount: bookingDepositAmount,
+                    bookingTotalAmount,
+                    depositAmount: bookingDepositAmount,
                     rooms,
                     checkIn,
                     checkOut,
                     branchId: currentBranchId,
+                    selectedPolicy: selectedPolicy ? {
+                        id: selectedPolicy.id,
+                        name: selectedPolicy.name,
+                        type: selectedPolicy.type,
+                        prepaidRate: selectedPolicy.prepaidRate,
+                        refunRate: selectedPolicy.refunRate,
+                        description: selectedPolicy.description,
+                    } : null,
                 },
             });
         } catch (error) {
@@ -542,7 +692,6 @@ const GuestInformation = () => {
                                         room={room}
                                         onQuantityChange={handleQuantityChange}
                                         onRemove={handleRemoveRoom}
-                                        onSelectPromo={handleSelectPromo}
                                     />
                                 ))}
                             </div>
@@ -592,6 +741,53 @@ const GuestInformation = () => {
 
                         <div className="guest-section">
                             <h5>
+                                <i className="bi bi-shield-check" />
+                                Cancellation Policy
+                            </h5>
+                            {!hasLoadedPolicies && policyLoading ? (
+                                <div className="text-muted">Loading policies...</div>
+                            ) : policies.length > 0 ? (
+                                <>
+                                    <label className="form-label fw-semibold">Select policy</label>
+                                    <select
+                                        className="form-select"
+                                        value={selectedPolicyId ?? ''}
+                                        onChange={(e) => setSelectedPolicyId(e.target.value ? Number(e.target.value) : null)}
+                                    >
+                                        <option value="">Choose a policy</option>
+                                        {policies.map((policy) => (
+                                            <option key={policy.id} value={policy.id}>
+                                                {policy.name} - {formatPolicyTypeLabel(policy.type)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {selectedPolicy && (
+                                        <div className="policy-detail-card mt-3">
+                                            <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                                                <div>
+                                                    <div className="fw-bold text-dark">{selectedPolicy.name}</div>
+                                                    <div className="text-muted small">{formatPolicyTypeLabel(selectedPolicy.type)}</div>
+                                                </div>
+                                                <div className="text-end">
+                                                    <div className="fw-bold text-olive">{selectedPolicy.prepaidRate ?? 0}% deposit</div>
+                                                    <div className="text-muted small">{selectedPolicy.refunRate ?? 0}% refund rate</div>
+                                                </div>
+                                            </div>
+                                            {selectedPolicy.description && (
+                                                <div className="mt-2 text-muted small">{selectedPolicy.description}</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-muted">
+                                    No branch policy found. The system will use the full booking amount as deposit.
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="guest-section">
+                            <h5>
                                 <i className="bi bi-star" />
                                 Special Requests (Optional)
                             </h5>
@@ -611,12 +807,26 @@ const GuestInformation = () => {
                         <div className="sticky-top d-none d-lg-block" style={{ top: '90px', zIndex: 1020, maxHeight: 'calc(100vh - 120px)' }}>
                             <h5 className="fw-bold mb-3">Your Booking</h5>
                             <div className="bg-white rounded-3 custom-shadow" style={{ maxHeight: 'calc(100vh - 160px)', overflowY: 'auto' }}>
-                                <BookingSummary selectedRooms={rooms} checkIn={checkIn} checkOut={checkOut} />
+                                <BookingSummary
+                                    selectedRooms={rooms}
+                                    checkIn={checkIn}
+                                    checkOut={checkOut}
+                                    selectedPolicy={selectedPolicy}
+                                    depositAmount={estimatedDepositAmount}
+                                    bookingTotalAmount={calculateTotalPrice()}
+                                />
                             </div>
                         </div>
                         <div className="d-lg-none mt-4">
                             <h5 className="fw-bold mb-3">Your Booking</h5>
-                            <BookingSummary selectedRooms={rooms} checkIn={checkIn} checkOut={checkOut} />
+                            <BookingSummary
+                                selectedRooms={rooms}
+                                checkIn={checkIn}
+                                checkOut={checkOut}
+                                selectedPolicy={selectedPolicy}
+                                depositAmount={estimatedDepositAmount}
+                                bookingTotalAmount={calculateTotalPrice()}
+                            />
                         </div>
                     </div>
                 </div>
@@ -626,10 +836,13 @@ const GuestInformation = () => {
             <footer className="fixed-bottom bg-white border-top p-3 shadow-lg" style={{ zIndex: 1031 }}>
                 <div className="container d-flex justify-content-between align-items-center">
                     <div>
-                        <small className="text-muted fw-bold text-uppercase">Total Price</small>
+                        <small className="text-muted fw-bold text-uppercase">Estimated deposit</small>
                         <h4 className="mb-0 fw-bold" style={{ color: '#5C6F4E' }}>
-                            {formatVND(calculateTotalPrice())}
+                            {formatVND(estimatedDepositAmount)}
                         </h4>
+                        <div className="text-muted small mt-1">
+                            Total booking: {formatVND(calculateTotalPrice())}
+                        </div>
                     </div>
                     <button
                         className="btn btn-gold px-4 py-2 fw-bold rounded-3"

@@ -1,7 +1,12 @@
-import { v4 as uuidv4 } from 'uuid';
-
 const CART_KEY = 'hotel_booking_cart';
 const CART_ID_KEY = 'hotel_booking_cart_id';
+
+const generateCartId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return `cart-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
 
 /**
  * Ensures a persistent Cart UUID exists for the anonymous user.
@@ -9,7 +14,7 @@ const CART_ID_KEY = 'hotel_booking_cart_id';
 export const getOrCreateCartId = () => {
     let cartId = localStorage.getItem(CART_ID_KEY);
     if (!cartId) {
-        cartId = uuidv4();
+        cartId = generateCartId();
         localStorage.setItem(CART_ID_KEY, cartId);
     }
     return cartId;

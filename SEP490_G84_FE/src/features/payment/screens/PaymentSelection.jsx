@@ -70,10 +70,13 @@ const PaymentSelection = () => {
     const {
         bookingId,
         totalAmount,
+        depositAmount,
+        bookingTotalAmount,
         rooms = [],
         checkIn = '',
         checkOut = '',
         branchId = null,
+        selectedPolicy = null,
     } = location.state || { bookingId: null, totalAmount: 0 };
     const hasStayDetails = rooms.length > 0 || checkIn || checkOut || branchId;
 
@@ -82,12 +85,20 @@ const PaymentSelection = () => {
     const [qrData, setQrData] = useState(null);
     const [clientSecret, setClientSecret] = useState('');
 
-    const policyAmount = rooms.reduce((sum, room) => sum + getPolicyAmountForRoom(room), 0);
-    const effectiveAmount = policyAmount > 0 || rooms.some((room) => getRoomPolicyType(room) === 'PAY_AT_HOTEL')
-        ? policyAmount
-        : Number(totalAmount || 0);
-    const hasPolicyBasedPayment = rooms.some((room) => Boolean(room?.selectedPricingOption?.prepaidRate || room?.selectedPricingOption?.cancellationPolicyType));
-    const policyLabels = [...new Set(rooms.map((room) => getRoomPolicyType(room)).filter(Boolean))];
+    const fallbackPolicyAmount = rooms.reduce((sum, room) => sum + getPolicyAmountForRoom(room), 0);
+    const effectiveAmount = Number(
+        depositAmount
+        ?? totalAmount
+        ?? (fallbackPolicyAmount > 0 ? fallbackPolicyAmount : 0),
+    );
+    const displayedBookingTotal = Number(
+        bookingTotalAmount
+        ?? rooms.reduce((sum, room) => sum + (Number(room?.selectedPrice ?? room?.selectedPricingOption?.finalPrice ?? room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0) * Number(room?.quantity || 1)), 0)
+    );
+    const policyLabels = selectedPolicy?.name
+        ? [selectedPolicy.name]
+        : [...new Set(rooms.map((room) => getRoomPolicyType(room)).filter(Boolean))];
+    const hasPolicyBasedPayment = Boolean(selectedPolicy) || rooms.some((room) => Boolean(room?.selectedPricingOption?.prepaidRate || room?.selectedPricingOption?.cancellationPolicyType));
 
     useEffect(() => {
         if (effectiveAmount <= 0) {
@@ -300,16 +311,37 @@ const PaymentSelection = () => {
 
                                     <div className="bg-light p-3 rounded-3 mb-4 d-flex justify-content-between align-items-center gap-3 flex-wrap">
                                         <div>
-                                            <p className="text-muted mb-0 fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '1px' }}>Amount due by policy</p>
+                                            <p className="text-muted mb-0 fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '1px' }}>Deposit due now</p>
                                             <div className="text-muted small mt-1">
                                                 {hasPolicyBasedPayment ? (
                                                     <>
-                                                        {policyLabels.map((label) => label).join(' · ')}
+                                                        {policyLabels.join(' · ')}
                                                     </>
                                                 ) : 'Standard booking payment'}
                                             </div>
                                         </div>
                                         <h3 className="fw-bold m-0" style={{ color: '#465c47' }}>{formatCurrency(effectiveAmount)}</h3>
+                                    </div>
+
+                                    <div className="row g-3 mb-4">
+                                        <div className="col-md-6">
+                                            <div className="p-3 rounded-3 border h-100" style={{ background: '#fcfdfa' }}>
+                                                <div className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>Booking total</div>
+                                                <div className="fw-bold fs-5 mt-1" style={{ color: '#465c47' }}>{formatCurrency(displayedBookingTotal)}</div>
+                                                <div className="text-muted small mt-2">This is the full room amount before deposit rules are applied.</div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-6">
+                                            <div className="p-3 rounded-3 border h-100" style={{ background: '#f4f8ef' }}>
+                                                <div className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>Policy deposit</div>
+                                                <div className="fw-bold fs-5 mt-1" style={{ color: '#465c47' }}>{formatCurrency(effectiveAmount)}</div>
+                                                <div className="text-muted small mt-2">
+                                                    {selectedPolicy
+                                                        ? `${selectedPolicy.prepaidRate ?? 0}% prepaid · ${selectedPolicy.refunRate ?? 0}% refund rate`
+                                                        : 'No policy selected yet. The system will use the booking deposit returned by the backend.'}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {hasPolicyBasedPayment && rooms.length > 0 && (

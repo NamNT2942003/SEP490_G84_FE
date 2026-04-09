@@ -10,7 +10,8 @@ const getAbsoluteImageUrl = (url) => {
     return url;
 };
 
-const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
+const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, depositAmount = null, bookingTotalAmount = null }) => {
+    const HIDDEN_MODIFIER_TYPES = new Set(['POLICY']);
 
     const normalizeModeText = (mode) => {
         if (!mode) return 'Standard';
@@ -92,7 +93,8 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
     };
 
     const getOptionModifiers = (room) =>
-        Array.isArray(room?.selectedPricingOption?.modifiers) ? room.selectedPricingOption.modifiers : [];
+        (Array.isArray(room?.selectedPricingOption?.modifiers) ? room.selectedPricingOption.modifiers : [])
+            .filter((modifier) => !HIDDEN_MODIFIER_TYPES.has(modifier?.type));
 
     const calculateRoomBaseUnitPrice = (room) => {
         return safeNumber(
@@ -178,6 +180,31 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
         0,
     );
     const totalDelta = subtotal - baseSubtotal;
+    const roomNights = Math.max(0, nights) * Math.max(0, totalRooms);
+    const safeRoomNights = roomNights > 0 ? roomNights : 1;
+    const averageBasePerRoomNight = baseSubtotal / safeRoomNights;
+    const averageFinalPerRoomNight = subtotal / safeRoomNights;
+    const averageDeltaPerRoomNight = averageFinalPerRoomNight - averageBasePerRoomNight;
+
+    const modifierSummary = selectedRooms.reduce((acc, room) => {
+        const qty = room.quantity || 1;
+        const roomBreakdown = getAppliedModifierBreakdown(room);
+
+        for (const mod of roomBreakdown) {
+            const delta = safeNumber(mod?.delta, 0) * qty;
+            if (delta < 0) {
+                acc.totalDiscount += Math.abs(delta);
+            } else if (delta > 0) {
+                acc.totalSurcharge += delta;
+            }
+        }
+
+        return acc;
+    }, { totalDiscount: 0, totalSurcharge: 0 });
+
+    const hasVisibleDiscount = modifierSummary.totalDiscount > 0;
+    const hasVisibleSurcharge = modifierSummary.totalSurcharge > 0;
+
     const returningGuestDelta = selectedRooms.reduce((sum, room) => {
         const qty = room.quantity || 1;
         const modifiers = getAppliedModifierBreakdown(room).filter((mod) => mod.type === 'USER_HISTORY_DISCOUNT');
@@ -185,6 +212,36 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
         return sum + (roomDelta * qty);
     }, 0);
     const hasReturningGuestDiscount = Math.abs(returningGuestDelta) > 0;
+    
+    // Tính toán điều chỉnh giá theo chính sách
+    const getPolicyAdjustment = () => {
+        if (!selectedRooms.length) return 0;
+        let totalPolicyAdj = 0;
+        for (const room of selectedRooms) {
+            const qty = room.quantity || 1;
+            const modifiers = (Array.isArray(room?.selectedPricingOption?.modifiers) ? room.selectedPricingOption.modifiers : [])
+                .filter((modifier) => modifier?.type === 'POLICY');
+            
+            for (const mod of modifiers) {
+                const deltaFromReason = extractDeltaFromReason(mod?.reason);
+                const delta = deltaFromReason !== null
+                    ? deltaFromReason
+                    : (mod?.adjustmentType === 'PERCENT' || mod?.adjustmentType === 'PERCENTAGE')
+                        ? (safeNumber(calculateRoomBaseUnitPrice(room), 0) * safeNumber(mod?.adjustmentValue, 0)) / 100
+                        : safeNumber(mod?.adjustmentValue, 0);
+                totalPolicyAdj += delta * qty;
+            }
+        }
+        return totalPolicyAdj;
+    };
+    
+    const policyAdjustment = getPolicyAdjustment();
+    const hasPolicyAdjustment = Math.abs(policyAdjustment) > 0;
+    
+    const normalizedDepositAmount = Number.isFinite(Number(depositAmount)) ? Number(depositAmount) : subtotal;
+    const normalizedBookingTotalAmount = Number.isFinite(Number(bookingTotalAmount)) ? Number(bookingTotalAmount) : subtotal;
+    const safeNights = nights > 0 ? nights : 1;
+    const averageBookingPerNight = normalizedBookingTotalAmount / safeNights;
 
     return (
         <div className="bg-white rounded-3 p-3 border custom-shadow">
@@ -208,7 +265,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                 </p>
                 {selectedRooms.length > 0 ? (
                     selectedRooms.map((room, index) => (
-                        <div key={index} className="d-flex justify-content-between align-items-center mb-1">
+                        <div key={index} className="mb-1">
                             <div>
                                 <p className="fw-semibold text-dark mb-0 small">{room.quantity}x {room.name}</p>
                                 {room.selectedPricingOption?.mode && (
@@ -237,9 +294,6 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                                     </div>
                                 )}
                             </div>
-                            <span className="text-muted small">
-                {formatCurrency(calculateRoomUnitPrice(room))}
-              </span>
                         </div>
                     ))
                 ) : (
@@ -260,9 +314,42 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
             </div>
 
             <div className="pt-3 border-top mt-2">
+                {selectedPolicy && (
+                    <div className="mb-3 p-3 rounded-3" style={{ background: '#f4f8ef', border: '1px solid #dbe6cf' }}>
+                        <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                            <div>
+                                <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '10px', letterSpacing: '1px' }}>Selected Policy</div>
+                                <div className="fw-bold text-dark">{selectedPolicy.name || 'Cancellation policy'}</div>
+                                <div className="text-muted small">{normalizeModeText(selectedPolicy.type)} · {selectedPolicy.description || 'Policy applied to booking'}</div>
+                            </div>
+                            <div className="text-end">
+                                <div className="fw-bold text-olive">{Number(selectedPolicy.prepaidRate ?? 0)}% deposit</div>
+                                <div className="text-muted small">{Number(selectedPolicy.refunRate ?? 0)}% refund rate</div>
+                            </div>
+                        </div>
+                        <div className="row mt-3">
+                            <div className="col-6">
+                                <div className="text-muted small">Estimated deposit amount</div>
+                                <div className="fw-bold text-olive fs-6">{formatCurrency(normalizedDepositAmount)}</div>
+                            </div>
+                            <div className="col-6 text-end">
+                                <div className="text-muted small">Remaining balance</div>
+                                <div className="fw-bold text-dark fs-6">{formatCurrency(normalizedBookingTotalAmount - normalizedDepositAmount)}</div>
+                            </div>
+                        </div>
+                        {selectedPolicy.freeCancelBeforeDays && (
+                            <div className="mt-2 p-2 rounded" style={{ background: '#fff', border: '1px solid #dbe6cf' }}>
+                                <span className="text-muted small">
+                                    <i className="bi bi-calendar-event me-1"></i>
+                                    Free cancellation up to {selectedPolicy.freeCancelBeforeDays} day(s) before arrival
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                )}
                 {hasReturningGuestDiscount && (
                     <div className="d-flex justify-content-between align-items-center mb-2 px-2 py-2 rounded"
-                         style={{ background: '#ecfdf3', border: '1px solid #b7ebc6' }}>
+                         style={{ background: '#ecfdf3', border: '1px solid #9fddb3', boxShadow: '0 2px 8px rgba(22,163,74,0.08)' }}>
                         <span className="fw-bold text-success">
                             <i className="bi bi-stars me-1"></i>
                             Returning Guest Discount
@@ -270,6 +357,41 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                         <span className="fw-bold text-success">
                             {returningGuestDelta > 0 ? '+' : ''}{formatCurrency(returningGuestDelta)}
                         </span>
+                    </div>
+                )}
+                {hasPolicyAdjustment && (
+                    <div className="d-flex justify-content-between align-items-center mb-2 px-2 py-2 rounded"
+                         style={{ background: '#f0f4ff', border: '1px solid #b8d8ff', boxShadow: '0 2px 8px rgba(59,130,246,0.08)' }}>
+                        <span className="fw-bold text-info">
+                            <i className="bi bi-shield-check me-1"></i>
+                            Policy Adjustment
+                            {selectedPolicy && <span className="text-muted ms-1" style={{ fontSize: '11px', fontWeight: 'normal' }}>({selectedPolicy.name})</span>}
+                        </span>
+                        <span className={`fw-bold ${policyAdjustment > 0 ? 'text-danger' : 'text-success'}`}>
+                            {policyAdjustment > 0 ? '+' : ''}{formatCurrency(policyAdjustment)}
+                        </span>
+                    </div>
+                )}
+                {(hasVisibleDiscount || hasVisibleSurcharge) && (
+                    <div className="mb-2 p-2 rounded" style={{ background: '#f8fafc', border: '1px dashed #d6dde6' }}>
+                        {hasVisibleDiscount && (
+                            <div className="d-flex justify-content-between align-items-center">
+                                <span className="fw-semibold text-success">
+                                    <i className="bi bi-patch-check me-1"></i>
+                                    Total Promotions
+                                </span>
+                                <span className="fw-bold text-success">-{formatCurrency(modifierSummary.totalDiscount)}</span>
+                            </div>
+                        )}
+                        {hasVisibleSurcharge && (
+                            <div className="d-flex justify-content-between align-items-center mt-1">
+                                <span className="fw-semibold text-danger">
+                                    <i className="bi bi-arrow-up-right-circle me-1"></i>
+                                    Total Surcharges
+                                </span>
+                                <span className="fw-bold text-danger">+{formatCurrency(modifierSummary.totalSurcharge)}</span>
+                            </div>
+                        )}
                     </div>
                 )}
                 <div className="d-flex justify-content-between align-items-center">
@@ -285,6 +407,37 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut }) => {
                 <div className="d-flex justify-content-between align-items-center">
                     <span className="fw-bold text-dark">Subtotal</span>
                     <span className="fw-bold text-olive">{formatCurrency(subtotal)}</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-muted">Booking total</span>
+                    <span className="text-muted">{formatCurrency(normalizedBookingTotalAmount)}</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-start mt-1">
+                    <span className="text-muted">Avg booking / night</span>
+                    <div className="text-end">
+                        <div className="fw-semibold text-dark">{formatCurrency(averageBookingPerNight)}</div>
+                        <small className="text-muted" style={{ fontSize: '10px' }}>
+                            = Booking total / {safeNights} {safeNights > 1 ? 'nights' : 'night'}
+                        </small>
+                    </div>
+                </div>
+                <div className="d-flex justify-content-between align-items-start mt-1">
+                    <span className="text-muted">Avg / room-night</span>
+                    <div className="text-end">
+                        <div className="fw-semibold text-dark">{formatCurrency(averageFinalPerRoomNight)}</div>
+                        <small className="text-muted" style={{ fontSize: '10px' }}>
+                            = Subtotal / {safeRoomNights} room-night{safeRoomNights > 1 ? 's' : ''}
+                        </small>
+                        <small className="text-muted d-block" style={{ fontSize: '10px' }}>
+                            Base {formatCurrency(averageBasePerRoomNight)}
+                            {' · '}
+                            Impact {averageDeltaPerRoomNight > 0 ? '+' : ''}{formatCurrency(averageDeltaPerRoomNight)}
+                        </small>
+                    </div>
+                </div>
+                <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-muted">Deposit now</span>
+                    <span className="fw-bold text-olive">{formatCurrency(normalizedDepositAmount)}</span>
                 </div>
                 <div className="mt-2">
                     <p className="text-muted small mb-1">

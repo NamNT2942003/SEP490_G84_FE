@@ -1,0 +1,39 @@
+﻿node.exe : [31mÔ£ù[39m Build failed in 2.10s
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([31mÔ£ù[39m Build failed in 2.10s:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[31merror during build:
+[31mBuild failed with 1 error:
+
+Error: [vite]: Rolldown failed to resolve import "uuid" from 
+"D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/src/utils/cartStorage.js".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteLog (file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/vite/dist/node/chunks/node.js:33561:57)
+    at file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/vite/dist/node/chunks/node.js:33597:73
+    at onwarn (file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/@vitejs/plugin-react/dist/index.js:76:7)
+    at file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/vite/dist/node/chunks/node.js:33597:28
+    at onRollupLog (file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/vite/dist/node/chunks/node.js:33592:63)
+    at onLog (file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/vite/dist/node/chunks/node.js:33360:4)
+    at file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/rolldown/dist/shared/src-CYkh2Ybc.mjs:294:26
+    at logger (file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/rolldown/dist/shared/src-CYkh2Ybc.mjs:285:3)
+    at onLog 
+(file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/rolldown/dist/shared/src-CYkh2Ybc.mjs:3964:32)[31m
+    at aggregateBindingErrorsIntoJsError 
+(file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/rolldown/dist/shared/src-CYkh2Ybc.mjs:2659:18)
+    at unwrapBindingResult 
+(file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/rolldown/dist/shared/src-CYkh2Ybc.mjs:2634:128)
+    at #build 
+(file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/rolldown/dist/shared/src-CYkh2Ybc.mjs:4433:34)
+    at async buildEnvironment 
+(file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/vite/dist/node/chunks/node.js:33468:64)
+    at async Object.build 
+(file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/vite/dist/node/chunks/node.js:33871:19)
+    at async Object.buildApp 
+(file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/vite/dist/node/chunks/node.js:33868:153)
+    at async CAC.<anonymous> 
+(file:///D:/SEP490/SEP490_G84_FE/SEP490_G84_FE/node_modules/vite/dist/node/cli.js:629:3)[39m
