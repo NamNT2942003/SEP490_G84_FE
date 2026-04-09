@@ -185,38 +185,10 @@ const SearchRoom = () => {
     }, [filters.branchId]);
 
 
-    const searchRooms = useCallback(async (sp) => {
-        const requestId = ++latestRequestIdRef.current;
-        setLoading(true); setError(null); setSearchParams(sp);
-        try {
-            if (sp.checkIn && sp.checkOut) {
-                if (new Date(sp.checkOut) <= new Date(sp.checkIn)) {
-                    setError("Check-out date must be after check-in date.");
-                    setLoading(false); return;
-                }
-            }
-            const params = { branchId: filters.branchId ?? 1, ...filters, ...sp };
-            const normalizedEmail = normalizeEmailForSearch(customerHistoryEmailRef.current);
-            if (normalizedEmail) {
-                params.customerEmail = normalizedEmail;
-            }
-            const res = await roomService.searchRooms(params);
-            if (requestId !== latestRequestIdRef.current) {
-                return;
-            }
-            const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
-            setRooms(fetchedRooms);
-            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
-            setTotalElements(res.totalElements || 0);
-            setTotalPages(res.totalPages || 0);
-        } catch (err) {
-            const apiError = err?.response?.data?.error;
-            const message = apiError && String(apiError).includes("yyyy-MM-dd")
-                ? "Date format must be yyyy-MM-dd"
-                : (apiError || err.message || "Failed to search rooms");
-            setError(message);
-        } finally { setLoading(false); }
-    }, [filters]);
+    const searchRooms = useCallback((sp) => {
+        setSearchParams(sp);
+        setFilters((p) => ({ ...p, page: 0 }));
+    }, []);
 
     const refetchRooms = useCallback(async () => {
         if (!searchParams) return;
@@ -353,23 +325,17 @@ const SearchRoom = () => {
     }, [isInitialized, searchRooms]);
 
     useEffect(() => {
-        if (searchParams && isInitialized) {
-            console.log("🔄 Refetch due to filter change");
-            refetchRooms();
-        }
-    }, [filters.branchId, filters.sortPrice, filters.page, searchParams, isInitialized, refetchRooms]);
-
-    useEffect(() => {
         customerHistoryEmailRef.current = customerHistoryEmail;
     }, [customerHistoryEmail]);
 
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
         const timer = setTimeout(() => {
+            console.log("🔄 Refetching rooms due to criteria change");
             refetchRooms();
-        }, 350);
+        }, 300);
         return () => clearTimeout(timer);
-    }, [customerHistoryEmail, isInitialized, searchParams, refetchRooms]);
+    }, [filters, searchParams, customerHistoryEmail, isInitialized, refetchRooms]);
 
     useEffect(() => {
         if (!uiMessage) return;
