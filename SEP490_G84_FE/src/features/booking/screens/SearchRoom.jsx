@@ -6,6 +6,9 @@ import RoomDetailModal from "./RoomDetailModal.jsx";
 import SmartPagination from "./SmartPagination.jsx";
 import { roomService } from "../api/roomService.js";
 import { branchService } from "../api/branchService.js";
+import { cancellationPolicyService } from "../api/cancellationPolicyService.js";
+import { getOrCreateCartId, getCart, saveCart } from "../../../utils/cartStorage.js";
+import Swal from "sweetalert2";
 
 const SearchRoom = () => {
     const [rooms, setRooms] = useState([]);
@@ -25,6 +28,9 @@ const SearchRoom = () => {
     const [searchParams, setSearchParams] = useState(null);
     const navigate = useNavigate();
     const [selectedCart, setSelectedCart] = useState([]); // Giỏ hàng chọn phòng
+    const [cartId] = useState(getOrCreateCartId());
+    const [policies, setPolicies] = useState([]);
+    const [selectedPolicyId, setSelectedPolicyId] = useState(null);
     const [isInitialized, setIsInitialized] = useState(false);
     const [uiMessage, setUiMessage] = useState(null);
     const [customerHistoryEmail, setCustomerHistoryEmail] = useState("");
@@ -173,6 +179,26 @@ const SearchRoom = () => {
         return adjustmentValue;
     };
 
+    const syncCartWithLatestRooms = useCallback((cart, latest) => {
+        return cart.map(item => {
+            const found = latest.find(r => r.roomTypeId === item.roomTypeId);
+            if (found) {
+                return {
+                    ...item,
+                    price: found.price,
+                    selectedPrice: found.selectedPrice,
+                    availableCount: found.availableCount,
+                    // If the room is suddenly unavailable, we keep identity but flag it (or can remove)
+                };
+            }
+            return item;
+        });
+    }, []);
+
+    const refetchRooms = useCallback(() => {
+        searchRooms(searchParams);
+    }, [searchRooms, searchParams]);
+
     // fetch branches once
     useEffect(() => {
         (async () => {
@@ -180,9 +206,42 @@ const SearchRoom = () => {
                 const data = await branchService.getAllBranches();
                 setBranches(data);
                 if (data.length > 0 && !filters.branchId) setFilters(p => ({ ...p, branchId: data[0].branchId }));
-            } catch (e) { console.error("Branches:", e); }
+            } catch (e) {
+                console.error("Branches error:", e);
+            }
         })();
     }, [filters.branchId]);
+
+    // Fetch policies when branch changes
+    useEffect(() => {
+        if (filters.branchId) {
+            (async () => {
+                try {
+                    const data = await cancellationPolicyService.getPoliciesByBranch(filters.branchId);
+                    setPolicies(data);
+                    if (data.length > 0) setSelectedPolicyId(data[0].policyId);
+                } catch (e) {
+                    console.error("Policies error:", e);
+                }
+            })();
+        }
+    }, [filters.branchId]);
+
+    // Load cart from LocalStorage on mount
+    useEffect(() => {
+        const savedCart = getCart();
+        if (savedCart && savedCart.length > 0) {
+            setSelectedCart(savedCart);
+        }
+        setIsInitialized(true);
+    }, []);
+
+    // Save cart to LocalStorage whenever it changes
+    useEffect(() => {
+        if (isInitialized) {
+            saveCart(selectedCart);
+        }
+    }, [selectedCart, isInitialized]);
 
 
     const searchRooms = useCallback((sp) => {
@@ -199,13 +258,6 @@ const SearchRoom = () => {
                 setError("Check-out date must be after check-in date.");
                 setLoading(false); return;
             }
-            const params = { branchId: filters.branchId ?? 1, ...filters, ...searchParams };
-            const normalizedEmail = normalizeEmailForSearch(customerHistoryEmailRef.current);
-            if (normalizedEmail) {
-                params.customerEmail = normalizedEmail;
-            }
-            const res = await roomService.searchRooms(params);
-            if (requestId !== latestRequestIdRef.current) {
                 return;
             }
             const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
@@ -303,8 +355,9 @@ const SearchRoom = () => {
                 checkIn: searchParams?.checkIn,
                 checkOut: searchParams?.checkOut,
                 branchId: filters.branchId,
-                totalPrice,
+                totalPrice: cartTotal,
                 prefillEmail: customerHistoryEmail.trim() || undefined,
+                appliedPolicyId: selectedPolicyId
             }
         });
     };
@@ -699,19 +752,54 @@ const SearchRoom = () => {
                                 transform: translateY(-2px);
                                 box-shadow: 0 6px 20px rgba(255,215,0,0.4);
                             }
+                            .cart-footer {
+                                margin-top: 20px;
+                                padding-top: 20px;
+                                border-top: 2px solid rgba(255,255,255,0.2);
+                            }
+                            .cart-summary-row {
+                                display: flex;
+                                justify-content: space-between;
+                                margin-bottom: 8px;
+                                font-size: 0.95rem;
+                            }
+                            .cart-total-amount {
+                                font-size: 1.25rem;
+                                font-weight: 800;
+                                color: #fff;
+                            }
+                            .cart-deposit-note {
+                                font-size: 0.8rem;
+                                color: #d1d9cc;
+                                font-style: italic;
+                                margin-bottom: 15px;
+                            }
+                            .email-section {
+                                margin-bottom: 15px;
+                                background: rgba(255,255,255,0.1);
+                                padding: 12px;
+                                border-radius: 10px;
+                            }
+                            .email-section label {
+                                font-size: 0.75rem;
+                                color: #e8ece4;
+                                margin-bottom: 5px;
+                                display: block;
+                            }
+                            .email-input {
+                                width: 100%;
+                                background: rgba(255,255,255,0.9);
+                                border: none;
+                                border-radius: 6px;
+                                padding: 8px 10px;
+                                font-size: 0.85rem;
+                                color: #333;
+                            }
+                            .policy-section {
+                                margin-bottom: 20px;
+                            }
                         `}</style>
 
-                        <div className="bg-white rounded-3 custom-shadow p-4 cart-panel">
-                            <div className="cart-header">
-                                <i className="bi bi-cart2"></i>
-                                <h5 className="fw-bold mb-0">Your Selection</h5>
-                                {selectedCart.length > 0 && (
-                                    <span className="badge bg-danger ms-auto">{totalSelectedRooms}</span>
-                                )}
-                            </div>
-
-                            <div className="cart-date-note">
-                                <div><i className="bi bi-calendar3"></i>{searchParams?.checkIn || "--"} to {searchParams?.checkOut || "--"}</div>
                                 <div><i className="bi bi-moon-stars"></i>{nights} {nights > 1 ? "nights" : "night"}</div>
                             </div>
 

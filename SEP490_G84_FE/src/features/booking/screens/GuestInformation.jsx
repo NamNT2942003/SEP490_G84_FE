@@ -153,12 +153,12 @@ const withPricingState = (room, preferredOption = null) => {
     };
 };
 
-const buildBookingPayload = (formData, rooms, checkIn, checkOut) => {
     const bookingLevelIds = uniqueIds(
         rooms.flatMap((room) => getRoomBookingLevelModifierIds(room)),
     );
 
     return {
+        appliedPolicyId: formData.appliedPolicyId,
         otaReservationId: `WEB-${formData.phone.replace(/\s+/g, '')}-${checkIn}-${checkOut}`,
         arrivalDate: checkIn,
         departureDate: checkOut,
@@ -321,8 +321,9 @@ const GuestInformation = () => {
         selectedRooms = [],
         checkIn = '',
         checkOut = '',
-        branchId = null,
+        totalPrice = 0,
         prefillEmail = '',
+        appliedPolicyId = null,
     } = location.state || {};
 
     const [rooms, setRooms] = useState(selectedRooms);
@@ -331,6 +332,7 @@ const GuestInformation = () => {
         email: prefillEmail || '',
         phone: '',
         specialRequests: '',
+        appliedPolicyId: appliedPolicyId,
     });
     const latestPricingRequestIdRef = useRef(0);
     const roomsRef = useRef(selectedRooms);
