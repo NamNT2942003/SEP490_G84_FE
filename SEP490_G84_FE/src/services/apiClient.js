@@ -1,8 +1,11 @@
 import axios from 'axios';
 
+const DEFAULT_API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+  'https://sep490-g84-1.onrender.com/api';
+
 const apiClient = axios.create({
-  // Use explicit IPv6 loopback to avoid "ERR_CONNECTION_REFUSED" when backend is bound to ::1 only.
-  baseURL: 'https://sep490-g84-1.onrender.com/api',
+  baseURL: DEFAULT_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -23,7 +26,21 @@ apiClient.interceptors.request.use(
 // Provide a clearer error message for network / connection refused cases
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config || {};
+    const method = (config.method || '').toLowerCase();
+    const isLoginRequest = (config.url || '').includes('/auth/login');
+    const shouldRetryOnce = !error.response
+      && !config.__networkRetried
+      && (method === 'get' || (method === 'post' && isLoginRequest));
+
+    // Render free-tier cold starts may drop the first connection.
+    if (shouldRetryOnce) {
+      config.__networkRetried = true;
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      return apiClient.request(config);
+    }
+
     // Handle 401 Unauthorized — token expired or invalid
     if (error.response && error.response.status === 401) {
       // Only redirect if we're not already on the login/auth pages
@@ -39,7 +56,7 @@ apiClient.interceptors.response.use(
     // If there is no response, it's likely a network error / backend unreachable
     if (!error.response) {
       const base = apiClient.defaults.baseURL || 'API server';
-      const msg = `Network Error: could not reach backend (${base}). Ensure the backend is running and accessible.`;
+      const msg = `Network Error: could not reach backend (${base}). If this is Render, wait 30-60 seconds for cold start and try again.`;
       // attach a friendly message to the error object
       error.friendlyMessage = msg;
       // also log once to make debugging easier
