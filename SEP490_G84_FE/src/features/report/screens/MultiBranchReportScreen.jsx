@@ -11,9 +11,9 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const BRANCH_COLORS = ['#4f81ff', '#20c997', '#fd7e14', '#e83e8c', '#6f42c1', '#198754'];
 
 const CATEGORIES = {
-    room:    { label: 'Doanh thu phòng',   icon: 'bi-door-open',  color: '#4f81ff', key: 'totalRevenue',   trendKey: 'revenue'        },
-    service: { label: 'Doanh thu dịch vụ', icon: 'bi-bag-check',  color: '#20c997', key: 'serviceRevenue', trendKey: 'serviceRevenue'  },
-    expense: { label: 'Chi phí vận hành',  icon: 'bi-receipt',     color: '#fd7e14', key: 'totalExpense',   trendKey: 'expense'         },
+    room:    { label: 'Room Revenue',      icon: 'bi-door-open',  color: '#4f81ff', key: 'totalRevenue',   trendKey: 'revenue'        },
+    service: { label: 'Service Revenue',   icon: 'bi-bag-check',  color: '#20c997', key: 'serviceRevenue', trendKey: 'serviceRevenue'  },
+    expense: { label: 'Operating Expense', icon: 'bi-receipt',    color: '#fd7e14', key: 'totalExpense',   trendKey: 'expense'         },
 };
 
 const fmt  = (val) => new Intl.NumberFormat('vi-VN').format(val || 0);
@@ -54,7 +54,7 @@ const KpiCard = ({ label, value, sub, accent, onClick, clickable }) => (
         <p className="text-secondary text-uppercase fw-bold mb-2" style={{ fontSize: '0.72rem', letterSpacing: '1px' }}>{label}</p>
         <h3 className="fw-bold text-dark mb-1">{value}</h3>
         {sub && <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{sub}</p>}
-        {clickable && <p className="mb-0 mt-2 fw-semibold" style={{ fontSize: '0.76rem', color: '#4f81ff' }}>Xem chi tiết →</p>}
+        {clickable && <p className="mb-0 mt-2 fw-semibold" style={{ fontSize: '0.76rem', color: '#4f81ff' }}>View Details →</p>}
     </div>
 );
 
@@ -67,9 +67,9 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
 
     const barData = summaries.map(b => ({
         name: b.branchName,
-        'Phòng':   b.totalRevenue   || 0,
-        'Dịch vụ': b.serviceRevenue || 0,
-        'Chi phí': b.totalExpense   || 0,
+        'Room':    b.totalRevenue   || 0,
+        'Service': b.serviceRevenue || 0,
+        'Expense': b.totalExpense   || 0,
     }));
 
     const catKey   = CATEGORIES[activeCategory].key;
@@ -116,9 +116,9 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
                                 <YAxis axisLine={false} tickLine={false} tickFormatter={fmtM} tick={{ fill: '#6c757d', fontSize: 12 }} width={60} />
                                 <Tooltip content={<Tip />} />
                                 <Legend iconType="square" verticalAlign="top" wrapperStyle={{ paddingBottom: 14, fontSize: '0.82rem' }} />
-                                <Bar dataKey="Phòng"   fill="#4f81ff" radius={[4,4,0,0]} maxBarSize={36} />
-                                <Bar dataKey="Dịch vụ" fill="#20c997" radius={[4,4,0,0]} maxBarSize={36} />
-                                <Bar dataKey="Chi phí" fill="#fd7e14" radius={[4,4,0,0]} maxBarSize={36} />
+                                <Bar dataKey="Room"    fill="#4f81ff" radius={[4,4,0,0]} maxBarSize={36} />
+                                <Bar dataKey="Service" fill="#20c997" radius={[4,4,0,0]} maxBarSize={36} />
+                                <Bar dataKey="Expense" fill="#fd7e14" radius={[4,4,0,0]} maxBarSize={36} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -126,7 +126,7 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
                 <div className="col-lg-5">
                     <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
                         <h6 className="text-secondary fw-bold text-uppercase mb-3" style={{ fontSize: '0.77rem', letterSpacing: '1px' }}>
-                            TỈ TRỌNG — {CATEGORIES[activeCategory].label.toUpperCase()}
+                            SHARE — {CATEGORIES[activeCategory].label.toUpperCase()}
                         </h6>
                         {pieData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={255}>
@@ -142,7 +142,7 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
                                 </PieChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="h-100 d-flex align-items-center justify-content-center text-muted">Chưa có dữ liệu</div>
+                            <div className="h-100 d-flex align-items-center justify-content-center text-muted">No data available</div>
                         )}
                     </div>
                 </div>
@@ -158,11 +158,11 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
                         <thead className="bg-light">
                             <tr>
                                 <th className="py-3 ps-3">#</th>
-                                <th className="py-3">Cơ sở</th>
-                                <th className="py-3 text-end">DT Phòng</th>
-                                <th className="py-3 text-end">DT Dịch vụ</th>
-                                <th className="py-3 text-end">Chi phí</th>
-                                <th className="py-3 text-end">Lợi nhuận gộp</th>
+                                <th className="py-3">Branch</th>
+                                <th className="py-3 text-end">Room Rev.</th>
+                                <th className="py-3 text-end">Service Rev.</th>
+                                <th className="py-3 text-end">Expenses</th>
+                                <th className="py-3 text-end">Gross Profit</th>
                                 {hasMom && <th className="py-3 text-center">MoM</th>}
                                 {hasOcc && <th className="py-3 text-center">Lấp kín</th>}
                             </tr>
@@ -182,7 +182,7 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
                                         </td>
                                         <td className="fw-semibold text-dark">
                                             {b.branchName}
-                                            <span className="text-primary ms-2" style={{ fontSize: '0.72rem', fontWeight: 600 }}>Chi tiết →</span>
+                                            <span className="text-primary ms-2" style={{ fontSize: '0.72rem', fontWeight: 600 }}>Details →</span>
                                         </td>
                                         <td className="text-end fw-semibold" style={{ color: '#4f81ff' }}>{fmt(b.totalRevenue)}</td>
                                         <td className="text-end fw-semibold" style={{ color: '#20c997' }}>{fmt(b.serviceRevenue)}</td>
@@ -195,7 +195,7 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
                                     </tr>
                                 );
                             })}
-                            {summaries.length === 0 && <tr><td colSpan={8} className="text-center text-muted py-4">Chưa có dữ liệu</td></tr>}
+                            {summaries.length === 0 && <tr><td colSpan={8} className="text-center text-muted py-4">No data available</td></tr>}
                         </tbody>
                     </table>
                 </div>
@@ -234,13 +234,13 @@ const DetailPanel = ({ category, branches, summaries, monthlyTrends, selectedYea
             {/* Header bar */}
             <div className="d-flex align-items-center gap-3 mb-4">
                 <button className="btn btn-outline-secondary btn-sm px-3 fw-semibold rounded-3" onClick={onBack}>
-                    <i className="bi bi-arrow-left me-1" />Quay lại
+                    <i className="bi bi-arrow-left me-1" />Back
                 </button>
                 <div>
-                    <span className="text-secondary fw-bold text-uppercase" style={{ fontSize: '0.72rem', letterSpacing: '1px' }}>Chi tiết {selectedYear}</span>
+                    <span className="text-secondary fw-bold text-uppercase" style={{ fontSize: '0.72rem', letterSpacing: '1px' }}>Details {selectedYear}</span>
                     <h5 className="fw-bold text-dark m-0">
                         <span className="me-2" style={{ color: cat.color }}><i className={`bi ${cat.icon}`} /></span>
-                        {cat.label} — Tất cả cơ sở
+                        {cat.label} — All Branches
                     </h5>
                 </div>
             </div>
@@ -248,10 +248,10 @@ const DetailPanel = ({ category, branches, summaries, monthlyTrends, selectedYea
             {/* Sub-toggle */}
             <div className="btn-group mb-4 shadow-sm">
                 <button className={`btn btn-sm fw-semibold px-4 ${detailMode === 'trend' ? 'btn-dark' : 'btn-outline-secondary'}`} onClick={() => setDetailMode('trend')}>
-                    <i className="bi bi-graph-up me-2" />Xu hướng 12 tháng
+                    <i className="bi bi-graph-up me-2" />12-Month Trend
                 </button>
                 <button className={`btn btn-sm fw-semibold px-4 ${detailMode === 'compare' ? 'btn-dark' : 'btn-outline-secondary'}`} onClick={() => setDetailMode('compare')}>
-                    <i className="bi bi-bar-chart-line me-2" />So sánh cơ sở
+                    <i className="bi bi-bar-chart-line me-2" />Branch Comparison
                 </button>
             </div>
 
@@ -317,10 +317,10 @@ const DetailPanel = ({ category, branches, summaries, monthlyTrends, selectedYea
                     <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.87rem' }}>
                         <thead className="bg-light">
                             <tr>
-                                <th className="py-3 ps-3">Hạng</th>
-                                <th className="py-3">Cơ sở</th>
+                                <th className="py-3 ps-3">Rank</th>
+                                <th className="py-3">Branch</th>
                                 <th className="py-3 text-end">{cat.label}</th>
-                                <th className="py-3">Tỉ trọng</th>
+                                <th className="py-3">Share</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -346,7 +346,7 @@ const DetailPanel = ({ category, branches, summaries, monthlyTrends, selectedYea
                                     </tr>
                                 );
                             })}
-                            {summaries.length === 0 && <tr><td colSpan={4} className="text-center text-muted py-4">Chưa có dữ liệu</td></tr>}
+                            {summaries.length === 0 && <tr><td colSpan={4} className="text-center text-muted py-4">No data available</td></tr>}
                         </tbody>
                     </table>
                 </div>
@@ -408,8 +408,8 @@ const MultiBranchReportScreen = () => {
 
     const activeSummaries = viewMode === 'monthly' ? monthlySummaries : yearlySummaries;
     const periodLabel     = viewMode === 'monthly'
-        ? `Tháng ${selectedMonth}/${selectedYear}`
-        : `Cả năm ${selectedYear}`;
+        ? `Month ${selectedMonth}/${selectedYear}`
+        : `Full Year ${selectedYear}`;
 
     const handleDrillDown = (cat) => {
         navigate(`/report/detail/${cat}?year=${selectedYear}`);
@@ -427,10 +427,10 @@ const MultiBranchReportScreen = () => {
                     </div>
                     <div className="btn-group shadow-sm">
                         <button className={`btn fw-semibold px-4 ${viewMode === 'monthly' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('monthly')}>
-                            <i className="bi bi-calendar-month me-2" />Theo tháng
+                            <i className="bi bi-calendar-month me-2" />Monthly
                         </button>
                         <button className={`btn fw-semibold px-4 ${viewMode === 'yearly' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('yearly')}>
-                            <i className="bi bi-calendar-range me-2" />Theo năm
+                            <i className="bi bi-calendar-range me-2" />Yearly
                         </button>
                     </div>
                 </div>
@@ -444,14 +444,14 @@ const MultiBranchReportScreen = () => {
                                     className={`btn btn-sm fw-semibold px-3 py-1 ${selectedMonth === m ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
                                     style={{ borderRadius: 8, minWidth: 44, fontSize: '0.81rem' }}
                                     onClick={() => setSelectedMonth(m)} disabled={loading}>
-                                    T{m}
+                                    M{m}
                                 </button>
                             ))}
                         </div>
                     )}
                     <select className="form-select fw-semibold border-secondary shadow-sm" style={{ borderRadius: 8, width: 120 }}
                         value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} disabled={loading}>
-                        {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
+                        {years.map(y => <option key={y} value={y}>Year {y}</option>)}
                     </select>
                 </div>
             </div>
@@ -476,7 +476,7 @@ const MultiBranchReportScreen = () => {
                 {loading ? (
                     <div className="text-center py-5">
                         <div className="spinner-border text-primary" style={{ width: '3rem', height: '3rem' }} />
-                        <p className="mt-3 text-secondary fw-semibold">Đang tổng hợp dữ liệu...</p>
+                        <p className="mt-3 text-secondary fw-semibold">Aggregating data...</p>
                     </div>
                 ) : (
                     <OverviewPanel

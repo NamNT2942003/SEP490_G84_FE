@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import { reportApi } from '../api/reportApi';
 import { COLORS } from '@/constants';
 import YearlyExpenseDashboard from '../component/YearlyExpenseDashboard';
@@ -115,10 +116,22 @@ const ExpenseReportScreen = () => {
 
             await reportApi.saveMonthlyExpenses(payload);
             setIsDeclaring(false);
-            fetchMonthlyData(); // Cập nhật lại giao diện ngay lập tức
-            alert('Expenses declared successfully!');
+            fetchMonthlyData();
+            Swal.fire({
+                icon: 'success',
+                title: 'Declaration Submitted',
+                text: 'Expenses declared successfully!',
+                confirmButtonColor: COLORS.PRIMARY,
+                timer: 2500,
+                timerProgressBar: true,
+            });
         } catch (error) {
-            alert('Error saving data. Please try again.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Save Failed',
+                text: 'Error saving data. Please try again.',
+                confirmButtonColor: COLORS.PRIMARY,
+            });
         } finally {
             setIsSaving(false);
         }

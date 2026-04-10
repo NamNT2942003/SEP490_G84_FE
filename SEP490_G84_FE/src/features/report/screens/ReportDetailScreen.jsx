@@ -17,15 +17,15 @@ const BRANCH_COLORS = ['#4f81ff', '#20c997', '#fd7e14', '#e83e8c', '#6f42c1', '#
 
 const CATEGORIES = {
     room: {
-        label: 'Doanh thu phòng', icon: 'bi-door-open',
+        label: 'Room Revenue', icon: 'bi-door-open',
         color: '#4f81ff', mainKey: 'totalRevenue', trendKey: 'revenue', accent: '#e8eeff',
     },
     service: {
-        label: 'Doanh thu dịch vụ', icon: 'bi-bag-check',
+        label: 'Service Revenue', icon: 'bi-bag-check',
         color: '#20c997', mainKey: 'serviceRevenue', trendKey: 'serviceRevenue', accent: '#e6faf5',
     },
     expense: {
-        label: 'Chi phí vận hành', icon: 'bi-receipt',
+        label: 'Operating Expense', icon: 'bi-receipt',
         color: '#fd7e14', mainKey: 'totalExpense', trendKey: 'expense', accent: '#fff3e6',
     },
 };
@@ -60,10 +60,10 @@ const Tip = ({ active, payload, label }) => {
 // ─── Room Lower Panel (Occ% & ADR) ───────────────────────────────────────────
 const RoomLowerPanel = ({ rankingList, viewMode }) => (
     <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-        <h6 className="text-secondary fw-bold text-uppercase mb-3" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>LẤP KÍN % &amp; ADR</h6>
+        <h6 className="text-secondary fw-bold text-uppercase mb-3" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>OCCUPANCY % &amp; ADR</h6>
 
         <p className="fw-semibold text-dark mb-2" style={{ fontSize: '0.82rem' }}>
-            Tỉ lệ lấp kín {viewMode === 'yearly' && <span className="text-muted fw-normal" style={{ fontSize: '0.78rem' }}>(TB cả năm)</span>}
+            Occupancy Rate {viewMode === 'yearly' && <span className="text-muted fw-normal" style={{ fontSize: '0.78rem' }}>(yearly avg)</span>}
         </p>
         {rankingList.map((b, i) => (
             <div key={`occ-${b.branchId}`} className="mb-3">
@@ -79,7 +79,7 @@ const RoomLowerPanel = ({ rankingList, viewMode }) => (
         ))}
 
         <p className="fw-semibold text-dark mb-2 mt-3" style={{ fontSize: '0.82rem' }}>
-            ADR (đ/đêm) {viewMode === 'yearly' && <span className="text-muted fw-normal" style={{ fontSize: '0.78rem' }}>(TB cả năm)</span>}
+            ADR (₫/night) {viewMode === 'yearly' && <span className="text-muted fw-normal" style={{ fontSize: '0.78rem' }}>(yearly avg)</span>}
         </p>
         {rankingList.map((b, i) => {
             const adrVal = b.adr?.value || b.adr || 0;
@@ -153,7 +153,7 @@ const ServiceLowerPanel = ({ rankingList, branches, viewMode, selectedMonth, sel
                                                 return (
                                                     <div key={ii} className="mb-2">
                                                         <div className="d-flex justify-content-between mb-1">
-                                                            <span className="text-secondary" style={{ fontSize: '0.77rem' }}>{it.category || `Dịch vụ ${ii + 1}`}{it.usageCount ? ` (×${it.usageCount})` : ''}</span>
+                                                            <span className="text-secondary" style={{ fontSize: '0.77rem' }}>{it.category || `Service ${ii + 1}`}{it.usageCount ? ` (×${it.usageCount})` : ''}</span>
                                                             <span className="fw-semibold" style={{ fontSize: '0.77rem', color: '#20c997' }}>{fmt(it.amount)} đ</span>
                                                         </div>
                                                         <div className="progress" style={{ height: 5, borderRadius: 4 }}>
@@ -164,7 +164,7 @@ const ServiceLowerPanel = ({ rankingList, branches, viewMode, selectedMonth, sel
                                             })}
                                         </div>
                                     ) : (
-                                        <p className="ps-4 text-muted mb-0" style={{ fontSize: '0.77rem' }}>Không có dữ liệu dịch vụ</p>
+                                        <p className="ps-4 text-muted mb-0" style={{ fontSize: '0.77rem' }}>No service data available</p>
                                     )}
                                 </div>
                             );
@@ -199,7 +199,7 @@ const ServiceLowerPanel = ({ rankingList, branches, viewMode, selectedMonth, sel
             {yearlyTrends.length > 0 && (
                 <>
                     <hr className="my-3" />
-                    <p className="fw-semibold text-dark mb-2" style={{ fontSize: '0.82rem' }}>Tổng DT dịch vụ theo tháng (toàn hệ thống)</p>
+                    <p className="fw-semibold text-dark mb-2" style={{ fontSize: '0.82rem' }}>Total service revenue by month (system-wide)</p>
                     {(() => {
                         const byMonth = {};
                         yearlyTrends.forEach(t => {
@@ -281,7 +281,7 @@ const ExpenseLowerPanel = ({ rankingList, branches, viewMode, selectedMonth, sel
                                                 return (
                                                     <div key={ii} className="mb-2">
                                                         <div className="d-flex justify-content-between mb-1">
-                                                            <span className="text-secondary" style={{ fontSize: '0.77rem' }}>{it.category || `Chi phí ${ii + 1}`}{it.note ? ` — ${it.note}` : ''}</span>
+                                                            <span className="text-secondary" style={{ fontSize: '0.77rem' }}>{it.category || `Expense ${ii + 1}`}{it.note ? ` — ${it.note}` : ''}</span>
                                                             <span className="fw-semibold" style={{ fontSize: '0.77rem', color: '#fd7e14' }}>{fmt(it.amount)} đ</span>
                                                         </div>
                                                         <div className="progress" style={{ height: 5, borderRadius: 4 }}>
@@ -292,7 +292,7 @@ const ExpenseLowerPanel = ({ rankingList, branches, viewMode, selectedMonth, sel
                                             })}
                                         </div>
                                     ) : (
-                                        <p className="ps-4 text-muted mb-0" style={{ fontSize: '0.77rem' }}>Không có dữ liệu chi phí</p>
+                                        <p className="ps-4 text-muted mb-0" style={{ fontSize: '0.77rem' }}>No expense data available</p>
                                     )}
                                 </div>
                             );
@@ -326,7 +326,7 @@ const ExpenseLowerPanel = ({ rankingList, branches, viewMode, selectedMonth, sel
             {yearlyTrends.length > 0 && (
                 <>
                     <hr className="my-3" />
-                    <p className="fw-semibold text-dark mb-2" style={{ fontSize: '0.82rem' }}>Tổng chi phí theo tháng (toàn hệ thống)</p>
+                    <p className="fw-semibold text-dark mb-2" style={{ fontSize: '0.82rem' }}>Total expenses by month (system-wide)</p>
                     {(() => {
                         const byMonth = {};
                         yearlyTrends.forEach(t => {
@@ -357,9 +357,9 @@ const ExpenseLowerPanel = ({ rankingList, branches, viewMode, selectedMonth, sel
 
 // ─── KPI Section ─────────────────────────────────────────────────────────────
 const KpiSection = ({ category, cat, activeSummaries, viewMode, selectedYear, selectedMonth, branches }) => {
-    const totalVal   = activeSummaries.reduce((s, b) => s + (b[cat.mainKey] || 0), 0);
-    const avgVal     = activeSummaries.length ? totalVal / activeSummaries.length : 0;
-    const topBranch  = [...activeSummaries].sort((a, b) => (b[cat.mainKey] || 0) - (a[cat.mainKey] || 0))[0];
+    const totalVal  = activeSummaries.reduce((s, b) => s + (b[cat.mainKey] || 0), 0);
+    const avgVal    = activeSummaries.length ? totalVal / activeSummaries.length : 0;
+    const topBranch = [...activeSummaries].sort((a, b) => (b[cat.mainKey] || 0) - (a[cat.mainKey] || 0))[0];
 
     if (category === 'room') {
         const sysAvgOcc = activeSummaries.length ? activeSummaries.reduce((s, b) => s + (b.occupancyRate || 0), 0) / activeSummaries.length : 0;
@@ -369,29 +369,29 @@ const KpiSection = ({ category, cat, activeSummaries, viewMode, selectedYear, se
             <div className="row g-3 mb-4">
                 <div className="col-12 col-md-4">
                     <div className="card border-0 shadow-sm rounded-4 p-4 h-100" style={{ backgroundColor: cat.accent }}>
-                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TỔNG {cat.label.toUpperCase()} HỆ THỐNG</p>
+                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TOTAL {cat.label.toUpperCase()} (SYSTEM)</p>
                         <h3 className="fw-bold text-dark mb-0">{fmt(totalVal)} đ</h3>
                     </div>
                 </div>
                 <div className="col-12 col-md">
                     <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TB LẤP KÍN</p>
+                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>AVG OCCUPANCY</p>
                         <h3 className="fw-bold text-dark mb-0">{sysAvgOcc.toFixed(1)}%</h3>
-                        <p className="text-muted mb-0 mt-1" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? `TB ${branches.length} cơ sở` : 'TB cả năm'}</p>
+                        <p className="text-muted mb-0 mt-1" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? `Avg across ${branches.length} branches` : 'Full-year avg'}</p>
                     </div>
                 </div>
                 <div className="col-12 col-md">
                     <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TB ADR</p>
+                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>AVG ADR</p>
                         <h3 className="fw-bold text-dark mb-0">{fmt(sysAvgAdr)} đ</h3>
-                        <p className="text-muted mb-0 mt-1" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? 'Giá phòng/đêm' : 'Giá phòng/đêm TB'}</p>
+                        <p className="text-muted mb-0 mt-1" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? 'Rate per night' : 'Avg rate per night'}</p>
                     </div>
                 </div>
                 <div className="col-12 col-md">
                     <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TỔNG KHÁCH</p>
+                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TOTAL GUESTS</p>
                         <h3 className="fw-bold text-dark mb-0">{fmt(sysGuests)}</h3>
-                        <p className="text-muted mb-0 mt-1" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? 'Khách tiêu chuẩn' : `Khách cả năm ${selectedYear}`}</p>
+                        <p className="text-muted mb-0 mt-1" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? 'Standard guests' : `Full-year ${selectedYear}`}</p>
                     </div>
                 </div>
             </div>
@@ -403,21 +403,21 @@ const KpiSection = ({ category, cat, activeSummaries, viewMode, selectedYear, se
             <div className="row g-3 mb-4">
                 <div className="col-12 col-md-4">
                     <div className="card border-0 shadow-sm rounded-4 p-4 h-100" style={{ backgroundColor: cat.accent }}>
-                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TỔNG DOANH THU DỊCH VỤ</p>
+                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TOTAL SERVICE REVENUE</p>
                         <h3 className="fw-bold" style={{ color: cat.color }}>{fmt(totalVal)} đ</h3>
-                        <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? `T${selectedMonth}/${selectedYear}` : `Năm ${selectedYear}`}</p>
+                        <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? `M${selectedMonth}/${selectedYear}` : `Year ${selectedYear}`}</p>
                     </div>
                 </div>
                 <div className="col-12 col-md">
                     <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TRUNG BÌNH / CƠ SỞ</p>
+                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>AVG / BRANCH</p>
                         <h3 className="fw-bold text-dark mb-0">{fmt(Math.round(avgVal))} đ</h3>
-                        <p className="text-muted mb-0 mt-1" style={{ fontSize: '0.8rem' }}>{branches.length} cơ sở</p>
+                        <p className="text-muted mb-0 mt-1" style={{ fontSize: '0.8rem' }}>{branches.length} branches</p>
                     </div>
                 </div>
                 <div className="col-12 col-md">
                     <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>CƠ SỞ DẪN ĐẦU</p>
+                        <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TOP BRANCH</p>
                         <h3 className="fw-bold text-dark mb-1" style={{ fontSize: '1.05rem' }}>{topBranch?.branchName || '—'}</h3>
                         <p className="fw-semibold mb-0 mt-1" style={{ fontSize: '0.82rem', color: cat.color }}>{fmt(topBranch?.[cat.mainKey] || 0)} đ</p>
                     </div>
@@ -431,21 +431,21 @@ const KpiSection = ({ category, cat, activeSummaries, viewMode, selectedYear, se
         <div className="row g-3 mb-4">
             <div className="col-12 col-md-4">
                 <div className="card border-0 shadow-sm rounded-4 p-4 h-100" style={{ backgroundColor: cat.accent }}>
-                    <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TỔNG CHI PHÍ VẬN HÀNH</p>
+                    <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TOTAL OPERATING EXPENSE</p>
                     <h3 className="fw-bold" style={{ color: cat.color }}>{fmt(totalVal)} đ</h3>
-                    <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? `T${selectedMonth}/${selectedYear}` : `Năm ${selectedYear}`}</p>
+                    <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? `M${selectedMonth}/${selectedYear}` : `Year ${selectedYear}`}</p>
                 </div>
             </div>
             <div className="col-12 col-md">
                 <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                    <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TRUNG BÌNH / CƠ SỞ</p>
+                    <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>AVG / BRANCH</p>
                     <h3 className="fw-bold text-dark mb-0">{fmt(Math.round(avgVal))} đ</h3>
-                    <p className="text-muted mb-0 mt-1" style={{ fontSize: '0.8rem' }}>{branches.length} cơ sở</p>
+                    <p className="text-muted mb-0 mt-1" style={{ fontSize: '0.8rem' }}>{branches.length} branches</p>
                 </div>
             </div>
             <div className="col-12 col-md">
                 <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                    <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>CƠ SỞ TỐN NHIỀU NHẤT</p>
+                    <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>HIGHEST COST BRANCH</p>
                     <h3 className="fw-bold text-dark mb-1" style={{ fontSize: '1.05rem' }}>{topBranch?.branchName || '—'}</h3>
                     <p className="fw-semibold mb-0 mt-1" style={{ fontSize: '0.82rem', color: cat.color }}>{fmt(topBranch?.[cat.mainKey] || 0)} đ</p>
                 </div>
@@ -518,7 +518,7 @@ const ReportDetailScreen = () => {
     const pieTotal    = pieData.reduce((s, d) => s + d.value, 0);
     const rankingList = [...activeSummaries].sort((a, b) => (b[cat.mainKey] || 0) - (a[cat.mainKey] || 0));
 
-    const periodLabel = viewMode === 'monthly' ? `T${selectedMonth}/${selectedYear}` : `Năm ${selectedYear}`;
+    const periodLabel = viewMode === 'monthly' ? `M${selectedMonth}/${selectedYear}` : `Year ${selectedYear}`;
 
     return (
         <div className="container-fluid p-0 pb-5" style={{ backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
@@ -532,7 +532,7 @@ const ReportDetailScreen = () => {
                         <div className="d-flex align-items-center gap-2 mb-1">
                             <button className="btn btn-sm btn-outline-secondary px-3 fw-semibold rounded-3 py-1"
                                 onClick={() => navigate('/report/multi-branch')}>
-                                <i className="bi bi-arrow-left me-1" />Báo cáo tổng hợp
+                                <i className="bi bi-arrow-left me-1" />Multi-Branch Report
                             </button>
                             <span className="text-secondary" style={{ fontSize: '0.78rem' }}>›</span>
                             <span className="fw-semibold" style={{ color: cat.color, fontSize: '0.83rem' }}>
@@ -548,11 +548,11 @@ const ReportDetailScreen = () => {
                         <div className="btn-group shadow-sm">
                             <button className={`btn fw-semibold px-4 ${viewMode === 'monthly' ? 'btn-primary' : 'btn-outline-secondary'}`}
                                 onClick={() => setViewMode('monthly')}>
-                                <i className="bi bi-calendar-month me-2" />Theo tháng
+                                <i className="bi bi-calendar-month me-2" />Monthly
                             </button>
                             <button className={`btn fw-semibold px-4 ${viewMode === 'yearly' ? 'btn-primary' : 'btn-outline-secondary'}`}
                                 onClick={() => setViewMode('yearly')}>
-                                <i className="bi bi-calendar-range me-2" />Theo năm
+                                <i className="bi bi-calendar-range me-2" />Yearly
                             </button>
                         </div>
                     </div>
@@ -567,7 +567,7 @@ const ReportDetailScreen = () => {
                                     className={`btn btn-sm fw-semibold px-2 py-1 ${selectedMonth === m ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
                                     style={{ borderRadius: 7, minWidth: 36, fontSize: '0.77rem' }}
                                     onClick={() => setSelectedMonth(m)}>
-                                    T{m}
+                                    M{m}
                                 </button>
                             ))}
                         </div>
@@ -576,7 +576,7 @@ const ReportDetailScreen = () => {
                         style={{ borderRadius: 8, width: 115 }}
                         value={selectedYear}
                         onChange={e => setSelectedYear(Number(e.target.value))}>
-                        {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
+                        {years.map(y => <option key={y} value={y}>Year {y}</option>)}
                     </select>
                 </div>
             </div>
@@ -585,7 +585,7 @@ const ReportDetailScreen = () => {
             {loading ? (
                 <div className="text-center py-5">
                     <div className="spinner-border text-primary" style={{ width: '2.8rem', height: '2.8rem' }} />
-                    <p className="mt-3 text-secondary fw-semibold">Đang tải dữ liệu...</p>
+                    <p className="mt-3 text-secondary fw-semibold">Loading data...</p>
                 </div>
             ) : (
                 <div className="px-4 pt-4">
@@ -606,11 +606,11 @@ const ReportDetailScreen = () => {
                         <div className="btn-group shadow-sm">
                             <button className={`btn btn-sm fw-semibold px-4 ${chartMode === 'trend' ? 'btn-dark' : 'btn-outline-secondary'}`}
                                 onClick={() => setChartMode('trend')}>
-                                <i className="bi bi-graph-up me-2" />Xu hướng {selectedYear}
+                                <i className="bi bi-graph-up me-2" />Trend {selectedYear}
                             </button>
                             <button className={`btn btn-sm fw-semibold px-4 ${chartMode === 'compare' ? 'btn-dark' : 'btn-outline-secondary'}`}
                                 onClick={() => setChartMode('compare')}>
-                                <i className="bi bi-bar-chart-line me-2" />So sánh cơ sở
+                                <i className="bi bi-bar-chart-line me-2" />Branch Comparison
                             </button>
                         </div>
                     </div>
@@ -689,7 +689,7 @@ const ReportDetailScreen = () => {
                                     </ResponsiveContainer>
                                 ) : (
                                     <div className="h-100 d-flex align-items-center justify-content-center text-muted" style={{ minHeight: 200 }}>
-                                        Chưa có dữ liệu
+                                        No data available
                                     </div>
                                 )}
                             </div>
@@ -731,12 +731,12 @@ const ReportDetailScreen = () => {
                             <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
                                 <div className="d-flex justify-content-between align-items-center mb-3">
                                     <h6 className="text-secondary fw-bold text-uppercase mb-0" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>
-                                        XẾP HẠNG — {periodLabel}
+                                        RANKING — {periodLabel}
                                     </h6>
                                     <div className="d-flex align-items-center gap-2">
-                                        <span className="text-muted" style={{ fontSize: '0.78rem' }}>Tổng: {fmt(totalVal)} đ</span>
+                                        <span className="text-muted" style={{ fontSize: '0.78rem' }}>Total: {fmt(totalVal)} đ</span>
                                         <span className="badge bg-light text-secondary border" style={{ fontSize: '0.7rem' }}>
-                                            <i className="bi bi-cursor me-1" />Nhấn để xem chi tiết
+                                            <i className="bi bi-cursor me-1" />Click for details
                                         </span>
                                     </div>
                                 </div>
@@ -772,7 +772,7 @@ const ReportDetailScreen = () => {
                                                     </span>
                                                 )}
                                                 {(category === 'service' || category === 'expense') && (
-                                                    <span className="text-muted" style={{ fontSize: '0.76rem' }}>{pct}% hệ thống</span>
+                                                    <span className="text-muted" style={{ fontSize: '0.76rem' }}>{pct}% of system</span>
                                                 )}
                                                 <div className="text-primary mt-1" style={{ fontSize: '0.71rem', fontWeight: 600 }}>Chi tiết →</div>
                                             </div>
@@ -780,7 +780,7 @@ const ReportDetailScreen = () => {
                                     );
                                 })}
                                 {rankingList.length === 0 && (
-                                    <div className="text-center text-muted py-4">Chưa có dữ liệu</div>
+                                    <div className="text-center text-muted py-4">No data available</div>
                                 )}
                             </div>
                         </div>

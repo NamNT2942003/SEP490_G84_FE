@@ -330,11 +330,11 @@ const AggregatedReportScreen = () => {
                             <div className="btn-group shadow-sm">
                                 <button className={`btn fw-semibold px-4 ${periodMode === 'monthly' ? 'btn-primary' : 'btn-outline-secondary'}`}
                                     onClick={() => setPeriodMode('monthly')}>
-                                    <i className="bi bi-calendar-month me-2" />Theo tháng
+                                    <i className="bi bi-calendar-month me-2" />Monthly
                                 </button>
                                 <button className={`btn fw-semibold px-4 ${periodMode === 'yearly' ? 'btn-primary' : 'btn-outline-secondary'}`}
                                     onClick={() => setPeriodMode('yearly')}>
-                                    <i className="bi bi-calendar-range me-2" />Theo năm
+                                    <i className="bi bi-calendar-range me-2" />Yearly
                                 </button>
                             </div>
                             {/* Export */}
@@ -376,17 +376,17 @@ const AggregatedReportScreen = () => {
                             style={{ borderRadius: 8, width: 115 }}
                             value={selectedYear}
                             onChange={e => setSelectedYear(Number(e.target.value))}>
-                            {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
+                            {years.map(y => <option key={y} value={y}>Year {y}</option>)}
                         </select>
                     </div>
 
                     {/* Tab bar */}
                     <div className="d-flex gap-0">
                         {[
-                            { key: 'overview', label: 'Tổng quan',        icon: 'bi-grid-1x2' },
-                            { key: 'room',     label: 'Doanh thu phòng',  icon: 'bi-door-open' },
-                            { key: 'service',  label: 'Dịch vụ',          icon: 'bi-bag-check' },
-                            { key: 'expense',  label: 'Chi phí',          icon: 'bi-receipt' },
+                            { key: 'overview', label: 'Overview',         icon: 'bi-grid-1x2' },
+                            { key: 'room',     label: 'Room Revenue',     icon: 'bi-door-open' },
+                            { key: 'service',  label: 'Services',         icon: 'bi-bag-check' },
+                            { key: 'expense',  label: 'Expenses',         icon: 'bi-receipt' },
                         ].map(tab => (
                             <button key={tab.key}
                                 onClick={() => setActiveTab(tab.key)}
@@ -408,7 +408,7 @@ const AggregatedReportScreen = () => {
             {loading ? (
                 <div className="text-center py-5">
                     <div className="spinner-border text-primary" style={{ width: '2.8rem', height: '2.8rem' }} />
-                    <p className="mt-3 text-secondary fw-semibold">Đang tải dữ liệu...</p>
+                    <p className="mt-3 text-secondary fw-semibold">Loading data...</p>
                 </div>
             ) : (
                 <div className="px-4 pt-4">
@@ -472,7 +472,7 @@ const AggregatedReportScreen = () => {
                                         <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
                                             <div className="d-flex justify-content-between align-items-center mb-3">
                                                 <h6 className="text-secondary fw-bold text-uppercase mb-0" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>
-                                                    DOANH THU PHÒNG THEO LOẠI — {periodMode === 'monthly' ? `T${selectedMonth}/${selectedYear}` : `Năm ${selectedYear}`}
+                                                    ROOM REVENUE BY TYPE — {periodMode === 'monthly' ? `M${selectedMonth}/${selectedYear}` : `Year ${selectedYear}`}
                                                 </h6>
                                                 <span className="fw-bold" style={{ color: '#4f81ff', fontSize: '0.9rem' }}>
                                                     {fmt(totalRevDisplay)} đ
@@ -506,7 +506,7 @@ const AggregatedReportScreen = () => {
                                                         })}
                                                     </div>
                                                 ) : (
-                                                    <div className="text-muted text-center py-3">Không có dữ liệu phòng</div>
+                                                    <div className="text-muted text-center py-3">No room data available</div>
                                                 )
                                             ) : (
                                                 <ResponsiveContainer width="100%" height={220}>
@@ -515,7 +515,7 @@ const AggregatedReportScreen = () => {
                                                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 11 }} />
                                                         <YAxis axisLine={false} tickLine={false} tickFormatter={fmtM} tick={{ fill: '#888', fontSize: 11 }} width={55} />
                                                         <Tooltip content={<ChartTip />} />
-                                                        <Bar dataKey="room" name="Doanh thu phòng" fill="#4f81ff" radius={[6,6,0,0]} maxBarSize={52} />
+                                                        <Bar dataKey="room" name="Room Revenue" fill="#4f81ff" radius={[6,6,0,0]} maxBarSize={52} />
                                                     </BarChart>
                                                 </ResponsiveContainer>
                                             )}
@@ -659,7 +659,7 @@ const AggregatedReportScreen = () => {
                                                         <tr>
                                                             <th colSpan={roomRevenues.length + 4} className="py-2"
                                                                 style={{ backgroundColor: '#f39c12', color: '#fff', letterSpacing: '1px', fontSize: '1rem', borderBottom: 'none' }}>
-                                                                DOANH THU PHÒNG — T{selectedMonth}/{selectedYear}
+                                                                ROOM REVENUE — M{selectedMonth}/{selectedYear}
                                                             </th>
                                                         </tr>
                                                         <tr style={{ backgroundColor: '#fffcf5' }}>
@@ -702,15 +702,15 @@ const AggregatedReportScreen = () => {
                                                         <tr>
                                                             <th colSpan={5} className="py-2 text-center"
                                                                 style={{ backgroundColor: '#f39c12', color: '#fff', letterSpacing: '1px', fontSize: '1rem', borderBottom: 'none' }}>
-                                                                DOANH THU & CHI PHÍ THEO THÁNG — NĂM {selectedYear}
+                                                                REVENUE & EXPENSES BY MONTH — YEAR {selectedYear}
                                                             </th>
                                                         </tr>
                                                         <tr style={{ backgroundColor: '#fffcf5' }}>
-                                                            <th className="py-2 ps-3 text-secondary">Tháng</th>
-                                                            <th className="py-2 text-center text-secondary">Doanh thu phòng</th>
-                                                            <th className="py-2 text-center text-secondary">Doanh thu DV</th>
-                                                            <th className="py-2 text-center text-secondary">Chi phí</th>
-                                                            <th className="py-2 text-center text-secondary">Lợi nhuận</th>
+                                                            <th className="py-2 ps-3 text-secondary">Month</th>
+                                                            <th className="py-2 text-center text-secondary">Room Revenue</th>
+                                                            <th className="py-2 text-center text-secondary">Service Revenue</th>
+                                                            <th className="py-2 text-center text-secondary">Expenses</th>
+                                                            <th className="py-2 text-center text-secondary">Gross Profit</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
