@@ -87,8 +87,17 @@
     width: 130px;
     flex-shrink: 0;
 }
+.bm-toolbar-form .bm-filter-select,
+.bm-toolbar-form .bm-filter-date {
+    width: 150px;
+    flex-shrink: 0;
+}
 @media (max-width: 575px) {
     .bm-toolbar-form .form-select {
+        width: 100%;
+    }
+    .bm-toolbar-form .bm-filter-select,
+    .bm-toolbar-form .bm-filter-date {
         width: 100%;
     }
     .bm-toolbar-form .bm-btn-group {

@@ -13,6 +13,9 @@ const getAbsoluteImageUrl = (url) => {
 const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, depositAmount = null, bookingTotalAmount = null }) => {
     const HIDDEN_MODIFIER_TYPES = new Set(['POLICY']);
 
+    const getVisibleAppliedModifiers = (room) =>
+        getAppliedModifierBreakdown(room).filter((mod) => !['USER_HISTORY_DISCOUNT', 'POLICY'].includes(mod.type));
+
     const normalizeModeText = (mode) => {
         if (!mode) return 'Standard';
         const raw = String(mode).trim();
@@ -188,7 +191,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
 
     const modifierSummary = selectedRooms.reduce((acc, room) => {
         const qty = room.quantity || 1;
-        const roomBreakdown = getAppliedModifierBreakdown(room);
+        const roomBreakdown = getVisibleAppliedModifiers(room);
 
         for (const mod of roomBreakdown) {
             const delta = safeNumber(mod?.delta, 0) * qty;
@@ -282,9 +285,9 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                     Base: {formatCurrency(calculateRoomBaseUnitPrice(room))}
                                 </p>
-                                {getAppliedModifierBreakdown(room).length > 0 && (
+                                {getVisibleAppliedModifiers(room).length > 0 && (
                                     <div className="mt-1">
-                                        {getAppliedModifierBreakdown(room).map((mod, modIdx) => (
+                                        {getVisibleAppliedModifiers(room).map((mod, modIdx) => (
                                             <p key={`${index}-mod-${modIdx}`} className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                                 • {mod.name} ({normalizeModifierTypeText(mod.type)})
                                                 {mod.delta !== null ? `: ${mod.delta > 0 ? '+' : ''}${formatCurrency(mod.delta)}` : ''}

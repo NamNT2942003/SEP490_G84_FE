@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange }) => {
+const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange, initialSearchParams }) => {
     const fmtYmd = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
     const now = new Date(); now.setHours(0,0,0,0);
@@ -48,6 +48,26 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
     };
 
     const isFirstRun = useRef(true);
+    const lastInitialKeyRef = useRef("");
+    const getNormalizedSearchParams = (params) => {
+        if (!params) return {};
+        return Object.fromEntries(
+            Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== "")
+        );
+    };
+    const isSameSearchParams = (nextParams, currentParams) => {
+        const keys = ["checkIn", "checkOut", "adults", "children"];
+        return keys.every((key) => String(nextParams?.[key] ?? "") === String(currentParams?.[key] ?? ""));
+    };
+    useEffect(() => {
+        if (!initialSearchParams) return;
+        const normalized = getNormalizedSearchParams(initialSearchParams);
+        const initialKey = JSON.stringify(normalized);
+        if (initialKey === lastInitialKeyRef.current) return;
+        if (isSameSearchParams(normalized, sp)) return;
+        lastInitialKeyRef.current = initialKey;
+        setSp((prev) => ({ ...prev, ...normalized }));
+    }, [initialSearchParams]);
     useEffect(() => {
         if (isFirstRun.current) {
             isFirstRun.current = false;

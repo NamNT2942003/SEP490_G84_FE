@@ -11,6 +11,8 @@
 .empty-st{background:#fff;border-radius:16px;padding:50px 30px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .empty-st i{font-size:3.5rem;color:#ddd;margin-bottom:12px}
 .load-st{background:#fff;border-radius:16px;padding:50px 30px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.results-wrap{position:relative;min-height:120px}
+.load-overlay{position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.92);border:1px solid #e6ece0;border-radius:999px;padding:6px 12px;display:flex;align-items:center;gap:8px;font-size:.8rem;color:#465c47;box-shadow:0 2px 8px rgba(0,0,0,.06);z-index:2}
 .err-c{background:#fff;border-radius:14px;border-left:4px solid #dc3545;padding:18px 22px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .bc-bar{padding:12px 0 0}
 .bc-bar .breadcrumb{margin-bottom:0;font-size:.85rem}

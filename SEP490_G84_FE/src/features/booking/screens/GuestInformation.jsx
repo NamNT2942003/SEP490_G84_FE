@@ -7,6 +7,7 @@ import { roomService } from '@/features/booking/api/roomService';
 import { cancellationPolicyService } from '@/features/booking/api/cancellationPolicyService';
 import Swal from 'sweetalert2';
 import './GuestInformation.css';
+import { saveCart } from "@/utils/cartStorage";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -315,6 +316,8 @@ const GuestInformation = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
+    const SEARCH_STATE_KEY = "searchRoomState";
+
     const {
         selectedRooms = [],
         checkIn = '',
@@ -360,6 +363,11 @@ const GuestInformation = () => {
     }, [rooms]);
 
     useEffect(() => {
+        if (!location.state) return;
+        saveCart(rooms);
+    }, [rooms, location.state]);
+
+    useEffect(() => {
         selectedPolicyIdRef.current = selectedPolicyId;
     }, [selectedPolicyId]);
 
@@ -401,12 +409,6 @@ const GuestInformation = () => {
 
             const normalizedCurrent = normalizeNullablePolicyId(currentSelected);
             const normalizedNext = normalizeNullablePolicyId(nextSelectedPolicyId);
-
-            // Silent/background refresh should not force UI updates when current selection is still valid.
-            if (silent && hasCurrentSelected) {
-                policySnapshotRef.current = snapshot;
-                return normalized;
-            }
 
             if (snapshot !== policySnapshotRef.current) {
                 setPolicies(normalized);
@@ -663,9 +665,37 @@ const GuestInformation = () => {
     return (
         <div className="bg-light" style={{ minHeight: '100vh', paddingBottom: '120px' }}>
             {/* Header */}
-            <header className="bg-olive p-3 sticky-top shadow-sm" style={{ zIndex: 1030 }}>
+            <header className="bg-olive p-3 sticky-top shadow-sm" style={{ zIndex: 1030, backgroundColor: '#5C6F4E' }}>
                 <div className="container d-flex align-items-center">
-                    <button className="btn text-white p-0 me-3 fs-5" onClick={() => navigate(-1)}>
+                    <button
+                        className="btn text-white p-0 me-3 fs-5"
+                        onClick={() => {
+                            try {
+                                const existingRaw = sessionStorage.getItem(SEARCH_STATE_KEY);
+                                const existingState = existingRaw ? JSON.parse(existingRaw) : {};
+                                const fallbackSearchParams = existingState?.searchParams || {
+                                    checkIn,
+                                    checkOut,
+                                };
+                                const nextSearchParams = location.state?.searchParams || fallbackSearchParams;
+                                const nextFilters = {
+                                    ...(existingState?.filters || {}),
+                                    branchId,
+                                };
+                                const nextState = {
+                                    ...existingState,
+                                    searchParams: nextSearchParams,
+                                    filters: nextFilters,
+                                    customerHistoryEmail: formData.email || prefillEmail || existingState?.customerHistoryEmail || "",
+                                    selectedPolicyId: selectedPolicyId ?? existingState?.selectedPolicyId ?? null,
+                                };
+                                sessionStorage.setItem(SEARCH_STATE_KEY, JSON.stringify(nextState));
+                            } catch (err) {
+                                console.warn("Failed to persist search state before back navigation", err);
+                            }
+                            navigate(-1);
+                        }}
+                    >
                         <i className="bi bi-arrow-left" />
                     </button>
                     <h5 className="mb-0 mx-auto text-white fw-semibold">

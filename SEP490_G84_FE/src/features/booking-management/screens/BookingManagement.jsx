@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import bookingManagementApi from "../api/bookingManagementApi";
 import BookingDetailModal from "../components/BookingDetailModal";
 import CreateBookingByStaffModal from "../components/CreateBookingByStaffModal";
@@ -6,6 +6,7 @@ import "./BookingManagement.css";
 import Buttons from "@/components/ui/Buttons";
 import { COLORS } from "@/constants";
 import Swal from "sweetalert2";
+import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
 
 const PAGE_SIZE = 10;
 
@@ -73,6 +74,10 @@ export default function BookingManagement() {
     const [inputVal, setInputVal] = useState("");
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
+    const [branchFilter, setBranchFilter] = useState("");
+    const [fromDate, setFromDate] = useState("");
+    const [toDate, setToDate] = useState("");
+    const [branches, setBranches] = useState([]);
 
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
@@ -83,11 +88,38 @@ export default function BookingManagement() {
     const [showDetail, setShowDetail] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
+    const branchOptions = useMemo(
+        () => [...branches].sort((a, b) => String(a.branchName || "").localeCompare(String(b.branchName || ""))),
+        [branches],
+    );
+
+    const fetchBranches = useCallback(async () => {
+        try {
+            const data = await branchManagementApi.listBranches();
+            setBranches(data || []);
+        } catch (err) {
+            console.warn("Failed to load branches for booking filters", err);
+            setBranches([]);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchBranches();
+    }, [fetchBranches]);
+
     const fetchBookings = useCallback(async () => {
         try {
             setLoading(true);
             setError("");
-            const data = await bookingManagementApi.listBookings({ page, size: PAGE_SIZE, search, status: statusFilter });
+            const data = await bookingManagementApi.listBookings({
+                page,
+                size: PAGE_SIZE,
+                search,
+                status: statusFilter,
+                branchId: branchFilter,
+                fromDate,
+                toDate,
+            });
 
             setBookings(data.content || []);
             setTotalElements(data.totalElements || 0);
@@ -116,7 +148,7 @@ export default function BookingManagement() {
         } finally {
             setLoading(false);
         }
-    }, [page, search, statusFilter]);
+    }, [page, search, statusFilter, branchFilter, fromDate, toDate]);
 
     useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
@@ -130,6 +162,9 @@ export default function BookingManagement() {
         setInputVal("");
         setSearch("");
         setStatusFilter("");
+        setBranchFilter("");
+        setFromDate("");
+        setToDate("");
         setPage(0);
     };
 
@@ -211,7 +246,22 @@ export default function BookingManagement() {
                             />
                         </div>
                         <select
-                            className="form-select"
+                            className="form-select bm-filter-select"
+                            value={branchFilter}
+                            onChange={(e) => {
+                                setBranchFilter(e.target.value);
+                                setPage(0);
+                            }}
+                        >
+                            <option value="">All branches</option>
+                            {branchOptions.map((branch) => (
+                                <option key={branch.branchId} value={branch.branchId}>
+                                    {branch.branchName || `Branch #${branch.branchId}`}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            className="form-select bm-filter-select"
                             value={statusFilter}
                             onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
                         >
@@ -221,6 +271,26 @@ export default function BookingManagement() {
                             <option value="COMPLETED">Completed</option>
                             <option value="CANCELLED">Cancelled</option>
                         </select>
+                        <input
+                            type="date"
+                            className="form-control bm-filter-date"
+                            value={fromDate}
+                            onChange={(e) => {
+                                setFromDate(e.target.value);
+                                setPage(0);
+                            }}
+                            aria-label="From date"
+                        />
+                        <input
+                            type="date"
+                            className="form-control bm-filter-date"
+                            value={toDate}
+                            onChange={(e) => {
+                                setToDate(e.target.value);
+                                setPage(0);
+                            }}
+                            aria-label="To date"
+                        />
                         <div className="bm-btn-group">
                             <Buttons
                                 variant="primary"
