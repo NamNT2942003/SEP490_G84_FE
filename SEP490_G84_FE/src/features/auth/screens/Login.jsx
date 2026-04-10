@@ -181,9 +181,8 @@ const handleGoogleSuccess = async (credentialResponse) => {
             onError={() => {
               console.log('Login Failed');
             }}
-            useOneTap
             shape="rectangular"
-            width="300" // Độ rộng nút
+            width="300"
           />
       </div>
 

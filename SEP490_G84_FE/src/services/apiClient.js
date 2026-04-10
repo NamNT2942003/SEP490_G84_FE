@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-    // Use explicit IPv6 loopback to avoid "ERR_CONNECTION_REFUSED" when backend is bound to ::1 only.
-    baseURL: 'http://[::1]:8081/api',
+    // Revert back to localhost to avoid strict CORS 403 errors across different browsers
+    baseURL: 'http://localhost:8081/api',
     headers: {
         'Content-Type': 'application/json',
     },
