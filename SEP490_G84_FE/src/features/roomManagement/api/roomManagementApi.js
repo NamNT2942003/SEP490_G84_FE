@@ -136,11 +136,10 @@ export const roomManagementApi = {
     return response.data;
   },
 
-  // Report incident for room
-  createIncident: async (roomId, payload) => {
-    const response = await apiClient.post(
-      `${ADMIN_ROOM_API_BASE}/${roomId}/incidents`,
-      payload,
+  fixRoomFurniture: async (roomId, furnitureId) => {
+    const response = await apiClient.put(
+      `${ADMIN_ROOM_API_BASE}/${roomId}/furniture/${furnitureId}/status`,
+      { status: 'GOOD' }
     );
     return response.data;
   },
