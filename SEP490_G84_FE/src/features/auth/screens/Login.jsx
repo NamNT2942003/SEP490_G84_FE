@@ -174,19 +174,6 @@ const Login = () => {
                                 )}
                             </button>
 
-<<<<<<< Updated upstream
-              {/* Phần Google Login giữ nguyên */}
-              <div className="d-flex justify-content-center mt-3 w-100">
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => {
-              console.log('Login Failed');
-            }}
-            shape="rectangular"
-            width="300"
-          />
-      </div>
-=======
                             {/* Phần Google Login giữ nguyên */}
                             <div className="d-flex justify-content-center mt-3 w-100">
                                 <GoogleLogin
@@ -198,7 +185,6 @@ const Login = () => {
                                     width="300"
                                 />
                             </div>
->>>>>>> Stashed changes
 
 
                         </form>

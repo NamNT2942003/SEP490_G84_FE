@@ -54,6 +54,8 @@ export default function EditRoomModal({ room, onClose, onSubmitted }) {
       setError(null);
       
       const payload = {
+        roomName: roomName,
+        floor: floor,
         roomTypeId: parseInt(roomTypeId),
         furnitures: furnitures.map(f => ({
           furnitureId: f.id,
@@ -126,10 +128,9 @@ export default function EditRoomModal({ room, onClose, onSubmitted }) {
               </label>
               <input
                 type="text"
-                className="form-control bg-light"
+                className="form-control"
                 value={roomName}
-                readOnly
-                disabled
+                onChange={(e) => setRoomName(e.target.value)}
                 style={{ borderRadius: 12, borderColor: "rgba(92,111,78,0.25)" }} 
               />
             </div>
@@ -139,10 +140,9 @@ export default function EditRoomModal({ room, onClose, onSubmitted }) {
               </label>
               <input
                 type="text"
-                className="form-control bg-light"
-                value={"Floor " + floor}
-                readOnly
-                disabled
+                className="form-control"
+                value={floor}
+                onChange={(e) => setFloor(e.target.value)}
                 style={{ borderRadius: 12, borderColor: "rgba(92,111,78,0.25)" }} 
               />
             </div>
@@ -190,6 +190,16 @@ export default function EditRoomModal({ room, onClose, onSubmitted }) {
               {furnitures.map((f, i) => (
                 <div key={i} className="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill d-flex align-items-center shadow-sm">
                   {f.name} <span className="ms-2 px-2 py-1 bg-white rounded-pill text-muted small">{f.qty}</span>
+                  <button 
+                    type="button" 
+                    className="btn-close btn-close-dark ms-2 ms-auto" 
+                    style={{ fontSize: "0.5rem" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFurnitures(prev => prev.filter((_, idx) => idx !== i));
+                    }}
+                    title="Remove item"
+                  ></button>
                 </div>
               ))}
               {furnitures.length === 0 && <span className="text-muted small align-self-center">No furniture assigned yet.</span>}

@@ -33,6 +33,19 @@ function RoomFurnitureTable({ furnitureList, roomId, branchId, onChanged }) {
   const [saving, setSaving] = React.useState(false);
   const [replaceFor, setReplaceFor] = React.useState(null); // item
 
+  const handleFixFurnitureClick = async (item) => {
+    try {
+      setSaving(true);
+      await roomManagementApi.fixRoomFurniture(roomId, item.furnitureId);
+      onChanged?.();
+    } catch (e) {
+      console.error(e);
+      alert("Failed to fix equipment.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const applyStatusChange = async () => {
     if (!pending?.item || !pending?.nextStatus) return;
     try {
@@ -117,10 +130,26 @@ function RoomFurnitureTable({ furnitureList, roomId, branchId, onChanged }) {
                     </span>
                   </div>
                 </td>
-                <td className="text-end pe-4">
+                <td className="text-end pe-4 align-middle">
                   {bad && (
+                    <div className="d-flex justify-content-end gap-2">
                     <button
-                      className="btn btn-sm me-2 px-3"
+                      className="btn btn-sm px-3"
+                      style={{
+                        backgroundColor: "rgba(25, 135, 84, 0.08)",
+                        color: "#198754",
+                        border: "1px solid rgba(25, 135, 84, 0.15)",
+                        borderRadius: 10,
+                        fontWeight: 600,
+                        fontSize: "0.78rem",
+                      }}
+                      onClick={() => handleFixFurnitureClick(item)}
+                      disabled={saving}
+                    >
+                      <i className="bi bi-wrench me-1"></i> Fix
+                    </button>
+                    <button
+                      className="btn btn-sm px-3"
                       style={{
                         backgroundColor: "rgba(13,110,253,0.08)",
                         color: "#0d6efd",
@@ -130,9 +159,11 @@ function RoomFurnitureTable({ furnitureList, roomId, branchId, onChanged }) {
                         fontSize: "0.78rem",
                       }}
                       onClick={() => setReplaceFor(item)}
+                      disabled={saving}
                     >
                       <i className="bi bi-arrow-repeat me-1"></i> Replace from stock
                     </button>
+                    </div>
                   )}
                 </td>
               </tr>
