@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const DEFAULT_API_BASE_URL =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
-  'https://sep490-g84-1.onrender.com/api';
+  'https://sep490-be-hbfwake2dud7a2at.southeastasia-01.azurewebsites.net/api';
 
 const apiClient = axios.create({
   baseURL: DEFAULT_API_BASE_URL,
