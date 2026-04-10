@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const apiClient = axios.create({
   // Use explicit IPv6 loopback to avoid "ERR_CONNECTION_REFUSED" when backend is bound to ::1 only.
-  baseURL: 'http://[::1]:8081/api',
+  baseURL: 'https://sep490-g84-1.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
