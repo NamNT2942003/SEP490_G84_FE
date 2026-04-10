@@ -3,6 +3,7 @@
 
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import apiClient from './apiClient';
 
 class RealWebSocketService {
   constructor() {
@@ -19,7 +20,9 @@ class RealWebSocketService {
 
     return new Promise((resolve, reject) => {
       try {
-        const socket = new SockJS('http://localhost:8081/ws');
+        const apiBaseUrl = apiClient.defaults.baseURL || '';
+        const backendOrigin = apiBaseUrl.replace(/\/api\/?$/, '');
+        const socket = new SockJS(`${backendOrigin}/ws`);
         
         this.client = new Client({
           webSocketFactory: () => socket,
