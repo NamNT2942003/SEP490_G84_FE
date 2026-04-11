@@ -59,7 +59,7 @@ const ChartTip = ({ active, payload, label }) => {
 };
 
 // ─── KPI Card ───────────────────────────────────────────────────────────────────
-const KpiCard = ({ label, value, sub, accent, grow, icon, onClick, hint }) => {
+const KpiCard = ({ label, value, sub, accent, grow, icon, onClick, hint, children }) => {
     const [hovered, setHovered] = React.useState(false);
     return (
         <div
@@ -80,7 +80,8 @@ const KpiCard = ({ label, value, sub, accent, grow, icon, onClick, hint }) => {
                 {icon && <i className={`bi ${icon}`} style={{ fontSize: '1.1rem', opacity: 0.4 }} />}
             </div>
             <h3 className="fw-bold text-dark mb-1">{value}</h3>
-            {sub && <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{sub}</p>}
+            {sub && typeof sub === 'string' ? <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{sub}</p> : sub}
+            {children}
             {grow != null && (
                 <span className={`badge rounded-pill mt-2 ${grow >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`}
                     style={{ fontSize: '0.74rem', width: 'fit-content' }}>
@@ -235,7 +236,7 @@ const AggregatedReportScreen = () => {
         // yearlyService/yearlyExpense are {month, total} or similar — check structure
         const map = {};
         for (let m = 1; m <= 12; m++) {
-            map[m] = { name: MONTH_LABELS_VI[m - 1], month: m, room: 0, service: 0, expense: 0 };
+            map[m] = { name: MONTH_LABELS[m - 1], month: m, room: 0, service: 0, expense: 0 };
         }
         // Room from yearlyRoom.monthlyDetails
         if (yearlyRoom?.monthlyDetails) {
@@ -271,7 +272,8 @@ const AggregatedReportScreen = () => {
         const wb = XLSX.utils.book_new();
         const rows = [];
         rows.push([`AGGREGATED REPORT — ${branchName}`, '', '', '', '']);
-        rows.push([periodMode === 'monthly' ? `Month ${selectedMonth}/${selectedYear}` : `Year ${selectedYear}`, '', '', '', '']);
+        const displayPeriod = periodMode === 'monthly' ? `${MONTH_LABELS[selectedMonth - 1]} ${selectedYear}` : `Year ${selectedYear}`;
+        rows.push([displayPeriod, '', '', '', '']);
         rows.push([]);
         rows.push(['ROOM REVENUE', '', '', '', '']);
         rows.push(['Room Type', 'Revenue', '', '', '']);
@@ -313,7 +315,7 @@ const AggregatedReportScreen = () => {
                             <div className="d-flex align-items-center gap-2 mb-1">
                                 <button className="btn btn-sm btn-outline-secondary px-3 fw-semibold rounded-3 py-1"
                                     onClick={() => navigate('/report/multi-branch')}>
-                                    <i className="bi bi-arrow-left me-1" />Báo cáo đa cơ sở
+                                    <i className="bi bi-arrow-left me-1" />Multi-Branch Report
                                 </button>
                                 <span className="text-secondary" style={{ fontSize: '0.78rem' }}>›</span>
                                 <span className="fw-semibold text-primary" style={{ fontSize: '0.83rem' }}>
@@ -364,8 +366,9 @@ const AggregatedReportScreen = () => {
                                     <button key={m}
                                         className={`btn btn-sm fw-semibold px-2 py-1 ${selectedMonth === m ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
                                         style={{ borderRadius: 7, minWidth: 36, fontSize: '0.77rem' }}
-                                        onClick={() => setSelectedMonth(m)}>
-                                        T{m}
+                                        onClick={() => setSelectedMonth(m)}
+                                        disabled={loading}>
+                                        {MONTH_LABELS[m - 1]}
                                     </button>
                                 ))}
                             </div>
@@ -427,7 +430,22 @@ const AggregatedReportScreen = () => {
                                             accent={ACCENT_COLORS.room.bg} icon="bi-door-open"
                                             grow={periodMode === 'monthly' ? roomData?.momGrowth : yearlyRoom?.yearlyGrowth}
                                             hint="View Revenue Report"
-                                            onClick={() => navigate(`/report/revenue?branchId=${selectedBranch}&year=${selectedYear}${periodMode === 'monthly' ? `&month=${selectedMonth}` : ''}`)} />
+                                            onClick={() => navigate(`/report/revenue?branchId=${selectedBranch}&year=${selectedYear}${periodMode === 'monthly' ? `&month=${selectedMonth}` : ''}`)}>
+                                            <div className="mt-1">
+                                                <div className="d-flex align-items-center gap-2 mb-1">
+                                                    <span className="badge" style={{ backgroundColor: '#4f81ff', width: 45, fontSize: '0.65rem' }}>Direct</span>
+                                                    <span className="fw-semibold text-dark" style={{ fontSize: '0.78rem' }}>{fmt(periodMode === 'monthly' ? roomData?.directRevenue : yearlyRoom?.totalDirectRevenue)}</span>
+                                                </div>
+                                                <div className="d-flex align-items-center gap-2 mb-1">
+                                                    <span className="badge bg-warning text-dark" style={{ width: 45, fontSize: '0.65rem' }}>OTA</span>
+                                                    <span className="fw-semibold text-dark" style={{ fontSize: '0.78rem' }}>{fmt(periodMode === 'monthly' ? roomData?.otaRevenue : yearlyRoom?.totalOtaRevenue)}</span>
+                                                </div>
+                                                <div className="text-muted mt-2 lh-sm" style={{ fontSize: '0.68rem', fontStyle: 'italic' }}>
+                                                    <i className="bi bi-info-circle me-1" />
+                                                    Note: OTA amounts are estimates before commission.
+                                                </div>
+                                            </div>
+                                        </KpiCard>
                                     </div>
                                     <div className="col-6 col-md-3">
                                         <KpiCard label="Service Revenue" value={`${fmt(totalSvcDisplay)} đ`}
@@ -472,7 +490,7 @@ const AggregatedReportScreen = () => {
                                         <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
                                             <div className="d-flex justify-content-between align-items-center mb-3">
                                                 <h6 className="text-secondary fw-bold text-uppercase mb-0" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>
-                                                    ROOM REVENUE BY TYPE — {periodMode === 'monthly' ? `M${selectedMonth}/${selectedYear}` : `Year ${selectedYear}`}
+                                                    ROOM REVENUE BY TYPE — {periodMode === 'monthly' ? `${MONTH_LABELS[selectedMonth - 1]} ${selectedYear}` : `Year ${selectedYear}`}
                                                 </h6>
                                                 <span className="fw-bold" style={{ color: '#4f81ff', fontSize: '0.9rem' }}>
                                                     {fmt(totalRevDisplay)} đ
@@ -489,17 +507,26 @@ const AggregatedReportScreen = () => {
                                                     <div className="row g-0">
                                                         {roomRevenues.map((r, i) => {
                                                             const pct = (r.revenue / maxRoomRev) * 100;
-                                                            const colors = ['#4f81ff','#5396ff','#7eb0ff','#a5c8ff','#2d7cff','#003380'];
+                                                            const dPct = r.revenue > 0 ? (r.directRevenue / r.revenue) * 100 : 0;
+                                                            const oPct = r.revenue > 0 ? (r.otaRevenue / r.revenue) * 100 : 0;
                                                             return (
-                                                                <div key={r.roomTypeName} className="col-12 d-flex align-items-center mb-3">
-                                                                    <div style={{ width: 160, fontSize: '0.87rem', color: '#555', fontWeight: 600 }} className="text-truncate pe-3">
-                                                                        {r.roomTypeName}
+                                                                <div key={r.roomTypeName} className="col-12 d-flex flex-column mb-3">
+                                                                    <div className="d-flex justify-content-between align-items-center mb-1">
+                                                                        <div style={{ fontSize: '0.87rem', color: '#555', fontWeight: 600 }} className="text-truncate">
+                                                                            {r.roomTypeName}
+                                                                        </div>
+                                                                        <div style={{ fontSize: '0.87rem', fontWeight: 700 }} className="text-dark">
+                                                                            {fmt(r.revenue)} đ
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="flex-grow-1 mx-2" style={{ height: 14, backgroundColor: '#f0f0f0', borderRadius: 7, overflow: 'hidden' }}>
-                                                                        <div style={{ width: `${pct}%`, height: '100%', backgroundColor: colors[i % colors.length], borderRadius: 7, transition: 'width 0.6s ease' }} />
-                                                                    </div>
-                                                                    <div style={{ width: 140, fontSize: '0.87rem', fontWeight: 700 }} className="text-end text-dark">
-                                                                        {fmt(r.revenue)} đ
+                                                                    <div className="d-flex align-items-center">
+                                                                        <div className="flex-grow-1 d-flex" style={{ height: 14, backgroundColor: '#f0f0f0', borderRadius: 7, overflow: 'hidden' }}>
+                                                                            <div style={{ width: `${pct * (dPct/100)}%`, height: '100%', backgroundColor: '#4f81ff', transition: 'width 0.6s ease' }} title={`Direct: ${fmt(r.directRevenue)}`} />
+                                                                            <div style={{ width: `${pct * (oPct/100)}%`, height: '100%', backgroundColor: '#ffc107', transition: 'width 0.6s ease' }} title={`OTA: ${fmt(r.otaRevenue)}`} />
+                                                                        </div>
+                                                                        <div style={{ width: 140, fontSize: '0.75rem', fontWeight: 500 }} className="text-end text-muted">
+                                                                            Dir: {fmt(r.directRevenue)} | OTA: {fmt(r.otaRevenue)}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             );
@@ -548,9 +575,9 @@ const AggregatedReportScreen = () => {
                                                                 )}
                                                             </div>
                                                         </div>
-                                                    )) : <div className="text-muted text-center py-3" style={{ fontSize: '0.87rem' }}>Không có dữ liệu</div>}
+                                                    )) : <div className="text-muted text-center py-3" style={{ fontSize: '0.87rem' }}>No data available</div>}
                                                     <div className="d-flex justify-content-between align-items-center p-3 rounded-3 mt-3" style={{ backgroundColor: '#e6faf5' }}>
-                                                        <span className="fw-bold" style={{ color: '#20c997' }}>Tổng doanh thu dịch vụ</span>
+                                                        <span className="fw-bold" style={{ color: '#20c997' }}>Total Service Revenue</span>
                                                         <span className="fw-bold" style={{ color: '#20c997' }}>{fmt(totalSvcDisplay)} đ</span>
                                                     </div>
                                                 </div>
@@ -581,9 +608,9 @@ const AggregatedReportScreen = () => {
                                                                 )}
                                                             </div>
                                                         </div>
-                                                    )) : <div className="text-muted text-center py-3" style={{ fontSize: '0.87rem' }}>Không có dữ liệu</div>}
+                                                    )) : <div className="text-muted text-center py-3" style={{ fontSize: '0.87rem' }}>No data available</div>}
                                                     <div className="d-flex justify-content-between align-items-center p-3 rounded-3 mt-3" style={{ backgroundColor: '#fff0e6' }}>
-                                                        <span className="fw-bold text-danger">Tổng chi phí</span>
+                                                        <span className="fw-bold text-danger">Total Expense</span>
                                                         <span className="fw-bold text-danger">{fmt(totalExpDisplay)} đ</span>
                                                     </div>
                                                 </div>
@@ -659,12 +686,18 @@ const AggregatedReportScreen = () => {
                                                         <tr>
                                                             <th colSpan={roomRevenues.length + 4} className="py-2"
                                                                 style={{ backgroundColor: '#f39c12', color: '#fff', letterSpacing: '1px', fontSize: '1rem', borderBottom: 'none' }}>
-                                                                ROOM REVENUE — M{selectedMonth}/{selectedYear}
+                                                                ROOM REVENUE — {MONTH_LABELS[selectedMonth - 1]} {selectedYear}
                                                             </th>
                                                         </tr>
                                                         <tr style={{ backgroundColor: '#fffcf5' }}>
                                                             <th colSpan={Math.max(roomRevenues.length, 1)} className="text-danger py-3">
-                                                                Total: {fmt(totalRoomRev)} đ
+                                                                <div className="d-flex flex-column align-items-center justify-content-center">
+                                                                    <span>Total: {fmt(totalRoomRev)} đ</span>
+                                                                    <div className="d-flex flex-wrap justify-content-center gap-3 mt-1" style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                                                                        <span className="text-primary"><i className="bi bi-wallet2 me-1"/>Direct: {fmt(periodMode === 'monthly' ? roomData?.directRevenue : yearlyRoom?.totalDirectRevenue)}</span>
+                                                                        <span className="text-warning text-dark"><i className="bi bi-globe me-1"/>OTA: {fmt(periodMode === 'monthly' ? roomData?.otaRevenue : yearlyRoom?.totalOtaRevenue)}</span>
+                                                                    </div>
+                                                                </div>
                                                             </th>
                                                             <th className="py-3 text-secondary" style={{ width: 140 }}>MoM</th>
                                                             <th className="py-3 text-secondary" style={{ width: 130 }}>Occupancy</th>
@@ -688,8 +721,16 @@ const AggregatedReportScreen = () => {
                                                         </tr>
                                                         <tr>
                                                             {roomRevenues.length > 0 ? roomRevenues.map(r => (
-                                                                <td key={r.roomTypeName} className="py-3 fw-bold" style={{ backgroundColor: r.revenue > 0 ? '#fffae6' : '#fff' }}>
-                                                                    {fmt(r.revenue)}
+                                                                <td key={r.roomTypeName} className="py-3 fw-bold align-middle" style={{ backgroundColor: r.revenue > 0 ? '#fffae6' : '#fff' }}>
+                                                                    <div className="d-flex flex-column align-items-center justify-content-center">
+                                                                        <span className="mb-1" style={{ fontSize: '0.95rem', color: '#4f81ff' }}>{fmt(r.revenue)}</span>
+                                                                        {r.revenue > 0 && (
+                                                                            <div className="d-flex flex-wrap justify-content-center gap-2" style={{ fontSize: '0.72rem', fontWeight: 600 }}>
+                                                                                <span className="text-primary px-1 rounded" style={{ backgroundColor: '#e8eeff' }}>Dir: {fmt(r.directRevenue)}</span>
+                                                                                <span className="text-dark px-1 rounded bg-warning">OTA: {fmt(r.otaRevenue)}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </td>
                                                             )) : <td className="py-3 text-muted">—</td>}
                                                         </tr>

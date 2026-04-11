@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
 import enumOptionsApi from "@/features/common/api/enumOptionsApi";
@@ -6,6 +6,7 @@ import roomTypeManagementApi from "@/features/room-type-management/api/roomTypeM
 import { parseApiError } from "@/utils/apiError";
 import Buttons from "@/components/ui/Buttons";
 import Swal from "sweetalert2";
+import apiClient from "@/services/apiClient";
 import "./RoomTypeManagement.css";
 
 const EMPTY_FORM = {
@@ -19,6 +20,16 @@ const EMPTY_FORM = {
   bedType: "",
   bedCount: "",
   branchId: "",
+};
+
+/** Convert a backend image path like /api/profile/avatar/xxx to a full URL */
+const toAbsoluteImageUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith("/api/")) {
+    const baseUrl = apiClient.defaults.baseURL.replace(/\/api$/, "");
+    return baseUrl + url;
+  }
+  return url;
 };
 
 export default function RoomTypeManagement() {
@@ -36,6 +47,23 @@ export default function RoomTypeManagement() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [bedTypeOptions, setBedTypeOptions] = useState([]);
   const [roomTypeRules, setRoomTypeRules] = useState({});
+
+  // Cover image upload in create/edit form
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverPreview, setCoverPreview] = useState(null);
+  const coverInputRef = useRef(null);
+
+  // Image gallery modal state
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [galleryRoomType, setGalleryRoomType] = useState(null);
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const galleryFileRef = useRef(null);
+  const galleryCoverFileRef = useRef(null);
+
+  /* ======================== Data loading ======================== */
 
   const loadBranches = async () => {
     try {
@@ -92,10 +120,14 @@ export default function RoomTypeManagement() {
     return found?.branchName || "";
   }, [branches, branchId]);
 
+  /* ======================== Create / Edit Modal ======================== */
+
   const openCreateModal = () => {
     setEditingItem(null);
     setFormData({ ...EMPTY_FORM, branchId: branchId || "" });
     setFormError("");
+    setCoverFile(null);
+    setCoverPreview(null);
     setShowFormModal(true);
   };
 
@@ -114,17 +146,28 @@ export default function RoomTypeManagement() {
       branchId: item.branchId || "",
     });
     setFormError("");
+    setCoverFile(null);
+    setCoverPreview(item.image ? toAbsoluteImageUrl(item.image) : null);
     setShowFormModal(true);
   };
 
   const closeModal = () => {
     if (submitLoading) return;
     setShowFormModal(false);
+    setCoverFile(null);
+    setCoverPreview(null);
   };
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCoverSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e) => {
@@ -197,13 +240,26 @@ export default function RoomTypeManagement() {
       setSubmitLoading(true);
       setFormError("");
 
+      let savedRoomType;
       if (editingItem?.roomTypeId) {
-        await roomTypeManagementApi.updateRoomType(editingItem.roomTypeId, formData);
+        savedRoomType = await roomTypeManagementApi.updateRoomType(editingItem.roomTypeId, formData);
       } else {
-        await roomTypeManagementApi.createRoomType(formData);
+        savedRoomType = await roomTypeManagementApi.createRoomType(formData);
+      }
+
+      // Upload cover image if a new file was selected
+      if (coverFile && savedRoomType?.roomTypeId) {
+        try {
+          await roomTypeManagementApi.uploadCoverImage(savedRoomType.roomTypeId, coverFile);
+        } catch (uploadErr) {
+          console.error("Cover upload failed:", uploadErr);
+          // Don't block the save - room type is already created/updated
+        }
       }
 
       setShowFormModal(false);
+      setCoverFile(null);
+      setCoverPreview(null);
       await loadRoomTypes(formData.branchId);
       if (!branchId) setBranchId(String(formData.branchId));
     } catch (err) {
@@ -232,6 +288,87 @@ export default function RoomTypeManagement() {
       Swal.fire({ icon: 'error', title: 'Failed', text: parseApiError(err, "Delete room type failed.") });
     }
   };
+
+  /* ======================== Gallery Modal ======================== */
+
+  const openGalleryModal = async (item) => {
+    setGalleryRoomType(item);
+    setShowGalleryModal(true);
+    setGalleryImages([]);
+    setGalleryLoading(true);
+    try {
+      const images = await roomTypeManagementApi.getGallery(item.roomTypeId);
+      setGalleryImages(images);
+    } catch (err) {
+      console.error("Load gallery failed:", err);
+    } finally {
+      setGalleryLoading(false);
+    }
+  };
+
+  const closeGalleryModal = () => {
+    if (coverUploading || galleryUploading) return;
+    setShowGalleryModal(false);
+    setGalleryRoomType(null);
+    setGalleryImages([]);
+  };
+
+  const handleGalleryCoverUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !galleryRoomType) return;
+    try {
+      setCoverUploading(true);
+      const result = await roomTypeManagementApi.uploadCoverImage(galleryRoomType.roomTypeId, file);
+      setGalleryRoomType((prev) => ({ ...prev, image: result.imageUrl }));
+      // Also update the table list
+      setRoomTypes((prev) =>
+        prev.map((rt) =>
+          rt.roomTypeId === galleryRoomType.roomTypeId ? { ...rt, image: result.imageUrl } : rt
+        )
+      );
+      Swal.fire({ icon: 'success', title: 'Cover updated!', timer: 1200, showConfirmButton: false });
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: 'Upload failed', text: parseApiError(err, "Cover upload failed.") });
+    } finally {
+      setCoverUploading(false);
+      if (galleryCoverFileRef.current) galleryCoverFileRef.current.value = "";
+    }
+  };
+
+  const handleGalleryAdd = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !galleryRoomType) return;
+    try {
+      setGalleryUploading(true);
+      const newImage = await roomTypeManagementApi.addGalleryImage(galleryRoomType.roomTypeId, file);
+      setGalleryImages((prev) => [...prev, newImage]);
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: 'Upload failed', text: parseApiError(err, "Gallery upload failed.") });
+    } finally {
+      setGalleryUploading(false);
+      if (galleryFileRef.current) galleryFileRef.current.value = "";
+    }
+  };
+
+  const handleGalleryDelete = async (imageId) => {
+    if (!galleryRoomType) return;
+    const result = await Swal.fire({
+      title: 'Delete this photo?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      confirmButtonText: 'Delete'
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await roomTypeManagementApi.deleteGalleryImage(galleryRoomType.roomTypeId, imageId);
+      setGalleryImages((prev) => prev.filter((img) => img.id !== imageId));
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: 'Failed', text: parseApiError(err, "Delete image failed.") });
+    }
+  };
+
+  /* ======================== Render ======================== */
 
   return (
     <div className="rt-page">
@@ -283,14 +420,38 @@ export default function RoomTypeManagement() {
               {!loading && roomTypes.map((item) => (
                 <tr key={item.roomTypeId}>
                   <td>
-                    <div className="fw-semibold">{item.name || "-"}</div>
-                    <div className="small text-muted">{item.channelRoomTypeId || "-"}</div>
+                    <div className="d-flex align-items-center gap-2">
+                      {item.image ? (
+                        <img
+                          src={toAbsoluteImageUrl(item.image)}
+                          alt={item.name}
+                          className="rt-row-thumb"
+                        />
+                      ) : (
+                        <div className="rt-row-thumb-placeholder">
+                          <i className="bi bi-image" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="fw-semibold">{item.name || "-"}</div>
+                        <div className="small text-muted">{item.channelRoomTypeId || "-"}</div>
+                      </div>
+                    </div>
                   </td>
                   <td>{item.maxAdult} Adult / {item.maxChildren} Children</td>
                   <td>{Number(item.basePrice || 0).toLocaleString("vi-VN")}</td>
                   <td>{item.bedType || "-"} x {item.bedCount || 0}</td>
                   <td>{item.area || "-"}</td>
                   <td className="text-end">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-info me-1"
+                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
+                      onClick={() => openGalleryModal(item)}
+                      title="Manage Images"
+                    >
+                      <i className="bi bi-images me-1" />Images
+                    </button>
                     <button
                       type="button"
                       className="btn btn-sm btn-outline-success me-1"
@@ -324,6 +485,7 @@ export default function RoomTypeManagement() {
         </div>
       </div>
 
+      {/* ==================== Create / Edit Modal ==================== */}
       {showFormModal && (
         <>
           <div className="modal fade show d-block" tabIndex="-1" role="dialog" aria-modal="true">
@@ -390,10 +552,38 @@ export default function RoomTypeManagement() {
                         <input type="number" min="1" className="form-control" name="area" value={formData.area} onChange={handleFormChange} />
                         <div className="form-text">Optional, but must be greater than 0 if provided.</div>
                       </div>
+
+                      {/* Cover Image Upload */}
                       <div className="col-md-8">
-                        <label className="form-label">Image URL</label>
-                        <input className="form-control" name="image" value={formData.image} onChange={handleFormChange} />
+                        <label className="form-label">Cover Image</label>
+                        <div className="rt-cover-upload-zone" onClick={() => coverInputRef.current?.click()}>
+                          {coverPreview ? (
+                            <img src={coverPreview} alt="Cover preview" className="rt-cover-preview" />
+                          ) : (
+                            <div className="rt-cover-placeholder">
+                              <i className="bi bi-cloud-arrow-up" style={{ fontSize: "1.5rem" }} />
+                              <span>Click to select cover image</span>
+                            </div>
+                          )}
+                          <input
+                            ref={coverInputRef}
+                            type="file"
+                            accept="image/*"
+                            style={{ display: "none" }}
+                            onChange={handleCoverSelect}
+                          />
+                        </div>
+                        {coverFile && (
+                          <div className="form-text text-success">
+                            <i className="bi bi-check-circle me-1" />
+                            {coverFile.name} selected — will upload on save.
+                          </div>
+                        )}
+                        {!coverFile && coverPreview && (
+                          <div className="form-text">Current cover image. Select a new file to replace.</div>
+                        )}
                       </div>
+
                       <div className="col-12">
                         <label className="form-label">Description</label>
                         <textarea className="form-control" rows={3} name="description" value={formData.description} onChange={handleFormChange} />
@@ -405,6 +595,124 @@ export default function RoomTypeManagement() {
                     <Buttons variant="primary" type="submit" className="btn-sm" isLoading={submitLoading}>Save</Buttons>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+          <div className="modal-backdrop fade show" />
+        </>
+      )}
+
+      {/* ==================== Gallery Modal ==================== */}
+      {showGalleryModal && galleryRoomType && (
+        <>
+          <div className="modal fade show d-block" tabIndex="-1" role="dialog" aria-modal="true">
+            <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">
+                    <i className="bi bi-images me-2" />
+                    Images — {galleryRoomType.name}
+                  </h5>
+                  <button type="button" className="btn-close" onClick={closeGalleryModal} disabled={coverUploading || galleryUploading} />
+                </div>
+                <div className="modal-body">
+                  {/* Cover section */}
+                  <div className="rt-gallery-section">
+                    <h6 className="rt-gallery-label">Cover Image (Main)</h6>
+                    <div className="rt-gallery-cover-row">
+                      <div
+                        className="rt-gallery-cover"
+                        onClick={() => !coverUploading && galleryCoverFileRef.current?.click()}
+                        title="Click to change cover"
+                      >
+                        {coverUploading ? (
+                          <div className="rt-gallery-cover-loading">
+                            <span className="spinner-border spinner-border-sm" />
+                            <span>Uploading...</span>
+                          </div>
+                        ) : galleryRoomType.image ? (
+                          <img src={toAbsoluteImageUrl(galleryRoomType.image)} alt="Cover" />
+                        ) : (
+                          <div className="rt-gallery-cover-empty">
+                            <i className="bi bi-cloud-arrow-up" />
+                            <span>No cover image — click to upload</span>
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        ref={galleryCoverFileRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={handleGalleryCoverUpload}
+                      />
+                    </div>
+                  </div>
+
+                  <hr />
+
+                  {/* Gallery section */}
+                  <div className="rt-gallery-section">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <h6 className="rt-gallery-label mb-0">Gallery Photos ({galleryImages.length})</h6>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary"
+                        disabled={galleryUploading}
+                        onClick={() => galleryFileRef.current?.click()}
+                      >
+                        {galleryUploading ? (
+                          <><span className="spinner-border spinner-border-sm me-1" />Uploading...</>
+                        ) : (
+                          <><i className="bi bi-plus-lg me-1" />Add Photo</>
+                        )}
+                      </button>
+                      <input
+                        ref={galleryFileRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={handleGalleryAdd}
+                      />
+                    </div>
+
+                    {galleryLoading && (
+                      <div className="text-center py-4">
+                        <span className="spinner-border spinner-border-sm me-2" />Loading gallery...
+                      </div>
+                    )}
+
+                    {!galleryLoading && galleryImages.length === 0 && (
+                      <div className="text-center py-4 text-muted">
+                        <i className="bi bi-image" style={{ fontSize: "2rem" }} />
+                        <p className="mt-1 mb-0">No gallery photos yet. Click "Add Photo" to upload.</p>
+                      </div>
+                    )}
+
+                    {!galleryLoading && galleryImages.length > 0 && (
+                      <div className="rt-gallery-grid">
+                        {galleryImages.map((img) => (
+                          <div key={img.id} className="rt-gallery-item">
+                            <img src={toAbsoluteImageUrl(img.imageUrl)} alt={`Gallery #${img.displayOrder}`} />
+                            <button
+                              type="button"
+                              className="rt-gallery-item-delete"
+                              title="Delete this photo"
+                              onClick={() => handleGalleryDelete(img.id)}
+                            >
+                              <i className="bi bi-trash" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <Buttons variant="outline" className="btn-sm" onClick={closeGalleryModal} disabled={coverUploading || galleryUploading}>
+                    Close
+                  </Buttons>
+                </div>
               </div>
             </div>
           </div>

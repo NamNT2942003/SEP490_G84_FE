@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, Legend } from 'recharts';
 
 const CHART_COLORS = [
     '#5396ff',
@@ -64,16 +64,15 @@ const RevenueChart = ({ data }) => {
                         width={40}
                     />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }} />
-                    <Bar dataKey="revenue" radius={[6, 6, 0, 0]}>
+                    <Legend verticalAlign="top" height={36} iconType="square" wrapperStyle={{ paddingBottom: '8px' }} />
+                    <Bar name="Direct" dataKey="directRevenue" stackId="a" fill="#5396ff" radius={[0, 0, 0, 0]} barSize={40} />
+                    <Bar name="OTA (est.)" dataKey="otaRevenue" stackId="a" fill="#e07b39" radius={[6, 6, 0, 0]} barSize={40}>
                         <LabelList
                             dataKey="revenue"
                             position="top"
                             formatter={formatShort}
                             style={{ fill: '#555', fontSize: '0.75rem', fontWeight: 600 }}
                         />
-                        {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
                     </Bar>
                 </BarChart>
             </ResponsiveContainer>

@@ -52,7 +52,8 @@ const RevenueReportScreen = () => {
 
     // Effect 1: Gọi data TỔNG QUAN NĂM khi đổi chi nhánh hoặc năm, hoặc quay lại view yearly
     useEffect(() => {
-        if (viewLevel === 'yearly') {
+        // Guard: không gọi API nếu chưa có branchId (branch đang load async)
+        if (viewLevel === 'yearly' && selectedBranch) {
             const fetchYearlyData = async () => {
                 setLoading(true);
                 try {
@@ -70,7 +71,8 @@ const RevenueReportScreen = () => {
 
     // Effect 2: Gọi data CHI TIẾT THÁNG
     useEffect(() => {
-        if (viewLevel === 'monthly' && selectedMonth) {
+        // Guard: không gọi API nếu chưa có branchId
+        if (viewLevel === 'monthly' && selectedMonth && selectedBranch) {
             const fetchMonthlyData = async () => {
                 setLoading(true);
                 try {
@@ -155,12 +157,18 @@ const RevenueReportScreen = () => {
                     yearlyData={yearlyData}
                     selectedYear={selectedYear}
                     handleDrillDown={handleDrillDown}
+                    branchId={selectedBranch}
                 />
             )}
 
             {/* ================= LEVEL 2: MONTHLY DETAILS ================= */}
             {!loading && viewLevel === 'monthly' && monthlyData && (
-                <MonthlyRevenueDashboard monthlyData={monthlyData} />
+                <MonthlyRevenueDashboard
+                    monthlyData={monthlyData}
+                    branchId={selectedBranch}
+                    month={selectedMonth}
+                    year={selectedYear}
+                />
             )}
         </div>
     );

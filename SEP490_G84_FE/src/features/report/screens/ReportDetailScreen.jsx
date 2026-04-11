@@ -30,7 +30,7 @@ const CATEGORIES = {
     },
 };
 
-const MONTH_LABELS = ['T01','T02','T03','T04','T05','T06','T07','T08','T09','T10','T11','T12'];
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const fmt  = v => new Intl.NumberFormat('vi-VN').format(v || 0);
 const fmtM = v => {
     if (!v && v !== 0) return '0';
@@ -126,7 +126,7 @@ const ServiceLowerPanel = ({ rankingList, branches, viewMode, selectedMonth, sel
         return (
             <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
                 <h6 className="text-secondary fw-bold text-uppercase mb-3" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>
-                    CHI TIẾT DỊCH VỤ THEO CƠ SỞ — T{selectedMonth}/{selectedYear}
+                    SERVICE DETAILS BY BRANCH — {MONTH_LABELS[selectedMonth - 1]} {selectedYear}
                 </h6>
                 {detailLoading ? (
                     <div className="text-center py-4"><div className="spinner-border spinner-border-sm text-success" /></div>
@@ -180,7 +180,7 @@ const ServiceLowerPanel = ({ rankingList, branches, viewMode, selectedMonth, sel
     return (
         <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
             <h6 className="text-secondary fw-bold text-uppercase mb-3" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>
-                DOANH THU DỊCH VỤ TỪNG CƠ SỞ — NĂM {selectedYear}
+                SERVICE REVENUE BY BRANCH — YEAR {selectedYear}
             </h6>
             {rankingList.map((b, i) => (
                 <div key={b.branchId} className="mb-3">
@@ -254,7 +254,7 @@ const ExpenseLowerPanel = ({ rankingList, branches, viewMode, selectedMonth, sel
         return (
             <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
                 <h6 className="text-secondary fw-bold text-uppercase mb-3" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>
-                    CHI TIẾT CHI PHÍ THEO CƠ SỞ — T{selectedMonth}/{selectedYear}
+                    EXPENSE DETAILS BY BRANCH — {MONTH_LABELS[selectedMonth - 1]} {selectedYear}
                 </h6>
                 {detailLoading ? (
                     <div className="text-center py-4"><div className="spinner-border spinner-border-sm text-warning" /></div>
@@ -308,7 +308,7 @@ const ExpenseLowerPanel = ({ rankingList, branches, viewMode, selectedMonth, sel
     return (
         <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
             <h6 className="text-secondary fw-bold text-uppercase mb-3" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>
-                CHI PHÍ TỪNG CƠ SỞ — NĂM {selectedYear}
+                EXPENSE BY BRANCH — YEAR {selectedYear}
             </h6>
             {rankingList.map((b, i) => (
                 <div key={b.branchId} className="mb-3">
@@ -405,7 +405,7 @@ const KpiSection = ({ category, cat, activeSummaries, viewMode, selectedYear, se
                     <div className="card border-0 shadow-sm rounded-4 p-4 h-100" style={{ backgroundColor: cat.accent }}>
                         <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TOTAL SERVICE REVENUE</p>
                         <h3 className="fw-bold" style={{ color: cat.color }}>{fmt(totalVal)} đ</h3>
-                        <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? `M${selectedMonth}/${selectedYear}` : `Year ${selectedYear}`}</p>
+                        <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? `${MONTH_LABELS[selectedMonth - 1]} ${selectedYear}` : `Year ${selectedYear}`}</p>
                     </div>
                 </div>
                 <div className="col-12 col-md">
@@ -433,7 +433,7 @@ const KpiSection = ({ category, cat, activeSummaries, viewMode, selectedYear, se
                 <div className="card border-0 shadow-sm rounded-4 p-4 h-100" style={{ backgroundColor: cat.accent }}>
                     <p className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem', letterSpacing: '1.2px' }}>TOTAL OPERATING EXPENSE</p>
                     <h3 className="fw-bold" style={{ color: cat.color }}>{fmt(totalVal)} đ</h3>
-                    <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? `M${selectedMonth}/${selectedYear}` : `Year ${selectedYear}`}</p>
+                    <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{viewMode === 'monthly' ? `${MONTH_LABELS[selectedMonth - 1]} ${selectedYear}` : `Year ${selectedYear}`}</p>
                 </div>
             </div>
             <div className="col-12 col-md">
@@ -518,7 +518,7 @@ const ReportDetailScreen = () => {
     const pieTotal    = pieData.reduce((s, d) => s + d.value, 0);
     const rankingList = [...activeSummaries].sort((a, b) => (b[cat.mainKey] || 0) - (a[cat.mainKey] || 0));
 
-    const periodLabel = viewMode === 'monthly' ? `M${selectedMonth}/${selectedYear}` : `Year ${selectedYear}`;
+    const periodLabel = viewMode === 'monthly' ? `${MONTH_LABELS[selectedMonth - 1]} ${selectedYear}` : `Year ${selectedYear}`;
 
     return (
         <div className="container-fluid p-0 pb-5" style={{ backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
@@ -539,8 +539,8 @@ const ReportDetailScreen = () => {
                                 <i className={`bi ${cat.icon} me-1`} />{cat.label}
                             </span>
                         </div>
-                        <p className="text-secondary fw-bold text-uppercase mb-0" style={{ fontSize: '0.71rem', letterSpacing: '1px' }}>HỆ THỐNG KHÁCH SẠN</p>
-                        <h2 className="fw-bold text-dark m-0">Báo cáo {cat.label} đa cơ sở</h2>
+                        <p className="text-secondary fw-bold text-uppercase mb-0" style={{ fontSize: '0.71rem', letterSpacing: '1px' }}>HOTEL SYSTEM</p>
+                        <h2 className="fw-bold text-dark m-0">Multi-branch {cat.label} report</h2>
                     </div>
 
                     {/* Monthly / Yearly toggle */}
@@ -567,7 +567,7 @@ const ReportDetailScreen = () => {
                                     className={`btn btn-sm fw-semibold px-2 py-1 ${selectedMonth === m ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
                                     style={{ borderRadius: 7, minWidth: 36, fontSize: '0.77rem' }}
                                     onClick={() => setSelectedMonth(m)}>
-                                    M{m}
+                                    {MONTH_LABELS[m - 1]}
                                 </button>
                             ))}
                         </div>
@@ -621,8 +621,8 @@ const ReportDetailScreen = () => {
                             <div className="card border-0 shadow-sm rounded-4 p-4">
                                 <h6 className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>
                                     {chartMode === 'trend'
-                                        ? `${cat.label.toUpperCase()} — XU HƯỚNG NĂM ${selectedYear}`
-                                        : `SO SÁNH ${cat.label.toUpperCase()} GIỮA CÁC CƠ SỞ`}
+                                        ? `${cat.label.toUpperCase()} — YEAR ${selectedYear} TREND`
+                                        : `COMPARING ${cat.label.toUpperCase()} ACROSS BRANCHES`}
                                 </h6>
                                 <div style={{ height: 320 }}>
                                     <ResponsiveContainer width="100%" height="100%">
@@ -669,7 +669,7 @@ const ReportDetailScreen = () => {
                         <div className="col-lg-4">
                             <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
                                 <h6 className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>
-                                    TỈ TRỌNG — {periodLabel}
+                                    DISTRIBUTION — {periodLabel}
                                 </h6>
                                 {pieData.length > 0 ? (
                                     <ResponsiveContainer width="100%" height={280}>
@@ -774,7 +774,7 @@ const ReportDetailScreen = () => {
                                                 {(category === 'service' || category === 'expense') && (
                                                     <span className="text-muted" style={{ fontSize: '0.76rem' }}>{pct}% of system</span>
                                                 )}
-                                                <div className="text-primary mt-1" style={{ fontSize: '0.71rem', fontWeight: 600 }}>Chi tiết →</div>
+                                                <div className="text-primary mt-1" style={{ fontSize: '0.71rem', fontWeight: 600 }}>Details →</div>
                                             </div>
                                         </div>
                                     );

@@ -27,8 +27,15 @@ const RevenueTable = ({ roomData, summary }) => {
                 <tbody>
                     <tr>
                         {roomData.map((room, idx) => (
-                            <td key={idx} className="fw-bold text-primary">
-                                {formatCurrency(room.revenue)}
+                            <td key={idx}>
+                                <div><span style={{ color: '#198754', fontWeight: 600 }}>{formatCurrency(room.directRevenue || 0)}</span></div>
+                                {(room.otaRevenue > 0) && (
+                                    <div className="mt-1">
+                                        <span style={{ color: '#e07b39', fontWeight: 600 }}>
+                                            {formatCurrency(room.otaRevenue)} <i className="bi bi-exclamation-triangle-fill text-muted" style={{ fontSize: '0.65rem' }}></i>
+                                        </span>
+                                    </div>
+                                )}
                             </td>
                         ))}
                         <td className={`fw-bold ${summary.momGrowth >= 0 ? 'text-success' : 'text-danger'}`}>

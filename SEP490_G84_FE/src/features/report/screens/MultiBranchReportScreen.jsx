@@ -16,6 +16,8 @@ const CATEGORIES = {
     expense: { label: 'Operating Expense', icon: 'bi-receipt',    color: '#fd7e14', key: 'totalExpense',   trendKey: 'expense'         },
 };
 
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 const fmt  = (val) => new Intl.NumberFormat('vi-VN').format(val || 0);
 const fmtM = (val) => {
     if (!val && val !== 0) return '0';
@@ -43,7 +45,7 @@ const Tip = ({ active, payload, label }) => {
 };
 
 // ─── KPI Card (clickable) ────────────────────────────────────────────────────
-const KpiCard = ({ label, value, sub, accent, onClick, clickable }) => (
+const KpiCard = ({ label, value, sub, accent, onClick, clickable, children }) => (
     <div
         onClick={onClick}
         className={`card border-0 shadow-sm rounded-4 p-4 h-100 ${clickable ? 'cursor-pointer' : ''}`}
@@ -53,7 +55,8 @@ const KpiCard = ({ label, value, sub, accent, onClick, clickable }) => (
     >
         <p className="text-secondary text-uppercase fw-bold mb-2" style={{ fontSize: '0.72rem', letterSpacing: '1px' }}>{label}</p>
         <h3 className="fw-bold text-dark mb-1">{value}</h3>
-        {sub && <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{sub}</p>}
+        {sub && typeof sub === 'string' ? <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{sub}</p> : sub}
+        {children}
         {clickable && <p className="mb-0 mt-2 fw-semibold" style={{ fontSize: '0.76rem', color: '#4f81ff' }}>View Details →</p>}
     </div>
 );
@@ -62,6 +65,8 @@ const KpiCard = ({ label, value, sub, accent, onClick, clickable }) => (
 const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDrillDown, selectedYear, selectedMonth }) => {
     const navigate = useNavigate();
     const sysRoom    = summaries.reduce((s, b) => s + (b.totalRevenue    || 0), 0);
+    const sysDirect  = summaries.reduce((s, b) => s + (b.directRevenue   || 0), 0);
+    const sysOta     = summaries.reduce((s, b) => s + (b.otaRevenue      || 0), 0);
     const sysService = summaries.reduce((s, b) => s + (b.serviceRevenue  || 0), 0);
     const sysExpense = summaries.reduce((s, b) => s + (b.totalExpense    || 0), 0);
 
@@ -97,7 +102,24 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
                             accent={accent}
                             clickable
                             onClick={() => onDrillDown(ck)}
-                        />
+                        >
+                            {ck === 'room' && (
+                                <div className="mt-1">
+                                    <div className="d-flex align-items-center gap-2 mb-1">
+                                        <span className="badge" style={{ backgroundColor: '#4f81ff', width: 45, fontSize: '0.65rem' }}>Direct</span>
+                                        <span className="fw-semibold text-dark" style={{ fontSize: '0.78rem' }}>{fmt(sysDirect)}</span>
+                                    </div>
+                                    <div className="d-flex align-items-center gap-2 mb-1">
+                                        <span className="badge bg-warning text-dark" style={{ width: 45, fontSize: '0.65rem' }}>OTA</span>
+                                        <span className="fw-semibold text-dark" style={{ fontSize: '0.78rem' }}>{fmt(sysOta)}</span>
+                                    </div>
+                                    <div className="text-muted mt-2 lh-sm" style={{ fontSize: '0.68rem', fontStyle: 'italic' }}>
+                                        <i className="bi bi-info-circle me-1" />
+                                        Note: OTA amounts are estimates before commission.
+                                    </div>
+                                </div>
+                            )}
+                        </KpiCard>
                     </div>
                 ))}
             </div>
@@ -107,7 +129,7 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
                 <div className="col-lg-7">
                     <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
                         <h6 className="text-secondary fw-bold text-uppercase mb-3" style={{ fontSize: '0.77rem', letterSpacing: '1px' }}>
-                            SO SÁNH {branches.length} CƠ SỞ — {periodLabel.toUpperCase()}
+                            COMPARING {branches.length} BRANCHES — {periodLabel.toUpperCase()}
                         </h6>
                         <ResponsiveContainer width="100%" height={310}>
                             <BarChart data={barData} margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
@@ -151,7 +173,7 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
             {/* Table */}
             <div className="card border-0 shadow-sm rounded-4 p-4">
                 <h6 className="text-secondary fw-bold text-uppercase mb-3" style={{ fontSize: '0.77rem', letterSpacing: '1px' }}>
-                    CHI TIẾT TỪNG CƠ SỞ — {periodLabel.toUpperCase()}
+                    DETAILS BY BRANCH — {periodLabel.toUpperCase()}
                 </h6>
                 <div className="table-responsive">
                     <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.87rem' }}>
@@ -164,7 +186,7 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
                                 <th className="py-3 text-end">Expenses</th>
                                 <th className="py-3 text-end">Gross Profit</th>
                                 {hasMom && <th className="py-3 text-center">MoM</th>}
-                                {hasOcc && <th className="py-3 text-center">Lấp kín</th>}
+                                {hasOcc && <th className="py-3 text-center">Occupancy</th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -184,14 +206,24 @@ const OverviewPanel = ({ summaries, branches, activeCategory, periodLabel, onDri
                                             {b.branchName}
                                             <span className="text-primary ms-2" style={{ fontSize: '0.72rem', fontWeight: 600 }}>Details →</span>
                                         </td>
-                                        <td className="text-end fw-semibold" style={{ color: '#4f81ff' }}>{fmt(b.totalRevenue)}</td>
-                                        <td className="text-end fw-semibold" style={{ color: '#20c997' }}>{fmt(b.serviceRevenue)}</td>
-                                        <td className="text-end fw-semibold" style={{ color: '#fd7e14' }}>{fmt(b.totalExpense)}</td>
-                                        <td className={`text-end fw-bold ${gross >= 0 ? 'text-success' : 'text-danger'}`}>{fmt(gross)}</td>
-                                        {hasMom && <td className="text-center">
+                                        <td className="text-end align-middle">
+                                            <div className="d-flex flex-column align-items-end">
+                                                <span className="fw-semibold" style={{ color: '#4f81ff', fontSize: '0.92rem' }}>{fmt(b.totalRevenue)}</span>
+                                                {(b.totalRevenue || 0) > 0 && (
+                                                    <div className="d-flex flex-wrap justify-content-end gap-2 mt-1" style={{ fontSize: '0.72rem', fontWeight: 600 }}>
+                                                        <span className="text-primary px-1 rounded" style={{ backgroundColor: '#e8eeff' }}>Dir: {fmt(b.directRevenue)}</span>
+                                                        <span className="text-dark px-1 rounded bg-warning">OTA: {fmt(b.otaRevenue)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="text-end fw-semibold align-middle" style={{ color: '#20c997' }}>{fmt(b.serviceRevenue)}</td>
+                                        <td className="text-end fw-semibold align-middle" style={{ color: '#fd7e14' }}>{fmt(b.totalExpense)}</td>
+                                        <td className={`text-end fw-bold align-middle ${gross >= 0 ? 'text-success' : 'text-danger'}`}>{fmt(gross)}</td>
+                                        {hasMom && <td className="text-center align-middle">
                                             {b.momGrowth != null && <span className={`badge rounded-pill ${b.momGrowth >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`} style={{ fontSize: '0.76rem' }}>{b.momGrowth >= 0 ? '↑' : '↓'} {Math.abs(b.momGrowth).toFixed(1)}%</span>}
                                         </td>}
-                                        {hasOcc && <td className="text-center fw-semibold">{b.occupancyRate || 0}%</td>}
+                                        {hasOcc && <td className="text-center fw-semibold align-middle">{b.occupancyRate || 0}%</td>}
                                     </tr>
                                 );
                             })}
@@ -213,7 +245,7 @@ const DetailPanel = ({ category, branches, summaries, monthlyTrends, selectedYea
     const areaData = (() => {
         const grouped = {};
         monthlyTrends.forEach(t => {
-            const key = `T${String(t.month).padStart(2, '0')}`;
+            const key = MONTH_NAMES[t.month - 1] || `M${t.month}`;
             if (!grouped[key]) grouped[key] = { name: key, sortKey: t.month };
             grouped[key][t.branchName] = t[cat.trendKey] || 0;
         });
@@ -259,7 +291,7 @@ const DetailPanel = ({ category, branches, summaries, monthlyTrends, selectedYea
                 /* ── 12-month Area chart ── */
                 <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
                     <h6 className="text-secondary fw-bold text-uppercase mb-4" style={{ fontSize: '0.77rem', letterSpacing: '1px' }}>
-                        XU HƯỚNG {cat.label.toUpperCase()} — TẤT CẢ CƠ SỞ — NĂM {selectedYear}
+                        {cat.label.toUpperCase()} TREND — ALL BRANCHES — YEAR {selectedYear}
                     </h6>
                     <ResponsiveContainer width="100%" height={340}>
                         <AreaChart data={areaData} margin={{ top: 10, right: 16, left: 10, bottom: 0 }}>
@@ -291,7 +323,7 @@ const DetailPanel = ({ category, branches, summaries, monthlyTrends, selectedYea
                 /* ── Compare per-branch bar ── */
                 <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
                     <h6 className="text-secondary fw-bold text-uppercase mb-4" style={{ fontSize: '0.77rem', letterSpacing: '1px' }}>
-                        SO SÁNH {cat.label.toUpperCase()} GIỮA CÁC CƠ SỞ
+                        COMPARING {cat.label.toUpperCase()} ACROSS BRANCHES
                     </h6>
                     <ResponsiveContainer width="100%" height={320}>
                         <BarChart data={compareData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
@@ -310,8 +342,8 @@ const DetailPanel = ({ category, branches, summaries, monthlyTrends, selectedYea
             {/* Ranking table */}
             <div className="card border-0 shadow-sm rounded-4 p-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h6 className="text-secondary fw-bold text-uppercase mb-0" style={{ fontSize: '0.77rem', letterSpacing: '1px' }}>BẢNG XẾP HẠNG — {cat.label.toUpperCase()}</h6>
-                    <span className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>Tổng: {fmt(total)} đ</span>
+                    <h6 className="text-secondary fw-bold text-uppercase mb-0" style={{ fontSize: '0.77rem', letterSpacing: '1px' }}>LEADERBOARD — {cat.label.toUpperCase()}</h6>
+                    <span className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>Total: {fmt(total)} đ</span>
                 </div>
                 <div className="table-responsive">
                     <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.87rem' }}>
@@ -408,8 +440,8 @@ const MultiBranchReportScreen = () => {
 
     const activeSummaries = viewMode === 'monthly' ? monthlySummaries : yearlySummaries;
     const periodLabel     = viewMode === 'monthly'
-        ? `Month ${selectedMonth}/${selectedYear}`
-        : `Full Year ${selectedYear}`;
+        ? `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`
+        : `Year ${selectedYear}`;
 
     const handleDrillDown = (cat) => {
         navigate(`/report/detail/${cat}?year=${selectedYear}`);
@@ -422,8 +454,8 @@ const MultiBranchReportScreen = () => {
             <div className="p-4 bg-white shadow-sm border-bottom">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <p className="text-secondary fw-bold text-uppercase mb-0" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>HỆ THỐNG KHÁCH SẠN</p>
-                        <h2 className="fw-bold m-0 text-dark">Báo cáo tổng hợp đa cơ sở</h2>
+                        <p className="text-secondary fw-bold text-uppercase mb-0" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>HOTEL SYSTEM</p>
+                        <h2 className="fw-bold m-0 text-dark">Multi-Branch Summary Report</h2>
                     </div>
                     <div className="btn-group shadow-sm">
                         <button className={`btn fw-semibold px-4 ${viewMode === 'monthly' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('monthly')}>
@@ -444,7 +476,7 @@ const MultiBranchReportScreen = () => {
                                     className={`btn btn-sm fw-semibold px-3 py-1 ${selectedMonth === m ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
                                     style={{ borderRadius: 8, minWidth: 44, fontSize: '0.81rem' }}
                                     onClick={() => setSelectedMonth(m)} disabled={loading}>
-                                    M{m}
+                                    {MONTH_NAMES[m - 1]}
                                 </button>
                             ))}
                         </div>

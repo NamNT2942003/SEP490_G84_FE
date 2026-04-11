@@ -17,5 +17,15 @@ export const checkoutApi = {
       { paymentMethod }
     );
     return data;
+  },
+
+  checkLateCheckoutFeasibility: async (bookingId) => {
+    const { data } = await apiClient.get(`/checkout/bookings/${bookingId}/late-checkout-feasibility`);
+    return data;
+  },
+
+  applyLateCheckoutSurcharges: async (bookingId, payload) => {
+    const { data } = await apiClient.post(`/checkout/bookings/${bookingId}/late-checkout-surcharges`, payload);
+    return data;
   }
 };

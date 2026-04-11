@@ -3,10 +3,12 @@ import RevenueChart from './RevenueChart';
 import RevenueTable from './RevenueTable';
 import RoomRevenuePieChart from './RoomRevenuePieChart';
 import DailyOccupancyChart from './DailyOccupancyChart';
+import OtaBreakdownModal from './OtaBreakdownModal';
 import { COLORS } from '@/constants';
 
-const MonthlyRevenueDashboard = ({ monthlyData }) => {
-    const [viewMode, setViewMode] = useState('chart'); // 'chart' | 'table'
+const MonthlyRevenueDashboard = ({ monthlyData, branchId, month, year }) => {
+    const [viewMode, setViewMode] = useState('chart');
+    const [showOtaModal, setShowOtaModal] = useState(false);
     const formatCurrency = (value) => new Intl.NumberFormat('en-US').format(value || 0);
 
     return (
@@ -18,6 +20,33 @@ const MonthlyRevenueDashboard = ({ monthlyData }) => {
                         <div className="card-body py-2">
                             <h6 className="text-muted" style={{fontSize: '0.85rem'}}>Total Revenue</h6>
                             <h5 className="text-danger fw-bold mb-1">{formatCurrency(monthlyData.totalRevenue)}</h5>
+                            <div style={{fontSize: '0.72rem', lineHeight: '1.5'}}>
+                                <span className="text-success fw-bold">Direct: {formatCurrency(monthlyData.directRevenue || 0)}</span>
+                                {(monthlyData.otaRevenue > 0) && (
+                                    <span
+                                        className="ms-2"
+                                        onClick={() => setShowOtaModal(true)}
+                                        style={{ color: '#e07b39', fontWeight: 600, cursor: 'pointer',
+                                                 borderBottom: '1px dashed #e07b39' }}
+                                        title="Click to see OTA channel breakdown"
+                                    >
+                                        OTA: {formatCurrency(monthlyData.otaRevenue)}
+                                        <i className="bi bi-box-arrow-up-right ms-1" style={{ fontSize: '0.55rem' }} />
+                                    </span>
+                                )}
+                                {(monthlyData.cancellationRevenue > 0) && (
+                                    <span className="ms-2" style={{color: '#dc3545', fontWeight: 600}}>
+                                        <i className="bi bi-x-circle-fill me-1" style={{ fontSize: '0.6rem' }} />
+                                        Cancel Fee: {formatCurrency(monthlyData.cancellationRevenue)}
+                                    </span>
+                                )}
+                            </div>
+                            {(monthlyData.otaRevenue > 0) && (
+                                <div className="text-muted mt-1 lh-sm" style={{ fontSize: '0.65rem', fontStyle: 'italic' }}>
+                                    <i className="bi bi-info-circle me-1" />
+                                    Note: OTA amounts are estimates before commission.
+                                </div>
+                            )}
                             <small className={monthlyData.momGrowth >= 0 ? "text-success fw-bold" : "text-danger fw-bold"}>
                                 Last month: {monthlyData.momGrowth > 0 ? '+' : ''}{monthlyData.momGrowth}%
                             </small>
@@ -127,6 +156,15 @@ const MonthlyRevenueDashboard = ({ monthlyData }) => {
                     </div>
                 </div>
             </div>
+
+            <OtaBreakdownModal
+                show={showOtaModal}
+                onClose={() => setShowOtaModal(false)}
+                branchId={branchId}
+                mode="monthly"
+                month={month}
+                year={year}
+            />
         </div>
     );
 };
