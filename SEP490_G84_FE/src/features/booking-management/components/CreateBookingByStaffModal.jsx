@@ -39,6 +39,8 @@ const normalizePricingOption = (option = {}) => ({
     basePrice: Number(option?.basePrice ?? 0),
     finalPrice: Number(option?.finalPrice ?? 0),
     delta: Number(option?.delta ?? 0),
+    cancellationPolicyId: option?.cancellationPolicyId ?? option?.policyId ?? null,
+    prepaidRate: Number(option?.prepaidRate ?? option?.prepaidPercent ?? 0),
     paymentType: option?.paymentType || option?.policyPaymentType || option?.roomPaymentType || "",
     reasons: Array.isArray(option?.reasons) ? option.reasons : [],
     modifiers: Array.isArray(option?.modifiers)
@@ -73,6 +75,15 @@ const paymentTypeLabel = (value) => {
 };
 
 const formatVnd = (amount) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount || 0);
+
+const resolvePayableRate = (option) => {
+    if (!option) return 100;
+    const policyRate = Number(option.prepaidRate);
+    if (Number.isFinite(policyRate) && policyRate >= 0) {
+        return Math.min(100, policyRate);
+    }
+    return normalizePaymentType(option.paymentType) === "PAY_AT_HOTEL" ? 0 : 100;
+};
 
 export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onSuccess }) {
     const { branches, isLoading: isLoadingBranches } = useMyBranches();
@@ -319,6 +330,9 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             if (selectedPaymentType === "MIXED") {
                 return "Selected pricing packages use different payment policies. Please keep all room lines under the same policy.";
             }
+            if (selectedPolicyIds.length > 1) {
+                return "Selected pricing packages are using different cancellation policies. Please use one consistent policy for all room lines.";
+            }
         }
 
         return "";
@@ -414,7 +428,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 qty,
                 baseLine,
                 lineDelta,
-                lineTotal: Math.max(0, baseLine),
+                lineTotal: Math.max(0, finalUnit * qty),
+                payableNow: Math.max(0, finalUnit * qty * resolvePayableRate(option) / 100),
             };
         });
     }, [form.rooms, roomTypeById, roomPricingMap]);
@@ -442,11 +457,29 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             ? "MIXED"
             : "";
 
+    const selectedPolicyIds = useMemo(() => {
+        const policyIds = form.rooms
+            .map((room) => {
+                const option = (roomPricingMap[String(room.roomTypeId)]?.pricingOptions || [])
+                    .find((opt) => opt.optionCode === room.selectedOptionCode);
+                return option?.cancellationPolicyId;
+            })
+            .filter((id) => Number.isFinite(Number(id)));
+
+        return uniqueIds(policyIds.map((id) => Number(id)));
+    }, [form.rooms, roomPricingMap]);
+
+    const selectedPolicyId = selectedPolicyIds.length === 1 ? selectedPolicyIds[0] : null;
+
     const selectedPaymentLabel = selectedPaymentType === "MIXED"
         ? "Mixed payment policies"
         : paymentTypeLabel(selectedPaymentType);
 
-    const selectedIsPaidInitially = Boolean(selectedPaymentType && selectedPaymentType !== "PAY_AT_HOTEL");
+    const payableNowAmount = useMemo(() => {
+        return roomSummaryRows.reduce((sum, row) => sum + toMoney(row.payableNow), 0);
+    }, [roomSummaryRows]);
+
+    const selectedIsPaidInitially = payableNowAmount > 0;
 
     const estimatedGrandTotal = useMemo(() => {
         return Math.max(0, roomTotalAfterRoomModifiers + bookingModifierDeltaTotal);
@@ -501,6 +534,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                     };
                 }),
                 bookingPriceModifierIds: mergedBookingModifierIds,
+                appliedPolicyId: selectedPolicyId,
                 specialRequests: form.specialRequests?.trim() || "",
                 staffNote: form.staffNote?.trim() || "",
                 isPaidInitially: selectedIsPaidInitially,
@@ -823,6 +857,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                             <span>Estimated Grand Total</span>
                             <span>{formatVnd(estimatedGrandTotal)}</span>
                         </div>
+                        <div className="cbsm-estimate-total">
+                            <span>Amount customer pays now</span>
+                            <span>{formatVnd(payableNowAmount)}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -836,7 +874,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     ? "Collected at hotel"
                                     : selectedPaymentType === "MIXED"
                                         ? "Resolve pricing packages to continue"
-                                        : "Collected during booking creation"}
+                                        : `${formatVnd(payableNowAmount)} is collected during booking confirmation`}
                             </span>
                         </div>
                     </div>

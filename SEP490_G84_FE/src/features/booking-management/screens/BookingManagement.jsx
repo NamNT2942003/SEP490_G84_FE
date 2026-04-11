@@ -182,11 +182,15 @@ export default function BookingManagement() {
         return bookingManagementApi.createBookingByStaff(payload);
     };
 
-    const handleCreatedSuccess = async () => {
+    const handleCreatedSuccess = async (createdBooking) => {
+        const prepaidAmount = Number(createdBooking?.prepaidAmount || 0);
         await Swal.fire({
             icon: "success",
             title: "Booking created",
-            text: "New booking was created successfully.",
+            text:
+                prepaidAmount > 0
+                    ? `New booking was created. Amount collected now: ${formatVND(prepaidAmount)}.`
+                    : "New booking was created successfully.",
             timer: 1600,
             showConfirmButton: false,
         });
