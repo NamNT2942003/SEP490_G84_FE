@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import './checkout-print.css';
 import { checkoutApi } from '../api/checkoutApi';
+import ReportDamageModal from '../../stay/component/ReportDamageModal';
 
 const BRANCH_CONFIG = {
   1: { name: "AN HOTEL & RESORT - HANOI", address: "123 Trang Tien, Hoan Kiem, Hanoi", phone: "024.1234.5678" },
@@ -20,15 +21,13 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   const [loadingBill, setLoadingBill] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [activeRoomIdx, setActiveRoomIdx] = useState('ALL');
+  const [damageReportRoom, setDamageReportRoom] = useState(null);
 
   const currentBranch = BRANCH_CONFIG[branchId] || {
     name: "AN Nguyen HOTEL & RESORT", address: "Ha Noi, Vietnam", phone: "0123.456.789"
   };
 
-  useEffect(() => {
-    if (!show || !booking) return;
-    setPaymentMethod('');
-    setActiveRoomIdx('ALL');
+  const fetchBilling = () => {
     setLoadingBill(true);
     checkoutApi.getRoomBillingInfo(booking.id)
       .then(data => setRoomBilling(data))
@@ -37,6 +36,13 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
         Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load room billing details. Please try again.' });
       })
       .finally(() => setLoadingBill(false));
+  };
+
+  useEffect(() => {
+    if (!show || !booking) return;
+    setPaymentMethod('');
+    setActiveRoomIdx('ALL');
+    fetchBilling();
   }, [show, booking]);
 
   if (!show || !booking) return null;
@@ -167,6 +173,13 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                             <div className="text-end" style={{ whiteSpace: 'nowrap' }}>
                               <div className="text-muted" style={{ fontSize: '0.7rem' }}>Room Price</div>
                               <div className="fw-bold">{fmtMoney(room.roomPrice)}</div>
+                              <button 
+                                className="btn btn-sm btn-outline-danger mt-1 py-0 px-2 d-flex align-items-center gap-1 ms-auto" 
+                                style={{fontSize: '0.7rem'}}
+                                onClick={() => setDamageReportRoom({ stayId: room.stayId, roomName: room.roomName, primaryGuestName: room.guestName })}
+                              >
+                                <i className="bi bi-exclamation-triangle"></i>Damage
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -415,6 +428,16 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
           Thank you for staying with us!<br />See you again.
         </div>
       </div>
+
+      <ReportDamageModal
+        show={!!damageReportRoom}
+        stayInfo={damageReportRoom}
+        onClose={() => setDamageReportRoom(null)}
+        onSuccess={() => {
+          setDamageReportRoom(null);
+          fetchBilling();
+        }}
+      />
     </>
   );
 }

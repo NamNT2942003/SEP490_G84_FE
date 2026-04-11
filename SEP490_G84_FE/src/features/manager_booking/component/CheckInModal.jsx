@@ -616,6 +616,23 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const totalAvailableRooms = Object.values(availableRooms).reduce((sum, arr) => sum + arr.length, 0);
+  const totalRequestedRooms = booking?.roomDetails?.reduce((sum, rd) => sum + rd.quantity, 0) || 1; // fallback 1
+  const isShortage = totalAvailableRooms < totalRequestedRooms;
+  
+  // Check if booking check-in date is today
+  let isNotToday = false;
+  if (booking?.checkIn) {
+    const [d, m, y] = booking.checkIn.split('/');
+    const checkInDate = new Date(Number(y), Number(m) - 1, Number(d));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    isNotToday = checkInDate.getTime() !== today.getTime();
+  }
+
+  // Disable Room Assignment if shortages or not today
+  const canAssignRooms = !isShortage && !isNotToday;
+
   // Early check-in
   const [applyEarlyCheckIn, setApplyEarlyCheckIn] = useState(false);
   const [earlyCheckInFee, setEarlyCheckInFee] = useState('');
@@ -735,15 +752,45 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
           )}
 
           {step === 0 && (
-            <StepArrival
-              applyEarlyCheckIn={applyEarlyCheckIn} setApplyEarlyCheckIn={setApplyEarlyCheckIn}
-              earlyCheckInFee={earlyCheckInFee} setEarlyCheckInFee={setEarlyCheckInFee}
-              earlyCheckInNote={earlyCheckInNote} setEarlyCheckInNote={setEarlyCheckInNote}
-              luggageNote={luggageNote} setLuggageNote={setLuggageNote}
-              payNow={payNow} setPayNow={setPayNow}
-              paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
-              isSubmitting={isSubmitting}
-            />
+            <>
+              {isNotToday && (
+                <div style={{
+                  background: '#ffebec', border: '1.5px solid #dc3545', borderRadius: '8px',
+                  padding: '12px 16px', marginBottom: '16px', display: 'flex', gap: '10px'
+                }}>
+                  <i className="bi bi-x-circle-fill" style={{ color: '#dc3545', fontSize: '18px' }} />
+                  <div>
+                    <strong style={{ color: '#b71c1c', display: 'block', marginBottom: '4px', fontSize: '13px' }}>Invalid Check-In Date</strong>
+                    <div style={{ fontSize: '12.5px', color: '#555' }}>
+                      This booking is scheduled for <strong>{booking?.checkIn}</strong>, not today. The system restricts room assignments to the correct arrival date.
+                    </div>
+                  </div>
+                </div>
+              )}
+              {isShortage && !isNotToday && (
+                <div style={{
+                  background: '#fff4e5', border: '1.5px solid #ff9800', borderRadius: '8px',
+                  padding: '12px 16px', marginBottom: '16px', display: 'flex', gap: '10px'
+                }}>
+                  <i className="bi bi-exclamation-triangle-fill" style={{ color: '#ff9800', fontSize: '18px' }} />
+                  <div>
+                    <strong style={{ color: '#e65100', display: 'block', marginBottom: '4px', fontSize: '13px' }}>Insufficient Rooms ({totalAvailableRooms} available)</strong>
+                    <div style={{ fontSize: '12.5px', color: '#555' }}>
+                      There are not enough clean rooms to early check in the entire booking ({totalRequestedRooms} rooms requested). Please save the luggage notation and click <strong>Mark Arrived</strong>.
+                    </div>
+                  </div>
+                </div>
+              )}
+              <StepArrival
+                applyEarlyCheckIn={applyEarlyCheckIn} setApplyEarlyCheckIn={setApplyEarlyCheckIn}
+                earlyCheckInFee={earlyCheckInFee} setEarlyCheckInFee={setEarlyCheckInFee}
+                earlyCheckInNote={earlyCheckInNote} setEarlyCheckInNote={setEarlyCheckInNote}
+                luggageNote={luggageNote} setLuggageNote={setLuggageNote}
+                payNow={payNow} setPayNow={setPayNow}
+                paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
+                isSubmitting={isSubmitting || isShortage || isNotToday} // Disable toggle if shortage or wrong day
+              />
+            </>
           )}
 
           {step === 1 && (
@@ -812,8 +859,13 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
               ? <button style={S.btnPrimary(isSubmitting)} onClick={handleSubmitCheckIn} disabled={isSubmitting}>
                   {isSubmitting ? 'Processing...' : 'Confirm Check-in'}
                 </button>
-              : <button style={S.btnPrimary(false)} onClick={() => setStep(s => s + 1)} disabled={isMarkingArrived}>
-                  Next
+              : <button style={S.btnPrimary(!canAssignRooms && step === 0)} 
+                  onClick={() => {
+                    const nextStep = (showAllocationStep && step === 1) ? 2 : (step === 1 ? 3 : step + 1);
+                    setStep(nextStep);
+                  }} 
+                  disabled={isMarkingArrived || (step === 0 && !canAssignRooms)}>
+                  Proceed to Room Assignment →
                 </button>
             }
           </div>
