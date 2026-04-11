@@ -18,6 +18,20 @@ const MonthlyRevenueDashboard = ({ monthlyData }) => {
                         <div className="card-body py-2">
                             <h6 className="text-muted" style={{fontSize: '0.85rem'}}>Total Revenue</h6>
                             <h5 className="text-danger fw-bold mb-1">{formatCurrency(monthlyData.totalRevenue)}</h5>
+                            <div style={{fontSize: '0.72rem', lineHeight: '1.5'}}>
+                                <span className="text-success fw-bold">Direct: {formatCurrency(monthlyData.directRevenue || 0)}</span>
+                                {(monthlyData.otaRevenue > 0) && (
+                                    <span className="ms-2" style={{color: '#e07b39', fontWeight: 600}}>
+                                        OTA: {formatCurrency(monthlyData.otaRevenue)}
+                                    </span>
+                                )}
+                            </div>
+                            {(monthlyData.otaRevenue > 0) && (
+                                <div className="text-muted mt-1 lh-sm" style={{ fontSize: '0.65rem', fontStyle: 'italic' }}>
+                                    <i className="bi bi-info-circle me-1" />
+                                    Note: OTA amounts are estimates before commission.
+                                </div>
+                            )}
                             <small className={monthlyData.momGrowth >= 0 ? "text-success fw-bold" : "text-danger fw-bold"}>
                                 Last month: {monthlyData.momGrowth > 0 ? '+' : ''}{monthlyData.momGrowth}%
                             </small>

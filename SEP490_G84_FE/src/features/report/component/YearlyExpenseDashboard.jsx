@@ -6,6 +6,7 @@ import {
 
 const ACCENT = '#e74c3c'; // red accent for expenses
 const PIE_COLORS = ['#e74c3c', '#f39c12', '#8b5cf6', '#e07b39', '#14b8a6', '#ec4899', '#198754', '#3498db'];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const RADIAN = Math.PI / 180;
 
 const formatCurrency = (v) => new Intl.NumberFormat('en-US').format(v || 0);
@@ -14,11 +15,12 @@ const formatCurrency = (v) => new Intl.NumberFormat('en-US').format(v || 0);
 const enrichData = (data) => {
     if (!data || data.length === 0) return [];
     return data.map((item, i) => {
+        const monthName = MONTH_NAMES[item.monthValue - 1] || item.monthLabel;
         const prev = data[i - 1];
         const momGrowth = prev && prev.revenue > 0
             ? (((item.revenue - prev.revenue) / prev.revenue) * 100)
             : null;
-        return { ...item, momGrowth };
+        return { ...item, monthLabel: monthName, momGrowth };
     });
 };
 
@@ -68,10 +70,21 @@ const YearlyExpenseDashboard = ({ yearlyData, selectedYear, onMonthClick }) => {
     const data = enrichData(yearlyData);
     if (!data.length) return <div className="text-center p-5 text-muted">No data available</div>;
 
+    const now = new Date();
+    const realCurrentYear = now.getFullYear();
+    const realCurrentMonth = now.getMonth() + 1; // 1-12
+
     const totalExpense = data.reduce((s, d) => s + (d.revenue || 0), 0);
     const avgMonthly = totalExpense / 12;
     const best = data.reduce((a, b) => (a.revenue || 0) < (b.revenue || 0) ? a : b); // lowest expense = best
     const worst = data.reduce((a, b) => (a.revenue || 0) > (b.revenue || 0) ? a : b); // highest expense = worst
+
+    // Count months that need reports
+    const pendingMonths = data.filter(m => {
+        const hasData = (m.revenue || 0) > 0;
+        const isPastOrCurrent = selectedYear < realCurrentYear || (selectedYear === realCurrentYear && m.monthValue <= realCurrentMonth);
+        return !hasData && isPastOrCurrent;
+    }).length;
 
     // Build fake category pie from yearly (we use month data as proxy if no category breakdown)
     // Since API only gives monthly totals, we show monthly distribution as pie
@@ -94,6 +107,21 @@ const YearlyExpenseDashboard = ({ yearlyData, selectedYear, onMonthClick }) => {
                     <h4 className="fw-bold m-0" style={{ color: ACCENT }}>{formatCurrency(totalExpense)} VND</h4>
                 </div>
             </div>
+
+            {/* Pending alert banner */}
+            {pendingMonths > 0 && (
+                <div className="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4 rounded-4">
+                    <i className="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
+                    <div className="flex-grow-1">
+                        <h6 className="fw-bold mb-1 text-dark">
+                            {pendingMonths} month{pendingMonths > 1 ? 's' : ''} pending expense declaration
+                        </h6>
+                        <span className="small text-secondary">
+                            Look for the <span className="badge bg-warning text-dark" style={{ fontSize: '0.68rem' }}>⚠ Pending</span> badges in the table below and click to submit reports.
+                        </span>
+                    </div>
+                </div>
+            )}
 
             {/* 4 KPI Cards */}
             <div className="row g-3 mb-4">
@@ -137,7 +165,7 @@ const YearlyExpenseDashboard = ({ yearlyData, selectedYear, onMonthClick }) => {
                             <ResponsiveContainer>
                                 <ComposedChart data={data} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.4} />
-                                    <XAxis dataKey="monthLabel" tickFormatter={(v) => v?.replace('Month ', 'M')} axisLine={false} tickLine={false} style={{ fontSize: '0.8rem' }} />
+                                    <XAxis dataKey="monthLabel" axisLine={false} tickLine={false} style={{ fontSize: '0.8rem' }} />
                                     <YAxis yAxisId="left" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} axisLine={false} tickLine={false} style={{ fontSize: '0.8rem' }} width={45} />
                                     <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${v?.toFixed(0)}%`} axisLine={false} tickLine={false} style={{ fontSize: '0.8rem' }} width={35} />
                                     <Tooltip content={<CustomTooltip />} />
@@ -200,29 +228,83 @@ const YearlyExpenseDashboard = ({ yearlyData, selectedYear, onMonthClick }) => {
                                 <tr>
                                     <th className="py-3 text-secondary fw-bold text-start ps-4" style={{ fontSize: '0.82rem' }}>MONTH</th>
                                     <th className="py-3 text-secondary fw-bold" style={{ fontSize: '0.82rem' }}>EXPENSES (VND)</th>
+                                    <th className="py-3 text-secondary fw-bold" style={{ fontSize: '0.82rem' }}>STATUS</th>
                                     <th className="py-3 text-secondary fw-bold" style={{ fontSize: '0.82rem' }}>MoM CHANGE</th>
+                                    <th className="py-3 text-secondary fw-bold" style={{ fontSize: '0.82rem' }}>ACTION</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {data.map((m, i) => (
-                                    <tr key={i} style={{ cursor: 'pointer', backgroundColor: m.revenue === worst.revenue ? '#fff5f5' : m.revenue === best.revenue ? '#f5fff8' : '#fff' }}
-                                        onClick={() => onMonthClick(m.monthValue)}>
-                                        <td className="text-start ps-4 fw-bold py-2 text-dark">
-                                            {m.monthLabel}
-                                            {m.revenue === worst.revenue && <i className="bi bi-arrow-up-circle text-danger ms-1" style={{ fontSize: '0.75rem' }}></i>}
-                                            {m.revenue === best.revenue && m.revenue !== worst.revenue && <i className="bi bi-arrow-down-circle text-success ms-1" style={{ fontSize: '0.75rem' }}></i>}
-                                        </td>
-                                        <td className="fw-medium" style={{ color: m.revenue > 0 ? ACCENT : '#aaa' }}>{formatCurrency(m.revenue)}</td>
-                                        <td>
-                                            {m.momGrowth != null ? (
-                                                <span className={`badge rounded-pill fw-medium ${m.momGrowth > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}`}
-                                                    style={{ fontSize: '0.72rem', minWidth: '56px' }}>
-                                                    {m.momGrowth > 0 ? '↑' : '↓'} {Math.abs(m.momGrowth).toFixed(1)}%
-                                                </span>
-                                            ) : <span className="text-muted">—</span>}
-                                        </td>
-                                    </tr>
-                                ))}
+                                {data.map((m, i) => {
+                                    const hasData = (m.revenue || 0) > 0;
+                                    const isCurrentMonth = selectedYear === realCurrentYear && m.monthValue === realCurrentMonth;
+                                    const isPast = selectedYear < realCurrentYear || (selectedYear === realCurrentYear && m.monthValue < realCurrentMonth);
+                                    const isFuture = selectedYear > realCurrentYear || (selectedYear === realCurrentYear && m.monthValue > realCurrentMonth);
+
+                                    let statusBadge;
+                                    if (hasData) {
+                                        statusBadge = <span className="badge bg-success-subtle text-success fw-semibold px-2 py-1" style={{ fontSize: '0.72rem' }}><i className="bi bi-check-circle-fill me-1" />Declared</span>;
+                                    } else if (isCurrentMonth) {
+                                        statusBadge = <span className="badge bg-warning text-dark fw-semibold px-2 py-1" style={{ fontSize: '0.72rem' }}><i className="bi bi-exclamation-triangle-fill me-1" />Pending</span>;
+                                    } else if (isPast) {
+                                        statusBadge = <span className="badge bg-danger-subtle text-danger fw-semibold px-2 py-1" style={{ fontSize: '0.72rem' }}><i className="bi bi-x-circle-fill me-1" />No Report</span>;
+                                    } else {
+                                        statusBadge = <span className="badge bg-light text-muted fw-semibold px-2 py-1" style={{ fontSize: '0.72rem' }}><i className="bi bi-clock me-1" />Upcoming</span>;
+                                    }
+
+                                    let actionBtn;
+                                    if (isCurrentMonth && !hasData) {
+                                        actionBtn = (
+                                            <button className="btn btn-sm btn-primary fw-bold px-3 py-1 shadow-sm" style={{ fontSize: '0.78rem', borderRadius: 8 }}
+                                                onClick={(e) => { e.stopPropagation(); onMonthClick(m.monthValue); }}>
+                                                <i className="bi bi-plus-circle me-1" />Create Report
+                                            </button>
+                                        );
+                                    } else if (hasData) {
+                                        actionBtn = (
+                                            <button className="btn btn-sm btn-outline-secondary fw-semibold px-3 py-1" style={{ fontSize: '0.75rem', borderRadius: 8 }}
+                                                onClick={(e) => { e.stopPropagation(); onMonthClick(m.monthValue); }}>
+                                                <i className="bi bi-eye me-1" />View
+                                            </button>
+                                        );
+                                    } else if (isPast) {
+                                        actionBtn = (
+                                            <button className="btn btn-sm btn-outline-danger fw-semibold px-3 py-1" style={{ fontSize: '0.75rem', borderRadius: 8 }}
+                                                onClick={(e) => { e.stopPropagation(); onMonthClick(m.monthValue); }}>
+                                                <i className="bi bi-pencil-square me-1" />Declare
+                                            </button>
+                                        );
+                                    } else {
+                                        actionBtn = <span className="text-muted" style={{ fontSize: '0.75rem' }}>—</span>;
+                                    }
+
+                                    return (
+                                        <tr key={i}
+                                            style={{
+                                                cursor: 'pointer',
+                                                backgroundColor: isCurrentMonth && !hasData ? '#fffbe6' : m.revenue === worst.revenue ? '#fff5f5' : m.revenue === best.revenue ? '#f5fff8' : '#fff',
+                                                borderLeft: isCurrentMonth ? '3px solid #f39c12' : 'none'
+                                            }}
+                                            onClick={() => onMonthClick(m.monthValue)}>
+                                            <td className="text-start ps-4 fw-bold py-3 text-dark">
+                                                {m.monthLabel}
+                                                {isCurrentMonth && <span className="badge bg-primary ms-2" style={{ fontSize: '0.6rem', verticalAlign: 'middle' }}>Current</span>}
+                                                {m.revenue === worst.revenue && <i className="bi bi-arrow-up-circle text-danger ms-1" style={{ fontSize: '0.75rem' }}></i>}
+                                                {m.revenue === best.revenue && m.revenue !== worst.revenue && <i className="bi bi-arrow-down-circle text-success ms-1" style={{ fontSize: '0.75rem' }}></i>}
+                                            </td>
+                                            <td className="fw-medium" style={{ color: m.revenue > 0 ? ACCENT : '#aaa' }}>{formatCurrency(m.revenue)}</td>
+                                            <td>{statusBadge}</td>
+                                            <td>
+                                                {m.momGrowth != null ? (
+                                                    <span className={`badge rounded-pill fw-medium ${m.momGrowth > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}`}
+                                                        style={{ fontSize: '0.72rem', minWidth: '56px' }}>
+                                                        {m.momGrowth > 0 ? '↑' : '↓'} {Math.abs(m.momGrowth).toFixed(1)}%
+                                                    </span>
+                                                ) : <span className="text-muted">—</span>}
+                                            </td>
+                                            <td>{actionBtn}</td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -233,3 +315,4 @@ const YearlyExpenseDashboard = ({ yearlyData, selectedYear, onMonthClick }) => {
 };
 
 export default YearlyExpenseDashboard;
+

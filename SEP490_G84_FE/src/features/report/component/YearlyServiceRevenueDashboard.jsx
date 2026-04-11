@@ -6,6 +6,7 @@ import {
 
 const ACCENT = '#0d9488'; // teal accent for service revenue
 const PIE_COLORS = ['#0d9488', '#5396ff', '#f39c12', '#8b5cf6', '#e07b39', '#ec4899', '#198754', '#e74c3c'];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const RADIAN = Math.PI / 180;
 
 const formatCurrency = (v) => new Intl.NumberFormat('en-US').format(v || 0);
@@ -13,11 +14,12 @@ const formatCurrency = (v) => new Intl.NumberFormat('en-US').format(v || 0);
 const enrichData = (data) => {
     if (!data || data.length === 0) return [];
     return data.map((item, i) => {
+        const monthName = MONTH_NAMES[item.monthValue - 1] || item.monthLabel;
         const prev = data[i - 1];
         const momGrowth = prev && prev.revenue > 0
             ? (((item.revenue - prev.revenue) / prev.revenue) * 100)
             : null;
-        return { ...item, momGrowth };
+        return { ...item, monthLabel: monthName, momGrowth };
     });
 };
 
@@ -136,7 +138,7 @@ const YearlyServiceRevenueDashboard = ({ yearlyData, selectedYear, onMonthClick 
                             <ResponsiveContainer>
                                 <ComposedChart data={data} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.4} />
-                                    <XAxis dataKey="monthLabel" tickFormatter={(v) => v?.replace('Month ', 'M')} axisLine={false} tickLine={false} style={{ fontSize: '0.8rem' }} />
+                                    <XAxis dataKey="monthLabel" axisLine={false} tickLine={false} style={{ fontSize: '0.8rem' }} />
                                     <YAxis yAxisId="left" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} axisLine={false} tickLine={false} style={{ fontSize: '0.8rem' }} width={45} />
                                     <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${Number(v).toFixed(0)}%`} axisLine={false} tickLine={false} style={{ fontSize: '0.8rem' }} width={35} />
                                     <Tooltip content={<CustomTooltip />} />

@@ -82,6 +82,39 @@ const roomTypeManagementApi = {
   deleteRoomType: async (roomTypeId) => {
     await apiClient.delete(`${ROOM_TYPE_BASE}/${roomTypeId}`);
   },
+
+  /* ---- Image Management ---- */
+
+  uploadCoverImage: async (roomTypeId, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiClient.post(
+      `${ROOM_TYPE_BASE}/${roomTypeId}/upload-cover`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return response.data;
+  },
+
+  getGallery: async (roomTypeId) => {
+    const response = await apiClient.get(`${ROOM_TYPE_BASE}/${roomTypeId}/gallery`);
+    return Array.isArray(response.data) ? response.data : [];
+  },
+
+  addGalleryImage: async (roomTypeId, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiClient.post(
+      `${ROOM_TYPE_BASE}/${roomTypeId}/gallery`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return response.data;
+  },
+
+  deleteGalleryImage: async (roomTypeId, imageId) => {
+    await apiClient.delete(`${ROOM_TYPE_BASE}/${roomTypeId}/gallery/${imageId}`);
+  },
 };
 
 export default roomTypeManagementApi;

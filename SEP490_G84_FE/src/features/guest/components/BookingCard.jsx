@@ -88,16 +88,16 @@ export default function BookingCard({ booking }) {
 
             {/* Body grid */}
             <div style={S.cardBody}>
-                <InfoCell label="Loại phòng">{roomTypes}</InfoCell>
+                <InfoCell label="Room Type">{roomTypes}</InfoCell>
 
-                <InfoCell label="Nhận phòng">
+                <InfoCell label="Check-in">
                     {fmtDate(booking.arrivalDate)}
-                    {booking.actualCheckIn && <small style={S.smallText}>Thực tế: {fmtDate(booking.actualCheckIn)}</small>}
+                    {booking.actualCheckIn && <small style={S.smallText}>Actual: {fmtDate(booking.actualCheckIn)}</small>}
                 </InfoCell>
 
-                <InfoCell label="Trả phòng">
+                <InfoCell label="Check-out">
                     <span>{fmtDate(booking.departureDate)}</span>
-                    {booking.actualCheckOut && <small style={S.smallText}>Thực tế: {fmtDate(booking.actualCheckOut)}</small>}
+                    {booking.actualCheckOut && <small style={S.smallText}>Actual: {fmtDate(booking.actualCheckOut)}</small>}
                 </InfoCell>
 
                 {hasServiceFee && (
@@ -126,7 +126,7 @@ export default function BookingCard({ booking }) {
             {/* EXPANDABLE SERVICES LIST */}
             {hasServiceFee && showServices && usedServices.length > 0 && (
                 <div style={S.servicesBox}>
-                    <div style={S.servicesHeader}>Chi tiết dịch vụ đã sử dụng:</div>
+                    <div style={S.servicesHeader}>Services Used:</div>
                     <div style={S.servicesList}>
                         {usedServices.map((srv, idx) => (
                             <div key={idx} style={S.serviceRow}>
@@ -141,7 +141,7 @@ export default function BookingCard({ booking }) {
             {/* Special request */}
             {booking.specialRequests && (
                 <div style={S.specialReq}>
-                    <strong style={S.specialLabel}>Yêu cầu đặc biệt</strong>
+                    <strong style={S.specialLabel}>Special Requests</strong>
                     {booking.specialRequests}
                 </div>
             )}
