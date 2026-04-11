@@ -141,6 +141,40 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
     }
   };
 
+  const handleFixFurniture = async (equipment) => {
+    try {
+      setActionLoading(equipment.furnitureId);
+      const roomId = room.roomId || room.id;
+      if (!roomId) return;
+
+      await roomManagementApi.fixRoomFurniture(roomId, equipment.furnitureId);
+      
+      // Show success notification
+      if (onShowNotification) {
+        onShowNotification({
+          type: 'success',
+          message: `Equipment ${equipment.furnitorName} has been fixed and is now available`,
+          timestamp: Date.now()
+        });
+      }
+      
+      await fetchRoomDetails();
+      if (onRoomUpdated) onRoomUpdated();
+    } catch (error) {
+      console.error("Error fixing equipment:", error);
+      if (onShowNotification) {
+        onShowNotification({
+          type: 'error',
+          message: error?.response?.data?.message || 'Failed to fix equipment',
+          timestamp: Date.now()
+        });
+      }
+      alert("Cannot fix equipment. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
 
 
   const getStatusColor = (status) => {
@@ -472,26 +506,53 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                         )}
                                       </button>
                                     ) : eqBroken ? (
-                                      <button
-                                        className="btn btn-warning btn-sm px-3"
-                                        style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
-                                        onClick={() => setReplaceFor(equipment)}
-                                        disabled={actionLoading === equipment.furnitureId}
-                                      >
-                                        {actionLoading === equipment.furnitureId ? (
-                                          <>
-                                            <div className="spinner-border spinner-border-sm me-1" role="status">
-                                              <span className="visually-hidden">Loading...</span>
-                                            </div>
-                                            Replacing...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <i className="bi bi-arrow-repeat me-1"></i>
-                                            Replace from stock
-                                          </>
-                                        )}
-                                      </button>
+                                      <div className="d-flex justify-content-center gap-2">
+                                        {/* Fix Button */}
+                                        <button
+                                          className="btn btn-success btn-sm px-3"
+                                          style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
+                                          onClick={() => handleFixFurniture(equipment)}
+                                          disabled={actionLoading === equipment.furnitureId}
+                                          title="Fix broken furniture in room"
+                                        >
+                                          {actionLoading === equipment.furnitureId ? (
+                                            <>
+                                              <div className="spinner-border spinner-border-sm me-1" role="status">
+                                                <span className="visually-hidden">Loading...</span>
+                                              </div>
+                                              Fixing...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <i className="bi bi-wrench me-1"></i>
+                                              Fix
+                                            </>
+                                          )}
+                                        </button>
+
+                                        {/* Replace from Stock Button */}
+                                        <button
+                                          className="btn btn-warning btn-sm px-3"
+                                          style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
+                                          onClick={() => setReplaceFor(equipment)}
+                                          disabled={actionLoading === equipment.furnitureId}
+                                          title="Replace with item from stock"
+                                        >
+                                          {actionLoading === equipment.furnitureId ? (
+                                            <>
+                                              <div className="spinner-border spinner-border-sm me-1" role="status">
+                                                <span className="visually-hidden">Loading...</span>
+                                              </div>
+                                              Replacing...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <i className="bi bi-arrow-repeat me-1"></i>
+                                              Replace from stock
+                                            </>
+                                          )}
+                                        </button>
+                                      </div>
                                     ) : null}
                                   </td>
                                 </tr>

@@ -22,15 +22,15 @@ const getUserFromToken = (token) => {
         const decoded = jwtDecode(token);
         const roleList = (decoded.role || "").split(",");
         let mainRole = roleList.find(r => r.includes("ROLE_")) || roleList[0] || "User";
-        
+
         // Cắt chữ ROLE_ đi để dùng cho code logic (VD: ADMIN)
-        let rawRole = mainRole.replace("ROLE_", "").toUpperCase(); 
+        let rawRole = mainRole.replace("ROLE_", "").toUpperCase();
         // Viết hoa chữ cái đầu để dùng hiển thị UI (VD: Admin)
         let roleDisplay = rawRole.charAt(0) + rawRole.slice(1).toLowerCase();
 
         return {
             fullName: decoded.fullName || "User",
-            role: rawRole, 
+            role: rawRole,
             roleDisplay: roleDisplay,
             branchName: decoded.branchName || ""
         };
@@ -62,7 +62,7 @@ const authSlice = createSlice({
     name: 'auth',
     initialState: {
         // Tự động giải mã token có sẵn trong localStorage khi F5 trang
-        user: getUserFromToken(initialToken), 
+        user: getUserFromToken(initialToken),
         token: initialToken,
         isLoading: false,
         error: null,

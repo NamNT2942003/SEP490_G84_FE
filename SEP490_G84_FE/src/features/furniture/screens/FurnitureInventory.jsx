@@ -487,16 +487,7 @@ const FurnitureInventory = () => {
                                     <i className="bi bi-search me-2"></i>Search
                                 </button>
 
-                                {/* Warehouse Fail */}
-                                <div className="fi-wf-card">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#dc3545', marginBottom: 6 }}>
-                                        <i className="bi bi-exclamation-triangle-fill"></i> Warehouse Fail
-                                    </div>
-                                    <p style={{ color: '#888', fontSize: '.8rem', margin: '0 0 12px' }}>Manage faulty and broken equipment in warehouse.</p>
-                                    <button onClick={handleOpenWarehouseFail} style={{ width: '100%', background: '#dc3545', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 0', fontWeight: 700, fontSize: '.85rem', cursor: 'pointer' }}>
-                                        <i className="bi bi-tools me-2"></i>Warehouse Fail
-                                    </button>
-                                </div>
+
                             </div>
                         </div>
 
