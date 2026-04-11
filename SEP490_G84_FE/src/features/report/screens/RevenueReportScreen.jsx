@@ -157,12 +157,18 @@ const RevenueReportScreen = () => {
                     yearlyData={yearlyData}
                     selectedYear={selectedYear}
                     handleDrillDown={handleDrillDown}
+                    branchId={selectedBranch}
                 />
             )}
 
             {/* ================= LEVEL 2: MONTHLY DETAILS ================= */}
             {!loading && viewLevel === 'monthly' && monthlyData && (
-                <MonthlyRevenueDashboard monthlyData={monthlyData} />
+                <MonthlyRevenueDashboard
+                    monthlyData={monthlyData}
+                    branchId={selectedBranch}
+                    month={selectedMonth}
+                    year={selectedYear}
+                />
             )}
         </div>
     );

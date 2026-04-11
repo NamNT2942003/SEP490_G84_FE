@@ -41,11 +41,15 @@ const LateCheckoutModal = ({ show, onClose, booking, onSuccess }) => {
       const data = await checkoutApi.checkLateCheckoutFeasibility(booking.id || booking.bookingId);
       setFeasibilityList(data);
       // Initialize fees data
-      setFeesData(data.map(d => ({
-        stayId: d.stayId,
-        amount: '',
-        note: ''
-      })));
+      setFeesData(data.map(d => {
+        const now = new Date();
+        return {
+          stayId: d.stayId,
+          amount: '',
+          time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+          note: ''
+        };
+      }));
     } catch (error) {
       console.error(error);
       Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load room feasibility.' });
@@ -71,7 +75,7 @@ const LateCheckoutModal = ({ show, onClose, booking, onSuccess }) => {
       .map(f => ({
         stayId: f.stayId,
         amount: parseFloat(f.amount),
-        note: f.note
+        note: `Late check-out at ${f.time || ''}${f.note ? ' - ' + f.note : ''}`.trim()
       }));
 
     if (finalFees.length === 0) {
@@ -210,8 +214,8 @@ const LateCheckoutModal = ({ show, onClose, booking, onSuccess }) => {
                       </div>
 
                       {/* Inputs */}
-                      <div style={{ flex: 1, display: 'flex', gap: 12 }}>
-                         <div style={{ width: '150px' }}>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                         <div>
                             <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>
                               Late Fee (VND)
                             </label>
@@ -231,24 +235,34 @@ const LateCheckoutModal = ({ show, onClose, booking, onSuccess }) => {
                               }}
                             />
                          </div>
-                         <div style={{ flex: 1 }}>
+                         <div style={{ minWidth: 0 }}>
                             <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>
-                              Note
+                              Check-out Time & Note
                             </label>
-                            <input
-                              type="text"
-                              disabled={!room.canLateCheckout || submitting}
-                              placeholder="e.g. Extended to 16:00"
-                              value={rFee.note}
-                              onChange={(e) => handleUpdateFee(room.stayId, 'note', e.target.value)}
-                              style={{
-                                width: '100%', padding: '10px 14px', borderRadius: R.sm,
-                                border: `1.5px solid ${C.border}`,
-                                outline: 'none', fontSize: 14,
-                                backgroundColor: room.canLateCheckout ? '#fff' : '#f4f4f4',
-                                color: room.canLateCheckout ? C.text : C.muted
-                              }}
-                            />
+                            <div style={{ display: 'flex', border: `1.5px solid ${C.border}`, borderRadius: R.sm, background: room.canLateCheckout ? '#fff' : '#f4f4f4', overflow: 'hidden' }}>
+                              <span style={{ padding: '10px 12px', background: '#f8f9fa', color: C.muted, fontSize: 13, borderRight: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>
+                                Late check-out at
+                              </span>
+                              <input
+                                type="time"
+                                disabled={!room.canLateCheckout || submitting}
+                                value={rFee.time}
+                                onChange={(e) => handleUpdateFee(room.stayId, 'time', e.target.value)}
+                                style={{
+                                  padding: '10px 8px', border: 'none', width: '90px', outline: 'none', background: 'transparent', borderRight: `1px solid ${C.border}`, fontSize: 14
+                                }}
+                              />
+                              <input
+                                type="text"
+                                disabled={!room.canLateCheckout || submitting}
+                                placeholder="Extra note..."
+                                value={rFee.note}
+                                onChange={(e) => handleUpdateFee(room.stayId, 'note', e.target.value)}
+                                style={{
+                                  flex: 1, padding: '10px 12px', border: 'none', outline: 'none', background: 'transparent', fontSize: 14, minWidth: 0
+                                }}
+                              />
+                            </div>
                          </div>
                       </div>
                     </div>

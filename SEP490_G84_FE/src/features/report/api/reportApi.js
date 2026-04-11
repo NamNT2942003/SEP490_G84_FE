@@ -65,6 +65,31 @@ export const reportApi = {
         }
     },
 
+    // OTA Breakdown: click vào con số OTA để xem chi tiết từng kênh
+    getOtaBreakdownMonthly: async (branchId, month, year) => {
+        try {
+            const { data } = await apiClient.get('/reports/ota-breakdown/monthly', {
+                params: { branchId, month, year }
+            });
+            return data;
+        } catch (error) {
+            console.error("API Error:", error);
+            throw error;
+        }
+    },
+
+    getOtaBreakdownYearly: async (branchId, year) => {
+        try {
+            const { data } = await apiClient.get('/reports/ota-breakdown/yearly', {
+                params: { branchId, year }
+            });
+            return data;
+        } catch (error) {
+            console.error("API Error:", error);
+            throw error;
+        }
+    },
+
     // Service revenue
     getYearlyServiceRevenue: async (branchId, year) => {
         try {

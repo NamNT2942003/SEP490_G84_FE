@@ -228,6 +228,7 @@ function PaymentMethodSelect({ value, onChange, disabled }) {
 function StepArrival({
   applyEarlyCheckIn, setApplyEarlyCheckIn,
   earlyCheckInFee, setEarlyCheckInFee,
+  earlyCheckInTime, setEarlyCheckInTime,
   earlyCheckInNote, setEarlyCheckInNote,
   luggageNote, setLuggageNote,
   payNow, setPayNow,
@@ -254,9 +255,16 @@ function StepArrival({
                 <input style={S.input(false)} type="number" value={earlyCheckInFee}
                   onChange={e => setEarlyCheckInFee(e.target.value)} placeholder="e.g. 500000" disabled={isSubmitting} />
               </Field>
-              <Field label="Reason / Invoice Note">
-                <input style={S.input(false)} value={earlyCheckInNote}
-                  onChange={e => setEarlyCheckInNote(e.target.value)} placeholder="e.g. Early check-in at 08:00" disabled={isSubmitting} />
+              <Field label="Check-in Time & Note">
+                <div style={{ display: 'flex', border: `1.5px solid ${C.BORDER}`, borderRadius: radius.sm, background: C.SURFACE, overflow: 'hidden' }}>
+                  <span style={{ padding: '9px 12px', background: '#f8f9fa', color: C.MUTED, fontSize: '13.5px', borderRight: `1px solid ${C.BORDER}`, whiteSpace: 'nowrap' }}>
+                    Early check-in at
+                  </span>
+                  <input style={{ ...S.input(false), border: 'none', borderRadius: 0, width: '90px', borderRight: `1px solid ${C.BORDER}`, paddingRight: '8px' }}
+                    value={earlyCheckInTime} onChange={e => setEarlyCheckInTime(e.target.value)} disabled={isSubmitting} />
+                  <input style={{ ...S.input(false), border: 'none', borderRadius: 0, flex: 1, minWidth: 0 }}
+                    value={earlyCheckInNote} onChange={e => setEarlyCheckInNote(e.target.value)} placeholder="Extra note..." disabled={isSubmitting} />
+                </div>
               </Field>
             </div>
             <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: `1px solid ${C.BORDER}` }}>
@@ -526,8 +534,7 @@ function StepAllocation({ assignments, earlyCheckInFee, allocationMode, setAlloc
   );
 }
 
-/* ── Step 3: Confirm ── */
-function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee, earlyCheckInNote, luggageNote, payNow, paymentMethod }) {
+function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee, earlyCheckInTime, earlyCheckInNote, luggageNote, payNow, paymentMethod, allocationMode, allocationRoomIndex }) {
   const pill = { display: 'inline-block', padding: '2px 9px', borderRadius: '20px', fontSize: '11.5px', fontWeight: 600, background: '#e8ede8', color: C.PRIMARY, marginLeft: '8px' };
   const methodLabel = (m) => m === 'CARD' ? 'Card' : m === 'TRANSFER' ? 'Bank Transfer' : 'Cash';
   return (
@@ -550,7 +557,7 @@ function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee,
                     {allocationMode === 'EVEN' ? 'Split evenly across all rooms' : `Assigned to Room ${assignments[allocationRoomIndex]?.selectedRoomId}`}
                   </div>
                 )}
-                {earlyCheckInNote && <div style={{ fontWeight: 400, color: C.MUTED, fontSize: '12px', marginTop: '2px' }}>&mdash; {earlyCheckInNote}</div>}
+                {earlyCheckInTime && <div style={{ fontWeight: 400, color: C.MUTED, fontSize: '12px', marginTop: '2px' }}>&mdash; Early check-in at {earlyCheckInTime}{earlyCheckInNote ? ` - ${earlyCheckInNote}` : ''}</div>}
               </span>
             </div>
             <div style={{ ...S.summaryRow, borderBottom: 'none' }}>
@@ -636,6 +643,10 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
   // Early check-in
   const [applyEarlyCheckIn, setApplyEarlyCheckIn] = useState(false);
   const [earlyCheckInFee, setEarlyCheckInFee] = useState('');
+  const [earlyCheckInTime, setEarlyCheckInTime] = useState(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
   const [earlyCheckInNote, setEarlyCheckInNote] = useState('');
   const [luggageNote, setLuggageNote] = useState(booking?.luggageNote || '');
   const [payNow, setPayNow] = useState(false);
@@ -699,7 +710,7 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
           upgradePaymentMethod: a.newRoomTypeName && a.upgradePayNow ? a.upgradePaymentMethod : null,
         })),
         earlyCheckInFee: applyEarlyCheckIn && earlyCheckInFee ? Number(earlyCheckInFee) : 0,
-        earlyCheckInNote: applyEarlyCheckIn ? earlyCheckInNote : '',
+        earlyCheckInNote: applyEarlyCheckIn ? `Early check-in at ${earlyCheckInTime}${earlyCheckInNote ? ' - ' + earlyCheckInNote : ''}`.trim() : '',
         earlyCheckInAllocationMode: showAllocationStep ? allocationMode : 'EVEN',
         earlyCheckInTargetRoomIndex: showAllocationStep ? allocationRoomIndex : 0,
         payNow: applyEarlyCheckIn ? payNow : false,
@@ -784,6 +795,7 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
               <StepArrival
                 applyEarlyCheckIn={applyEarlyCheckIn} setApplyEarlyCheckIn={setApplyEarlyCheckIn}
                 earlyCheckInFee={earlyCheckInFee} setEarlyCheckInFee={setEarlyCheckInFee}
+                earlyCheckInTime={earlyCheckInTime} setEarlyCheckInTime={setEarlyCheckInTime}
                 earlyCheckInNote={earlyCheckInNote} setEarlyCheckInNote={setEarlyCheckInNote}
                 luggageNote={luggageNote} setLuggageNote={setLuggageNote}
                 payNow={payNow} setPayNow={setPayNow}
@@ -821,6 +833,7 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
               assignments={assignments}
               applyEarlyCheckIn={applyEarlyCheckIn}
               earlyCheckInFee={earlyCheckInFee}
+              earlyCheckInTime={earlyCheckInTime}
               earlyCheckInNote={earlyCheckInNote}
               luggageNote={luggageNote}
               payNow={payNow}
