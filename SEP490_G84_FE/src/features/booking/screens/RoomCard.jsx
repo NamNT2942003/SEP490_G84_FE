@@ -1,16 +1,21 @@
+import apiClient from "@/services/apiClient";
+
+const toAbsoluteImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith("/api/")) {
+        const baseUrl = apiClient.defaults.baseURL.replace(/\/api$/, "");
+        return baseUrl + url;
+    }
+    return url;
+};
+
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=400&h=300&fit=crop";
+
 const RoomCard = ({ room, onBooking, onViewDetail }) => {
     const formatPrice = (price) =>
         new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", minimumFractionDigits: 0 }).format(price);
 
-    const getPlaceholderImage = (roomName) => {
-        const n = roomName?.toLowerCase() || "";
-        if (n.includes("suite")) return "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop";
-        if (n.includes("deluxe")) return "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&h=300&fit=crop";
-        if (n.includes("family")) return "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=400&h=300&fit=crop";
-        return "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=400&h=300&fit=crop";
-    };
-
-    const imageSrc = room.image && !room.image.includes(".jpg") ? `/images/${room.image}` : getPlaceholderImage(room.name);
+    const imageSrc = room.image ? toAbsoluteImageUrl(room.image) : FALLBACK_IMAGE;
     const sold = room.availableCount <= 0;
     const visiblePrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
 
@@ -57,7 +62,11 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
             <div className="rc">
                 <div className="rc-row">
                     <div className="rc-img">
-                        <img src={imageSrc} alt={room.name} onError={(e) => { e.target.src = getPlaceholderImage(room.name); }} />
+                        <img
+                            src={imageSrc}
+                            alt={room.name}
+                            onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
+                        />
                         {room.availableCount > 0 && room.availableCount <= 3 && (
                             <div className="rc-badge urgent"><i className="bi bi-fire"></i> Only {room.availableCount} room(s) left!</div>
                         )}

@@ -404,7 +404,7 @@ const ChangeRoomModal = ({ show, onClose, stayInfo, onSuccess }) => {
                         onChange={e => setPaymentMethod(e.target.value)}
                         style={{...inputStyle(false), padding: '6px 12px'}}
                       >
-                        <option value="CASH">Cash (Tiền mặt)</option>
+                        <option value="CASH">Cash</option>
                         <option value="CARD">Credit/Debit Card</option>
                         <option value="TRANSFER">Bank Transfer</option>
                       </select>

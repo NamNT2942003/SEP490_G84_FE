@@ -45,8 +45,175 @@
   border: none;
   border-bottom: 1px solid #f2f4f7;
   font-size: 0.875rem;
+  vertical-align: middle;
 }
 
 .rt-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+/* ===== Row thumbnail ===== */
+
+.rt-row-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #e9ecef;
+}
+
+.rt-row-thumb-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #f1f3f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #adb5bd;
+  font-size: 1.1rem;
+}
+
+/* ===== Cover upload widget (Create/Edit form) ===== */
+
+.rt-cover-upload-zone {
+  border: 2px dashed #dee2e6;
+  border-radius: 10px;
+  padding: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rt-cover-upload-zone:hover {
+  border-color: #6c63ff;
+  background: rgba(108, 99, 255, 0.03);
+}
+
+.rt-cover-preview {
+  max-height: 160px;
+  max-width: 100%;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.rt-cover-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #adb5bd;
+  font-size: 0.85rem;
+}
+
+/* ===== Gallery Modal ===== */
+
+.rt-gallery-section {
+  margin-bottom: 8px;
+}
+
+.rt-gallery-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  color: #495057;
+}
+
+.rt-gallery-cover-row {
+  display: flex;
+  justify-content: center;
+}
+
+.rt-gallery-cover {
+  position: relative;
+  width: 320px;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px dashed #dee2e6;
+  transition: border-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rt-gallery-cover:hover {
+  border-color: #6c63ff;
+}
+
+.rt-gallery-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rt-gallery-cover-loading,
+.rt-gallery-cover-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #adb5bd;
+  font-size: 0.85rem;
+}
+
+.rt-gallery-cover-empty i {
+  font-size: 2rem;
+}
+
+/* Gallery grid */
+
+.rt-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.rt-gallery-item {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.rt-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.rt-gallery-item-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(220, 53, 69, 0.85);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.rt-gallery-item:hover .rt-gallery-item-delete {
+  opacity: 1;
+}
+
+.rt-gallery-item-delete:hover {
+  background: rgba(220, 53, 69, 1);
 }

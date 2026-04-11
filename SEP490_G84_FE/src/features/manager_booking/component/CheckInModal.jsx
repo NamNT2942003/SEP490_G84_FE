@@ -170,8 +170,6 @@ const generateInitialAssignments = (booking) => {
   );
 };
 
-const STEPS = ['Arrival Info', 'Room Assignment', 'Confirm'];
-
 function Field({ label, children }) {
   return <div style={S.field}><label style={S.label}>{label}</label>{children}</div>;
 }
@@ -230,6 +228,7 @@ function PaymentMethodSelect({ value, onChange, disabled }) {
 function StepArrival({
   applyEarlyCheckIn, setApplyEarlyCheckIn,
   earlyCheckInFee, setEarlyCheckInFee,
+  earlyCheckInTime, setEarlyCheckInTime,
   earlyCheckInNote, setEarlyCheckInNote,
   luggageNote, setLuggageNote,
   payNow, setPayNow,
@@ -256,9 +255,16 @@ function StepArrival({
                 <input style={S.input(false)} type="number" value={earlyCheckInFee}
                   onChange={e => setEarlyCheckInFee(e.target.value)} placeholder="e.g. 500000" disabled={isSubmitting} />
               </Field>
-              <Field label="Reason / Invoice Note">
-                <input style={S.input(false)} value={earlyCheckInNote}
-                  onChange={e => setEarlyCheckInNote(e.target.value)} placeholder="e.g. Early check-in at 08:00" disabled={isSubmitting} />
+              <Field label="Check-in Time & Note">
+                <div style={{ display: 'flex', border: `1.5px solid ${C.BORDER}`, borderRadius: radius.sm, background: C.SURFACE, overflow: 'hidden' }}>
+                  <span style={{ padding: '9px 12px', background: '#f8f9fa', color: C.MUTED, fontSize: '13.5px', borderRight: `1px solid ${C.BORDER}`, whiteSpace: 'nowrap' }}>
+                    Early check-in at
+                  </span>
+                  <input style={{ ...S.input(false), border: 'none', borderRadius: 0, width: '90px', borderRight: `1px solid ${C.BORDER}`, paddingRight: '8px' }}
+                    value={earlyCheckInTime} onChange={e => setEarlyCheckInTime(e.target.value)} disabled={isSubmitting} />
+                  <input style={{ ...S.input(false), border: 'none', borderRadius: 0, flex: 1, minWidth: 0 }}
+                    value={earlyCheckInNote} onChange={e => setEarlyCheckInNote(e.target.value)} placeholder="Extra note..." disabled={isSubmitting} />
+                </div>
               </Field>
             </div>
             <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: `1px solid ${C.BORDER}` }}>
@@ -449,8 +455,86 @@ function StepRooms({ assignments, availableRooms, errorMessage, isSubmitting, on
   );
 }
 
-/* ── Step 3: Confirm ── */
-function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee, earlyCheckInNote, luggageNote, payNow, paymentMethod }) {
+/* ── Step 2.5: Fee Allocation ── */
+function StepAllocation({ assignments, earlyCheckInFee, allocationMode, setAllocationMode, allocationRoomIndex, setAllocationRoomIndex, isSubmitting }) {
+  const feeNumber = Number(earlyCheckInFee || 0);
+  const perRoomFee = feeNumber / assignments.length;
+  
+  return (
+    <div>
+      <p style={S.sectionLabel}>Choose how to split the Early Check-in Surcharge</p>
+      <div style={S.card(true)}>
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+          {[
+            { mode: 'EVEN', label: 'Split Evenly', desc: 'Divide fee across all rooms' },
+            { mode: 'SINGLE', label: 'Assign to One Room', desc: 'Add fee to a specific room' }
+          ].map(opt => (
+            <label key={opt.mode} style={{ 
+              flex: 1, display: 'flex', alignItems: 'flex-start', gap: '10px', 
+              padding: '14px', borderRadius: '8px', cursor: 'pointer',
+              border: `2px solid ${allocationMode === opt.mode ? C.PRIMARY : C.BORDER}`,
+              background: allocationMode === opt.mode ? '#f0f5f0' : C.SURFACE
+            }}>
+              <input type="radio" name="allocationMode" value={opt.mode} 
+                checked={allocationMode === opt.mode} 
+                onChange={() => !isSubmitting && setAllocationMode(opt.mode)}
+                disabled={isSubmitting}
+                style={{ marginTop: '2px', accentColor: C.PRIMARY }} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '13.5px', color: allocationMode === opt.mode ? C.PRIMARY : C.TEXT_DARK }}>{opt.label}</div>
+                <div style={{ fontSize: '11.5px', color: C.MUTED, marginTop: '2px' }}>{opt.desc}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        <div style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: '16px' }}>
+          {allocationMode === 'EVEN' ? (
+            <div style={{ padding: '12px', background: '#f8faf8', borderRadius: '6px', fontSize: '13px', color: C.TEXT_DARK }}>
+              Fee per room: <strong style={{ color: C.PRIMARY }}>{perRoomFee.toLocaleString(undefined, { maximumFractionDigits: 0 })} VND</strong> (across {assignments.length} rooms)
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: C.MUTED, marginBottom: '10px' }}>SELECT TARGET ROOM</div>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {assignments.map((a, i) => (
+                  <label key={a.id} style={{ 
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 14px', borderRadius: '6px', cursor: 'pointer',
+                    background: allocationRoomIndex === i ? C.PRIMARY : C.SURFACE,
+                    color: allocationRoomIndex === i ? C.TEXT_LIGHT : C.TEXT_DARK,
+                    border: `1px solid ${allocationRoomIndex === i ? C.PRIMARY : C.BORDER}`
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <input type="radio" name="targetRoom" value={i} 
+                        checked={allocationRoomIndex === i}
+                        onChange={() => !isSubmitting && setAllocationRoomIndex(i)}
+                        disabled={isSubmitting}
+                        style={{ accentColor: allocationRoomIndex === i ? C.TEXT_LIGHT : C.PRIMARY }} />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '13px' }}>
+                          Room Name/ID: {a.selectedRoomId} <span style={{ fontWeight: 400, opacity: 0.8 }}>({a.newRoomTypeName || a.roomTypeName})</span>
+                        </div>
+                        <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
+                          Guest: {a.guestName || 'Unnamed'}
+                        </div>
+                      </div>
+                    </div>
+                    {allocationRoomIndex === i && (
+                      <div style={{ fontWeight: 700, fontSize: '13px' }}>+{feeNumber.toLocaleString()} VND</div>
+                    )}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee, earlyCheckInTime, earlyCheckInNote, luggageNote, payNow, paymentMethod, allocationMode, allocationRoomIndex }) {
   const pill = { display: 'inline-block', padding: '2px 9px', borderRadius: '20px', fontSize: '11.5px', fontWeight: 600, background: '#e8ede8', color: C.PRIMARY, marginLeft: '8px' };
   const methodLabel = (m) => m === 'CARD' ? 'Card' : m === 'TRANSFER' ? 'Bank Transfer' : 'Cash';
   return (
@@ -466,9 +550,14 @@ function StepConfirm({ booking, assignments, applyEarlyCheckIn, earlyCheckInFee,
           <>
             <div style={S.summaryRow}>
               <span style={S.summaryLabel}>Early Check-in Fee</span>
-              <span style={S.summaryVal}>
+              <span style={{...S.summaryVal, textAlign: 'right'}}>
                 {Number(earlyCheckInFee || 0).toLocaleString()} VND
-                {earlyCheckInNote && <> &mdash; <span style={{ fontWeight: 400, color: C.MUTED }}>{earlyCheckInNote}</span></>}
+                {assignments.length > 1 && (
+                  <div style={{ fontSize: '11.5px', color: C.PRIMARY, fontWeight: 500, marginTop: '2px' }}>
+                    {allocationMode === 'EVEN' ? 'Split evenly across all rooms' : `Assigned to Room ${assignments[allocationRoomIndex]?.selectedRoomId}`}
+                  </div>
+                )}
+                {earlyCheckInTime && <div style={{ fontWeight: 400, color: C.MUTED, fontSize: '12px', marginTop: '2px' }}>&mdash; Early check-in at {earlyCheckInTime}{earlyCheckInNote ? ` - ${earlyCheckInNote}` : ''}</div>}
               </span>
             </div>
             <div style={{ ...S.summaryRow, borderBottom: 'none' }}>
@@ -534,15 +623,44 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const totalAvailableRooms = Object.values(availableRooms).reduce((sum, arr) => sum + arr.length, 0);
+  const totalRequestedRooms = booking?.roomDetails?.reduce((sum, rd) => sum + rd.quantity, 0) || 1; // fallback 1
+  const isShortage = totalAvailableRooms < totalRequestedRooms;
+  
+  // Check if booking check-in date is today
+  let isNotToday = false;
+  if (booking?.checkIn) {
+    const [d, m, y] = booking.checkIn.split('/');
+    const checkInDate = new Date(Number(y), Number(m) - 1, Number(d));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    isNotToday = checkInDate.getTime() !== today.getTime();
+  }
+
+  // Disable Room Assignment if shortages or not today
+  const canAssignRooms = !isShortage && !isNotToday;
+
   // Early check-in
   const [applyEarlyCheckIn, setApplyEarlyCheckIn] = useState(false);
   const [earlyCheckInFee, setEarlyCheckInFee] = useState('');
+  const [earlyCheckInTime, setEarlyCheckInTime] = useState(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
   const [earlyCheckInNote, setEarlyCheckInNote] = useState('');
   const [luggageNote, setLuggageNote] = useState(booking?.luggageNote || '');
   const [payNow, setPayNow] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+  
+  const [allocationMode, setAllocationMode] = useState('EVEN');
+  const [allocationRoomIndex, setAllocationRoomIndex] = useState(0);
 
   const [isMarkingArrived, setIsMarkingArrived] = useState(false);
+
+  const showAllocationStep = applyEarlyCheckIn && Number(earlyCheckInFee || 0) > 0 && assignments.length > 1;
+  const currentSteps = showAllocationStep 
+    ? ['Arrival Info', 'Room Assignment', 'Fee Allocation', 'Confirm']
+    : ['Arrival Info', 'Room Assignment', 'Confirm'];
 
   useEffect(() => {
     if (!show || !branchId) return;
@@ -592,7 +710,9 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
           upgradePaymentMethod: a.newRoomTypeName && a.upgradePayNow ? a.upgradePaymentMethod : null,
         })),
         earlyCheckInFee: applyEarlyCheckIn && earlyCheckInFee ? Number(earlyCheckInFee) : 0,
-        earlyCheckInNote: applyEarlyCheckIn ? earlyCheckInNote : '',
+        earlyCheckInNote: applyEarlyCheckIn ? `Early check-in at ${earlyCheckInTime}${earlyCheckInNote ? ' - ' + earlyCheckInNote : ''}`.trim() : '',
+        earlyCheckInAllocationMode: showAllocationStep ? allocationMode : 'EVEN',
+        earlyCheckInTargetRoomIndex: showAllocationStep ? allocationRoomIndex : 0,
         payNow: applyEarlyCheckIn ? payNow : false,
         paymentMethod: applyEarlyCheckIn && payNow ? paymentMethod : null,
       };
@@ -609,7 +729,7 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
 
   const canGoNext = step === 0;
   const canGoBack = step > 0;
-  const isLastStep = step === STEPS.length - 1;
+  const isLastStep = step === currentSteps.length - 1;
 
   return (
     <div style={S.overlay}>
@@ -625,7 +745,7 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
 
         {/* Steps bar */}
         <div style={S.stepsBar}>
-          {STEPS.map((label, i) => (
+          {currentSteps.map((label, i) => (
             <div key={i} style={S.stepTab(i === step, i < step)} onClick={() => i < step && setStep(i)}>
               <div style={S.stepNum(i === step, i < step)}>{i < step ? '✓' : i + 1}</div>
               {label}
@@ -643,15 +763,46 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
           )}
 
           {step === 0 && (
-            <StepArrival
-              applyEarlyCheckIn={applyEarlyCheckIn} setApplyEarlyCheckIn={setApplyEarlyCheckIn}
-              earlyCheckInFee={earlyCheckInFee} setEarlyCheckInFee={setEarlyCheckInFee}
-              earlyCheckInNote={earlyCheckInNote} setEarlyCheckInNote={setEarlyCheckInNote}
-              luggageNote={luggageNote} setLuggageNote={setLuggageNote}
-              payNow={payNow} setPayNow={setPayNow}
-              paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
-              isSubmitting={isSubmitting}
-            />
+            <>
+              {isNotToday && (
+                <div style={{
+                  background: '#ffebec', border: '1.5px solid #dc3545', borderRadius: '8px',
+                  padding: '12px 16px', marginBottom: '16px', display: 'flex', gap: '10px'
+                }}>
+                  <i className="bi bi-x-circle-fill" style={{ color: '#dc3545', fontSize: '18px' }} />
+                  <div>
+                    <strong style={{ color: '#b71c1c', display: 'block', marginBottom: '4px', fontSize: '13px' }}>Invalid Check-In Date</strong>
+                    <div style={{ fontSize: '12.5px', color: '#555' }}>
+                      This booking is scheduled for <strong>{booking?.checkIn}</strong>, not today. The system restricts room assignments to the correct arrival date.
+                    </div>
+                  </div>
+                </div>
+              )}
+              {isShortage && !isNotToday && (
+                <div style={{
+                  background: '#fff4e5', border: '1.5px solid #ff9800', borderRadius: '8px',
+                  padding: '12px 16px', marginBottom: '16px', display: 'flex', gap: '10px'
+                }}>
+                  <i className="bi bi-exclamation-triangle-fill" style={{ color: '#ff9800', fontSize: '18px' }} />
+                  <div>
+                    <strong style={{ color: '#e65100', display: 'block', marginBottom: '4px', fontSize: '13px' }}>Insufficient Rooms ({totalAvailableRooms} available)</strong>
+                    <div style={{ fontSize: '12.5px', color: '#555' }}>
+                      There are not enough clean rooms to early check in the entire booking ({totalRequestedRooms} rooms requested). Please save the luggage notation and click <strong>Mark Arrived</strong>.
+                    </div>
+                  </div>
+                </div>
+              )}
+              <StepArrival
+                applyEarlyCheckIn={applyEarlyCheckIn} setApplyEarlyCheckIn={setApplyEarlyCheckIn}
+                earlyCheckInFee={earlyCheckInFee} setEarlyCheckInFee={setEarlyCheckInFee}
+                earlyCheckInTime={earlyCheckInTime} setEarlyCheckInTime={setEarlyCheckInTime}
+                earlyCheckInNote={earlyCheckInNote} setEarlyCheckInNote={setEarlyCheckInNote}
+                luggageNote={luggageNote} setLuggageNote={setLuggageNote}
+                payNow={payNow} setPayNow={setPayNow}
+                paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
+                isSubmitting={isSubmitting || isShortage || isNotToday} // Disable toggle if shortage or wrong day
+              />
+            </>
           )}
 
           {step === 1 && (
@@ -664,16 +815,31 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
             />
           )}
 
-          {step === 2 && (
+          {step === 2 && showAllocationStep && (
+            <StepAllocation
+              assignments={assignments}
+              earlyCheckInFee={earlyCheckInFee}
+              allocationMode={allocationMode}
+              setAllocationMode={setAllocationMode}
+              allocationRoomIndex={allocationRoomIndex}
+              setAllocationRoomIndex={setAllocationRoomIndex}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {((step === 2 && !showAllocationStep) || step === 3) && (
             <StepConfirm
               booking={booking}
               assignments={assignments}
               applyEarlyCheckIn={applyEarlyCheckIn}
               earlyCheckInFee={earlyCheckInFee}
+              earlyCheckInTime={earlyCheckInTime}
               earlyCheckInNote={earlyCheckInNote}
               luggageNote={luggageNote}
               payNow={payNow}
               paymentMethod={paymentMethod}
+              allocationMode={allocationMode}
+              allocationRoomIndex={allocationRoomIndex}
             />
           )}
         </div>
@@ -706,8 +872,13 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
               ? <button style={S.btnPrimary(isSubmitting)} onClick={handleSubmitCheckIn} disabled={isSubmitting}>
                   {isSubmitting ? 'Processing...' : 'Confirm Check-in'}
                 </button>
-              : <button style={S.btnPrimary(false)} onClick={() => setStep(s => s + 1)} disabled={isMarkingArrived}>
-                  Next
+              : <button style={S.btnPrimary(!canAssignRooms && step === 0)} 
+                  onClick={() => {
+                    const nextStep = (showAllocationStep && step === 1) ? 2 : (step === 1 ? 3 : step + 1);
+                    setStep(nextStep);
+                  }} 
+                  disabled={isMarkingArrived || (step === 0 && !canAssignRooms)}>
+                  Proceed to Room Assignment →
                 </button>
             }
           </div>

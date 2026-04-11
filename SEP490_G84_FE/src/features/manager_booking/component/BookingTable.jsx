@@ -58,6 +58,7 @@ export default function BookingTable({
   onCheckInClick,
   onDetailsClick,
   onCheckoutClick,
+  onLateCheckoutClick,
   onRefresh,
   mode = 'checkin',
   accent = '#2e7d32',
@@ -320,6 +321,12 @@ export default function BookingTable({
                           style={{ background: '#c62828', color: '#fff', border: 'none', fontSize: '0.82rem' }}
                           onClick={() => onCheckoutClick(booking)}>
                           <i className="bi bi-box-arrow-right me-1"></i>Check Out
+                        </button>
+                        <button className="btn btn-sm fw-semibold px-2"
+                          style={{ background: '#6c757d', color: '#fff', border: 'none', fontSize: '0.82rem' }}
+                          onClick={() => onLateCheckoutClick && onLateCheckoutClick(booking)}
+                          title="Request Late Check-out">
+                          <i className="bi bi-clock-history"></i>
                         </button>
                       </>
                     )}

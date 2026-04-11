@@ -6,12 +6,14 @@ const formatCurrency = (value) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 const YearlyRevenueChart = ({ data, onMonthClick }) => {
     if (!data || data.length === 0) return <div className="text-center p-5 text-muted">No data</div>;
 
     const formattedData = data.map(item => ({
         ...item,
-        monthLabel: item.monthLabel ? item.monthLabel.replace(/Tháng\s+/i, 'Month ') : item.monthLabel
+        monthLabel: MONTH_NAMES[item.monthValue - 1] || item.monthLabel
     }));
 
     return (

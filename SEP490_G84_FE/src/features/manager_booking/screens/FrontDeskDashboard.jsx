@@ -3,6 +3,7 @@ import BookingTable from '../component/BookingTable';
 import CheckInModal from '../component/CheckInModal';
 import BookingDetailModal from '../component/BookingDetailModal';
 import CheckoutModal from '../component/CheckoutModal';
+import LateCheckoutModal from '../component/LateCheckoutModal';
 import { checkInApi } from '../api/checkInApi';
 import { useSelector } from 'react-redux';
 
@@ -59,6 +60,7 @@ export default function FrontDeskDashboard() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [showLateCheckoutModal, setShowLateCheckoutModal] = useState(false);
 
   const authUser = useSelector((state) => state.auth.user);
   const currentBranchId = authUser?.branchId || Number(localStorage.getItem('branchId')) || 1;
@@ -178,6 +180,7 @@ export default function FrontDeskDashboard() {
   const handleOpenCheckIn = (b) => { setSelectedBooking(b); setShowModal(true); };
   const handleOpenDetails = (b) => { setSelectedBooking(b); setShowDetailsModal(true); };
   const handleOpenCheckout = (b) => { setSelectedBooking(b); setShowCheckoutModal(true); };
+  const handleOpenLateCheckout = (b) => { setSelectedBooking(b); setShowLateCheckoutModal(true); };
 
   // ── Theme ─────────────────────────────────────────────────────────────────
   const isCheckin = mode === 'checkin';
@@ -374,6 +377,7 @@ export default function FrontDeskDashboard() {
             onCheckInClick={handleOpenCheckIn}
             onDetailsClick={handleOpenDetails}
             onCheckoutClick={handleOpenCheckout}
+            onLateCheckoutClick={handleOpenLateCheckout}
             onRefresh={refreshAll}
             accent={accent}
           />
@@ -396,6 +400,11 @@ export default function FrontDeskDashboard() {
         <CheckoutModal key={`checkout-${selectedBooking?.id}`} show={showCheckoutModal}
           onClose={() => setShowCheckoutModal(false)}
           booking={selectedBooking} onSuccess={refreshAll} branchId={selectedBranch} />
+      )}
+      {showLateCheckoutModal && (
+        <LateCheckoutModal key={`late-checkout-${selectedBooking?.id}`} show={showLateCheckoutModal}
+          onClose={() => setShowLateCheckoutModal(false)}
+          booking={selectedBooking} onSuccess={refreshAll} />
       )}
     </div>
   );

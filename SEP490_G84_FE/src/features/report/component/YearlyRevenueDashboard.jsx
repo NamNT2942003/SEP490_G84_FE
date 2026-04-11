@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Line } from 'recharts';
+import OtaBreakdownModal from './OtaBreakdownModal';
 
 const PIE_COLORS = ['#5396ff', '#f39c12', '#198754', '#8b5cf6', '#e07b39', '#ec4899', '#14b8a6', '#e74c3c'];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -38,8 +39,9 @@ const renderYearlyPieLabel = (totalRevenue) => ({ cx, cy, midAngle, outerRadius,
     );
 };
 
-const YearlyRevenueDashboard = ({ yearlyData, selectedYear, handleDrillDown }) => {
+const YearlyRevenueDashboard = ({ yearlyData, selectedYear, handleDrillDown, branchId }) => {
     const formatCurrency = (value) => new Intl.NumberFormat('en-US').format(value || 0);
+    const [showOtaModal, setShowOtaModal] = useState(false);
 
     const CustomTooltipYearly = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
@@ -81,6 +83,27 @@ const YearlyRevenueDashboard = ({ yearlyData, selectedYear, handleDrillDown }) =
                     <div className="card shadow-sm border-0 rounded-4 p-3 h-100" style={{ borderLeft: '4px solid #f39c12' }}>
                         <p className="text-secondary text-uppercase fw-bold mb-1" style={{ fontSize: '0.72rem', letterSpacing: '1px' }}>TOTAL REVENUE</p>
                         <h5 className="fw-bold text-dark mb-1">{formatCurrency(yearlyData.totalRevenue)}</h5>
+                        <div style={{ fontSize: '0.7rem', lineHeight: '1.6' }}>
+                            <span style={{ color: '#198754', fontWeight: 600 }}>Direct: {formatCurrency(yearlyData.totalDirectRevenue || 0)}</span>
+                            {(yearlyData.totalOtaRevenue > 0) && (
+                                <span
+                                    className="ms-2"
+                                    onClick={() => setShowOtaModal(true)}
+                                    style={{ color: '#e07b39', fontWeight: 600, cursor: 'pointer',
+                                             borderBottom: '1px dashed #e07b39', textDecoration: 'none' }}
+                                    title="Click to see OTA channel breakdown"
+                                >
+                                    OTA: {formatCurrency(yearlyData.totalOtaRevenue)}
+                                    <i className="bi bi-box-arrow-up-right ms-1" style={{ fontSize: '0.55rem' }} />
+                                </span>
+                            )}
+                            {(yearlyData.totalCancellationRevenue > 0) && (
+                                <span className="ms-2" style={{ color: '#dc3545', fontWeight: 600 }}>
+                                    <i className="bi bi-x-circle-fill me-1" style={{ fontSize: '0.6rem' }} />
+                                    Cancel Fee: {formatCurrency(yearlyData.totalCancellationRevenue)}
+                                </span>
+                            )}
+                        </div>
                         <small className="text-muted">VND · 12-month cumulative</small>
                     </div>
                 </div>
@@ -121,11 +144,8 @@ const YearlyRevenueDashboard = ({ yearlyData, selectedYear, handleDrillDown }) =
                                     <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} style={{ fontSize: '0.82rem' }} width={35} />
                                     <Tooltip content={<CustomTooltipYearly />} />
                                     <Legend verticalAlign="top" height={36} iconType="square" wrapperStyle={{ paddingBottom: '8px' }} />
-                                    <Bar yAxisId="left" name="Revenue" dataKey="totalRevenue" radius={[4, 4, 0, 0]} barSize={22} onClick={(data) => handleDrillDown(data.month)} style={{ cursor: 'pointer' }}>
-                                        {yearlyData.monthlyDetails.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.month === yearlyData.bestMonth ? '#f39c12' : '#5396ff'} />
-                                        ))}
-                                    </Bar>
+                                    <Bar yAxisId="left" name="Direct" dataKey="directRevenue" stackId="revenue" radius={[0, 0, 0, 0]} barSize={22} fill="#5396ff" onClick={(data) => handleDrillDown(data.month)} style={{ cursor: 'pointer' }} />
+                                    <Bar yAxisId="left" name="OTA (est.)" dataKey="otaRevenue" stackId="revenue" radius={[4, 4, 0, 0]} barSize={22} fill="#e07b39" onClick={(data) => handleDrillDown(data.month)} style={{ cursor: 'pointer' }} />
                                     <Line yAxisId="right" name="Occupancy Rate" type="monotone" dataKey="occupancyRate" stroke="#6f42c1" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                                 </ComposedChart>
                             </ResponsiveContainer>
@@ -178,6 +198,7 @@ const YearlyRevenueDashboard = ({ yearlyData, selectedYear, handleDrillDown }) =
                                 <tr>
                                     <th className="py-3 text-secondary fw-bold text-start ps-4" style={{ fontSize: '0.82rem', letterSpacing: '0.8px' }}>MONTH</th>
                                     <th className="py-3 text-secondary fw-bold" style={{ fontSize: '0.82rem' }}>REVENUE (VND)</th>
+                                    <th className="py-3 text-secondary fw-bold" style={{ fontSize: '0.82rem' }}>DIRECT / OTA / CANCEL</th>
                                     <th className="py-3 text-secondary fw-bold" style={{ fontSize: '0.82rem' }}>MoM GROWTH</th>
                                     <th className="py-3 text-secondary fw-bold" style={{ fontSize: '0.82rem' }}>OCCUPANCY</th>
                                     <th className="py-3 text-secondary fw-bold" style={{ fontSize: '0.82rem' }}>ADR (VND)</th>
@@ -201,6 +222,19 @@ const YearlyRevenueDashboard = ({ yearlyData, selectedYear, handleDrillDown }) =
                                             {m.month === yearlyData.worstMonth && <i className="bi bi-arrow-down-circle text-danger ms-1" style={{ fontSize: '0.75rem' }}></i>}
                                         </td>
                                         <td className="fw-medium text-dark">{formatCurrency(m.totalRevenue)}</td>
+                                        <td style={{ fontSize: '0.75rem' }}>
+                                            <span style={{ color: '#198754', fontWeight: 600 }}>{formatCurrency(m.directRevenue || 0)}</span>
+                                            {(m.otaRevenue > 0) && (
+                                                <span className="ms-1" style={{ color: '#e07b39', fontWeight: 600 }}>
+                                                    / {formatCurrency(m.otaRevenue)}
+                                                </span>
+                                            )}
+                                            {(m.cancellationRevenue > 0) && (
+                                                <span className="ms-1" style={{ color: '#dc3545', fontWeight: 600 }}>
+                                                    / {formatCurrency(m.cancellationRevenue)} <i className="bi bi-x-circle" style={{ fontSize: '0.65rem' }} title="Cancellation fee" />
+                                                </span>
+                                            )}
+                                        </td>
                                         <td>
                                             {m.momGrowth != null ? (
                                                 <span className={`badge rounded-pill fw-medium ${m.momGrowth >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`} style={{ fontSize: '0.72rem', minWidth: '56px' }}>
@@ -218,6 +252,14 @@ const YearlyRevenueDashboard = ({ yearlyData, selectedYear, handleDrillDown }) =
                     </div>
                 </div>
             </div>
+
+            <OtaBreakdownModal
+                show={showOtaModal}
+                onClose={() => setShowOtaModal(false)}
+                branchId={branchId}
+                mode="yearly"
+                year={selectedYear}
+            />
         </div>
     );
 };

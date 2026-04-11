@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
-import { QRCodeCanvas } from 'qrcode.react';
 import './checkout-print.css';
 import { checkoutApi } from '../api/checkoutApi';
+import ReportDamageModal from '../../stay/component/ReportDamageModal';
 
 const BRANCH_CONFIG = {
   1: { name: "AN HOTEL & RESORT - HANOI", address: "123 Trang Tien, Hoan Kiem, Hanoi", phone: "024.1234.5678" },
@@ -20,16 +20,14 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   const [roomBilling, setRoomBilling] = useState(null);
   const [loadingBill, setLoadingBill] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState('');
-  const [activeRoomIdx, setActiveRoomIdx] = useState(0);
+  const [activeRoomIdx, setActiveRoomIdx] = useState('ALL');
+  const [damageReportRoom, setDamageReportRoom] = useState(null);
 
   const currentBranch = BRANCH_CONFIG[branchId] || {
     name: "AN Nguyen HOTEL & RESORT", address: "Ha Noi, Vietnam", phone: "0123.456.789"
   };
 
-  useEffect(() => {
-    if (!show || !booking) return;
-    setPaymentMethod('');
-    setActiveRoomIdx(0);
+  const fetchBilling = () => {
     setLoadingBill(true);
     checkoutApi.getRoomBillingInfo(booking.id)
       .then(data => setRoomBilling(data))
@@ -38,6 +36,13 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
         Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load room billing details. Please try again.' });
       })
       .finally(() => setLoadingBill(false));
+  };
+
+  useEffect(() => {
+    if (!show || !booking) return;
+    setPaymentMethod('');
+    setActiveRoomIdx('ALL');
+    fetchBilling();
   }, [show, booking]);
 
   if (!show || !booking) return null;
@@ -67,9 +72,6 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   const methodLabel = (m) => m === 'CARD' ? 'Card' : m === 'TRANSFER' ? 'Transfer' : 'Cash';
   const fmtMoney = (v) => Number(v || 0).toLocaleString();
 
-  const BANK_BIN = "970436"; const BANK_ACCOUNT = "0123456789"; const ACCOUNT_NAME = "KHACH SAN AN";
-  const qrString = `00020101021238580010A00000072701280006${BANK_BIN}0110${BANK_ACCOUNT}0208QRIBFTTA5303704540${amountDue.toString().length}${amountDue}5802VN59${ACCOUNT_NAME.length < 10 ? '0' + ACCOUNT_NAME.length : ACCOUNT_NAME.length}${ACCOUNT_NAME}62220818THANHTOAN ${booking.bookingCode}6304`;
-
   const handlePrint = () => window.print();
 
   const handleConfirmCheckout = async () => {
@@ -93,7 +95,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
       <div className="modal fade show d-block no-print" tabIndex="-1"
         style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)' }}>
         <div className="modal-dialog modal-dialog-centered"
-          style={{ maxWidth: 1200, margin: '1.5rem auto', maxHeight: 'calc(100vh - 3rem)', transform: 'translateX(150px)' }}>
+          style={{ maxWidth: 1500, margin: '1.5rem auto', maxHeight: 'calc(100vh - 3rem)', transform: 'translateX(150px)' }}>
           <div className="modal-content border-0 shadow-lg d-flex flex-column"
             style={{ maxHeight: 'calc(100vh - 3rem)', overflow: 'hidden' }}>
 
@@ -120,6 +122,13 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                   {/* Room Tabs */}
                   {rooms.length > 1 && (
                     <div className="d-flex gap-2 mb-3 flex-wrap">
+                      <button
+                        className={`btn btn-sm fw-semibold px-3 py-1 ${activeRoomIdx === 'ALL' ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
+                        onClick={() => setActiveRoomIdx('ALL')}
+                        style={{ borderRadius: 8, fontSize: '0.8rem' }}>
+                        <i className="bi bi-list-columns-reverse me-1"></i>
+                        All Rooms
+                      </button>
                       {rooms.map((room, idx) => (
                         <button key={idx}
                           className={`btn btn-sm fw-semibold px-3 py-1 ${activeRoomIdx === idx ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
@@ -133,103 +142,113 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                     </div>
                   )}
 
-                  {/* Active room card */}
-                  {activeRoom && (
-                    <div className="card border-0 shadow-sm mb-3">
-                      {/* Room info */}
-                      <div className="card-header bg-white py-2 px-3 border-bottom">
-                        <div className="d-flex justify-content-between align-items-start">
-                          <div>
-                            <span className="fw-bold" style={{ fontSize: '0.95rem' }}>
-                              <i className="bi bi-door-open me-1 text-primary"></i>
-                              {activeRoom.roomName}
-                            </span>
-                            <span className="text-muted ms-2" style={{ fontSize: '0.8rem' }}>
-                              {activeRoom.roomTypeName}
-                            </span>
-                            <div className="d-flex align-items-center gap-2 mt-1">
-                              <small className="text-muted" style={{ fontSize: '0.78rem' }}>
-                                <i className="bi bi-person me-1"></i>{activeRoom.guestName}
-                              </small>
-                              {hasRoomChange && (
-                                <span className="badge bg-warning text-dark" style={{ fontSize: '0.68rem' }}>
-                                  <i className="bi bi-arrow-left-right me-1"></i>
-                                  {activeRoom.roomHistory.join(' → ')}
-                                </span>
-                              )}
+                  {/* Active room card(s) */}
+                  {(activeRoomIdx === 'ALL' ? rooms : (activeRoom ? [activeRoom] : [])).map((room, renderIdx) => {
+                    const isRoomChange = room.roomHistory?.length > 1;
+                    return (
+                      <div key={renderIdx} className="card border-0 shadow-sm mb-3">
+                        {/* Room info */}
+                        <div className="card-header bg-white py-2 px-3 border-bottom">
+                          <div className="d-flex justify-content-between align-items-start">
+                            <div>
+                              <span className="fw-bold" style={{ fontSize: '0.95rem' }}>
+                                <i className="bi bi-door-open me-1 text-primary"></i>
+                                {room.roomName}
+                              </span>
+                              <span className="text-muted ms-2" style={{ fontSize: '0.8rem' }}>
+                                {room.roomTypeName}
+                              </span>
+                              <div className="d-flex align-items-center gap-2 mt-1">
+                                <small className="text-muted" style={{ fontSize: '0.78rem' }}>
+                                  <i className="bi bi-person me-1"></i>{room.guestName}
+                                </small>
+                                {isRoomChange && (
+                                  <span className="badge bg-warning text-dark" style={{ fontSize: '0.68rem' }}>
+                                    <i className="bi bi-arrow-left-right me-1"></i>
+                                    {room.roomHistory.join(' → ')}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-end" style={{ whiteSpace: 'nowrap' }}>
+                              <div className="text-muted" style={{ fontSize: '0.7rem' }}>Room Price</div>
+                              <div className="fw-bold">{fmtMoney(room.roomPrice)}</div>
+                              <button 
+                                className="btn btn-sm btn-outline-danger mt-1 py-0 px-2 d-flex align-items-center gap-1 ms-auto" 
+                                style={{fontSize: '0.7rem'}}
+                                onClick={() => setDamageReportRoom({ stayId: room.stayId, roomName: room.roomName, primaryGuestName: room.guestName })}
+                              >
+                                <i className="bi bi-exclamation-triangle"></i>Damage
+                              </button>
                             </div>
                           </div>
-                          <div className="text-end" style={{ whiteSpace: 'nowrap' }}>
-                            <div className="text-muted" style={{ fontSize: '0.7rem' }}>Room Price</div>
-                            <div className="fw-bold">{fmtMoney(activeRoom.roomPrice)}</div>
-                          </div>
+                        </div>
+
+                        {/* Services table */}
+                        <div className="table-responsive">
+                          <table className="table table-hover mb-0" style={{ fontSize: '0.82rem' }}>
+                            <thead className="table-light text-muted">
+                              <tr>
+                                <th style={{ minWidth: 160 }}>Service</th>
+                                <th className="text-center" style={{ width: 45 }}>Qty</th>
+                                <th className="text-center" style={{ width: 65 }}>Status</th>
+                                {isRoomChange && <th className="text-center" style={{ width: 55 }}>Room</th>}
+                                <th className="text-end" style={{ width: 100 }}>Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(!room.services || room.services.length === 0) ? (
+                                <tr>
+                                  <td colSpan={isRoomChange ? 5 : 4} className="text-center text-muted py-3">
+                                    <i className="bi bi-check-circle me-1"></i>No additional services
+                                  </td>
+                                </tr>
+                              ) : room.services.map((svc, idx) => (
+                                <tr key={idx}>
+                                  <td>
+                                    <span className="text-muted me-1">↳</span>
+                                    {svc.name}
+                                    {svc.orderTime && (
+                                      <small className="text-muted d-block" style={{ fontSize: '0.7rem' }}>
+                                        {svc.orderTime}
+                                      </small>
+                                    )}
+                                  </td>
+                                  <td className="text-center">{svc.quantity || 1}</td>
+                                  <td className="text-center">
+                                    {svc.paid
+                                      ? <span className="badge bg-success-subtle text-success" style={{ fontSize: '0.7rem' }}>Paid</span>
+                                      : <span className="badge bg-danger-subtle text-danger" style={{ fontSize: '0.7rem' }}>Unpaid</span>
+                                    }
+                                  </td>
+                                  {isRoomChange && (
+                                    <td className="text-center">
+                                      <small className="text-muted">{svc.roomName}</small>
+                                    </td>
+                                  )}
+                                  <td className="text-end fw-medium">{fmtMoney(svc.amount)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            {room.services?.length > 0 && (
+                              <tfoot className="table-light">
+                                <tr>
+                                  <td colSpan={isRoomChange ? 4 : 3} className="text-end text-muted small fw-bold">
+                                    Unpaid / Paid:
+                                  </td>
+                                  <td className="text-end">
+                                    <span className="text-danger fw-bold">{fmtMoney(room.serviceTotal)}</span>
+                                    <span className="text-muted mx-1">/</span>
+                                    <span className="text-success">{fmtMoney(room.servicePaidTotal)}</span>
+                                  </td>
+                                </tr>
+                              </tfoot>
+                            )}
+                          </table>
                         </div>
                       </div>
-
-                      {/* Services table */}
-                      <div className="table-responsive">
-                        <table className="table table-hover mb-0" style={{ fontSize: '0.82rem' }}>
-                          <thead className="table-light text-muted">
-                            <tr>
-                              <th style={{ minWidth: 160 }}>Service</th>
-                              <th className="text-center" style={{ width: 45 }}>Qty</th>
-                              <th className="text-center" style={{ width: 65 }}>Status</th>
-                              {hasRoomChange && <th className="text-center" style={{ width: 55 }}>Room</th>}
-                              <th className="text-end" style={{ width: 100 }}>Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(!activeRoom.services || activeRoom.services.length === 0) ? (
-                              <tr>
-                                <td colSpan={hasRoomChange ? 5 : 4} className="text-center text-muted py-3">
-                                  <i className="bi bi-check-circle me-1"></i>No additional services
-                                </td>
-                              </tr>
-                            ) : activeRoom.services.map((svc, idx) => (
-                              <tr key={idx}>
-                                <td>
-                                  <span className="text-muted me-1">↳</span>
-                                  {svc.name}
-                                  {svc.orderTime && (
-                                    <small className="text-muted d-block" style={{ fontSize: '0.7rem' }}>
-                                      {svc.orderTime}
-                                    </small>
-                                  )}
-                                </td>
-                                <td className="text-center">{svc.quantity || 1}</td>
-                                <td className="text-center">
-                                  {svc.paid
-                                    ? <span className="badge bg-success-subtle text-success" style={{ fontSize: '0.7rem' }}>Paid</span>
-                                    : <span className="badge bg-danger-subtle text-danger" style={{ fontSize: '0.7rem' }}>Unpaid</span>
-                                  }
-                                </td>
-                                {hasRoomChange && (
-                                  <td className="text-center">
-                                    <small className="text-muted">{svc.roomName}</small>
-                                  </td>
-                                )}
-                                <td className="text-end fw-medium">{fmtMoney(svc.amount)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                          {activeRoom.services?.length > 0 && (
-                            <tfoot className="table-light">
-                              <tr>
-                                <td colSpan={hasRoomChange ? 4 : 3} className="text-end text-muted small fw-bold">
-                                  Unpaid / Paid:
-                                </td>
-                                <td className="text-end">
-                                  <span className="text-danger fw-bold">{fmtMoney(activeRoom.serviceTotal)}</span>
-                                  <span className="text-muted mx-1">/</span>
-                                  <span className="text-success">{fmtMoney(activeRoom.servicePaidTotal)}</span>
-                                </td>
-                              </tr>
-                            </tfoot>
-                          )}
-                        </table>
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })}
 
                   {/* ═══ TỔNG KẾT ═══ */}
                   <div className="card border-0 shadow-sm">
@@ -278,10 +297,10 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
 
                   {/* Amount / QR display */}
                   {amountDue > 0 && paymentMethod === 'TRANSFER' ? (
-                    <div className="p-3 border rounded text-center mb-3 flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 200 }}>
-                      <p className="small text-muted mb-2">Scan VietQR to pay</p>
-                      <QRCodeCanvas value={qrString} size={150} level="H" />
-                      <div className="mt-2 fw-bold fs-5 text-danger">{fmtMoney(amountDue)} VND</div>
+                    <div className="p-3 bg-primary bg-opacity-10 rounded text-center mb-3 border border-primary flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 120 }}>
+                      <i className="bi bi-bank text-primary" style={{ fontSize: '2rem' }}></i>
+                      <div className="fw-bold text-primary fs-5 mt-2">{fmtMoney(amountDue)} VND</div>
+                      <div className="small text-muted">Bank Transfer Amount</div>
                     </div>
                   ) : amountDue <= 0 ? (
                     <div className="p-3 bg-success bg-opacity-10 rounded text-center mb-3 border border-success flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 120 }}>
@@ -398,10 +417,10 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
           </div>
         </div>
 
-        {amountDue > 0 && (
+        {amountDue > 0 && paymentMethod === 'TRANSFER' && (
           <div className="text-center mt-4">
-            <div style={{ fontSize: '12px', marginBottom: '5px' }}>Scan to Pay (VietQR)</div>
-            <QRCodeCanvas value={qrString} size={150} />
+            <div style={{ fontSize: '13px', fontWeight: 'bold' }}>To be paid via Bank Transfer</div>
+            <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '5px' }}>{fmtMoney(amountDue)} VND</div>
           </div>
         )}
 
@@ -409,6 +428,16 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
           Thank you for staying with us!<br />See you again.
         </div>
       </div>
+
+      <ReportDamageModal
+        show={!!damageReportRoom}
+        stayInfo={damageReportRoom}
+        onClose={() => setDamageReportRoom(null)}
+        onSuccess={() => {
+          setDamageReportRoom(null);
+          fetchBilling();
+        }}
+      />
     </>
   );
 }
