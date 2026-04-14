@@ -191,7 +191,7 @@ const ServiceRevenueReportScreen = () => {
                                 style={{ backgroundColor: activeTab === 'overview' ? COLORS.PRIMARY : 'transparent', color: activeTab === 'overview' ? '#fff' : '#64748b' }}
                                 onClick={() => setActiveTab('overview')}
                             >
-                                <i className="bi bi-pie-chart-fill me-2"></i>Tổng Quan Dịch Vụ
+                                <i className="bi bi-pie-chart-fill me-2"></i>Service Overview
                             </button>
                         </li>
                         <li className="nav-item">
@@ -200,7 +200,7 @@ const ServiceRevenueReportScreen = () => {
                                 style={{ backgroundColor: activeTab === 'detailed' ? '#10b981' : 'transparent', color: activeTab === 'detailed' ? '#fff' : '#64748b' }}
                                 onClick={() => setActiveTab('detailed')}
                             >
-                                <i className="bi bi-file-earmark-spreadsheet-fill me-2"></i>Bảng Kê Chi Tiết Dịch Vụ
+                                <i className="bi bi-file-earmark-spreadsheet-fill me-2"></i>Detailed Service Ledger
                             </button>
                         </li>
                     </ul>

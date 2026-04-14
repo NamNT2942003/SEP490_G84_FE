@@ -89,7 +89,7 @@ const MonthlyRevenueDashboard = ({ monthlyData, branchId, month, year }) => {
                         style={{ backgroundColor: activeTab === 'overview' ? COLORS.PRIMARY : 'transparent', color: activeTab === 'overview' ? '#fff' : '#64748b' }}
                         onClick={() => setActiveTab('overview')}
                     >
-                        <i className="bi bi-bar-chart-line-fill me-2"></i>Tổng Quan Thống Kê
+                        <i className="bi bi-bar-chart-line-fill me-2"></i>Statistical Overview
                     </button>
                 </li>
                 <li className="nav-item">
@@ -98,7 +98,7 @@ const MonthlyRevenueDashboard = ({ monthlyData, branchId, month, year }) => {
                         style={{ backgroundColor: activeTab === 'detailed' ? '#10b981' : 'transparent', color: activeTab === 'detailed' ? '#fff' : '#64748b' }}
                         onClick={() => setActiveTab('detailed')}
                     >
-                        <i className="bi bi-file-earmark-excel-fill me-2"></i>Sổ Chi Tiết Phòng
+                        <i className="bi bi-file-earmark-excel-fill me-2"></i>Detailed Room Ledger
                     </button>
                 </li>
             </ul>
