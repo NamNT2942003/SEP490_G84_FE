@@ -20,6 +20,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   const [roomBilling, setRoomBilling] = useState(null);
   const [loadingBill, setLoadingBill] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [stayPaymentMethods, setStayPaymentMethods] = useState({}); // stayId -> paymentMethod
   const [activeRoomIdx, setActiveRoomIdx] = useState('ALL');
   const [damageReportRoom, setDamageReportRoom] = useState(null);
 
@@ -41,9 +42,18 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   useEffect(() => {
     if (!show || !booking) return;
     setPaymentMethod('');
+    setStayPaymentMethods({});
     setActiveRoomIdx('ALL');
     fetchBilling();
   }, [show, booking]);
+
+  // Khi billing load xong: init stayPaymentMethods với mỗi stayId
+  useEffect(() => {
+    if (!roomBilling?.rooms) return;
+    const init = {};
+    roomBilling.rooms.forEach(r => { if (r.stayId) init[r.stayId] = ''; });
+    setStayPaymentMethods(init);
+  }, [roomBilling]);
 
   if (!show || !booking) return null;
 
@@ -74,16 +84,56 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
 
   const handlePrint = () => window.print();
 
-  const handleConfirmCheckout = async () => {
-    if (!paymentMethod) { Swal.fire({ icon: 'warning', title: 'Required', text: 'Please select a payment method to continue.' }); return; }
+  const handleCheckoutRoom = async (stayId) => {
+    const method = stayPaymentMethods[stayId];
+    if (!method) {
+      Swal.fire({ icon: 'warning', title: 'Required', text: 'Please select a payment method for this room.' });
+      return;
+    }
+    const room = rooms.find(r => r.stayId === stayId);
+    const roomName = room?.roomName || 'this room';
+    const due = Number(room?.amountDue || 0);
+
+    const confirm = await Swal.fire({
+      icon: 'question',
+      title: `Checkout ${roomName}?`,
+      html: due > 0
+        ? `Collect <b>${Number(due).toLocaleString()} VND</b> via <b>${method}</b> and check out ${roomName}.`
+        : `No outstanding charges. Check out ${roomName}.`,
+      showCancelButton: true,
+      confirmButtonText: 'Confirm',
+      confirmButtonColor: '#dc3545',
+    });
+    if (!confirm.isConfirmed) return;
+
     setIsSubmitting(true);
     try {
-      const response = await checkoutApi.processCheckout(booking.id, paymentMethod);
-      Swal.fire({ icon: 'success', title: 'Done!', text: response.message || 'Check-out completed successfully!', timer: 2000, showConfirmButton: false });
+      await checkoutApi.checkoutSingleRoom(booking.id, { stayId, paymentMethod: method });
+      Swal.fire({ icon: 'success', title: 'Done!', text: `${roomName} checked out!`, timer: 1800, showConfirmButton: false });
+      // Reload billing để cập nhật trạng thái các phòng còn lại
+      await fetchBilling();
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: 'Checkout Failed', text: error.response?.data?.error || 'An error occurred.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Single-room checkout (booking 1 phòng, dùng API cũ)
+  const handleConfirmCheckout = async () => {
+    if (!paymentMethod) {
+      Swal.fire({ icon: 'warning', title: 'Required', text: 'Please select a payment method to continue.' });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await checkoutApi.processCheckout(booking.id, paymentMethod);
+      Swal.fire({ icon: 'success', title: 'Done!', text: 'Check-out completed successfully!', timer: 2000, showConfirmButton: false });
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
-      Swal.fire({ icon: 'error', title: 'Checkout Failed', text: error.response?.data?.error || 'An error occurred during check-out. Please try again.' });
+      Swal.fire({ icon: 'error', title: 'Checkout Failed', text: error.response?.data?.error || 'An error occurred during check-out.' });
     } finally { setIsSubmitting(false); }
   };
 
@@ -95,7 +145,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
       <div className="modal fade show d-block no-print" tabIndex="-1"
         style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)' }}>
         <div className="modal-dialog modal-dialog-centered"
-          style={{ maxWidth: 1500, margin: '1.5rem auto', maxHeight: 'calc(100vh - 3rem)', transform: 'translateX(150px)' }}>
+          style={{ maxWidth: 1500, margin: '1.5rem auto', maxHeight: 'calc(100vh - 3rem)' }}>
           <div className="modal-content border-0 shadow-lg d-flex flex-column"
             style={{ maxHeight: 'calc(100vh - 3rem)', overflow: 'hidden' }}>
 
@@ -117,7 +167,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
               <div className="row g-0" style={{ minHeight: '100%' }}>
 
                 {/* ═══ CỘT TRÁI: BILL CHI TIẾT ═══ */}
-                <div className="col-lg-8 p-3" style={{ backgroundColor: '#f8f9fa' }}>
+                <div className="col-lg-7 p-3" style={{ backgroundColor: '#f8f9fa' }}>
 
                   {/* Room Tabs */}
                   {rooms.length > 1 && (
@@ -226,7 +276,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                                       <small className="text-muted">{svc.roomName}</small>
                                     </td>
                                   )}
-                                  <td className="text-end fw-medium">{fmtMoney(svc.amount)}</td>
+                                  <td className="text-end fw-medium">{fmtMoney((svc.amount || 0) * (svc.quantity || 1))}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -277,65 +327,109 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                 </div>
 
                 {/* ═══ CỘT PHẢI: THANH TOÁN ═══ */}
-                <div className="col-lg-4 p-3 bg-white border-start d-flex flex-column">
+                <div className="col-lg-5 p-3 bg-white border-start d-flex flex-column">
 
-                  {/* Payment method selector */}
                   <h6 className="fw-bold text-dark mb-2 text-center" style={{ fontSize: '0.85rem' }}>
                     <i className="bi bi-wallet2 me-1"></i>PAYMENT
                   </h6>
-                  <div className="d-flex gap-2 mb-3">
-                    {PAYMENT_METHODS.map(({ value, icon, label }) => (
-                      <button key={value} type="button"
-                        className={`btn flex-fill py-2 d-flex flex-column align-items-center gap-1 fw-semibold ${paymentMethod === value ? 'btn-primary shadow' : 'btn-outline-secondary'}`}
-                        onClick={() => setPaymentMethod(value)} disabled={isSubmitting}
-                        style={{ fontSize: '0.72rem', transition: 'all 0.15s' }}>
-                        <i className={`bi ${icon}`} style={{ fontSize: '1.2rem' }}></i>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
 
-                  {/* Amount / QR display */}
-                  {amountDue > 0 && paymentMethod === 'TRANSFER' ? (
-                    <div className="p-3 bg-primary bg-opacity-10 rounded text-center mb-3 border border-primary flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 120 }}>
-                      <i className="bi bi-bank text-primary" style={{ fontSize: '2rem' }}></i>
-                      <div className="fw-bold text-primary fs-5 mt-2">{fmtMoney(amountDue)} VND</div>
-                      <div className="small text-muted">Bank Transfer Amount</div>
-                    </div>
-                  ) : amountDue <= 0 ? (
-                    <div className="p-3 bg-success bg-opacity-10 rounded text-center mb-3 border border-success flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 120 }}>
-                      <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '2.5rem' }}></i>
-                      <h6 className="text-success fw-bold mt-2 mb-0">FULLY PAID</h6>
+                  {rooms.length > 1 ? (
+                    /* ── MULTI-ROOM: mỗi phòng có payment selector + nút Checkout riêng ── */
+                    <div className="flex-grow-1 overflow-auto" style={{ gap: 8 }}>
+                      {rooms.map((room, idx) => {
+                        const due = Number(room.amountDue || 0);
+                        const selectedMethod = stayPaymentMethods[room.stayId] || '';
+                        const isRoomDone = room.checkedOut === true;
+                        return (
+                          <div key={idx} className={`mb-2 p-2 rounded border ${isRoomDone ? 'border-success bg-success bg-opacity-10' : 'bg-white'}`}
+                            style={{ fontSize: '0.8rem' }}>
+                            {/* Header phòng */}
+                            <div className="d-flex justify-content-between align-items-center mb-1">
+                              <span className="fw-semibold">
+                                <i className="bi bi-door-open me-1 text-primary"></i>
+                                {room.roomName}
+                                <span className="text-muted ms-1">({room.guestName?.split(' ').pop()})</span>
+                              </span>
+                              {isRoomDone
+                                ? <span className="badge bg-success"><i className="bi bi-check-circle me-1"></i>Checked Out</span>
+                                : due > 0
+                                  ? <span className="badge bg-danger-subtle text-danger">{fmtMoney(due)} VND</span>
+                                  : <span className="badge bg-secondary-subtle text-secondary">No charge</span>
+                              }
+                            </div>
+
+                            {/* Payment + nút Checkout (chỉ hiện khi chưa checkout) */}
+                            {!isRoomDone && (
+                              <>
+                                {due > 0 && (
+                                  <div className="d-flex gap-1 mb-1">
+                                    {PAYMENT_METHODS.map(({ value, icon, label }) => (
+                                      <button key={value} type="button"
+                                        className={`btn btn-sm flex-fill py-1 d-flex flex-column align-items-center gap-0 fw-semibold ${
+                                          selectedMethod === value ? 'btn-primary shadow-sm' : 'btn-outline-secondary'
+                                        }`}
+                                        onClick={() => setStayPaymentMethods(prev => ({ ...prev, [room.stayId]: value }))}
+                                        disabled={isSubmitting}
+                                        style={{ fontSize: '0.65rem' }}>
+                                        <i className={`bi ${icon}`} style={{ fontSize: '0.9rem' }}></i>
+                                        {label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                                <button
+                                  className={`btn btn-sm w-100 fw-bold ${
+                                    due > 0
+                                      ? (selectedMethod ? 'btn-danger' : 'btn-outline-danger')
+                                      : 'btn-outline-secondary'
+                                  }`}
+                                  onClick={() => handleCheckoutRoom(room.stayId)}
+                                  disabled={isSubmitting || (due > 0 && !selectedMethod)}
+                                  style={{ fontSize: '0.75rem' }}>
+                                  <i className="bi bi-box-arrow-right me-1"></i>
+                                  {due > 0 ? `Collect ${fmtMoney(due)} & Checkout` : 'Checkout Room'}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="p-3 bg-warning bg-opacity-10 rounded text-center mb-3 border border-warning flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 120 }}>
-                      <i className="bi bi-cash-stack text-warning" style={{ fontSize: '2rem' }}></i>
-                      <div className="fw-bold text-warning-emphasis fs-5 mt-2">{fmtMoney(amountDue)} VND</div>
-                      <div className="small text-muted">Amount to collect</div>
-                    </div>
-                  )}
+                    /* ── SINGLE-ROOM: selector chung + nút checkout ── */
+                    <>
+                      <div className="d-flex gap-2 mb-3">
+                        {PAYMENT_METHODS.map(({ value, icon, label }) => (
+                          <button key={value} type="button"
+                            className={`btn flex-fill py-2 d-flex flex-column align-items-center gap-1 fw-semibold ${paymentMethod === value ? 'btn-primary shadow' : 'btn-outline-secondary'}`}
+                            onClick={() => setPaymentMethod(value)} disabled={isSubmitting}
+                            style={{ fontSize: '0.72rem', transition: 'all 0.15s' }}>
+                            <i className={`bi ${icon}`} style={{ fontSize: '1.2rem' }}></i>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
 
-                  {/* Room overview mini list */}
-                  {rooms.length > 1 && (
-                    <div className="mb-3 p-2 bg-light rounded" style={{ fontSize: '0.78rem' }}>
-                      <small className="text-muted fw-bold d-block mb-1">
-                        <i className="bi bi-list-ul me-1"></i>BILL BY ROOM
-                      </small>
-                      {rooms.map((room, idx) => (
-                        <div key={idx}
-                          className="d-flex justify-content-between align-items-center py-1"
-                          style={{ borderBottom: idx < rooms.length - 1 ? '1px solid #e9ecef' : 'none' }}>
-                          <span>
-                            <i className="bi bi-door-open me-1 text-muted"></i>
-                            {room.roomName}
-                            <span className="text-muted ms-1">({room.guestName?.split(' ').pop()})</span>
-                          </span>
-                          <span className="fw-semibold">
-                            {fmtMoney(Number(room.roomPrice || 0) + Number(room.serviceTotal || 0))}
-                          </span>
+                      {/* Amount display */}
+                      {amountDue > 0 && paymentMethod === 'TRANSFER' ? (
+                        <div className="p-3 bg-primary bg-opacity-10 rounded text-center mb-3 border border-primary flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 80 }}>
+                          <i className="bi bi-bank text-primary" style={{ fontSize: '2rem' }}></i>
+                          <div className="fw-bold text-primary fs-5 mt-2">{fmtMoney(amountDue)} VND</div>
+                          <div className="small text-muted">Bank Transfer Amount</div>
                         </div>
-                      ))}
-                    </div>
+                      ) : amountDue <= 0 ? (
+                        <div className="p-3 bg-success bg-opacity-10 rounded text-center mb-3 border border-success flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 80 }}>
+                          <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '2.5rem' }}></i>
+                          <h6 className="text-success fw-bold mt-2 mb-0">FULLY PAID</h6>
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-warning bg-opacity-10 rounded text-center mb-3 border border-warning flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 80 }}>
+                          <i className="bi bi-cash-stack text-warning" style={{ fontSize: '2rem' }}></i>
+                          <div className="fw-bold text-warning-emphasis fs-5 mt-2">{fmtMoney(amountDue)} VND</div>
+                          <div className="small text-muted">Amount to collect</div>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Action buttons */}
@@ -343,19 +437,23 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                     <button className="btn btn-outline-dark fw-bold py-2" onClick={handlePrint} style={{ fontSize: '0.85rem' }}>
                       <i className="bi bi-printer-fill me-2"></i>Print Receipt
                     </button>
-                    <button className="btn btn-danger fw-bold shadow-sm py-2"
-                      onClick={handleConfirmCheckout}
-                      disabled={isSubmitting || !paymentMethod}
-                      style={{ fontSize: '0.85rem' }}>
-                      {isSubmitting
-                        ? <><span className="spinner-border spinner-border-sm me-2"></span>Processing...</>
-                        : <><i className="bi bi-check2-all me-2"></i>Confirm Checkout</>
-                      }
-                    </button>
-                    {!paymentMethod && (
-                      <p className="text-muted text-center mb-0" style={{ fontSize: '0.72rem' }}>
-                        ⚠️ Please select a payment method to continue
-                      </p>
+                    {rooms.length <= 1 && (
+                      <>
+                        <button className="btn btn-danger fw-bold shadow-sm py-2"
+                          onClick={handleConfirmCheckout}
+                          disabled={isSubmitting || !paymentMethod}
+                          style={{ fontSize: '0.85rem' }}>
+                          {isSubmitting
+                            ? <><span className="spinner-border spinner-border-sm me-2"></span>Processing...</>
+                            : <><i className="bi bi-check2-all me-2"></i>Confirm Checkout</>
+                          }
+                        </button>
+                        {!paymentMethod && (
+                          <p className="text-muted text-center mb-0" style={{ fontSize: '0.72rem' }}>
+                            ⚠️ Please select a payment method to continue
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -398,7 +496,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
               {room.services?.map((svc, sIdx) => (
                 <div key={sIdx} style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: 8 }}>
                   <span>- {svc.name} x{svc.quantity}{svc.paid ? ' ✓' : ''}</span>
-                  <span>{fmtMoney(svc.amount)}</span>
+                  <span>{fmtMoney((svc.amount || 0) * (svc.quantity || 1))}</span>
                 </div>
               ))}
             </div>

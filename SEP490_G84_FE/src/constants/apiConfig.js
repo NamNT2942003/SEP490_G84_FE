@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
+  (typeof import.meta !== "undefined" && (import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_API_URL)) ||
   "https://sep490-be-hbfwake2dud7a2at.southeastasia-01.azurewebsites.net/api";
 
 export const API_ENDPOINTS = {

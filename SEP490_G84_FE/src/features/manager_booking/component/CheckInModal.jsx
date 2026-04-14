@@ -720,8 +720,13 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
       Swal.fire({ icon: 'success', title: 'Check-in Complete!', text: 'Guest has been successfully checked in.', timer: 2000, showConfirmButton: false });
       onSuccess(); onClose();
     } catch (err) {
-      setErrorMessage(err.response?.data?.error || 'A system error occurred.');
-      setStep(2);
+      const errorMsg = err.response?.data?.error || 'A system error occurred.';
+      Swal.fire({
+        icon: 'error',
+        title: 'Check-in Failed',
+        text: errorMsg,
+      });
+      setErrorMessage(errorMsg);
     } finally { setIsSubmitting(false); }
   };
 
@@ -729,7 +734,8 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
 
   const canGoNext = step === 0;
   const canGoBack = step > 0;
-  const isLastStep = step === currentSteps.length - 1;
+  // Confirm screen renders at step=2 (no allocation) OR step=3 (with allocation)
+  const isLastStep = (step === 2 && !showAllocationStep) || step === 3;
 
   return (
     <div style={S.overlay}>
@@ -874,11 +880,13 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
                 </button>
               : <button style={S.btnPrimary(!canAssignRooms && step === 0)} 
                   onClick={() => {
-                    const nextStep = (showAllocationStep && step === 1) ? 2 : (step === 1 ? 3 : step + 1);
-                    setStep(nextStep);
+                    // step=1 → if showAllocationStep go to 2 (Fee Allocation), else jump to 2 (Confirm, no alloc)
+                    // step=2 with showAllocationStep → go to 3 (Confirm)
+                    // All other steps → step + 1
+                    setStep(step + 1);
                   }} 
                   disabled={isMarkingArrived || (step === 0 && !canAssignRooms)}>
-                  Proceed to Room Assignment →
+                  Proceed to Next Step →
                 </button>
             }
           </div>

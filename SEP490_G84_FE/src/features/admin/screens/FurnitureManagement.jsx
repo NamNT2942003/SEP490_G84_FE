@@ -59,11 +59,7 @@ export default function FurnitureManagement() {
           {/* ── Page Header ── */}
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div>
-              <p className="text-muted small mb-1">
-                <i className="bi bi-house me-1"></i>Admin
-                <i className="bi bi-chevron-right mx-1" style={{ fontSize: "0.65rem" }}></i>
-                Furniture Management
-              </p>
+
               <h4 className="fw-bold mb-0" style={{ color: "#1a1a2e", letterSpacing: "-0.3px" }}>
                 Furniture Management
               </h4>

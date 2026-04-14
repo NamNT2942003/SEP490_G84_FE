@@ -4,10 +4,12 @@ import RevenueTable from './RevenueTable';
 import RoomRevenuePieChart from './RoomRevenuePieChart';
 import DailyOccupancyChart from './DailyOccupancyChart';
 import OtaBreakdownModal from './OtaBreakdownModal';
+import RoomRevenueExcelRowTable from './RoomRevenueExcelRowTable';
 import { COLORS } from '@/constants';
 
 const MonthlyRevenueDashboard = ({ monthlyData, branchId, month, year }) => {
     const [viewMode, setViewMode] = useState('chart');
+    const [activeTab, setActiveTab] = useState('overview');
     const [showOtaModal, setShowOtaModal] = useState(false);
     const formatCurrency = (value) => new Intl.NumberFormat('en-US').format(value || 0);
 
@@ -79,8 +81,33 @@ const MonthlyRevenueDashboard = ({ monthlyData, branchId, month, year }) => {
                 </div>
             </div>
 
-            {/* Daily Occupancy Line Chart */}
-            {monthlyData.dailyOccupancy && monthlyData.dailyOccupancy.length > 0 && (
+            {/* Tabs Điều hướng (Overview vs Detailed Excel) */}
+            <ul className="nav nav-pills mb-4 px-1" style={{ borderBottom: '2px solid #e2e8f0' }}>
+                <li className="nav-item">
+                    <button 
+                        className={`nav-link fw-bold px-4 py-2 rounded-0 rounded-top ${activeTab === 'overview' ? 'active shadow-sm' : 'text-muted'}`}
+                        style={{ backgroundColor: activeTab === 'overview' ? COLORS.PRIMARY : 'transparent', color: activeTab === 'overview' ? '#fff' : '#64748b' }}
+                        onClick={() => setActiveTab('overview')}
+                    >
+                        <i className="bi bi-bar-chart-line-fill me-2"></i>Statistical Overview
+                    </button>
+                </li>
+                <li className="nav-item">
+                    <button 
+                        className={`nav-link fw-bold px-4 py-2 rounded-0 rounded-top ${activeTab === 'detailed' ? 'active shadow-sm' : 'text-muted'}`}
+                        style={{ backgroundColor: activeTab === 'detailed' ? '#10b981' : 'transparent', color: activeTab === 'detailed' ? '#fff' : '#64748b' }}
+                        onClick={() => setActiveTab('detailed')}
+                    >
+                        <i className="bi bi-file-earmark-excel-fill me-2"></i>Detailed Room Ledger
+                    </button>
+                </li>
+            </ul>
+
+            {/* TAB OVERVIEW: HIỂN THỊ ĐỒ THỊ */}
+            {activeTab === 'overview' && (
+                <>
+                    {/* Daily Occupancy Line Chart */}
+                    {monthlyData.dailyOccupancy && monthlyData.dailyOccupancy.length > 0 && (
                 <div className="row mb-3">
                     <div className="col-12">
                         <div className="card shadow-sm border-0 rounded-3">
@@ -106,31 +133,33 @@ const MonthlyRevenueDashboard = ({ monthlyData, branchId, month, year }) => {
                     <div className="card shadow-sm border-0 rounded-3 h-100">
                         <div className="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
                             <h6 className="card-title mb-0 fw-bold text-dark">
-                                {viewMode === 'chart' ? 'Revenue by Room Type' : 'Detailed Table'}
+                                {viewMode === 'chart' ? 'Revenue by Room Type' : 'Summary Table'}
                             </h6>
-                            <div className="btn-group">
-                                <button 
-                                    className="btn btn-sm"
-                                    style={{
-                                        backgroundColor: viewMode === 'chart' ? COLORS.PRIMARY : 'transparent',
-                                        color: viewMode === 'chart' ? COLORS.TEXT_LIGHT : COLORS.PRIMARY,
-                                        borderColor: COLORS.PRIMARY
-                                    }}
-                                    onClick={() => setViewMode('chart')}
-                                >
-                                    View Chart
-                                </button>
-                                <button 
-                                    className="btn btn-sm"
-                                    style={{
-                                        backgroundColor: viewMode === 'table' ? COLORS.PRIMARY : 'transparent',
-                                        color: viewMode === 'table' ? COLORS.TEXT_LIGHT : COLORS.PRIMARY,
-                                        borderColor: COLORS.PRIMARY
-                                    }}
-                                    onClick={() => setViewMode('table')}
-                                >
-                                    View Excel Table
-                                </button>
+                            <div className="d-flex align-items-center gap-2">
+                                <div className="btn-group">
+                                    <button 
+                                        className="btn btn-sm"
+                                        style={{
+                                            backgroundColor: viewMode === 'chart' ? COLORS.PRIMARY : 'transparent',
+                                            color: viewMode === 'chart' ? COLORS.TEXT_LIGHT : COLORS.PRIMARY,
+                                            borderColor: COLORS.PRIMARY
+                                        }}
+                                        onClick={() => setViewMode('chart')}
+                                    >
+                                        View Chart
+                                    </button>
+                                    <button 
+                                        className="btn btn-sm"
+                                        style={{
+                                            backgroundColor: viewMode === 'table' ? COLORS.PRIMARY : 'transparent',
+                                            color: viewMode === 'table' ? COLORS.TEXT_LIGHT : COLORS.PRIMARY,
+                                            borderColor: COLORS.PRIMARY
+                                        }}
+                                        onClick={() => setViewMode('table')}
+                                    >
+                                        View Table
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div className="card-body mt-2">
@@ -156,6 +185,18 @@ const MonthlyRevenueDashboard = ({ monthlyData, branchId, month, year }) => {
                     </div>
                 </div>
             </div>
+            </>)}
+
+            {/* TAB DETAILED: EXCEL ROW TABLE */}
+            {activeTab === 'detailed' && (
+                <div className="animate__animated animate__fadeIn">
+                    <RoomRevenueExcelRowTable
+                        branchId={branchId}
+                        month={month}
+                        year={year}
+                    />
+                </div>
+            )}
 
             <OtaBreakdownModal
                 show={showOtaModal}
