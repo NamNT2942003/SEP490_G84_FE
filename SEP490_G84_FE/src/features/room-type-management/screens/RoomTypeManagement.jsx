@@ -374,7 +374,7 @@ export default function RoomTypeManagement() {
     <div className="rt-page">
       <div className="rt-title-row">
         <div>
-          <p className="text-muted small mb-1">Admin / Room Type Management</p>
+
           <h4 className="mb-0">Room Type Management</h4>
         </div>
         <Buttons variant="primary" className="btn-sm" icon={<i className="bi bi-plus-circle me-1" />} onClick={openCreateModal}>

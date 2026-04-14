@@ -3,6 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { serviceAPI } from '@/features/services/api/serviceApi';
 import './EditService.css';
 
+const COST_TYPES = [
+  { value: 'NONE',         label: 'None (No profit tracking — e.g. Minibar)' },
+  { value: 'PERCENT',      label: 'Percent of Revenue (e.g. Laundry 40%, Motorbike 75%)' },
+  { value: 'FIXED_PROFIT', label: 'Fixed Profit per Order (e.g. Airport Transfer +50,000₫)' },
+  { value: 'MANUAL',       label: 'Manual Entry (staff inputs cost at sale — e.g. Tour)' },
+];
+
 const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) => {
   const { id: idFromRoute } = useParams();
   const navigate = useNavigate();
@@ -10,7 +17,14 @@ const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [form, setForm] = useState({ serviceName: '', basePrice: '', category: '' });
+  const [form, setForm] = useState({
+    serviceName: '',
+    basePrice: '',
+    category: '',
+    costType: 'NONE',
+    costRate: '',
+    fixedProfit: '',
+  });
 
   useEffect(() => {
     if (!serviceId) return;
@@ -24,9 +38,12 @@ const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) 
       const res = await serviceAPI.getServiceById(serviceId);
       const s = res.data;
       setForm({
-        serviceName: s.serviceName || '',
-        basePrice: s.basePrice != null ? String(s.basePrice) : '',
-        category: s.category || '',
+        serviceName:  s.serviceName  || '',
+        basePrice:    s.basePrice    != null ? String(s.basePrice)    : '',
+        category:     s.category     || '',
+        costType:     s.costType     || 'NONE',
+        costRate:     s.costRate     != null ? String(s.costRate)     : '',
+        fixedProfit:  s.fixedProfit  != null ? String(s.fixedProfit)  : '',
       });
     } catch (e) {
       setError(e.response?.status === 404 ? 'Service not found.' : (e.response?.data?.message || e.message || 'Failed to load data.'));
@@ -44,31 +61,45 @@ const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) 
     e.preventDefault();
     setError(null);
     const name = form.serviceName.trim();
-    const cat = form.category.trim();
-    const bp = form.basePrice.trim();
-    if (!name) {
-      setError('Service Name is required.');
-      return;
+    const cat  = form.category.trim();
+    const bp   = form.basePrice.trim();
+
+    if (!name) { setError('Service Name is required.'); return; }
+    if (!cat) { setError('Category is required.'); return; }
+
+    // basePrice là optional — chỉ validate nếu nhập vào
+    let basePriceNum = null;
+    if (form.basePrice.trim()) {
+      basePriceNum = parseFloat(form.basePrice.replace(/,/g, '.'));
+      if (isNaN(basePriceNum) || basePriceNum < 0) {
+        setError('Price must be a valid number ≥ 0.');
+        return;
+      }
     }
-    if (!bp) {
-      setError('Price (VND) is required.');
-      return;
+
+    // Validate cost fields
+    let costRate    = null;
+    let fixedProfit = null;
+    if (form.costType === 'PERCENT') {
+      const r = parseFloat(form.costRate);
+      if (isNaN(r) || r < 0 || r > 1) { setError('Cost Rate must be between 0 and 1 (e.g. 0.40 for 40%).'); return; }
+      costRate = r;
     }
-    const num = parseFloat(bp.replace(/,/g, '.'));
-    if (isNaN(num) || num < 0) {
-      setError('Price must be a valid number greater than or equal to 0.');
-      return;
+    if (form.costType === 'FIXED_PROFIT') {
+      const fp = parseFloat(form.fixedProfit.replace(/,/g, '.'));
+      if (isNaN(fp) || fp < 0) { setError('Fixed Profit must be a valid number ≥ 0.'); return; }
+      fixedProfit = fp;
     }
-    if (!cat) {
-      setError('Category is required.');
-      return;
-    }
+
     setSaving(true);
     try {
       const payload = {
-        serviceName: name,
-        category: cat,
-        basePrice: num,
+        serviceName:  name,
+        category:     cat,
+        basePrice:    basePriceNum,
+        costType:     form.costType,
+        costRate,
+        fixedProfit,
       };
       await serviceAPI.updateService(serviceId, payload);
       if (isModal && onSuccess) {
@@ -78,81 +109,126 @@ const EditService = ({ serviceId: serviceIdProp, onClose, onSuccess, isModal }) 
       }
     } catch (e) {
       const data = e.response?.data;
-      const msg = (data && typeof data === 'object' && data.message) || (typeof data === 'string' ? data : null) || e.message || 'Update failed.';
+      const msg  = (data && typeof data === 'object' && data.message) || (typeof data === 'string' ? data : null) || e.message || 'Update failed.';
       setError(msg);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCancel = () => {
-    if (isModal && onClose) onClose();
-    else navigate(`/services/${serviceId}`);
-  };
+  const handleCancel    = () => { if (isModal && onClose) onClose(); else navigate(`/services/${serviceId}`); };
+  const handleBackToList = () => { if (isModal && onClose) onClose(); else navigate('/services'); };
 
-  const handleBackToList = () => {
-    if (isModal && onClose) onClose();
-    else navigate('/services');
-  };
+  if (loading) return (
+    <div className="edit-service-page">
+      <div className="edit-service-loading"><div className="spinner-border text-primary" /> <span>Loading...</span></div>
+    </div>
+  );
 
-  if (loading) {
-    return (
-      <div className="edit-service-page">
-        <div className="edit-service-loading"><div className="spinner-border text-primary" /> <span>Loading...</span></div>
-      </div>
-    );
-  }
-
-  if (error && !form.serviceName && form.basePrice === '' && form.category === '') {
-    return (
-      <div className="edit-service-page">
-        <p className="alert alert-danger">{error}</p>
-        <button type="button" className="btn btn-outline-secondary" onClick={handleBackToList}>Back to list</button>
-      </div>
-    );
-  }
+  if (error && !form.serviceName && form.basePrice === '' && form.category === '') return (
+    <div className="edit-service-page">
+      <p className="alert alert-danger">{error}</p>
+      <button type="button" className="btn btn-outline-secondary" onClick={handleBackToList}>Back to list</button>
+    </div>
+  );
 
   return (
     <div className="edit-service-page">
       <h1 className="edit-service-title" id="edit-service-title">Edit Service</h1>
       <form onSubmit={handleSubmit} className="edit-service-form">
         {error && <div className="alert alert-danger">{error}</div>}
+
+        {/* ── Basic Info ─────────────────────────────────────────── */}
         <div className="mb-3">
-          <label className="form-label required">Service Name <span className="text-danger">*</span></label>
-          <input
-            type="text"
-            name="serviceName"
-            className="form-control"
-            value={form.serviceName}
-            onChange={handleChange}
-            placeholder="Enter service name"
-            required
-          />
+          <label className="form-label">Service Name <span className="text-danger">*</span></label>
+          <input type="text" name="serviceName" className="form-control" value={form.serviceName} onChange={handleChange} placeholder="Enter service name" required />
         </div>
         <div className="mb-3">
-          <label className="form-label required">Price (VND) <span className="text-danger">*</span></label>
-          <input
-            type="text"
-            name="basePrice"
-            className="form-control"
-            value={form.basePrice}
-            onChange={handleChange}
-            placeholder="e.g. 100000"
-            required
-          />
+          <label className="form-label">Price (VND) <small className="text-muted">(optional — suggested price hint for staff)</small></label>
+          <input type="text" name="basePrice" className="form-control" value={form.basePrice} onChange={handleChange} placeholder="Leave empty if price varies each time" />
+          <small className="text-muted">If left empty, staff will enter the price manually when selling this service.</small>
         </div>
         <div className="mb-3">
-          <label className="form-label required">Category <span className="text-danger">*</span></label>
-          <input
-            type="text"
-            name="category"
-            className="form-control"
-            value={form.category}
-            onChange={handleChange}
-            placeholder="e.g. F&B, Laundry"
-            required
-          />
+          <label className="form-label">Category <span className="text-danger">*</span></label>
+          <input type="text" name="category" className="form-control" value={form.category} onChange={handleChange} placeholder="e.g. Laundry, Tour" required />
         </div>
+
+        {/* ── Cost Formula (Admin only) ───────────────────────────── */}
+        <hr />
+        <div className="mb-1">
+          <label className="form-label fw-bold">
+            <i className="bi bi-calculator me-1 text-primary" />
+            Cost Formula
+          </label>
+          <small className="d-block text-muted mb-2">
+            Defines how the hotel's cost (Tổng chi) is calculated from the sale price (Tổng thu).
+          </small>
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Formula Type</label>
+          <select name="costType" className="form-select" value={form.costType} onChange={handleChange}>
+            {COST_TYPES.map(ct => (
+              <option key={ct.value} value={ct.value}>{ct.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* PERCENT fields */}
+        {form.costType === 'PERCENT' && (
+          <div className="mb-3">
+            <label className="form-label">
+              Cost Rate <span className="text-danger">*</span>
+              <small className="text-muted ms-2">(decimal, e.g. 0.40 = 40%)</small>
+            </label>
+            <div className="input-group">
+              <input
+                type="number" name="costRate" className="form-control"
+                value={form.costRate} onChange={handleChange}
+                min="0" max="1" step="0.01" placeholder="e.g. 0.40" required
+              />
+              <span className="input-group-text">
+                {form.costRate ? `${Math.round(parseFloat(form.costRate) * 100)}% of revenue` : '—'}
+              </span>
+            </div>
+            <small className="text-muted">
+              Example: Laundry = 0.40 → Sale 100,000₫ → Cost 40,000₫ → Profit 60,000₫
+            </small>
+          </div>
+        )}
+
+        {/* FIXED_PROFIT fields */}
+        {form.costType === 'FIXED_PROFIT' && (
+          <div className="mb-3">
+            <label className="form-label">
+              Fixed Profit per Order <span className="text-danger">*</span>
+              <small className="text-muted ms-2">(VND)</small>
+            </label>
+            <input
+              type="number" name="fixedProfit" className="form-control"
+              value={form.fixedProfit} onChange={handleChange}
+              min="0" step="1000" placeholder="e.g. 50000" required
+            />
+            <small className="text-muted">
+              Example: Airport Transfer = 50,000 → Sale 300,000₫ → Cost 250,000₫ → Profit exactly 50,000₫
+            </small>
+          </div>
+        )}
+
+        {form.costType === 'MANUAL' && (
+          <div className="alert alert-info py-2 mb-3" style={{ fontSize: '0.85rem' }}>
+            <i className="bi bi-info-circle me-1" />
+            Staff will enter the actual cost (Tổng chi) manually each time this service is sold.
+          </div>
+        )}
+
+        {form.costType === 'NONE' && (
+          <div className="alert alert-secondary py-2 mb-3" style={{ fontSize: '0.85rem' }}>
+            <i className="bi bi-dash-circle me-1" />
+            No profit tracking. Cost = Revenue (e.g. Minibar items sold at purchase price).
+          </div>
+        )}
+
         <div className="edit-service-actions">
           <button type="submit" className="btn btn-brand" disabled={saving}>
             {saving ? 'Saving...' : 'Save changes'}

@@ -5,6 +5,7 @@ import YearlyRevenueDashboard from '../component/YearlyRevenueDashboard';
 import MonthlyRevenueDashboard from '../component/MonthlyRevenueDashboard';
 import { COLORS } from '@/constants';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import RoomRevenueExcelRowTable from '../component/RoomRevenueExcelRowTable';
 
 const RevenueReportScreen = () => {
     const [searchParams] = useSearchParams();

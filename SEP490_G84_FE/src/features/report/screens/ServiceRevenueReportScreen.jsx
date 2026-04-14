@@ -4,6 +4,7 @@ import { reportApi } from '../api/reportApi';
 import { COLORS } from '@/constants';
 import YearlyServiceRevenueDashboard from '../component/YearlyServiceRevenueDashboard';
 import ExpensePieChart from '../component/ExpensePieChart'; 
+import ServiceRevenueExcelRowTable from '../component/ServiceRevenueExcelRowTable';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ServiceRevenueReportScreen = () => {
@@ -21,6 +22,7 @@ const ServiceRevenueReportScreen = () => {
     // 2. Navigation State (Điều hướng Drill-down)
     const [viewLevel, setViewLevel] = useState(initMonth ? 'monthly' : 'yearly');
     const [selectedMonth, setSelectedMonth] = useState(initMonth);
+    const [activeTab, setActiveTab] = useState('overview');
 
     // 3. Data States (Lưu trữ dữ liệu thật từ API)
     const [yearlyData, setYearlyData] = useState([]);
@@ -95,6 +97,20 @@ const ServiceRevenueReportScreen = () => {
 
     const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'VND' }).format(val || 0);
 
+    // Navigate tháng từ detail table
+    const handleDetailMonthChange = async (newMonth) => {
+        setSelectedMonth(newMonth);
+        setLoading(true);
+        try {
+            const data = await reportApi.getMonthlyServiceRevenue(selectedBranch, newMonth, selectedYear);
+            setMonthlyData(data);
+        } catch {
+            setMonthlyData([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="container-fluid p-0">
             {/* Header */}
@@ -103,7 +119,7 @@ const ServiceRevenueReportScreen = () => {
                     SERVICE REVENUE {viewLevel === 'monthly' && `- MONTH ${selectedMonth}`}
                 </h2>
                 {viewLevel === 'monthly' && (
-                    <button className="btn btn-outline-secondary fw-bold shadow-sm" onClick={() => { setViewLevel('yearly'); setSelectedMonth(null); }}>
+                    <button className="btn btn-outline-secondary fw-bold shadow-sm" onClick={() => { setViewLevel('yearly'); setSelectedMonth(null); setActiveTab('overview'); }}>
                          <i className="bi bi-arrow-left me-2"></i> Back to Yearly Overview
                     </button>
                 )}
@@ -164,67 +180,102 @@ const ServiceRevenueReportScreen = () => {
                 />
             )}
 
-            {/* LEVEL 2: CHI TIẾT THÁNG (Pie Chart + Table) */}
+            {/* LEVEL 2: CHI TIẾT THÁNG */}
             {!loading && viewLevel === 'monthly' && (
-                <div className="row g-4 animate__animated animate__fadeInRight">
-                    {/* Cột trái: Cơ cấu dịch vụ */}
-                    <div className="col-lg-5">
-                        <div className="card shadow-sm border-0 rounded-3 h-100">
-                            <div className="card-header bg-white py-3 border-0">
-                                <h5 className="fw-bold m-0 text-dark">Service Type Structure (%)</h5>
-                                <small className="text-muted">Service Revenue Proportion</small>
-                            </div>
-                            <div className="card-body d-flex align-items-center justify-content-center">
-                                {/* Component Pie Chart tự tính phần trăm dựa trên amount */}
-                                <ExpensePieChart data={monthlyData} />
-                            </div>
-                        </div>
-                    </div>
+                <>
+                    {/* Tabs Điều hướng */}
+                    <ul className="nav nav-pills mb-4 px-1" style={{ borderBottom: '2px solid #e2e8f0' }}>
+                        <li className="nav-item">
+                            <button 
+                                className={`nav-link fw-bold px-4 py-2 rounded-0 rounded-top ${activeTab === 'overview' ? 'active shadow-sm' : 'text-muted'}`}
+                                style={{ backgroundColor: activeTab === 'overview' ? COLORS.PRIMARY : 'transparent', color: activeTab === 'overview' ? '#fff' : '#64748b' }}
+                                onClick={() => setActiveTab('overview')}
+                            >
+                                <i className="bi bi-pie-chart-fill me-2"></i>Tổng Quan Dịch Vụ
+                            </button>
+                        </li>
+                        <li className="nav-item">
+                            <button 
+                                className={`nav-link fw-bold px-4 py-2 rounded-0 rounded-top ${activeTab === 'detailed' ? 'active shadow-sm' : 'text-muted'}`}
+                                style={{ backgroundColor: activeTab === 'detailed' ? '#10b981' : 'transparent', color: activeTab === 'detailed' ? '#fff' : '#64748b' }}
+                                onClick={() => setActiveTab('detailed')}
+                            >
+                                <i className="bi bi-file-earmark-spreadsheet-fill me-2"></i>Bảng Kê Chi Tiết Dịch Vụ
+                            </button>
+                        </li>
+                    </ul>
 
-                    {/* Cột phải: Bảng chi tiết */}
-                    <div className="col-lg-7">
-                        <div className="card shadow-sm border-0 rounded-3 h-100">
-                            <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
-                                <div>
-                                    <h5 className="fw-bold m-0 text-dark">Service Revenue Details</h5>
-                                    <small className="text-success fw-bold">Total: {formatCurrency(totalMonthlyRevenue)}</small>
+                    {/* NỘI DUNG TAB OVERVIEW */}
+                    {activeTab === 'overview' && (
+                        <div className="row g-4 animate__animated animate__fadeIn">
+                            {/* Cột trái: Cơ cấu dịch vụ */}
+                            <div className="col-lg-5">
+                                <div className="card shadow-sm border-0 rounded-3 h-100">
+                                    <div className="card-header bg-white py-3 border-0">
+                                        <h5 className="fw-bold m-0 text-dark">Service Type Structure (%)</h5>
+                                        <small className="text-muted">Service Revenue Proportion</small>
+                                    </div>
+                                    <div className="card-body d-flex align-items-center justify-content-center">
+                                        <ExpensePieChart data={monthlyData} />
+                                    </div>
                                 </div>
                             </div>
-                            <div className="card-body p-0">
-                                {monthlyData.length === 0 ? (
-                                    <div className="text-center p-5 text-muted">No service data available for this month</div>
-                                ) : (
-                                    <div className="table-responsive">
-                                        <table className="table table-hover mb-0 align-middle text-center">
-                                            <thead className="bg-light">
-                                                <tr>
-                                                    <th className="text-start ps-4">Service Name / Group</th>
-                                                    <th>Usage Count</th>
-                                                    <th className="text-end pe-4">Revenue</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {monthlyData.map((item, index) => (
-                                                    <tr key={index}>
-                                                        <td className="fw-bold text-start ps-4 text-dark">{item.category}</td>
-                                                        <td>
-                                                            <span className="badge bg-secondary rounded-pill px-3 py-2">
-                                                                {item.usageCount} times
-                                                            </span>
-                                                        </td>
-                                                        <td className="text-end pe-4 text-primary fw-bold">
-                                                            {formatCurrency(item.amount)}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+
+                            {/* Cột phải: Bảng tóm tắt */}
+                            <div className="col-lg-7">
+                                <div className="card shadow-sm border-0 rounded-3 h-100">
+                                    <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
+                                        <div>
+                                            <h5 className="fw-bold m-0 text-dark">Service Revenue Details</h5>
+                                            <small className="text-success fw-bold">Total: {formatCurrency(totalMonthlyRevenue)}</small>
+                                        </div>
                                     </div>
-                                )}
+                                    <div className="card-body p-0">
+                                        {monthlyData.length === 0 ? (
+                                            <div className="text-center p-5 text-muted">No service data available for this month</div>
+                                        ) : (
+                                            <div className="table-responsive">
+                                                <table className="table table-hover mb-0 align-middle text-center">
+                                                    <thead className="bg-light">
+                                                        <tr>
+                                                            <th className="text-start ps-4">Danh Mục</th>
+                                                            <th className="text-end">Doanh Thu</th>
+                                                            <th className="text-end pe-4">Thu Về</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {monthlyData.map((item, index) => (
+                                                            <tr key={index}>
+                                                                <td className="fw-bold text-start ps-4 text-dark">{item.category}</td>
+                                                                <td className="text-end fw-bold">
+                                                                    {formatCurrency(item.amount)}
+                                                                </td>
+                                                                <td className="text-end pe-4 text-success fw-bold">
+                                                                    {formatCurrency(item.netRevenue)}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    )}
+
+                    {/* NỘI DUNG TAB DETAILED (BẢNG KÊ EXCEL) */}
+                    {activeTab === 'detailed' && (
+                        <div className="animate__animated animate__fadeIn">
+                            <ServiceRevenueExcelRowTable
+                                branchId={selectedBranch}
+                                month={selectedMonth}
+                                year={selectedYear}
+                            />
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

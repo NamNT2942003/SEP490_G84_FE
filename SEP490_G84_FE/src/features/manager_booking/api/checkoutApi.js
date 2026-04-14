@@ -19,6 +19,31 @@ export const checkoutApi = {
     return data;
   },
 
+  /**
+   * Checkout toàn bộ booking chia bill dịch vụ theo từng phòng (1 request).
+   * payload: { roomPayments: [{ stayId, paymentMethod }] }
+   */
+  processSplitCheckout: async (bookingId, payload) => {
+    const { data } = await apiClient.post(
+      `/checkout/bookings/${bookingId}/process-split`,
+      payload
+    );
+    return data;
+  },
+
+  /**
+   * Checkout 1 phòng (Stay) riêng lẻ.
+   * Booking vẫn CHECKED_IN cho đến khi phòng cuối cùng checkout.
+   * payload: { stayId, paymentMethod }
+   */
+  checkoutSingleRoom: async (bookingId, payload) => {
+    const { data } = await apiClient.post(
+      `/checkout/bookings/${bookingId}/checkout-room`,
+      payload
+    );
+    return data;
+  },
+
   checkLateCheckoutFeasibility: async (bookingId) => {
     const { data } = await apiClient.get(`/checkout/bookings/${bookingId}/late-checkout-feasibility`);
     return data;

@@ -14,6 +14,18 @@ export const reportApi = {
         }
     },
 
+    getDetailedRoomRevenue: async (branchId, month, year) => {
+        try {
+            const { data } = await apiClient.get('/reports/rooms/details', {
+                params: { branchId, month, year }
+            });
+            return data;
+        } catch (error) {
+            console.error("API Error:", error);
+            throw error;
+        }
+    },
+
     getYearlyRevenue: async (branchId, year) => {
         try {
             const { data } = await apiClient.get('/reports/yearly-revenue', {
@@ -106,6 +118,18 @@ export const reportApi = {
     getMonthlyServiceRevenue: async (branchId, month, year) => {
         try {
             const { data } = await apiClient.get('/reports/services/monthly', {
+                params: { branchId, month, year }
+            });
+            return data;
+        } catch (error) {
+            console.error("API Error:", error);
+            throw error;
+        }
+    },
+
+    getDetailedServiceRevenue: async (branchId, month, year) => {
+        try {
+            const { data } = await apiClient.get('/reports/services/details', {
                 params: { branchId, month, year }
             });
             return data;
