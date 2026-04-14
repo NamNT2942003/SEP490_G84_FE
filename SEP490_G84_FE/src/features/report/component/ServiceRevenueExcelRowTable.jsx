@@ -47,7 +47,7 @@ const ServiceRevenueExcelRowTable = ({ branchId, month, year }) => {
         return (
             <div className="text-center p-5 animate__animated animate__fadeIn">
                 <div className="spinner-border" style={{ color: COLORS.PRIMARY }} role="status"></div>
-                <div className="mt-2 text-muted">Đang tải dữ liệu chi tiết...</div>
+                <div className="mt-2 text-muted">Loading detailed data...</div>
             </div>
         );
     }
@@ -57,14 +57,14 @@ const ServiceRevenueExcelRowTable = ({ branchId, month, year }) => {
             {/* Header */}
             <div className="d-flex align-items-center mb-4 gap-3">
                 <div className="badge px-3 py-2 fw-medium" style={{ backgroundColor: '#fff', color: COLORS.PRIMARY, border: `1px solid ${COLORS.PRIMARY}`}}>
-                    BẢNG KÊ CHI TIẾT DỊCH VỤ - THÁNG {month}/{year}
+                    DETAILED SERVICE LEDGER - MONTH {month}/{year}
                 </div>
             </div>
 
             {Object.keys(grouped).length === 0 ? (
                 <div className="card shadow-sm border-0 p-5 text-center text-muted">
                     <i className="bi bi-folder-x mb-3" style={{ fontSize: '2rem', opacity: 0.5 }}></i>
-                    Không có phát sinh giao dịch dịch vụ nào đã thanh toán trong tháng này.
+                    No paid service transactions occurred this month.
                 </div>
             ) : (
                 <div className="row g-4">
@@ -81,12 +81,12 @@ const ServiceRevenueExcelRowTable = ({ branchId, month, year }) => {
                                             <table className="table table-hover table-bordered mb-0 align-middle" style={{ fontSize: '0.85rem' }}>
                                                 <thead className="bg-light sticky-top" style={{ zIndex: 1 }}>
                                                     <tr>
-                                                        <th className="text-center text-secondary py-2" style={{ width: '12%'}}>Ngày</th>
-                                                        <th className="text-center text-secondary py-2" style={{ width: '15%'}}>Phòng/Mã BK</th>
-                                                        <th className="text-start text-secondary py-2">Mô tả</th>
-                                                        <th className="text-end text-secondary py-2" style={{ width: '15%'}}>Tổng thu</th>
-                                                        <th className="text-end text-secondary py-2" style={{ width: '15%'}}>Tổng chi</th>
-                                                        <th className="text-end text-secondary py-2 pe-3" style={{ width: '15%'}}>Tổng thu về</th>
+                                                        <th className="text-center text-secondary py-2" style={{ width: '12%'}}>Date</th>
+                                                        <th className="text-center text-secondary py-2" style={{ width: '15%'}}>Room/BK Code</th>
+                                                        <th className="text-start text-secondary py-2">Description</th>
+                                                        <th className="text-end text-secondary py-2" style={{ width: '15%'}}>Gross Rev</th>
+                                                        <th className="text-end text-secondary py-2" style={{ width: '15%'}}>Cost</th>
+                                                        <th className="text-end text-secondary py-2 pe-3" style={{ width: '15%'}}>Net Rev</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -105,7 +105,7 @@ const ServiceRevenueExcelRowTable = ({ branchId, month, year }) => {
                                                 </tbody>
                                                 <tfoot className="sticky-bottom" style={{ borderTop: '2px solid #ef4444', backgroundColor: '#fef2f2' }}>
                                                     <tr>
-                                                        <td colSpan={3} className="text-end py-2 text-danger fw-bold">Tổng cộng:</td>
+                                                        <td colSpan={3} className="text-end py-2 text-danger fw-bold">TOTAL:</td>
                                                         <td className="text-end py-2 text-danger fw-bold">{fmt(grp.totalRev)}</td>
                                                         <td className="text-end py-2 text-danger fw-bold">{fmt(grp.totalCost)}</td>
                                                         <td className="text-end py-2 pe-3 text-danger fw-bold">{fmt(grp.totalNet)}</td>

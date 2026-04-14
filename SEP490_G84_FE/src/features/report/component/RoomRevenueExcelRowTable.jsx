@@ -40,18 +40,18 @@ const RoomRevenueExcelRowTable = ({ branchId, month, year }) => {
                 {loading ? (
                     <div className="text-center p-5">
                         <div className="spinner-border text-primary" role="status"></div>
-                        <div className="mt-2 text-muted">Đang tải dữ liệu chi tiết...</div>
+                        <div className="mt-2 text-muted">Loading detailed data...</div>
                     </div>
                 ) : data.length === 0 ? (
                     <div className="text-center p-5 text-muted">
                         <i className="bi bi-inbox fs-2 d-block mb-3"></i>
-                        Trống! Không có dữ liệu doanh thu phòng nào trong tháng này.
+                        Empty! No room revenue data found for this month.
                     </div>
                 ) : (
                     <div className="p-3 bg-light border-bottom">
                         <div className="d-flex align-items-center mb-2">
                             <span className="badge bg-primary me-2 px-3 py-2 rounded-pill">Total Booking: {data.length}</span>
-                            <span className="badge bg-success px-3 py-2 rounded-pill">TỔNG DOANH THU: {fmt(totalSystemRev)}</span>
+                            <span className="badge bg-success px-3 py-2 rounded-pill">TOTAL REVENUE: {fmt(totalSystemRev)}</span>
                         </div>
                     </div>
                 )}
@@ -61,16 +61,16 @@ const RoomRevenueExcelRowTable = ({ branchId, month, year }) => {
                         <table className="table table-hover table-bordered mb-0 align-middle" style={{ fontSize: '0.85rem' }}>
                             <thead className="bg-light sticky-top" style={{ zIndex: 1 }}>
                                 <tr>
-                                    <th className="text-start text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Khách hàng</th>
-                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Check in</th>
-                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Check out</th>
-                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap', maxWidth: '100px' }}>Số phòng</th>
-                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Loại phòng</th>
-                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Nguồn đặt</th>
-                                    <th className="text-end text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Giá phòng/đêm</th>
-                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Tổng đêm</th>
-                                    <th className="text-end text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Tổng tiền</th>
-                                    <th className="text-end text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Hoa Hồng</th>
+                                    <th className="text-start text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Guest</th>
+                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Check In</th>
+                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Check Out</th>
+                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap', maxWidth: '100px' }}>Room No.</th>
+                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Room Type</th>
+                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Source</th>
+                                    <th className="text-end text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Price/Night</th>
+                                    <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Total Nights</th>
+                                    <th className="text-end text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Total Amount</th>
+                                    <th className="text-end text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Commission</th>
                                     <th className="text-start text-secondary py-2" style={{ width: '200px' }}>Note</th>
                                 </tr>
                             </thead>
@@ -82,7 +82,7 @@ const RoomRevenueExcelRowTable = ({ branchId, month, year }) => {
                                         <td className="text-center text-muted" style={{ whiteSpace: 'nowrap' }}>{formatDateTime(r.checkOut)}</td>
                                         <td className="text-center fw-bold" style={{ wordWrap: 'break-word', maxWidth: '100px' }}>{r.roomNames}</td>
                                         <td className="text-center"><span className="badge bg-secondary">{r.roomTypes}</span></td>
-                                        <td className="text-center">{r.source === 'FRONT_END' || r.source === 'FRONT_DESK' ? 'Trực tiếp' : r.source}</td>
+                                        <td className="text-center">{r.source === 'FRONT_END' || r.source === 'FRONT_DESK' ? 'Direct' : r.source}</td>
                                         <td className="text-end text-dark">{fmt(r.pricePerNight)}</td>
                                         <td className="text-center fw-medium">{r.totalNights}</td>
                                         <td className="text-end text-danger fw-bold">{fmt(r.totalRevenue)}</td>
@@ -93,7 +93,7 @@ const RoomRevenueExcelRowTable = ({ branchId, month, year }) => {
                             </tbody>
                             <tfoot className="sticky-bottom" style={{ borderTop: '2px solid #ef4444', backgroundColor: '#fef2f2' }}>
                                 <tr>
-                                    <td colSpan={8} className="text-end py-3 text-danger fw-bold">TỔNG CỘNG HỆ THỐNG:</td>
+                                    <td colSpan={8} className="text-end py-3 text-danger fw-bold">SYSTEM TOTAL:</td>
                                     <td className="text-end py-3 text-danger fs-6 fw-bold">{fmt(totalSystemRev)}</td>
                                     <td colSpan={3}></td>
                                 </tr>
