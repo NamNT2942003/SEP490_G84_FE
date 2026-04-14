@@ -34,7 +34,7 @@ apiClient.interceptors.response.use(
       && !config.__networkRetried
       && (method === 'get' || (method === 'post' && isLoginRequest));
 
-    // Render free-tier cold starts may drop the first connection.
+    // Retry once for transient network timing issues.
     if (shouldRetryOnce) {
       config.__networkRetried = true;
       await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -56,7 +56,7 @@ apiClient.interceptors.response.use(
     // If there is no response, it's likely a network error / backend unreachable
     if (!error.response) {
       const base = apiClient.defaults.baseURL || 'API server';
-      const msg = `Network Error: could not reach backend (${base}). If this is Render, wait 30-60 seconds for cold start and try again.`;
+      const msg = `Network Error: could not reach backend (${base}). Please check backend availability and CORS settings.`;
       // attach a friendly message to the error object
       error.friendlyMessage = msg;
       // also log once to make debugging easier
