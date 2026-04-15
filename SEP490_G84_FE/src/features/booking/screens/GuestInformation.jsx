@@ -244,7 +244,7 @@ const withPricingState = (room, preferredOption = null) => {
     };
 };
 
-const buildBookingPayload = (formData, rooms, checkIn, checkOut) => {
+const buildBookingPayload = (formData, rooms, checkIn, checkOut, expectedTotalAmount) => {
     const bookingLevelIds = uniqueIds(
         rooms.flatMap((room) => getRoomBookingLevelModifierIds(room)),
     );
@@ -255,6 +255,7 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut) => {
 
     return {
         appliedPolicyId: formData.appliedPolicyId,
+        expectedTotalAmount,
         otaReservationId: otaId,
         arrivalDate: checkIn,
         departureDate: checkOut,
@@ -622,8 +623,14 @@ const GuestInformation = () => {
         );
     };
 
+    const normalizeMoney = (value) => {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return 0;
+        return Math.round(Math.max(0, n) * 100) / 100;
+    };
+
     const selectedPolicy = policies.find((policy) => Number(policy.id) === Number(selectedPolicyId)) || null;
-    const finalBookingAmount = Math.max(0, Math.round(calculateTotalPrice()));
+    const finalBookingAmount = normalizeMoney(calculateTotalPrice());
 
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
@@ -670,11 +677,24 @@ const GuestInformation = () => {
         }
 
         try {
-            const payload = buildBookingPayload(formData, rooms, checkIn, checkOut);
+            const payload = buildBookingPayload(formData, rooms, checkIn, checkOut, finalBookingAmount);
             const currentBranchId = branchId || 1;
             const data = await bookingService.createFromFrontend(currentBranchId, payload);
             const createdBookingId = data?.bookingId ?? data?.id;
-            const bookingTotalAmount = Number(data?.totalAmount ?? finalBookingAmount);
+            const backendTotalAmount = normalizeMoney(data?.totalAmount);
+
+            if (Math.abs(backendTotalAmount - finalBookingAmount) > 0.01) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Price changed',
+                    text: `Backend recalculated ${formatVND(backendTotalAmount)} but Guest Information shows ${formatVND(finalBookingAmount)}. Please review room pricing and continue again.`,
+                    confirmButtonColor: '#5C6F4E',
+                });
+                await refreshRoomsByEmail();
+                return;
+            }
+
+            const bookingTotalAmount = backendTotalAmount;
 
             if (!createdBookingId) {
                 Swal.fire({ icon: 'error', title: 'Booking Error', text: 'Did not receive a booking ID from the server.', confirmButtonColor: '#d33' });
