@@ -163,12 +163,13 @@ export const HousekeepingDashboard = () => {
 
   // ── Derived ──
   const selectedBranchName = branches.find(b => b.branchId === selectedBranch)?.branchName || '';
+  const realRooms = rooms.filter(r => r.roomName !== 'WAREHOUSE' && r.roomName !== 'WAREHOUSE_FAIL');
   const counts = STAT_DEFS.reduce((acc, s) => {
-    acc[s.key] = s.key === 'ALL' ? rooms.length : rooms.filter(r => r.physicalStatus === s.key).length;
+    acc[s.key] = s.key === 'ALL' ? realRooms.length : realRooms.filter(r => r.physicalStatus === s.key).length;
     return acc;
   }, {});
-  const filteredRooms = filter === 'ALL' ? rooms : rooms.filter(r => r.physicalStatus === filter);
-  const roomsWithIncidents = rooms.filter(r => r.incidentCount > 0);
+  const filteredRooms = filter === 'ALL' ? realRooms : realRooms.filter(r => r.physicalStatus === filter);
+  const roomsWithIncidents = realRooms.filter(r => r.incidentCount > 0);
 
   const grouped = {};
   filteredRooms.forEach(r => {
