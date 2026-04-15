@@ -477,7 +477,7 @@ export const HousekeepingDashboard = () => {
                               onMouseOut={e => e.currentTarget.style.opacity = '1'}
                             >
                               <i className="bi bi-check-circle-fill" />
-                              {isDirty ? 'Mark Clean' : 'Log Service'}
+                              {isDirty ? 'Mark Clean' : 'Clean'}
                             </button>
 
                             <button onClick={() => handleReportIncident(room.roomId)} style={{
