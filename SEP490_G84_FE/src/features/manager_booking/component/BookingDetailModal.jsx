@@ -57,7 +57,8 @@ export default function BookingDetailModal({ show, onClose, booking, onRefresh }
   const startEdit = (stay) =>
     setEditForms(prev => ({
       ...prev,
-      [stay.guestId]: {
+      [stay.stayId]: {
+        guestId: stay.guestId,   // lưu lại để gọi API
         guestName: stay.guestName || '',
         identityNumber: stay.identityNumber || '',
         phone: stay.phone || '',
@@ -68,23 +69,24 @@ export default function BookingDetailModal({ show, onClose, booking, onRefresh }
       },
     }));
 
-  const cancelEdit = (id) =>
-    setEditForms(prev => { const n = { ...prev }; delete n[id]; return n; });
+  const cancelEdit = (stayId) =>
+    setEditForms(prev => { const n = { ...prev }; delete n[stayId]; return n; });
 
-  const onChange = (id, field, val) =>
-    setEditForms(prev => ({ ...prev, [id]: { ...prev[id], [field]: val } }));
+  const onChange = (stayId, field, val) =>
+    setEditForms(prev => ({ ...prev, [stayId]: { ...prev[stayId], [field]: val } }));
 
-  const handleSave = async (guestId) => {
-    const form = editForms[guestId];
+  const handleSave = async (stayId) => {
+    const form = editForms[stayId];
     if (!form?.guestName) { Swal.fire({ icon: 'warning', title: 'Required', text: 'Guest name is required.' }); return; }
-    setSavingId(guestId);
+    setSavingId(stayId);
     try {
-      await checkInApi.updateGuestInfo(guestId, {
+      await checkInApi.updateGuestInfo(form.guestId, {
         ...form,
         dateOfBirth: form.dateOfBirth || null,
         identityNumber: form.identityNumber || null,
+        stayId: stayId,
       });
-      cancelEdit(guestId);
+      cancelEdit(stayId);
       if (onRefresh) onRefresh();
     } catch (e) {
       Swal.fire({ icon: 'error', title: 'Error', text: e.response?.data?.error || 'Failed to save guest info.' });
@@ -197,9 +199,9 @@ export default function BookingDetailModal({ show, onClose, booking, onRefresh }
             <>
               <Section title="In-House Guests" />
               {booking.stayDetails.map((stay, idx) => {
-                const form = editForms[stay.guestId];
+                const form = editForms[stay.stayId];
                 const isEdit = !!form;
-                const isSaving = savingId === stay.guestId;
+                const isSaving = savingId === stay.stayId;
 
                 return (
                   <div key={idx}>
@@ -234,19 +236,20 @@ export default function BookingDetailModal({ show, onClose, booking, onRefresh }
                                 type={type}
                                 className="form-control form-control-sm"
                                 value={form[field]}
-                                onChange={e => onChange(stay.guestId, field, e.target.value)}
+                                onChange={e => onChange(stay.stayId, field, e.target.value)}
                               />
                             </div>
                           ))}
 
-                          {/* ID — disabled */}
+                          {/* ID — editable so staff can update when group member arrives */}
                           <div style={{ marginBottom: 10 }}>
                             <div style={{ fontSize: '0.67rem', fontWeight: 700, color: '#aaa', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>
                               CCCD / Passport
                             </div>
                             <input className="form-control form-control-sm"
-                              value={form.identityNumber} disabled
-                              style={{ background: SECONDARY, color: '#aaa' }} />
+                              value={form.identityNumber}
+                              onChange={e => onChange(stay.stayId, 'identityNumber', e.target.value)}
+                              placeholder="Enter ID / Passport number" />
                           </div>
 
                           {/* Gender */}
@@ -255,7 +258,7 @@ export default function BookingDetailModal({ show, onClose, booking, onRefresh }
                               Gender
                             </div>
                             <select className="form-select form-select-sm" value={form.gender}
-                              onChange={e => onChange(stay.guestId, 'gender', e.target.value)}>
+                              onChange={e => onChange(stay.stayId, 'gender', e.target.value)}>
                               <option value="">--</option>
                               <option value="MALE">Male</option>
                               <option value="FEMALE">Female</option>
@@ -264,12 +267,12 @@ export default function BookingDetailModal({ show, onClose, booking, onRefresh }
 
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                             <button className="btn btn-sm btn-outline-secondary px-3"
-                              onClick={() => cancelEdit(stay.guestId)} disabled={isSaving}>
+                              onClick={() => cancelEdit(stay.stayId)} disabled={isSaving}>
                               Cancel
                             </button>
                             <button className="btn btn-sm px-4"
                               style={{ background: PRIMARY, color: '#fff', border: 'none' }}
-                              onClick={() => handleSave(stay.guestId)} disabled={isSaving}>
+                              onClick={() => handleSave(stay.stayId)} disabled={isSaving}>
                               {isSaving ? 'Saving…' : 'Save'}
                             </button>
                           </div>

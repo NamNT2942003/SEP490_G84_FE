@@ -94,7 +94,7 @@ const Header = () => {
         <header className="py-3 px-4 bg-white border-bottom shadow-sm d-flex justify-content-between align-items-center">
             {/* Page Title */}
             <div className="d-flex align-items-center gap-2">
-                <h5 className="m-0 fw-bold" style={{ color: COLORS.TEXT_DARK }}>{pageTitle}</h5>
+                
             </div>
 
             {/* Right Actions */}

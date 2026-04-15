@@ -526,7 +526,7 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
                           <td style={{ textAlign: 'center', fontWeight: 600 }}>{order.quantity}</td>
                           <td>
                             <span className={isCancelled ? 'amount-cancelled' : 'amount-positive'}>
-                              {order.orderPrice?.toLocaleString('en-US')}
+                              {((order.orderPrice ?? 0) * (order.quantity ?? 1)).toLocaleString('en-US')}
                             </span>
                           </td>
                           <td>

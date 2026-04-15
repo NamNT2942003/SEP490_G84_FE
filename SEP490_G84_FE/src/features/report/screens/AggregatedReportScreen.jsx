@@ -226,8 +226,9 @@ const AggregatedReportScreen = () => {
     // Monthly derived
     const totalRoomRev    = roomData?.totalRevenue || 0;
     const totalServiceRev = serviceData.reduce((s, x) => s + (x.amount || 0), 0);
+    const totalServiceCost = serviceData.reduce((s, x) => s + ((x.amount || 0) - (x.netRevenue || 0)), 0);
     const totalExpenseAgg = expenseData.reduce((s, x) => s + (x.amount || 0), 0);
-    const grossProfit     = totalRoomRev + totalServiceRev - totalExpenseAgg;
+    const grossProfit     = totalRoomRev + (totalServiceRev - totalServiceCost) - totalExpenseAgg;
 
     // Yearly derived — build 12-month area chart data
     const yearlyAreaData = (() => {
@@ -281,8 +282,8 @@ const AggregatedReportScreen = () => {
         rows.push(['TOTAL', totalRoomRev, '', '', '']);
         rows.push([]);
         rows.push(['SERVICE REVENUE', '', '', '', '']);
-        rows.push(['Category', 'Amount', 'Usage', 'MoM', '']);
-        serviceData.forEach(s => rows.push([s.category, s.amount, s.usageCount, s.growth != null ? `${s.growth}%` : '-']));
+        rows.push(['Category', 'Gross Revenue', 'Net Revenue', 'MoM Growth (%)', '']);
+        serviceData.forEach(s => rows.push([s.category, s.amount, s.netRevenue, s.growth != null ? `${s.growth > 0 ? 'Up' : s.growth < 0 ? 'Down' : ''} ${Math.abs(s.growth).toFixed(1)}%` : '-']));
         rows.push(['TOTAL', totalServiceRev, '', '', '']);
         rows.push([]);
         rows.push(['EXPENSE REPORT', '', '', '', '']);
@@ -465,7 +466,7 @@ const AggregatedReportScreen = () => {
                                         <KpiCard label="Gross Profit" value={`${fmt(profitDisplay)} đ`}
                                             accent={profitDisplay >= 0 ? ACCENT_COLORS.profit.bg : '#fff0f0'}
                                             icon={profitDisplay >= 0 ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}
-                                            sub="Room + Service − Expense" />
+                                            sub="Room + Net Svc. − Expense" />
                                     </div>
                                 </div>
 
@@ -794,10 +795,10 @@ const AggregatedReportScreen = () => {
                                                                 </th>
                                                             </tr>
                                                             <tr style={{ backgroundColor: '#f9f9f9' }}>
-                                                                <th className="py-2 ps-3 text-secondary">Category</th>
-                                                                <th className="py-2 text-center text-secondary">Revenue</th>
-                                                                <th className="py-2 text-center text-secondary">Usage</th>
-                                                                <th className="py-2 text-center text-secondary">MoM</th>
+                                                                <th className="py-2 ps-3" style={{ color: '#444' }}>Category</th>
+                                                                <th className="py-2 text-center" style={{ color: '#444' }}>Gross Revenue</th>
+                                                                <th className="py-2 text-center" style={{ color: '#444' }}>Net Revenue</th>
+                                                                <th className="py-2 text-center" style={{ color: '#444' }}>MoM Growth (%)</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -805,17 +806,24 @@ const AggregatedReportScreen = () => {
                                                                 <tr key={i}>
                                                                     <td className="ps-3 fw-medium" style={{ fontSize: '0.87rem' }}>{s.category}</td>
                                                                     <td className="text-center fw-semibold text-dark" style={{ fontSize: '0.87rem' }}>{fmt(s.amount)}</td>
-                                                                    <td className="text-center text-muted" style={{ fontSize: '0.87rem' }}>{s.usageCount || '—'}</td>
+                                                                    <td className="text-center fw-semibold text-dark" style={{ fontSize: '0.87rem' }}>{fmt(s.netRevenue)}</td>
                                                                     <td className="text-center fw-medium" style={{ fontSize: '0.87rem' }}>
-                                                                        {s.growth != null ? (s.growth > 0 ? <span className="text-success">↑ {s.growth.toFixed(1)}%</span> : s.growth < 0 ? <span className="text-danger">↓ {Math.abs(s.growth).toFixed(1)}%</span> : <span className="text-muted">0%</span>) : <span className="text-muted">—</span>}
+                                                                        {s.growth != null ? (s.growth > 0 ? <span className="text-dark">Up {s.growth.toFixed(1)}%</span> : s.growth < 0 ? <span className="text-dark">Down {Math.abs(s.growth).toFixed(1)}%</span> : <span className="text-muted">0%</span>) : <span className="text-muted">—</span>}
                                                                     </td>
                                                                 </tr>
                                                             ))}
                                                             <tr>
-                                                                <td className="fw-bold ps-3" style={{ backgroundColor: '#fffae6' }}>TOTAL</td>
-                                                                <td className="fw-bold text-center text-danger" style={{ backgroundColor: '#fffae6' }}>{fmt(totalServiceRev)}</td>
-                                                                <td style={{ backgroundColor: '#fffae6' }}></td>
-                                                                <td style={{ backgroundColor: '#fffae6' }}></td>
+                                                                <td className="fw-bold ps-3" style={{ backgroundColor: '#ffea00' }}>TOTAL</td>
+                                                                <td className="fw-bold text-center" style={{ backgroundColor: '#ffea00', color: '#000' }}>{fmt(totalServiceRev)}</td>
+                                                                <td className="fw-bold text-center" style={{ backgroundColor: '#ffea00', color: '#000' }}>{fmt(serviceData.reduce((s, x) => s + (x.netRevenue || 0), 0))}</td>
+                                                                <td className="fw-bold text-center" style={{ backgroundColor: '#ffea00', color: '#000' }}>
+                                                                    {(() => {
+                                                                        const validGrowths = serviceData.filter(x => x.growth != null);
+                                                                        if (validGrowths.length === 0) return '';
+                                                                        const avgGrowth = validGrowths.reduce((s, x) => s + x.growth, 0) / validGrowths.length;
+                                                                        return avgGrowth > 0 ? `Up ${avgGrowth.toFixed(1)}%` : avgGrowth < 0 ? `Down ${Math.abs(avgGrowth).toFixed(1)}%` : '';
+                                                                    })()}
+                                                                </td>
                                                             </tr>
                                                         </tbody>
                                                     </table>

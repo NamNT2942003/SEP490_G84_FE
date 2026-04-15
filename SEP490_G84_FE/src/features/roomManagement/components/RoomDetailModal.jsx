@@ -58,8 +58,8 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
 
         if (brokenCount === 0) {
           try {
-            await roomManagementApi.updateRoomStatus(roomId, "AVAILABLE");
-            setCurrentRoomStatus("AVAILABLE");
+            const res = await roomManagementApi.updateRoomStatus(roomId, "AVAILABLE");
+            setCurrentRoomStatus(res.status || "AVAILABLE");
             if (onRoomUpdated) onRoomUpdated();
           } catch (err) {
             console.warn("Auto-update room status failed:", err);

@@ -460,14 +460,7 @@ export default function FurnitureManagement() {
         </div>
       </div>
 
-      <div className="container bc-bar" style={{ position: 'relative', zIndex: 1 }}>
-        <nav aria-label="breadcrumb">
-          <ol className="breadcrumb">
-            <li className="breadcrumb-item"><Link to="/admin"><i className="bi bi-house-door me-1"></i>Admin</Link></li>
-            <li className="breadcrumb-item active">Furniture Management</li>
-          </ol>
-        </nav>
-      </div>
+
 
       <div className="container pb-5">
         <div className="row g-4">

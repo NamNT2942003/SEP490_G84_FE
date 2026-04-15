@@ -719,12 +719,7 @@ function RoomManagement() {
         {/* HEADER SECTION */}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3">
           <div>
-            <nav aria-label="breadcrumb">
-              <ol className="breadcrumb mb-2" style={{ fontSize: "0.8rem" }}>
-                <li className="breadcrumb-item"><a href="#" className="text-decoration-none text-muted">Admin Panel</a></li>
-                <li className="breadcrumb-item active fw-medium" aria-current="page" style={{ color: BRAND }}>Room Management</li>
-              </ol>
-            </nav>
+
             <h2 className="fw-bold mb-1 text-dark" style={{ letterSpacing: "-0.5px", fontSize: "1.75rem" }}>
               Room Management
             </h2>
