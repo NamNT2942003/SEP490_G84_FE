@@ -332,11 +332,11 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                         </div>
                         <div className="row mt-3">
                             <div className="col-6">
-                                <div className="text-muted small">Estimated deposit amount</div>
+                                <div className="text-muted small">Final amount</div>
                                 <div className="fw-bold text-olive fs-6">{formatCurrency(normalizedDepositAmount)}</div>
                             </div>
                             <div className="col-6 text-end">
-                                <div className="text-muted small">Remaining balance</div>
+                                <div className="text-muted small">Difference to booking total</div>
                                 <div className="fw-bold text-dark fs-6">{formatCurrency(normalizedBookingTotalAmount - normalizedDepositAmount)}</div>
                             </div>
                         </div>
@@ -439,7 +439,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                     </div>
                 </div>
                 <div className="d-flex justify-content-between align-items-center">
-                    <span className="text-muted">Deposit now</span>
+                    <span className="text-muted">Final price</span>
                     <span className="fw-bold text-olive">{formatCurrency(normalizedDepositAmount)}</span>
                 </div>
                 <div className="mt-2">

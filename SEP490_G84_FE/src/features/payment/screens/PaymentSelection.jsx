@@ -26,32 +26,17 @@ const getPolicyLabel = (policyType) => {
     }
 };
 
-const getPolicyRate = (room) => {
-    const option = room?.selectedPricingOption || {};
-    const rawRate = option?.prepaidRate ?? option?.prepaidPercent ?? room?.prepaidRate;
-    const rate = Number(rawRate);
-
-    if (Number.isFinite(rate) && rate >= 0) {
-        return Math.min(100, rate);
-    }
-
-    const policyType = normalizePolicyType(option?.cancellationPolicyType || room?.paymentType || room?.cancellationType);
-    if (policyType === 'PAY_AT_HOTEL') return 0;
-    return 100;
-};
-
 const getPolicyAmountForRoom = (room) => {
     const unitPrice = Number(
-        room?.selectedPrice
-            ?? room?.selectedPricingOption?.finalPrice
+        room?.selectedPricingOption?.finalPrice
+            ?? room?.selectedPrice
             ?? room?.appliedPrice
             ?? room?.basePrice
             ?? room?.price
             ?? 0,
     );
     const quantity = Number(room?.quantity || 1);
-    const policyRate = getPolicyRate(room);
-    return Math.max(0, Math.round(unitPrice * quantity * policyRate / 100));
+    return Math.max(0, Math.round(unitPrice * quantity));
 };
 
 const getRoomPolicyType = (room) => {
@@ -70,46 +55,25 @@ const PaymentSelection = () => {
     const {
         bookingId,
         totalAmount,
+        finalAmount,
         depositAmount,
         bookingTotalAmount,
         rooms = [],
         checkIn = '',
         checkOut = '',
-        branchId = null,
         selectedPolicy = null,
     } = location.state || { bookingId: null, totalAmount: 0 };
-    const hasStayDetails = rooms.length > 0 || checkIn || checkOut || branchId;
+    const effectiveAmount = Number(finalAmount ?? bookingTotalAmount ?? totalAmount ?? depositAmount ?? 0);
+    const displayedBookingTotal = Number(finalAmount ?? bookingTotalAmount ?? totalAmount ?? effectiveAmount);
 
-    const [selectedMethod, setSelectedMethod] = useState('STRIPE');
+    const [selectedMethod, setSelectedMethod] = useState(effectiveAmount <= 0 ? 'CASH' : 'STRIPE');
     const [isLoading, setIsLoading] = useState(false);
     const [qrData, setQrData] = useState(null);
     const [clientSecret, setClientSecret] = useState('');
-
-    const fallbackPolicyAmount = rooms.reduce((sum, room) => sum + getPolicyAmountForRoom(room), 0);
-    const effectiveAmount = Number(
-        depositAmount
-        ?? totalAmount
-        ?? (fallbackPolicyAmount > 0 ? fallbackPolicyAmount : 0),
-    );
-    const displayedBookingTotal = Number(
-        bookingTotalAmount
-        ?? rooms.reduce((sum, room) => sum + (Number(room?.selectedPrice ?? room?.selectedPricingOption?.finalPrice ?? room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0) * Number(room?.quantity || 1)), 0)
-    );
     const policyLabels = selectedPolicy?.name
         ? [selectedPolicy.name]
         : [...new Set(rooms.map((room) => getRoomPolicyType(room)).filter(Boolean))];
     const hasPolicyBasedPayment = Boolean(selectedPolicy) || rooms.some((room) => Boolean(room?.selectedPricingOption?.prepaidRate || room?.selectedPricingOption?.cancellationPolicyType));
-
-    useEffect(() => {
-        if (effectiveAmount <= 0) {
-            setSelectedMethod('CASH');
-            return;
-        }
-
-        if (selectedMethod === 'CASH') {
-            setSelectedMethod('STRIPE');
-        }
-    }, [effectiveAmount]);
 
     useEffect(() => {
         let intervalId;
@@ -311,13 +275,13 @@ const PaymentSelection = () => {
 
                                     <div className="bg-light p-3 rounded-3 mb-4 d-flex justify-content-between align-items-center gap-3 flex-wrap">
                                         <div>
-                                            <p className="text-muted mb-0 fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '1px' }}>Deposit due now</p>
+                                            <p className="text-muted mb-0 fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '1px' }}>Final price</p>
                                             <div className="text-muted small mt-1">
                                                 {hasPolicyBasedPayment ? (
                                                     <>
                                                         {policyLabels.join(' · ')}
                                                     </>
-                                                ) : 'Standard booking payment'}
+                                                ) : 'All adjustments were finalized in guest information'}
                                             </div>
                                         </div>
                                         <h3 className="fw-bold m-0" style={{ color: '#465c47' }}>{formatCurrency(effectiveAmount)}</h3>
@@ -328,17 +292,15 @@ const PaymentSelection = () => {
                                             <div className="p-3 rounded-3 border h-100" style={{ background: '#fcfdfa' }}>
                                                 <div className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>Booking total</div>
                                                 <div className="fw-bold fs-5 mt-1" style={{ color: '#465c47' }}>{formatCurrency(displayedBookingTotal)}</div>
-                                                <div className="text-muted small mt-2">This is the full room amount before deposit rules are applied.</div>
+                                                <div className="text-muted small mt-2">This final amount is carried from Guest Information.</div>
                                             </div>
                                         </div>
                                         <div className="col-md-6">
                                             <div className="p-3 rounded-3 border h-100" style={{ background: '#f4f8ef' }}>
-                                                <div className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>Policy deposit</div>
+                                                <div className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>Payment amount</div>
                                                 <div className="fw-bold fs-5 mt-1" style={{ color: '#465c47' }}>{formatCurrency(effectiveAmount)}</div>
                                                 <div className="text-muted small mt-2">
-                                                    {selectedPolicy
-                                                        ? `${selectedPolicy.prepaidRate ?? 0}% prepaid · ${selectedPolicy.refunRate ?? 0}% refund rate`
-                                                        : 'No policy selected yet. The system will use the booking deposit returned by the backend.'}
+                                                    No recalculation is applied on this screen.
                                                 </div>
                                             </div>
                                         </div>
@@ -353,7 +315,7 @@ const PaymentSelection = () => {
                                                     <div key={`${room.roomTypeId || index}-policy`} className="d-flex justify-content-between align-items-center py-2 border-bottom">
                                                         <div>
                                                             <div className="fw-semibold">{room.name || `Room ${index + 1}`}</div>
-                                                            <small className="text-muted">{roomPolicy} · {room.selectedPricingOption?.prepaidRate != null ? `${room.selectedPricingOption.prepaidRate}% payable now` : 'Policy rate applied'}</small>
+                                                            <small className="text-muted">{roomPolicy} · Final room amount</small>
                                                         </div>
                                                         <div className="fw-bold" style={{ color: '#465c47' }}>{formatCurrency(roomAmount)}</div>
                                                     </div>

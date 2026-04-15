@@ -72,7 +72,7 @@ const getVisiblePriceFromOption = (room, option) => {
 };
 
 const calculateRoomUnitPrice = (room) => {
-    return room.selectedPrice ?? room.selectedPricingOption?.finalPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+    return room.selectedPricingOption?.finalPrice ?? room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
 };
 
 const normalizePolicyId = (policy) => policy?.id ?? policy?.policyId ?? null;
@@ -623,9 +623,7 @@ const GuestInformation = () => {
     };
 
     const selectedPolicy = policies.find((policy) => Number(policy.id) === Number(selectedPolicyId)) || null;
-    const selectedPolicyRate = selectedPolicy ? Number(selectedPolicy.prepaidRate ?? 0) : 100;
-    const effectiveDepositRate = Number.isFinite(selectedPolicyRate) ? Math.min(100, Math.max(0, selectedPolicyRate)) : 100;
-    const estimatedDepositAmount = Math.max(0, Math.round(calculateTotalPrice() * effectiveDepositRate / 100));
+    const finalBookingAmount = Math.max(0, Math.round(calculateTotalPrice()));
 
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
@@ -676,8 +674,7 @@ const GuestInformation = () => {
             const currentBranchId = branchId || 1;
             const data = await bookingService.createFromFrontend(currentBranchId, payload);
             const createdBookingId = data?.bookingId ?? data?.id;
-            const bookingDepositAmount = Number(data?.prepaidAmount ?? estimatedDepositAmount);
-            const bookingTotalAmount = Number(data?.totalAmount ?? calculateTotalPrice());
+            const bookingTotalAmount = Number(data?.totalAmount ?? finalBookingAmount);
 
             if (!createdBookingId) {
                 Swal.fire({ icon: 'error', title: 'Booking Error', text: 'Did not receive a booking ID from the server.', confirmButtonColor: '#d33' });
@@ -687,9 +684,10 @@ const GuestInformation = () => {
             navigate('/payment-selection', {
                 state: {
                     bookingId: createdBookingId,
-                    totalAmount: bookingDepositAmount,
+                    totalAmount: bookingTotalAmount,
+                    finalAmount: bookingTotalAmount,
                     bookingTotalAmount,
-                    depositAmount: bookingDepositAmount,
+                    depositAmount: bookingTotalAmount,
                     rooms,
                     checkIn,
                     checkOut,
@@ -891,8 +889,8 @@ const GuestInformation = () => {
                                     checkIn={checkIn}
                                     checkOut={checkOut}
                                     selectedPolicy={selectedPolicy}
-                                    depositAmount={estimatedDepositAmount}
-                                    bookingTotalAmount={calculateTotalPrice()}
+                                    depositAmount={finalBookingAmount}
+                                    bookingTotalAmount={finalBookingAmount}
                                 />
                             </div>
                         </div>
@@ -903,8 +901,8 @@ const GuestInformation = () => {
                                 checkIn={checkIn}
                                 checkOut={checkOut}
                                 selectedPolicy={selectedPolicy}
-                                depositAmount={estimatedDepositAmount}
-                                bookingTotalAmount={calculateTotalPrice()}
+                                depositAmount={finalBookingAmount}
+                                bookingTotalAmount={finalBookingAmount}
                             />
                         </div>
                     </div>
@@ -915,12 +913,12 @@ const GuestInformation = () => {
             <footer className="fixed-bottom bg-white border-top p-3 shadow-lg" style={{ zIndex: 1031 }}>
                 <div className="container d-flex justify-content-between align-items-center">
                     <div>
-                        <small className="text-muted fw-bold text-uppercase">Estimated deposit</small>
+                        <small className="text-muted fw-bold text-uppercase">Final price</small>
                         <h4 className="mb-0 fw-bold" style={{ color: '#5C6F4E' }}>
-                            {formatVND(estimatedDepositAmount)}
+                            {formatVND(finalBookingAmount)}
                         </h4>
                         <div className="text-muted small mt-1">
-                            Total booking: {formatVND(calculateTotalPrice())}
+                            All pricing adjustments are already included.
                         </div>
                     </div>
                     <button
