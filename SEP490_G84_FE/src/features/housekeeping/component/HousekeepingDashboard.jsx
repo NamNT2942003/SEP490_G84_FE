@@ -117,6 +117,26 @@ export const HousekeepingDashboard = () => {
     }
   };
 
+  const handleCompleteMaintenance = async (room) => {
+    const result = await Swal.fire({
+      title: `Complete maintenance for Room ${room.roomName}?`,
+      text: 'The room will be set back to Available and opened for bookings.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Complete',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#2e7d32',
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await housekeepingApi.completeMaintenance(room.roomId);
+      Swal.fire({ icon: 'success', title: 'Done!', text: `Room ${room.roomName} is now Available.`, timer: 1600, showConfirmButton: false });
+      fetchRooms();
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: 'Error', text: err?.response?.data?.error || 'Failed to complete maintenance.', confirmButtonColor: COLORS.ERROR });
+    }
+  };
+
   const handleRequestCleaning = async (room) => {
     const isOccupied = room.physicalStatus === 'OCCUPIED';
     const result = await Swal.fire({
