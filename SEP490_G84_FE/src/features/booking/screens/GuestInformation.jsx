@@ -32,6 +32,45 @@ const getPaymentText = (paymentType) => {
     return 'Room-based payment method';
 };
 
+const safeNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const HIDDEN_PRICE_MODIFIER_TYPES = new Set(['POLICY', 'USER_HISTORY_DISCOUNT']);
+
+const extractDeltaFromReason = (reason) => {
+    if (!reason) return null;
+    const deltaRegex = new RegExp('\\[\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\]$');
+    const match = String(reason).match(deltaRegex);
+    if (!match) return null;
+    return safeNumber(match[1], 0);
+};
+
+const getModifierDelta = (room, modifier) => {
+    const fromReason = extractDeltaFromReason(modifier?.reason);
+    if (fromReason !== null) return fromReason;
+
+    const adjustmentValue = safeNumber(modifier?.adjustmentValue, 0);
+    if (modifier?.adjustmentType === 'PERCENT' || modifier?.adjustmentType === 'PERCENTAGE') {
+        const percentBase = safeNumber(room?.basePrice ?? room?.price ?? room?.selectedPrice, 0);
+        return (percentBase * adjustmentValue) / 100;
+    }
+    return adjustmentValue;
+};
+
+const getVisiblePriceFromOption = (room, option) => {
+    const effectiveOption = option || room?.selectedPricingOption || null;
+    if (!effectiveOption) return safeNumber(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0, 0);
+
+    const hiddenDelta = (Array.isArray(effectiveOption.modifiers) ? effectiveOption.modifiers : [])
+        .filter((modifier) => HIDDEN_PRICE_MODIFIER_TYPES.has(modifier?.type))
+        .reduce((sum, modifier) => sum + getModifierDelta(room, modifier), 0);
+
+    const visiblePrice = safeNumber(effectiveOption.finalPrice, 0) - hiddenDelta;
+    return visiblePrice > 0 ? visiblePrice : 0;
+};
+
 const calculateRoomUnitPrice = (room) => {
     return room.selectedPrice ?? room.selectedPricingOption?.finalPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
 };
@@ -62,7 +101,7 @@ const applyPolicySelectionToRoom = (room, policyId) => {
     const selectedOption = findPricingOptionForPolicy(room, policyId);
     if (!selectedOption) return room;
 
-    const selectedPrice = Number(selectedOption?.finalPrice ?? room?.selectedPrice ?? room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0);
+    const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
 
     return {
         ...room,
@@ -144,7 +183,16 @@ const toPricingOption = (option = {}) => ({
     modifierIds: Array.isArray(option?.modifierIds) ? option.modifierIds : [],
     modifierNames: Array.isArray(option?.modifierNames) ? option.modifierNames : [],
     reasons: Array.isArray(option?.reasons) ? option.reasons : [],
-    modifiers: Array.isArray(option?.modifiers) ? option.modifiers : [],
+    modifiers: Array.isArray(option?.modifiers)
+        ? option.modifiers.map((m) => ({
+            priceModifierId: m?.priceModifierId,
+            name: m?.name,
+            type: m?.type,
+            adjustmentType: m?.adjustmentType,
+            adjustmentValue: safeNumber(m?.adjustmentValue, 0),
+            reason: m?.reason,
+        }))
+        : [],
     combinationKey: option?.combinationKey || option?.optionCode || option?.mode || 'UNKNOWN',
 });
 
@@ -186,13 +234,13 @@ const withPricingState = (room, preferredOption = null) => {
 
     const selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
 
-    const selectedPrice = selectedOption?.finalPrice
-        ?? Number(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0);
+    const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
 
     return {
         ...room,
         pricingOptions: options,
         selectedPricingOption: selectedOption,
+        selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : safeNumber(room?.basePrice ?? room?.price, 0),
     };
 };
 
@@ -322,6 +370,7 @@ const GuestInformation = () => {
         selectedRooms = [],
         checkIn = '',
         checkOut = '',
+        searchParams = {},
         totalPrice = 0,
         prefillEmail = '',
         appliedPolicyId = null,
@@ -520,8 +569,8 @@ const GuestInformation = () => {
             branchId: branchId || 1,
             checkIn,
             checkOut,
-            adults: 1,
-            children: 0,
+            adults: Number(searchParams?.adults ?? 1),
+            children: Number(searchParams?.children ?? 0),
             roomTypeIds,
             size: Math.max(roomsSnapshot.length, 10),
             page: 0,
@@ -556,7 +605,7 @@ const GuestInformation = () => {
             // Ignore transient repricing failures to avoid interrupting typing flow.
             console.warn('Failed to refresh room pricing by email', error);
         }
-    }, [branchId, checkIn, checkOut, formData.email, selectedPolicyId]);
+    }, [branchId, checkIn, checkOut, formData.email, selectedPolicyId, searchParams?.adults, searchParams?.children]);
 
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;

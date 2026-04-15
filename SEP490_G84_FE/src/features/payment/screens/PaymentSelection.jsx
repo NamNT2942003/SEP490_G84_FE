@@ -271,7 +271,7 @@ const PaymentSelection = () => {
 
                                     <div className="bg-light p-3 rounded-3 mb-4 text-center">
                                         <p className="text-muted mb-1 text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>Total Amount</p>
-                                        <h3 className="fw-bold m-0" style={{ color: '#D4AF37' }}>{formatCurrency(totalAmount)}</h3>
+                                        <h3 className="fw-bold m-0" style={{ color: '#D4AF37' }}>{formatCurrency(effectiveAmount)}</h3>
                                     </div>
 
                                     <div className="position-relative d-inline-block">
@@ -382,11 +382,25 @@ const PaymentSelection = () => {
                     <div className="col-lg-4">
                         <div className="sticky-top d-none d-lg-block" style={{ top: '90px', zIndex: 1020 }}>
                             <h5 className="fw-bold mb-3" style={{ color: '#465c47' }}>Your Booking</h5>
-                            <BookingSummary selectedRooms={rooms} checkIn={checkIn} checkOut={checkOut} />
+                            <BookingSummary
+                                selectedRooms={rooms}
+                                checkIn={checkIn}
+                                checkOut={checkOut}
+                                selectedPolicy={selectedPolicy}
+                                depositAmount={effectiveAmount}
+                                bookingTotalAmount={displayedBookingTotal}
+                            />
                         </div>
                         <div className="d-lg-none mt-4">
                             <h5 className="fw-bold mb-3" style={{ color: '#465c47' }}>Your Booking</h5>
-                            <BookingSummary selectedRooms={rooms} checkIn={checkIn} checkOut={checkOut} />
+                            <BookingSummary
+                                selectedRooms={rooms}
+                                checkIn={checkIn}
+                                checkOut={checkOut}
+                                selectedPolicy={selectedPolicy}
+                                depositAmount={effectiveAmount}
+                                bookingTotalAmount={displayedBookingTotal}
+                            />
                         </div>
                     </div>
                 </div>

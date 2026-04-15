@@ -34,7 +34,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
         if (!reason) return '';
         let text = String(reason).replace(/\s*\[\s*-?\d+(?:\.\d+)?\s*\]$/, '').trim();
 
-        text = text.replace(/Occupancy proxy/gi, 'Booking volume');
+        text = text.replace(/Occupancy proxy/gi, 'Room quantity in booking');
         text = text.replace(/Customer history/gi, 'Returning guest');
 
         // Singular/plural cleanup for guest wording from backend reason.
@@ -46,7 +46,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
 
     const normalizeModifierTypeText = (type) => {
         if (!type) return 'UNKNOWN';
-        if (type === 'OCCUPANCY') return 'BOOKING_VOLUME';
+        if (type === 'OCCUPANCY') return 'ROOM_QUANTITY';
         if (type === 'USER_HISTORY_DISCOUNT') return 'RETURNING_GUEST';
         return type;
     };
