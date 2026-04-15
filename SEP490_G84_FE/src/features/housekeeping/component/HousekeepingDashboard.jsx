@@ -400,13 +400,31 @@ export const HousekeepingDashboard = () => {
 
                         {/* Action buttons */}
                         {isMaint ? (
-                          <div style={{
-                            padding: '7px 11px', borderRadius: 8,
-                            background: P.maint.bg, border: `1px solid ${P.maint.border}`,
-                            fontSize: 12, color: P.maint.text, fontWeight: 600,
-                            display: 'flex', alignItems: 'center', gap: 6,
-                          }}>
-                            <i className="bi bi-tools" /> Under maintenance
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                            <div style={{
+                              padding: '7px 11px', borderRadius: 8,
+                              background: P.maint.bg, border: `1px solid ${P.maint.border}`,
+                              fontSize: 12, color: P.maint.text, fontWeight: 600,
+                              display: 'flex', alignItems: 'center', gap: 6,
+                            }}>
+                              <i className="bi bi-tools" /> Under maintenance
+                            </div>
+                            {canManage && (
+                              <button onClick={() => handleCompleteMaintenance(room)} style={{
+                                width: '100%', padding: '8px 0',
+                                background: 'linear-gradient(135deg, #2e7d32, #43a047)',
+                                color: '#fff', border: 'none', borderRadius: 8,
+                                cursor: 'pointer', fontWeight: 700, fontSize: 12,
+                                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6,
+                                boxShadow: '0 2px 6px rgba(46,125,50,0.25)',
+                                transition: 'opacity 0.14s',
+                              }}
+                                onMouseOver={e => e.currentTarget.style.opacity = '0.88'}
+                                onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                              >
+                                <i className="bi bi-check2-circle" /> Complete Maintenance
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <div style={{ display: 'flex', gap: 7 }}>

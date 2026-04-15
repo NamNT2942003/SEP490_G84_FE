@@ -10,4 +10,5 @@ export const housekeepingApi = {
   closeIncident: (roomId, incidentId, resolution) => apiClient.put(`/housekeeping/rooms/${roomId}/incidents/${incidentId}/close`, { resolution }),
   setRoomMaintenance: (roomId, reason) => apiClient.put(`/housekeeping/rooms/${roomId}/maintenance`, { reason }),
   requestCleaning: (roomId) => apiClient.put(`/housekeeping/rooms/${roomId}/dirty`),
+  completeMaintenance: (roomId) => apiClient.put(`/housekeeping/rooms/${roomId}/available`),
 };

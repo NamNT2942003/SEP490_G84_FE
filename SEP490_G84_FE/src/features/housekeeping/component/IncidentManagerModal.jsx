@@ -84,6 +84,27 @@ export const IncidentManagerModal = ({ room, onClose, onRefresh }) => {
     }
   };
 
+  const handleCompleteMaintenance = async () => {
+    const result = await Swal.fire({
+      title: `Complete maintenance for Room ${room?.roomName}?`,
+      text: 'The room will be set back to Available and opened for bookings.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Complete',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: SUCCESS_COLOR,
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await housekeepingApi.completeMaintenance(room.roomId);
+      Swal.fire({ icon: 'success', title: `Room ${room.roomName} is now Available.`, timer: 1800, showConfirmButton: false });
+      onRefresh?.();
+      onClose();
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: 'Error', text: err?.response?.data?.error || 'Failed to complete maintenance.' });
+    }
+  };
+
   const openIncidents = incidents.filter(i => i.status === 'OPEN');
   const closedIncidents = incidents.filter(i => i.status !== 'OPEN');
 
@@ -221,6 +242,18 @@ export const IncidentManagerModal = ({ room, onClose, onRefresh }) => {
             >
               <i className="bi bi-tools" style={{ marginRight: 6 }} />
               Set Maintenance
+            </button>
+          )}
+          {room?.physicalStatus === 'MAINTENANCE' && (
+            <button
+              onClick={handleCompleteMaintenance}
+              style={{
+                padding: '8px 18px', background: SUCCESS_COLOR, color: '#fff',
+                border: 'none', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13,
+              }}
+            >
+              <i className="bi bi-check2-circle" style={{ marginRight: 6 }} />
+              Complete Maintenance
             </button>
           )}
           <button
