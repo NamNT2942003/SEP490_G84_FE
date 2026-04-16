@@ -427,10 +427,10 @@ function RoomManagement() {
     const pages = [];
     const maxVisiblePages = 5;
     let startPage = Math.max(0, validPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPagesFiltered - 1, startvalidPage + maxVisiblePages - 1);
+    let endPage = Math.min(totalPagesFiltered - 1, startPage + maxVisiblePages - 1);
 
-    if (endvalidPage - startvalidPage + 1 < maxVisiblePages) {
-      startPage = Math.max(0, endvalidPage - maxVisiblePages + 1);
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(0, endPage - maxVisiblePages + 1);
     }
 
     return (
@@ -453,7 +453,7 @@ function RoomManagement() {
             {/* Page Numbers */}
             {startPage > 0 && <li className="page-item disabled"><span className="page-link border-0">...</span></li>}
 
-            {Array.from({ length: endvalidPage - startvalidPage + 1 }, (_, i) => startvalidPage + i).map(p => (
+            {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(p => (
                 <li key={p} className={`page-item ${validPage === p ? 'active' : ''}`}>
                   <button
                       className="page-link border-0 rounded-3 px-3 fw-bold"
@@ -914,6 +914,7 @@ function RoomManagement() {
               </div>
             </div>
           </div>
+        </div>
 
         {/* Audio Test Panel - Development Only */}
         {process.env.NODE_ENV === 'development' && (
@@ -1032,184 +1033,9 @@ function RoomManagement() {
                       </div>
                     </div>
                   </div>
-                </div>
             ))}
           </div>
-
-          {/* FILTERS & SEARCH - PROFESSIONAL BAR */}
-          <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: "16px" }}>
-            <div className="card-body p-3">
-              <div className="row g-2 align-items-center">
-                <div className="col-lg-4">
-                  <form onSubmit={handleSearch} className="position-relative">
-                    <i className="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                    <input
-                        type="text"
-                        className="form-control ps-5 py-2 border-0 bg-light-subtle"
-                        placeholder="Search by Room Name or ID..."
-                        value={inputVal}
-                        onChange={(e) => setInputVal(e.target.value)}
-                        style={{ borderRadius: "10px", border: "1px solid #f0f0f0" }}
-                    />
-                  </form>
-                </div>
-                <div className="col-lg-8">
-                  <div className="d-flex flex-wrap gap-2 justify-content-lg-end">
-                    <select
-                        className="form-select border-0 bg-light-subtle w-auto"
-                        style={{ borderRadius: "10px", border: "1px solid #f0f0f0", fontSize: "0.9rem" }}
-                        value={branchFilter}
-                        onChange={(e) => setBranchFilter(e.target.value)}
-                    >
-                      <option value="">All Branches</option>
-                      {branches.map((b, index) => (
-                          <option key={`${b.branchId || b.id}-${index}`} value={b.branchId || b.id}>
-                            {b.branchName || b.name}
-                          </option>
-                      ))}
-                    </select>
-
-                    <select
-                        className="form-select border-0 bg-light-subtle w-auto"
-                        style={{ borderRadius: "10px", border: "1px solid #f0f0f0", fontSize: "0.9rem" }}
-                        value={floorFilter}
-                        onChange={(e) => setFloorFilter(e.target.value)}
-                    >
-                      <option value="">All Floors</option>
-                      {floors.map((f, index) => (
-                          <option key={`floor-${f.floor}-${index}`} value={String(f.floor)}>
-                            Floor {f.floor}
-                          </option>
-                      ))}
-                    </select>
-
-                    <select
-                        className="form-select border-0 bg-light-subtle w-auto"
-                        style={{ borderRadius: "10px", border: "1px solid #f0f0f0", fontSize: "0.9rem" }}
-                        value={roomTypeFilter}
-                        onChange={(e) => setRoomTypeFilter(e.target.value)}
-                    >
-                      <option value="">All Types</option>
-                      {roomTypes.map((t, index) => (
-                          <option key={`${t.type}-${index}`} value={t.type}>
-                            {t.label}
-                          </option>
-                      ))}
-                    </select>
-
-                    <div className="btn-group shadow-sm ms-lg-2" style={{ borderRadius: "10px", overflow: "hidden" }}>
-                      <button
-                          className={`btn btn-sm px-3 ${viewMode === "grid" ? "btn-dark" : "btn-light"}`}
-                          onClick={() => setViewMode("grid")}
-                          title="Grid View"
-                      >
-                        <i className="bi bi-grid-fill"></i>
-                      </button>
-                      <button
-                          className={`btn btn-sm px-3 ${viewMode === "list" ? "btn-dark" : "btn-light"}`}
-                          onClick={() => setViewMode("list")}
-                          title="List View"
-                      >
-                        <i className="bi bi-list-task"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* LOADING & ERROR - MODERN OVERLAY */}
-          {loading && validPage === 0 && (
-              <div className="d-flex flex-column align-items-center justify-content-center py-5">
-                <div className="spinner-grow text-primary mb-3" style={{ color: BRAND }} role="status"></div>
-                <h6 className="text-muted fw-medium">Syncing Room Data...</h6>
-              </div>
-          )}
-
-          {/* ROOM CARDS GRID - PREMIUM DESIGN */}
-          {!loading && (
-              <>
-                {displayedRooms.length === 0 ? (
-                    <div className="text-center py-5 bg-white shadow-sm rounded-4">
-                      <i className="bi bi-inbox text-muted display-1 mb-3"></i>
-                      <h4 className="text-muted">No rooms found matching your criteria</h4>
-                      <button className="btn btn-link link-primary" onClick={() => { setSearch(''); setBranchFilter(''); setPage(0); }}>Clear All Filters</button>
-                    </div>
-                ) : (
-                    <div className="row g-4">
-                      {displayedRooms.map((room, index) => (
-                          <div key={room.roomId || room.id || `room-${index}`} className="col-12 col-md-6 col-lg-4 col-xl-3">
-                            <div className="card border-0 shadow-sm h-100 room-card position-relative"
-                                 style={{ borderRadius: "20px", overflow: "hidden", transition: "all 0.3s ease" }}>
-
-                              {/* Status Indicator Bar */}
-                              <div style={{ height: "6px", backgroundColor: getStatusColor(room.status) }}></div>
-
-                              <div className="card-body p-4">
-                                <div className="d-flex justify-content-between align-items-start mb-2">
-                                  <div>
-                            <span className="badge bg-light text-muted smallest text-uppercase mb-1" style={{ letterSpacing: "1px" }}>
-                              {room.roomTypeName || "Standard"}
-                            </span>
-                                    <h4 className="fw-bold mb-0" style={{ color: "#1a1a2e" }}>{room.roomName}</h4>
-                                  </div>
-                                  <span
-                                      className="badge px-3 py-2 rounded-pill shadow-sm"
-                                      style={{
-                                        backgroundColor: `${getStatusColor(room.status)}`,
-                                        color: "#fff",
-                                        fontSize: "0.7rem",
-                                        fontWeight: "700"
-                                      }}
-                                  >
-                            {getStatusText(room.status)}
-                          </span>
-                                </div>
-
-                                <div className="d-flex align-items-center text-muted smallest mb-4">
-                                  <i className="bi bi-layers-fill me-1"></i> Floor {room.floor}
-                                  <span className="mx-2">•</span>
-                                  <i className="bi bi-geo-alt-fill me-1"></i> {room.branchName || room.branch?.branchName || room.branch?.name || "Central Branch"}
-                                </div>
-
-                                {/* Visual Metrics */}
-                                <div className="bg-light rounded-4 p-3 mb-4">
-                                  <div className="row g-0 align-items-center">
-                                    <div className="col-4 border-end border-white text-center">
-                                      <div className="text-muted text-uppercase" style={{ fontSize: "0.65rem", fontWeight: "600", letterSpacing: "0.5px" }}>Equip</div>
-                                      <div className="fw-bold text-dark mt-1" style={{ fontSize: "1rem" }}>{room.totalEquipment || 0}</div>
-                                    </div>
-                                    <div className="col-4 border-end border-white text-center">
-                                      <div className="text-muted text-uppercase" style={{ fontSize: "0.65rem", fontWeight: "600", letterSpacing: "0.5px" }}>Broken</div>
-                                      <div className={`fw-bold mt-1 ${(room.equipmentBroken || 0) > 0 ? "text-danger" : "text-dark"}`} style={{ fontSize: "1rem" }}>
-                                        {room.equipmentBroken || 0}
-                                      </div>
-                                    </div>
-                                    <div className="col-4 text-center">
-                                      <div className="text-muted text-uppercase" style={{ fontSize: "0.65rem", fontWeight: "600", letterSpacing: "0.5px" }}>Issues</div>
-                                      <div className={`fw-bold mt-1 ${(room.totalIssues || 0) > 0 ? "text-danger" : "text-dark"}`} style={{ fontSize: "1rem" }}>
-                                        {room.totalIssues || 0}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="d-grid">
-                                  <button
-                                      className="btn btn-dark shadow-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
-                                      onClick={() => handleViewRoom(room)}
-                                      style={{ borderRadius: "12px", fontSize: "0.85rem", letterSpacing: "0.5px" }}
-                                  >
-                                    <i className="bi bi-sliders"></i> Manage Details
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                      ))}
-                    </div>
-                )}
+            )}
 
                 {/* FOOTER & PAGINATION */}
                 {displayedRooms.length > 0 && (

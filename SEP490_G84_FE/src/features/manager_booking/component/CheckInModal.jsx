@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { checkInApi } from '../api/checkInApi';
 import Swal from 'sweetalert2';
 
@@ -656,6 +656,14 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
   const [allocationRoomIndex, setAllocationRoomIndex] = useState(0);
 
   const [isMarkingArrived, setIsMarkingArrived] = useState(false);
+
+  // Remaining balance at check-in (mandatory collection if booking is partially paid)
+  const [remainingPaymentMethod, setRemainingPaymentMethod] = useState('CASH');
+  // Calculate amount still owed: totalAmount - prepaidAmount (if prepaidAmount exists)
+  const amountDue = (booking && booking.totalAmount && booking.prepaidAmount != null)
+    ? Math.max(0, Number(booking.totalAmount) - Number(booking.prepaidAmount))
+    : 0;
+  const hasUnpaidBalance = amountDue > 0;
 
   const showAllocationStep = applyEarlyCheckIn && Number(earlyCheckInFee || 0) > 0 && assignments.length > 1;
   const currentSteps = showAllocationStep 

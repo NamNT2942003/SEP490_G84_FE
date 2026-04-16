@@ -454,15 +454,18 @@ function AdminRoomDetailModal({ room, onClose, onRefresh }) {
         </div>
 
         {/* Modals */} 
-        {showEditRoom && <EditRoomModal 
-          room={{ 
-            ...room, 
-            ...roomDetail, 
-            branchId: roomDetail?.branchId || room?.branchId, 
-            roomTypeId: roomDetail?.roomTypeId || room?.roomTypeId || room?.typeId 
-          }} 
-          onClose={() => setShowEditRoom(false)} 
-          onSubmitted={() => refreshRoom()} 
+        {showEditRoom && <EditRoomModal
+          room={{
+            ...room,
+            ...roomDetail,
+            branchId: roomDetail?.branchId || room?.branchId,
+            roomTypeId: roomDetail?.roomTypeId || room?.roomTypeId || room?.typeId
+          }}
+          onClose={() => setShowEditRoom(false)}
+          onSubmitted={async () => {
+            await refreshRoom();
+            onRefresh?.();
+          }}
         />}
         {showReport && (
           <ReportIncidentModal
