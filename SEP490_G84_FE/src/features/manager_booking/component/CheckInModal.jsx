@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { checkInApi } from '../api/checkInApi';
 import Swal from 'sweetalert2';
 
@@ -664,6 +664,8 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
     ? Math.max(0, Number(booking.totalAmount) - Number(booking.prepaidAmount))
     : 0;
   const hasUnpaidBalance = amountDue > 0;
+  // Staff can toggle whether to collect the remaining balance now (default ON when balance exists)
+  const [collectRemainingAtCheckIn, setCollectRemainingAtCheckIn] = useState(true);
 
   const showAllocationStep = applyEarlyCheckIn && Number(earlyCheckInFee || 0) > 0 && assignments.length > 1;
   const currentSteps = showAllocationStep 
@@ -723,6 +725,9 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
         earlyCheckInTargetRoomIndex: showAllocationStep ? allocationRoomIndex : 0,
         payNow: applyEarlyCheckIn ? payNow : false,
         paymentMethod: applyEarlyCheckIn && payNow ? paymentMethod : null,
+        // --- PARTIAL DEPOSIT: thu nốt tiền còn lại khi check-in ---
+        collectRemainingAtCheckIn: hasUnpaidBalance && collectRemainingAtCheckIn,
+        remainingPaymentMethod: hasUnpaidBalance && collectRemainingAtCheckIn ? remainingPaymentMethod : null,
       };
       await checkInApi.processCheckIn(booking.id, payload);
       Swal.fire({ icon: 'success', title: 'Check-in Complete!', text: 'Guest has been successfully checked in.', timer: 2000, showConfirmButton: false });
@@ -778,6 +783,81 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
 
           {step === 0 && (
             <>
+              {/* ── Unpaid Deposit Balance Banner ── */}
+              {hasUnpaidBalance && (
+                <div style={{
+                  background: '#fff8e1', border: '1.5px solid #f59e0b',
+                  borderRadius: '10px', padding: '16px 18px', marginBottom: '16px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '18px' }}>💰</span>
+                      <div>
+                        <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#92400e' }}>Remaining Balance Due</div>
+                        <div style={{ fontSize: '12px', color: '#b45309', marginTop: '2px' }}>
+                          Guest paid a partial deposit — remainder must be collected at check-in
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount Due</div>
+                      <div style={{ fontSize: '20px', fontWeight: 800, color: '#92400e' }}>
+                        {amountDue.toLocaleString('vi-VN')} ₫
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid #fcd34d', paddingTop: '12px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+                      COLLECT NOW?
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: collectRemainingAtCheckIn ? '12px' : 0 }}>
+                      {[
+                        { val: true,  label: 'Collect Now',  sub: 'Record payment at counter' },
+                        { val: false, label: 'Skip for Now', sub: 'Add to checkout bill' },
+                      ].map(opt => (
+                        <div
+                          key={String(opt.val)}
+                          onClick={() => !isSubmitting && setCollectRemainingAtCheckIn(opt.val)}
+                          style={{
+                            flex: 1, padding: '10px 14px', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                            border: `2px solid ${collectRemainingAtCheckIn === opt.val ? '#f59e0b' : C.BORDER}`,
+                            background: collectRemainingAtCheckIn === opt.val ? '#fef3c7' : C.SURFACE,
+                            transition: 'all .15s',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{
+                              width: 13, height: 13, borderRadius: '50%',
+                              border: `2px solid ${collectRemainingAtCheckIn === opt.val ? '#f59e0b' : C.BORDER}`,
+                              background: collectRemainingAtCheckIn === opt.val ? '#f59e0b' : 'transparent',
+                            }} />
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: collectRemainingAtCheckIn === opt.val ? '#92400e' : C.TEXT_DARK }}>
+                              {opt.label}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '11.5px', color: C.MUTED, marginTop: '3px', marginLeft: '21px' }}>{opt.sub}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {collectRemainingAtCheckIn && (
+                      <Field label="Payment Method for Remaining Balance">
+                        <select
+                          style={S.select(false)}
+                          value={remainingPaymentMethod}
+                          onChange={e => setRemainingPaymentMethod(e.target.value)}
+                          disabled={isSubmitting}
+                        >
+                          <option value="CASH">Cash</option>
+                          <option value="CARD">Card</option>
+                          <option value="TRANSFER">Bank Transfer</option>
+                        </select>
+                      </Field>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {isNotToday && (
                 <div style={{
                   background: '#ffebec', border: '1.5px solid #dc3545', borderRadius: '8px',
