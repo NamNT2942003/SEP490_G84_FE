@@ -1,27 +1,28 @@
 import React from 'react';
-import { COLORS } from '@/constants';
-import { useCurrentUser } from '@/hooks/useCurrentUser'; // Import đường ống vừa tạo
+import { Navigate } from 'react-router-dom';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const Dashboard = () => {
-    // Hút data từ Redux ra xài
     const { currentUser } = useCurrentUser();
     
-    // Nếu chưa load kịp thì để tạm giá trị rỗng để tránh lỗi sập app
-    const userInfo = currentUser || { fullName: 'User', roleDisplay: 'User', branchName: '' };
+    // Nếu chưa có dữ liệu user thì không render gì cả (hoặc có thể hiển thị một spinner)
+    if (!currentUser) return null;
 
-    return (
-        <div className="container-fluid p-0 fade-in">
-            <div className="p-4 rounded-3 shadow-sm bg-white border mb-4">
-                <h2 className="fw-bold mb-2" style={{ color: COLORS.PRIMARY }}>
-                    Welcome back, {userInfo.roleDisplay} {userInfo.branchName ? `- ${userInfo.branchName}` : ''}!
-                </h2>
-                <p className="text-muted fs-5 m-0">
-                    Hello <strong>{userInfo.fullName}</strong>, wishing you a productive day.
-                </p>
-            </div>
-            {/* Các thẻ div khác giữ nguyên */}
-        </div>
-    );
+    // Phân quyền chuyển hướng
+    const isAdmin = currentUser?.permissions?.isAdmin;
+    const isManager = currentUser?.permissions?.isManager;
+    const isHousekeeper = currentUser?.permissions?.isHousekeeper;
+
+    if (isAdmin || isManager) {
+        // Manager và Admin vào trang báo cáo doanh thu đa cơ sở
+        return <Navigate to="/report/multi-branch" replace />;
+    } else if (isHousekeeper) {
+        // Housekeeper (nhân viên dọn phòng) vào thẳng Housekeeping
+        return <Navigate to="/housekeeping" replace />;
+    } else {
+        // Staff vào thẳng Front Desk (Lễ tân)
+        return <Navigate to="/manager-booking" replace />;
+    }
 };
 
 export default Dashboard;
