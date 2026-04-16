@@ -28,7 +28,6 @@ const Sidebar = ({ collapsed }) => {
         { path: "/stay", label: "In-house (Stay)", icon: "bi-house-door", show: !isHousekeeper },
         { path: "/housekeeping", label: "Housekeeping", icon: "bi-stars", show: true },
         { path: "/bookings", label: "Bookings", icon: "bi-calendar-check", show: !isHousekeeper },
-        { path: "/services", label: "Services", icon: "bi-cup-hot", show: !isStaff && !isHousekeeper },
       ],
     },
     {
@@ -75,6 +74,12 @@ const Sidebar = ({ collapsed }) => {
           label: "Accounts",
           icon: "bi-people",
           show: currentUser?.permissions?.canAccessAccountList,
+        },
+        {
+          path: "/services",
+          label: "Services",
+          icon: "bi-cup-hot",
+          show: isAdmin || isManager,
         },
       ],
     },
