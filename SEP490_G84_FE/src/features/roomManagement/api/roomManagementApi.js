@@ -22,7 +22,9 @@ export const roomManagementApi = {
         content: backendData.rooms.map(room => ({
           roomId: room.roomId,
           roomName: room.roomName,
-          roomType: room.type, 
+          roomType: room.type,
+            typeId: room.typeId,
+            roomTypeId: room.typeId,
           roomTypeName: room.roomTypeName,
           floor: room.floor,
           status: room.status || 'AVAILABLE',
@@ -101,6 +103,13 @@ export const roomManagementApi = {
     const response = await apiClient.put(
       `${ADMIN_ROOM_API_BASE}/${roomId}/furniture/${furnitureId}`,
       payload,
+    );
+    return response.data;
+  },
+
+  deleteRoom: async (roomId) => {
+    const response = await apiClient.delete(
+      `/rooms/admin/${roomId}`
     );
     return response.data;
   },
