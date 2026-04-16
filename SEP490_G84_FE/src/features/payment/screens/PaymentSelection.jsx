@@ -56,6 +56,7 @@ const PaymentSelection = () => {
         bookingId,
         totalAmount,
         finalAmount,
+        prepaidAmount,
         depositAmount,
         bookingTotalAmount,
         rooms = [],
@@ -63,7 +64,7 @@ const PaymentSelection = () => {
         checkOut = '',
         selectedPolicy = null,
     } = location.state || { bookingId: null, totalAmount: 0 };
-    const effectiveAmount = Number(depositAmount ?? finalAmount ?? totalAmount ?? bookingTotalAmount ?? 0);
+    const effectiveAmount = Number(prepaidAmount ?? depositAmount ?? finalAmount ?? totalAmount ?? bookingTotalAmount ?? 0);
     const displayedBookingTotal = Number(bookingTotalAmount ?? totalAmount ?? finalAmount ?? effectiveAmount);
 
     const [selectedMethod, setSelectedMethod] = useState(effectiveAmount <= 0 ? 'CASH' : 'STRIPE');
@@ -234,7 +235,7 @@ const PaymentSelection = () => {
                                     <p className="text-muted mb-4">Please open your banking app and scan the QR code below to pay.</p>
 
                                     <div className="bg-light p-3 rounded-3 mb-4 text-center">
-                                        <p className="text-muted mb-1 text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>Total Amount</p>
+                                        <p className="text-muted mb-1 text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>Prepaid Amount</p>
                                         <h3 className="fw-bold m-0" style={{ color: '#D4AF37' }}>{formatCurrency(effectiveAmount)}</h3>
                                     </div>
 
@@ -275,7 +276,7 @@ const PaymentSelection = () => {
 
                                     <div className="bg-light p-3 rounded-3 mb-4 d-flex justify-content-between align-items-center gap-3 flex-wrap">
                                         <div>
-                                            <p className="text-muted mb-0 fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '1px' }}>Final price</p>
+                                            <p className="text-muted mb-0 fw-bold text-uppercase" style={{ fontSize: '11px', letterSpacing: '1px' }}>Prepaid amount (pay now)</p>
                                             <div className="text-muted small mt-1">
                                                 {hasPolicyBasedPayment ? (
                                                     <>
@@ -297,10 +298,10 @@ const PaymentSelection = () => {
                                         </div>
                                         <div className="col-md-6">
                                             <div className="p-3 rounded-3 border h-100" style={{ background: '#f4f8ef' }}>
-                                                <div className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>Payment amount</div>
+                                                <div className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>Prepaid amount</div>
                                                 <div className="fw-bold fs-5 mt-1" style={{ color: '#465c47' }}>{formatCurrency(effectiveAmount)}</div>
                                                 <div className="text-muted small mt-2">
-                                                    No recalculation is applied on this screen.
+                                                    This is the policy-based amount due now.
                                                 </div>
                                             </div>
                                         </div>
@@ -373,7 +374,7 @@ const PaymentSelection = () => {
                 <footer className="fixed-bottom bg-white border-top p-3 shadow-lg" style={{ zIndex: 1031 }}>
                     <div className="container d-flex justify-content-between align-items-center">
                         <div>
-                            <small className="text-muted fw-bold text-uppercase">Total Price</small>
+                            <small className="text-muted fw-bold text-uppercase">Prepaid Amount</small>
                             <h4 className="mb-0 fw-bold" style={{ color: '#465c47' }}>
                                 {formatCurrency(effectiveAmount)}
                             </h4>
