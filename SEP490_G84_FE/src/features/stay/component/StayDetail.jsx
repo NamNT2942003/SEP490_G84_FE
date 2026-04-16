@@ -367,7 +367,7 @@ const css = `
 const StayDetail = ({ booking, onBack, onRefresh }) => {
   const [isModalOpen, setIsModalOpen]       = useState(false);
   const [selectedStay, setSelectedStay]     = useState(null);
-  const [cancelModalData, setCancelModalData] = useState({ isOpen: false, orderId: null, serviceName: '' });
+  const [cancelModalData, setCancelModalData] = useState({ isOpen: false, orderId: null, serviceName: '', isPaid: false });
   const [isChangeModalOpen, setIsChangeModalOpen]         = useState(false);
   const [selectedStayForChange, setSelectedStayForChange] = useState(null);
   const [isDamageModalOpen, setIsDamageModalOpen]         = useState(false);
@@ -389,17 +389,17 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
     setIsDamageModalOpen(true);
   };
 
-  const triggerCancelClick = (orderId, serviceName) => {
-    setCancelModalData({ isOpen: true, orderId, serviceName });
+  const triggerCancelClick = (orderId, serviceName, isPaid) => {
+    setCancelModalData({ isOpen: true, orderId, serviceName, isPaid });
   };
 
   const executeCancelService = async () => {
     try {
       await stayApi.cancelService(cancelModalData.orderId);
-      setCancelModalData({ isOpen: false, orderId: null, serviceName: '' });
+      setCancelModalData({ isOpen: false, orderId: null, serviceName: '', isPaid: false });
       onRefresh();
     } catch (error) {
-      setCancelModalData({ isOpen: false, orderId: null, serviceName: '' });
+      setCancelModalData({ isOpen: false, orderId: null, serviceName: '', isPaid: false });
       setErrorMessage(error.response?.data?.message || 'Error cancelling service!');
     }
   };
@@ -536,7 +536,7 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             {!isCancelled && (
-                              <button className="btn-cancel-svc" onClick={() => triggerCancelClick(order.orderId, order.serviceName)}>
+                              <button className="btn-cancel-svc" onClick={() => triggerCancelClick(order.orderId, order.serviceName, order.paymentStatus === 'PAID')}>
                                 ✕ Cancel
                               </button>
                             )}
@@ -587,17 +587,25 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
               <h3>⚠ Confirm Cancellation</h3>
               <button
                 style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}
-                onClick={() => setCancelModalData({ isOpen: false, orderId: null, serviceName: '' })}
+                onClick={() => setCancelModalData({ isOpen: false, orderId: null, serviceName: '', isPaid: false })}
               >×</button>
             </div>
             <div className="confirm-body">
               Are you sure you want to cancel the service<br />
               <strong>"{cancelModalData.serviceName}"</strong>?
+              
+              {cancelModalData.isPaid && (
+                <div style={{ marginTop: '16px', padding: '12px', background: '#fff3cd', color: '#856404', borderRadius: '8px', fontSize: '14px', border: '1px solid #ffe08a', textAlign: 'left' }}>
+                  <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                  <strong>This service was PAID.</strong><br/>
+                  Cancelling this service will automatically reverse the payment in the system. <b>Please remember to physically refund the guest!</b>
+                </div>
+              )}
             </div>
             <div className="confirm-footer">
               <button
                 className="btn-close-modal"
-                onClick={() => setCancelModalData({ isOpen: false, orderId: null, serviceName: '' })}
+                onClick={() => setCancelModalData({ isOpen: false, orderId: null, serviceName: '', isPaid: false })}
               >Close</button>
               <button className="btn-confirm-cancel" onClick={executeCancelService}>
                 Confirm Cancel
