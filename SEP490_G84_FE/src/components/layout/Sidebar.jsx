@@ -22,12 +22,6 @@ const Sidebar = ({ collapsed }) => {
   // --- Menu groups ---
   const menuGroups = [
     {
-      groupLabel: "Overview",
-      items: [
-        { path: "/dashboard", label: "Dashboard", icon: "bi-speedometer2", show: true },
-      ],
-    },
-    {
       groupLabel: "Operations",
       items: [
         { path: "/manager-booking", label: "Front Desk", icon: "bi-key", show: !isHousekeeper },
@@ -85,28 +79,19 @@ const Sidebar = ({ collapsed }) => {
       ],
     },
     {
-      groupLabel: "Analytics",
+      groupLabel: "Reports",
       items: [
-        {
-          label: "Reports",
-          icon: "bi-bar-chart-line",
-          show: isAdmin || isManager,
-          children: [
-            { path: "/report/revenue", label: "Room Revenue", icon: "bi-building" },
-            { path: "/report/services", label: "Service Revenue", icon: "bi-cup-hot" },
-            { path: "/report/expense", label: "Operating Expenses", icon: "bi-receipt" },
-            { path: "/report/aggregated", label: "Aggregated Report", icon: "bi-clipboard-data" },
-            { path: "/report/multi-branch", label: "Multi-Branch Report", icon: "bi-diagram-3-fill" },
-          ],
-        },
-        {
-          label: "Finance",
-          icon: "bi-cash-coin",
-          show: isAdmin || isManager,
-          children: [
-            { path: "/finance/cashflow", label: "Cash Flow Report", icon: "bi-arrow-down-circle" },
-          ],
-        },
+        { path: "/report/revenue", label: "Room Revenue", icon: "bi-building", show: isAdmin || isManager },
+        { path: "/report/services", label: "Service Revenue", icon: "bi-cup-hot", show: isAdmin || isManager },
+        { path: "/report/expense", label: "Operating Expenses", icon: "bi-receipt", show: isAdmin || isManager },
+        { path: "/report/aggregated", label: "Aggregated Report", icon: "bi-clipboard-data", show: isAdmin || isManager },
+        { path: "/report/multi-branch", label: "Multi-Branch Report", icon: "bi-diagram-3-fill", show: isAdmin || isManager },
+      ],
+    },
+    {
+      groupLabel: "Finance",
+      items: [
+        { path: "/finance/cashflow", label: "Cash Flow Report", icon: "bi-arrow-down-circle", show: isAdmin || isManager },
       ],
     },
   ];
