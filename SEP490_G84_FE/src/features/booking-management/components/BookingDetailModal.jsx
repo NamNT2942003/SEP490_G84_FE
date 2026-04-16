@@ -25,6 +25,8 @@ const formatDate = (value) => {
 const formatVND = (amount) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount || 0);
 
+const isInternalFrontendBooking = (source) => (source || "").trim().toUpperCase() === "FRONT_END";
+
 // ─── Sub-components ────────────────────────────────────────────────────────
 
 const StatusBadge = ({ status }) => {
@@ -105,6 +107,15 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
     };
 
     const handleCancel = async () => {
+        if (!isInternalFrontendBooking(booking?.source)) {
+            await Swal.fire({
+                icon: "warning",
+                title: "Not allowed",
+                text: "Only internal FRONT_END bookings can be cancelled.",
+            });
+            return;
+        }
+
         const refundAmount = Number(booking?.refundAmount || 0);
         const retainedAmount = Number(booking?.retainedAmount || 0);
         const result = await Swal.fire({
@@ -320,7 +331,7 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
 
                 {/* Footer */}
                 <div className="bm-modal-footer">
-                    {booking?.status !== "CANCELLED" && (
+                    {booking?.status !== "CANCELLED" && isInternalFrontendBooking(booking?.source) && (
                         <Buttons
                             variant="danger"
                             className="btn-sm"

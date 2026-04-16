@@ -10,6 +10,7 @@ const toNumber = (value, fallback = 0) => {
 
 const normalizeBooking = (item = {}) => {
     const status = (item.status || item.bookingStatus || "PENDING").toString().toUpperCase();
+    const source = (item.source || item.bookingSource || "").toString();
 
     return {
         bookingId: item.bookingId || item.id || item.reservationId || "-",
@@ -28,6 +29,7 @@ const normalizeBooking = (item = {}) => {
         checkOutDate: item.checkOutDate || item.departure_date || item.departureDate || "",
         createdAt: item.createdAt || item.createdDate || item.bookingDate || "",
         status,
+        source,
         raw: item,
     };
 };
@@ -78,6 +80,7 @@ const bookingManagementApi = {
                              search = "",
                              status = "",
                              branchId = "",
+                             sourceType = "",
                              fromDate = "",
                              toDate = "",
                          } = {}) => {
@@ -87,6 +90,7 @@ const bookingManagementApi = {
         if (search) params.append("keyword", search);
         if (status) params.append("status", status);
         if (branchId) params.append("branchId", branchId);
+        if (sourceType) params.append("sourceType", sourceType);
         if (fromDate) params.append("fromDate", fromDate);
         if (toDate) params.append("toDate", toDate);
 

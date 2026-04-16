@@ -39,6 +39,10 @@ function sourceTag(source) {
   return { label: source, bg: '#eeeeee', color: '#444' };
 }
 
+function isInternalFrontendBooking(source) {
+  return (source || '').trim().toUpperCase() === 'FRONT_END';
+}
+
 function statusBadge(booking, isNoShow, isCheckoutOverdue, isCheckoutToday) {
   if (booking.status === 'NO_SHOW') return { text: 'No-Show', bg: '#212121', color: '#fff' };
   if (isNoShow) return { text: '⚠ Overdue / No-Show', bg: '#ffcdd2', color: '#b71c1c' };
@@ -73,6 +77,11 @@ export default function BookingTable({
   }
 
   const handleUndoCheckIn = async (booking) => {
+    if (!isInternalFrontendBooking(booking.source)) {
+      await Swal.fire('Not allowed', 'Only internal FRONT_END bookings can be undone.', 'warning');
+      return;
+    }
+
     const result = await Swal.fire({
       title: 'Undo Check-in?',
       html: `⚠️ Undo check-in for booking <b>${booking.bookingCode}</b>?<br><br>All check-in data and surcharges will be permanently deleted!`,
@@ -344,7 +353,7 @@ export default function BookingTable({
                             <i className="bi bi-info-circle text-primary me-3 fs-6"></i>View Details
                           </button>
                         </li>
-                        {booking.status === 'CHECKED_IN' && (
+                        {booking.status === 'CHECKED_IN' && isInternalFrontendBooking(booking.source) && (
                           <>
                             <li><hr className="dropdown-divider my-1" /></li>
                             <li>
