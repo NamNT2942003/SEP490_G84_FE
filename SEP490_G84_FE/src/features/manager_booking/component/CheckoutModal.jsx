@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import './checkout-print.css';
 import { checkoutApi } from '../api/checkoutApi';
-import ReportDamageModal from '../../stay/component/ReportDamageModal';
-
 const BRANCH_CONFIG = {
   1: { name: "AN HOTEL & RESORT - HANOI", address: "123 Trang Tien, Hoan Kiem, Hanoi", phone: "024.1234.5678" },
   2: { name: "AN HOTEL & RESORT - DANANG", address: "456 Vo Nguyen Giap, Son Tra, Danang", phone: "0236.9876.5432" }
@@ -22,8 +20,6 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   const [paymentMethod, setPaymentMethod] = useState('');
   const [stayPaymentMethods, setStayPaymentMethods] = useState({}); // stayId -> paymentMethod
   const [activeRoomIdx, setActiveRoomIdx] = useState('ALL');
-  const [damageReportRoom, setDamageReportRoom] = useState(null);
-
   const currentBranch = BRANCH_CONFIG[branchId] || {
     name: "AN Nguyen HOTEL & RESORT", address: "Ha Noi, Vietnam", phone: "0123.456.789"
   };
@@ -85,14 +81,16 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   const handlePrint = () => window.print();
 
   const handleCheckoutRoom = async (stayId) => {
-    const method = stayPaymentMethods[stayId];
-    if (!method) {
-      Swal.fire({ icon: 'warning', title: 'Required', text: 'Please select a payment method for this room.' });
-      return;
-    }
     const room = rooms.find(r => r.stayId === stayId);
     const roomName = room?.roomName || 'this room';
     const due = Number(room?.amountDue || 0);
+    
+    let method = stayPaymentMethods[stayId];
+    if (due > 0 && !method) {
+      Swal.fire({ icon: 'warning', title: 'Required', text: 'Please select a payment method for this room.' });
+      return;
+    }
+    if (!method) method = 'CASH'; // fallback if 0 due
 
     const confirm = await Swal.fire({
       icon: 'question',
@@ -122,13 +120,16 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
 
   // Single-room checkout (booking 1 phòng, dùng API cũ)
   const handleConfirmCheckout = async () => {
-    if (!paymentMethod) {
+    let method = paymentMethod;
+    if (amountDue > 0 && !method) {
       Swal.fire({ icon: 'warning', title: 'Required', text: 'Please select a payment method to continue.' });
       return;
     }
+    if (!method) method = 'CASH'; // fallback if 0 due
+
     setIsSubmitting(true);
     try {
-      await checkoutApi.processCheckout(booking.id, paymentMethod);
+      await checkoutApi.processCheckout(booking.id, method);
       Swal.fire({ icon: 'success', title: 'Done!', text: 'Check-out completed successfully!', timer: 2000, showConfirmButton: false });
       if (onSuccess) onSuccess();
       onClose();
@@ -223,13 +224,6 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                             <div className="text-end" style={{ whiteSpace: 'nowrap' }}>
                               <div className="text-muted" style={{ fontSize: '0.7rem' }}>Room Price</div>
                               <div className="fw-bold">{fmtMoney(room.roomPrice)}</div>
-                              <button 
-                                className="btn btn-sm btn-outline-danger mt-1 py-0 px-2 d-flex align-items-center gap-1 ms-auto" 
-                                style={{fontSize: '0.7rem'}}
-                                onClick={() => setDamageReportRoom({ stayId: room.stayId, roomName: room.roomName, primaryGuestName: room.guestName })}
-                              >
-                                <i className="bi bi-exclamation-triangle"></i>Damage
-                              </button>
                             </div>
                           </div>
                         </div>
@@ -441,14 +435,14 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                       <>
                         <button className="btn btn-danger fw-bold shadow-sm py-2"
                           onClick={handleConfirmCheckout}
-                          disabled={isSubmitting || !paymentMethod}
+                          disabled={isSubmitting || (amountDue > 0 && !paymentMethod)}
                           style={{ fontSize: '0.85rem' }}>
                           {isSubmitting
                             ? <><span className="spinner-border spinner-border-sm me-2"></span>Processing...</>
                             : <><i className="bi bi-check2-all me-2"></i>Confirm Checkout</>
                           }
                         </button>
-                        {!paymentMethod && (
+                        {amountDue > 0 && !paymentMethod && (
                           <p className="text-muted text-center mb-0" style={{ fontSize: '0.72rem' }}>
                             ⚠️ Please select a payment method to continue
                           </p>
@@ -526,16 +520,6 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
           Thank you for staying with us!<br />See you again.
         </div>
       </div>
-
-      <ReportDamageModal
-        show={!!damageReportRoom}
-        stayInfo={damageReportRoom}
-        onClose={() => setDamageReportRoom(null)}
-        onSuccess={() => {
-          setDamageReportRoom(null);
-          fetchBilling();
-        }}
-      />
     </>
   );
 }

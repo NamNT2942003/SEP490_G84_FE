@@ -164,6 +164,18 @@ export const reportApi = {
         }
     },
 
+    getExpenseSuggestions: async (branchId, month, year) => {
+        try {
+            const { data } = await apiClient.get('/reports/expenses/suggestions', {
+                params: { branchId, month, year }
+            });
+            return data;
+        } catch (error) {
+            console.error("API Error:", error);
+            return []; // Suggestions are optional, never block the form
+        }
+    },
+
     saveMonthlyExpenses: async (dataPayload) => {
         try {
             const { data } = await apiClient.post('/reports/expenses/save', dataPayload);

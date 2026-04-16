@@ -24,18 +24,18 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
   const fetchRoomDetails = async () => {
     try {
       setLoading(true);
-      
+
       const roomId = room.roomId || room.id;
       if (!roomId) {
         console.error("No room ID available");
         return;
       }
-      
+
       // Get room detail (includes equipment)
       const detail = await roomManagementApi.getRoomDetailFull(roomId);
       const eqList = detail?.furnitureList || detail?.equipment || [];
       setEquipmentList(eqList);
-      
+
       // Sync the true status from the backend
       if (detail && detail.status) {
         setCurrentRoomStatus(detail.status);
@@ -66,7 +66,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
           }
         }
       }
-      
+
     } catch (error) {
       console.warn("Room details APIs error:", error);
       setEquipmentList([]);
@@ -114,7 +114,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
       if (!roomId) return;
 
       await roomManagementApi.updateRoomFurniture(roomId, equipmentId, { status: "BROKEN" });
-      
+
       // Show success notification
       if (onShowNotification) {
         onShowNotification({
@@ -123,7 +123,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
           timestamp: Date.now()
         });
       }
-      
+
       await fetchRoomDetails();
       if (onRoomUpdated) onRoomUpdated();
     } catch (error) {
@@ -148,7 +148,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
       if (!roomId) return;
 
       await roomManagementApi.fixRoomFurniture(roomId, equipment.furnitureId);
-      
+
       // Show success notification
       if (onShowNotification) {
         onShowNotification({
@@ -157,7 +157,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
           timestamp: Date.now()
         });
       }
-      
+
       await fetchRoomDetails();
       if (onRoomUpdated) onRoomUpdated();
     } catch (error) {
@@ -180,7 +180,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
   const getStatusColor = (status) => {
     if (!status) return "#6c757d";
     const s = status.toUpperCase();
-    switch(s) {
+    switch (s) {
       case "AVAILABLE": return "#198754"; // Xanh lá - Sẵn sàng
       case "OCCUPIED": return "#0d6efd";  // Xanh dương - Có người
       case "MAINTENANCE": return "#dc3545"; // Đỏ - Bảo trì
@@ -191,7 +191,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
   const getStatusText = (status) => {
     if (!status) return "Unknown";
     const s = status.toUpperCase();
-    switch(s) {
+    switch (s) {
       case "AVAILABLE": return "Available";
       case "OCCUPIED": return "Occupied";
       case "MAINTENANCE": return "Maintenance";
@@ -240,30 +240,30 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
 
   return (
     <>
-    <div
-      style={{
-        position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: "rgba(0,0,0,0.5)",
-        zIndex: 1050,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "20px",
-        backdropFilter: "blur(2px)",
-      }}
-      onClick={onHide}
-    >
       <div
         style={{
-          width: "min(900px, 95vw)",
-          maxHeight: "90vh",
-          overflowY: "auto",
-          backgroundColor: "#fff",
-          borderRadius: 15,
-          boxShadow: "0 24px 64px rgba(0,0,0,0.22)",
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          zIndex: 1050,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "20px",
+          backdropFilter: "blur(2px)",
         }}
-        onClick={(e) => e.stopPropagation()}
+        onClick={onHide}
       >
+        <div
+          style={{
+            width: "min(900px, 95vw)",
+            maxHeight: "90vh",
+            overflowY: "auto",
+            backgroundColor: "#fff",
+            borderRadius: 15,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.22)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* MODAL HEADER */}
           <div className="modal-header border-0 p-4 pb-3">
             <div className="d-flex justify-content-between align-items-start w-100">
@@ -312,7 +312,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                     Report Issue
                   </button>
                 )}
-                
+
                 <button
                   type="button"
                   className="btn-close"
@@ -328,11 +328,10 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
             <ul className="nav nav-tabs border-0 gap-1">
               <li className="nav-item">
                 <button
-                  className={`nav-link border-0 px-3 py-2 ${
-                    activeTab === "equipment"
+                  className={`nav-link border-0 px-3 py-2 ${activeTab === "equipment"
                       ? "active text-white"
                       : "text-muted bg-light"
-                  }`}
+                    }`}
                   style={{
                     borderRadius: 8,
                     backgroundColor: activeTab === "equipment" ? BRAND : "transparent",
@@ -345,11 +344,10 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
               {!room?.roomName?.includes('WAREHOUSE') && (
                 <li className="nav-item">
                   <button
-                    className={`nav-link border-0 px-3 py-2 ${
-                      activeTab === "issues"
+                    className={`nav-link border-0 px-3 py-2 ${activeTab === "issues"
                         ? "active text-white"
                         : "text-muted bg-light"
-                    }`}
+                      }`}
                     style={{
                       borderRadius: 8,
                       backgroundColor: activeTab === "issues" ? BRAND : "transparent",
@@ -389,7 +387,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                         </span>
                         {brokenEquipment > 0 && (
                           <span
-                            className="badge px-3 py-2 d-flex align-items-center gap-1"  
+                            className="badge px-3 py-2 d-flex align-items-center gap-1"
                             style={{
                               backgroundColor: "#dc354520",
                               color: "#dc3545",
@@ -397,7 +395,7 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                             }}
                           >
                             <i className="bi bi-exclamation-triangle-fill"></i>
-                              Broken: {brokenEquipment}
+                            Broken: {brokenEquipment}
                           </span>
                         )}
                       </div>
@@ -428,35 +426,35 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                 const eqGood = isEquipmentGood(equipment.condition);
                                 const eqBroken = isEquipmentBroken(equipment.condition);
                                 return (
-                                <tr key={equipment.furnitureId || index}>
-                                  <td className="border-0 text-muted">
-                                    {String(index + 1).padStart(2, '0')}
-                                  </td>
-                                  <td className="border-0 fw-medium">
-                                    {equipment.furnitorName || 'Unknown'}
-                                  </td>
-                                  <td className="border-0 text-center">
-                                    {equipment.quantity || 1}
-                                  </td>
-                                  <td className="border-0 text-center">
-                                    <span
-                                      className="badge px-3 py-2 d-flex align-items-center gap-1 justify-content-center"
-                                      style={{
-                                        backgroundColor: getEquipmentConditionColor(equipment.condition),
-                                        color: "#fff",
-                                        width: "120px",
-                                        margin: "0 auto",
-                                        borderRadius: "6px",
-                                        fontWeight: "600"
-                                      }}
-                                    >
-                                      <i className={`bi ${eqGood ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill"}`}></i>
-                                      {getEquipmentConditionText(equipment.condition)}
-                                    </span>
-                                  </td>
-                                  <td className="border-0 text-center">
-                                    {room?.roomName === 'WAREHOUSE_FAIL' ? (
-                                      <div className="d-flex align-items-center gap-2 justify-content-center">
+                                  <tr key={equipment.furnitureId || index}>
+                                    <td className="border-0 text-muted">
+                                      {String(index + 1).padStart(2, '0')}
+                                    </td>
+                                    <td className="border-0 fw-medium">
+                                      {equipment.furnitorName || 'Unknown'}
+                                    </td>
+                                    <td className="border-0 text-center">
+                                      {equipment.quantity || 1}
+                                    </td>
+                                    <td className="border-0 text-center">
+                                      <span
+                                        className="badge px-3 py-2 d-flex align-items-center gap-1 justify-content-center"
+                                        style={{
+                                          backgroundColor: getEquipmentConditionColor(equipment.condition),
+                                          color: "#fff",
+                                          width: "120px",
+                                          margin: "0 auto",
+                                          borderRadius: "6px",
+                                          fontWeight: "600"
+                                        }}
+                                      >
+                                        <i className={`bi ${eqGood ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill"}`}></i>
+                                        {getEquipmentConditionText(equipment.condition)}
+                                      </span>
+                                    </td>
+                                    <td className="border-0 text-center">
+                                      {room?.roomName === 'WAREHOUSE_FAIL' ? (
+                                        <div className="d-flex align-items-center gap-2 justify-content-center">
                                           <input
                                             type="number"
                                             className="form-control form-control-sm"
@@ -467,95 +465,95 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                             onChange={(e) => setActionQuantities(prev => ({ ...prev, [equipment.furnitureId]: Number(e.target.value) }))}
                                             disabled={actionLoading === equipment.furnitureId}
                                           />
+                                          <button
+                                            className="btn btn-success btn-sm px-3"
+                                            style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
+                                            onClick={() => handleWarehouseFailAction('fix', equipment, actionQuantities[equipment.furnitureId] || 1)}
+                                            disabled={actionLoading === equipment.furnitureId}
+                                          >
+                                            {actionLoading === equipment.furnitureId ? 'Processing...' : 'Fixed'}
+                                          </button>
+                                          <button
+                                            className="btn btn-danger btn-sm px-3"
+                                            style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
+                                            onClick={() => handleWarehouseFailAction('discard', equipment, actionQuantities[equipment.furnitureId] || 1)}
+                                            disabled={actionLoading === equipment.furnitureId}
+                                          >
+                                            {actionLoading === equipment.furnitureId ? 'Processing...' : 'Beyond Repair'}
+                                          </button>
+                                        </div>
+                                      ) : eqGood ? (
                                         <button
-                                          className="btn btn-success btn-sm px-3"
+                                          className="btn btn-outline-danger btn-sm px-3"
                                           style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
-                                          onClick={() => handleWarehouseFailAction('fix', equipment, actionQuantities[equipment.furnitureId] || 1)}
+                                          onClick={() => handleMarkBroken(equipment.furnitureId)}
                                           disabled={actionLoading === equipment.furnitureId}
-                                        >
-                                          {actionLoading === equipment.furnitureId ? 'Processing...' : 'Fixed'}
-                                        </button>
-                                        <button
-                                          className="btn btn-danger btn-sm px-3"
-                                          style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
-                                          onClick={() => handleWarehouseFailAction('discard', equipment, actionQuantities[equipment.furnitureId] || 1)}
-                                          disabled={actionLoading === equipment.furnitureId}
-                                        >
-                                          {actionLoading === equipment.furnitureId ? 'Processing...' : 'Beyond Repair'}
-                                        </button>
-                                      </div>
-                                    ) : eqGood ? (
-                                      <button
-                                        className="btn btn-outline-danger btn-sm px-3"
-                                        style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
-                                        onClick={() => handleMarkBroken(equipment.furnitureId)}
-                                        disabled={actionLoading === equipment.furnitureId}
-                                      >
-                                        {actionLoading === equipment.furnitureId ? (
-                                          <>
-                                            <div className="spinner-border spinner-border-sm me-1" role="status">
-                                              <span className="visually-hidden">Loading...</span>
-                                            </div>
-                                            Processing...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <i className="bi bi-x-circle me-1"></i>
-                                            Report Damage
-                                          </>
-                                        )}
-                                      </button>
-                                    ) : eqBroken ? (
-                                      <div className="d-flex justify-content-center gap-2">
-                                        {/* Fix Button */}
-                                        <button
-                                          className="btn btn-success btn-sm px-3"
-                                          style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
-                                          onClick={() => handleFixFurniture(equipment)}
-                                          disabled={actionLoading === equipment.furnitureId}
-                                          title="Fix broken furniture in room"
                                         >
                                           {actionLoading === equipment.furnitureId ? (
                                             <>
                                               <div className="spinner-border spinner-border-sm me-1" role="status">
                                                 <span className="visually-hidden">Loading...</span>
                                               </div>
-                                              Fixing...
+                                              Processing...
                                             </>
                                           ) : (
                                             <>
-                                              <i className="bi bi-wrench me-1"></i>
-                                              Fix
+                                              <i className="bi bi-x-circle me-1"></i>
+                                              Report Damage
                                             </>
                                           )}
                                         </button>
+                                      ) : eqBroken ? (
+                                        <div className="d-flex justify-content-center gap-2">
+                                          {/* Fix Button */}
+                                          <button
+                                            className="btn btn-success btn-sm px-3"
+                                            style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
+                                            onClick={() => handleFixFurniture(equipment)}
+                                            disabled={actionLoading === equipment.furnitureId}
+                                            title="Fix broken furniture in room"
+                                          >
+                                            {actionLoading === equipment.furnitureId ? (
+                                              <>
+                                                <div className="spinner-border spinner-border-sm me-1" role="status">
+                                                  <span className="visually-hidden">Loading...</span>
+                                                </div>
+                                                Fixing...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <i className="bi bi-wrench me-1"></i>
+                                                Fix
+                                              </>
+                                            )}
+                                          </button>
 
-                                        {/* Replace from Stock Button */}
-                                        <button
-                                          className="btn btn-warning btn-sm px-3"
-                                          style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
-                                          onClick={() => setReplaceFor(equipment)}
-                                          disabled={actionLoading === equipment.furnitureId}
-                                          title="Replace with item from stock"
-                                        >
-                                          {actionLoading === equipment.furnitureId ? (
-                                            <>
-                                              <div className="spinner-border spinner-border-sm me-1" role="status">
-                                                <span className="visually-hidden">Loading...</span>
-                                              </div>
-                                              Replacing...
-                                            </>
-                                          ) : (
-                                            <>
-                                              <i className="bi bi-arrow-repeat me-1"></i>
-                                              Replace from stock
-                                            </>
-                                          )}
-                                        </button>
-                                      </div>
-                                    ) : null}
-                                  </td>
-                                </tr>
+                                          {/* Replace from Stock Button */}
+                                          <button
+                                            className="btn btn-warning btn-sm px-3"
+                                            style={{ fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600" }}
+                                            onClick={() => setReplaceFor(equipment)}
+                                            disabled={actionLoading === equipment.furnitureId}
+                                            title="Replace with item from stock"
+                                          >
+                                            {actionLoading === equipment.furnitureId ? (
+                                              <>
+                                                <div className="spinner-border spinner-border-sm me-1" role="status">
+                                                  <span className="visually-hidden">Loading...</span>
+                                                </div>
+                                                Replacing...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <i className="bi bi-arrow-repeat me-1"></i>
+                                                Replace from stock
+                                              </>
+                                            )}
+                                          </button>
+                                        </div>
+                                      ) : null}
+                                    </td>
+                                  </tr>
                                 );
                               })
                             ) : (
@@ -627,25 +625,23 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
                                   </div>
                                 </td>
                                 <td className="border-0">
-                                  <span className={`badge ${
-                                    issue.priority === 'HIGH' ? 'bg-danger' :
-                                    issue.priority === 'MEDIUM' ? 'bg-warning text-dark' :
-                                    'bg-secondary'
-                                  }`}>
+                                  <span className={`badge ${issue.priority === 'HIGH' ? 'bg-danger' :
+                                      issue.priority === 'MEDIUM' ? 'bg-warning text-dark' :
+                                        'bg-secondary'
+                                    }`}>
                                     {issue.priority === 'HIGH' ? 'Cao' :
-                                     issue.priority === 'MEDIUM' ? 'Medium' :
-                                     'Low'}
+                                      issue.priority === 'MEDIUM' ? 'Medium' :
+                                        'Low'}
                                   </span>
                                 </td>
                                 <td className="border-0">
-                                  <span className={`badge ${
-                                      (issue.status === 'RESOLVED' || issue.status === 'CLOSED') ? 'bg-success' :
+                                  <span className={`badge ${(issue.status === 'RESOLVED' || issue.status === 'CLOSED') ? 'bg-success' :
                                       issue.status === 'IN_PROGRESS' ? 'bg-info' :
-                                      'bg-warning text-dark'
+                                        'bg-warning text-dark'
                                     }`}>
-                                      {(issue.status === 'RESOLVED' || issue.status === 'CLOSED') ? 'Resolved' :
-                                     issue.status === 'IN_PROGRESS' ? 'In Progress' :
-                                     'Pending'}
+                                    {(issue.status === 'RESOLVED' || issue.status === 'CLOSED') ? 'Resolved' :
+                                      issue.status === 'IN_PROGRESS' ? 'In Progress' :
+                                        'Pending'}
                                   </span>
                                 </td>
                                 <td className="border-0 text-muted">
@@ -688,28 +684,28 @@ const RoomDetailModal = ({ show, room, onHide, onReportIssue, onRoomUpdated, onS
             </button>
           </div>
         </div>
-    </div>
-    {/* REPLACE FROM INVENTORY MODAL */}
-    {replaceFor && (
-      <ReplaceFromInventoryModal
-        roomId={room.roomId || room.id}
-        branchId={room.branchId}
-        oldItem={replaceFor}
-        onClose={() => setReplaceFor(null)}
-        onReplaced={() => {
-          setReplaceFor(null);
-          if (onShowNotification) {
-            onShowNotification({
-              type: 'success',
-              message: `Equipment replaced successfully`,
-              timestamp: Date.now()
-            });
-          }
-          fetchRoomDetails();
-          if (onRoomUpdated) onRoomUpdated();
-        }}
-      />
-    )}
+      </div>
+      {/* REPLACE FROM INVENTORY MODAL */}
+      {replaceFor && (
+        <ReplaceFromInventoryModal
+          roomId={room.roomId || room.id}
+          branchId={room.branchId}
+          oldItem={replaceFor}
+          onClose={() => setReplaceFor(null)}
+          onReplaced={() => {
+            setReplaceFor(null);
+            if (onShowNotification) {
+              onShowNotification({
+                type: 'success',
+                message: `Equipment replaced successfully`,
+                timestamp: Date.now()
+              });
+            }
+            fetchRoomDetails();
+            if (onRoomUpdated) onRoomUpdated();
+          }}
+        />
+      )}
     </>
   );
 };

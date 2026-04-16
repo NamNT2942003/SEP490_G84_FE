@@ -6,6 +6,7 @@ const ExpenseDeclarationForm = ({
     year, 
     branchName, 
     initialData, 
+    suggestions = [],
     onSave, 
     onCancel, 
     isSaving 
@@ -13,23 +14,40 @@ const ExpenseDeclarationForm = ({
     // Clone incoming data into form state
     const [formData, setFormData] = useState([]);
 
+    // Build a case-insensitive lookup map: lowercase(category) -> { amount, note, originalCategory }
+    const suggestionMap = React.useMemo(() => {
+        const map = {};
+        (suggestions || []).forEach(s => {
+            if (s.category && s.amount != null) {
+                map[s.category.toLowerCase()] = { amount: s.amount, note: s.note || '', original: s.category };
+            }
+        });
+        return map;
+    }, [suggestions]);
+
     useEffect(() => {
-        if (initialData && initialData.length > 0) {
-            const mapped = initialData.map(item => ({
+        const base = (initialData && initialData.length > 0)
+            ? initialData.map(item => ({
                 id: crypto.randomUUID(),
                 category: item.category,
                 amount: item.amount !== null ? item.amount : '',
                 note: item.note || '',
-                isCustom: !isDefaultCategory(item.category)
-            }));
-            setFormData(mapped);
-        }
-    }, [initialData]);
+              }))
+            : [];
 
-    const isDefaultCategory = (cat) => {
-        const defaults = ["Tiền điện", "Tiền nước sinh hoạt", "Giặt là", "Tiền điện thoại", "Booking Commission"];
-        return defaults.includes(cat);
-    };
+        // Auto-inject rows for suggestion categories not already in the form
+        const existingCategories = new Set(base.map(r => r.category.toLowerCase()));
+        const extras = Object.entries(suggestionMap)
+            .filter(([key]) => !existingCategories.has(key))
+            .map(([, val]) => ({
+                id: crypto.randomUUID(),
+                category: val.original,
+                amount: val.amount,
+                note: val.note,
+            }));
+
+        setFormData([...base, ...extras]);
+    }, [initialData, suggestionMap]);
 
     const handleFormChange = (id, field, value) => {
         setFormData(prev => prev.map(item => 
@@ -119,41 +137,74 @@ const ExpenseDeclarationForm = ({
                     <table className="table table-hover table-borderless align-middle mb-0">
                         <thead className="table-light border-bottom">
                             <tr>
-                                <th className="ps-4 py-3 text-secondary" style={{ width: '35%' }}>CATEGORY / DESCRIPTION</th>
+                                <th className="ps-4 py-3 text-secondary" style={{ width: '30%' }}>CATEGORY / DESCRIPTION</th>
                                 <th className="py-3 text-secondary" style={{ width: '25%' }}>AMOUNT (VND)</th>
-                                <th className="py-3 text-secondary" style={{ width: '35%' }}>NOTES / REFERENCE</th>
+                                <th className="py-3 text-secondary" style={{ width: '15%' }}>SUGGESTION</th>
+                                <th className="py-3 text-secondary" style={{ width: '25%' }}>NOTES / REFERENCE</th>
                                 <th className="pe-4 py-3 text-center" style={{ width: '5%' }}>ACT</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {formData.map((item, index) => (
+                            {formData.map((item, index) => {
+                                const suggEntry = suggestionMap[item.category?.toLowerCase()];
+                                const suggestedAmt = suggEntry?.amount;
+                                const hasSuggestion = suggestedAmt != null && (item.amount === '' || item.amount === null);
+                                return (
                                 <tr key={item.id} className="border-bottom">
                                     <td className="ps-4 py-3">
-                                        {item.isCustom ? (
-                                            <input 
-                                                type="text" 
-                                                className="form-control fw-bold border-secondary-subtle" 
-                                                placeholder="e.g. Maintenance, Salary..."
-                                                value={item.category}
-                                                onChange={(e) => handleFormChange(item.id, 'category', e.target.value)}
-                                            />
-                                        ) : (
-                                            <div className="fw-bold text-dark fs-6 ps-2 border-start border-4 border-primary">
-                                                {item.category}
-                                            </div>
-                                        )}
+                                        <input 
+                                            type="text" 
+                                            className="form-control fw-bold border-secondary-subtle" 
+                                            placeholder="e.g. Electricity, Laundry..."
+                                            value={item.category}
+                                            onChange={(e) => handleFormChange(item.id, 'category', e.target.value)}
+                                        />
                                     </td>
                                     <td className="py-3">
                                         <div className="input-group">
-                                            <span className="input-group-text bg-light text-muted fw-bold">₫</span>
+                                            <span className="input-group-text bg-light text-muted fw-bold">&#8363;</span>
                                             <input 
                                                 type="number" 
                                                 className="form-control fw-bold text-end" 
-                                                placeholder="0"
+                                                placeholder={hasSuggestion ? new Intl.NumberFormat('en-US').format(suggestedAmt) : '0'}
                                                 value={item.amount}
                                                 onChange={(e) => handleFormChange(item.id, 'amount', e.target.value)}
                                             />
                                         </div>
+                                    </td>
+                                    <td className="py-3">
+                                        {hasSuggestion ? (
+                                            <div className="d-flex flex-column gap-1">
+                                                <span 
+                                                    className="badge rounded-pill px-2 py-1 fw-semibold"
+                                                    style={{ fontSize: '0.7rem', backgroundColor: '#e8f5e9', color: '#2e7d32', border: '1px solid #a5d6a7' }}
+                                                    title="Suggested from system data"
+                                                >
+                                                    <i className="bi bi-stars me-1"></i>
+                                                    {new Intl.NumberFormat('en-US').format(suggestedAmt)}
+                                                </span>
+                                                <button
+                                                    className="btn btn-sm px-2 py-0 fw-bold"
+                                                    style={{ fontSize: '0.7rem', backgroundColor: '#e3f2fd', color: '#1565c0', border: '1px solid #90caf9', borderRadius: 6 }}
+                                                    onClick={() => handleFormChange(item.id, 'amount', suggestedAmt)}
+                                                    title="Apply suggested amount"
+                                                    type="button"
+                                                >
+                                                    <i className="bi bi-check2 me-1"></i>Apply
+                                                </button>
+                                            </div>
+                                        ) : suggestedAmt != null ? (
+                                            <span 
+                                                className="badge rounded-pill px-2 py-1 fw-semibold"
+                                                style={{ fontSize: '0.7rem', backgroundColor: '#e8f5e9', color: '#2e7d32', border: '1px solid #a5d6a7' }}
+                                                title="Pre-filled from system data"
+                                            >
+                                                <i className="bi bi-stars me-1"></i>
+                                                Auto
+                                            </span>
+                                        ) : (
+                                            <span className="text-muted" style={{ fontSize: '0.75rem' }}>—</span>
+                                        )}
                                     </td>
                                     <td className="py-3">
                                         <input 
@@ -165,22 +216,17 @@ const ExpenseDeclarationForm = ({
                                         />
                                     </td>
                                     <td className="pe-4 py-3 text-center">
-                                        {item.isCustom ? (
-                                            <button 
-                                                className="btn btn-sm btn-outline-danger border-0 rounded-circle" 
-                                                title="Remove Line" 
-                                                onClick={() => handleRemoveCustomExpense(item.id)}
-                                            >
-                                                <i className="bi bi-x-lg"></i>
-                                            </button>
-                                        ) : (
-                                            <span className="badge bg-secondary-subtle text-secondary px-2 rounded-pills" title="Required System Field">
-                                                <i className="bi bi-lock-fill"></i>
-                                            </span>
-                                        )}
+                                        <button 
+                                            className="btn btn-sm btn-outline-danger border-0 rounded-circle" 
+                                            title="Remove Line" 
+                                            onClick={() => handleRemoveCustomExpense(item.id)}
+                                        >
+                                            <i className="bi bi-x-lg"></i>
+                                        </button>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -190,9 +236,10 @@ const ExpenseDeclarationForm = ({
                         className="btn btn-outline-secondary fw-bold shadow-sm" 
                         onClick={handleAddCustomExpense}
                     >
-                        <i className="bi bi-plus-circle-fill me-2"></i> Add Custom Expense Line
+                        <i className="bi bi-plus-circle-fill me-2"></i> Add Expense Line
                     </button>
                 </div>
+
             </div>
 
             {/* DOCUMENT FOOTER - TOTALS & ACTIONS */}
