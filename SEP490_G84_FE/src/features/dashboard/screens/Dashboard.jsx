@@ -3,9 +3,10 @@ import { Navigate } from 'react-router-dom';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const Dashboard = () => {
-    const { currentUser } = useCurrentUser();
-    
-    // Nếu chưa có dữ liệu user thì không render gì cả (hoặc có thể hiển thị một spinner)
+    // Hook này trả về trực tiếp user object (không phải { currentUser })
+    const currentUser = useCurrentUser();
+
+    // Nếu chưa có dữ liệu user thì không render gì cả
     if (!currentUser) return null;
 
     // Phân quyền chuyển hướng
@@ -25,4 +26,4 @@ const Dashboard = () => {
     }
 };
 
-export default Dashboard;
+export default Dashboard;
