@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import Swal from "sweetalert2";
 import { roomManagementApi } from "../api/roomManagementApi";
+import roomInventoryManagementApi from "../../room-inventory-management/api/roomInventoryManagementApi";
 import MainLayout from "../../../components/layout/MainLayout"; // eslint-disable-line no-unused-vars
 import AdminRoomDetailModal from "../components/AdminRoomDetailModal";
 import AddRoomModal from "../components/AddRoomModal";
@@ -24,8 +26,8 @@ function RoomManagement() {
 
   // ── Refs to avoid stale closures in event/ws handlers ──────────────────
   const branchFilterRef = useRef("all");
-  const branchesRef = useRef([]);
-  const searchRef = useRef("");
+  const branchesRef     = useRef([]);
+  const searchRef       = useRef("");
 
   const [branchFilter, _setBranchFilter] = useState("all");
   const setBranchFilter = (v) => { branchFilterRef.current = v; _setBranchFilter(v); };
@@ -57,9 +59,9 @@ function RoomManagement() {
   /* ─── Data Fetching ─────────────────────────────────────────────────── */
 
   const fetchRooms = async () => {
-    const currentFilter = branchFilterRef.current;
-    const currentSearch = searchRef.current;
-    const managed = branchesRef.current;
+    const currentFilter  = branchFilterRef.current;
+    const currentSearch  = searchRef.current;
+    const managed        = branchesRef.current;
     try {
       setLoading(true);
       setError(null);
@@ -90,31 +92,31 @@ function RoomManagement() {
     try {
       const stats = await roomManagementApi.getRoomStatistics(f === "all" ? "" : f);
       setStatistics({
-        totalRooms: stats.totalRooms || 0,
-        availableRooms: stats.availableRooms || 0,
-        occupiedRooms: stats.occupiedRooms || 0,
-        cleaningRooms: stats.cleaningRooms || 0,
+        totalRooms:       stats.totalRooms       || 0,
+        availableRooms:   stats.availableRooms   || 0,
+        occupiedRooms:    stats.occupiedRooms    || 0,
+        cleaningRooms:    stats.cleaningRooms    || 0,
         maintenanceRooms: stats.maintenanceRooms || 0,
-        totalEquipment: stats.totalEquipment || 0,
-        brokenEquipment: stats.brokenEquipment || 0,
-        totalIssues: stats.totalIssues || 0,
+        totalEquipment:   stats.totalEquipment   || 0,
+        brokenEquipment:  stats.brokenEquipment  || 0,
+        totalIssues:      stats.totalIssues      || 0,
       });
     } catch {
-      setStatistics({ totalRooms: 0, availableRooms: 0, occupiedRooms: 0, cleaningRooms: 0, maintenanceRooms: 0, totalEquipment: 0, brokenEquipment: 0, totalIssues: 0 });
+      setStatistics({ totalRooms:0,availableRooms:0,occupiedRooms:0,cleaningRooms:0,maintenanceRooms:0,totalEquipment:0,brokenEquipment:0,totalIssues:0 });
     }
   };
 
   const fetchFloors = async () => {
     try {
       const d = await roomManagementApi.getFloors();
-      setFloors((d || []).filter(f => f && typeof f.floor === "number" && f.floor > 0 && f.label && typeof f.roomCount === "number"));
+      setFloors((d||[]).filter(f => f && typeof f.floor==="number" && f.floor>0 && f.label && typeof f.roomCount==="number"));
     } catch { setFloors([]); }
   };
 
   const fetchRoomTypes = async () => {
     try {
       const d = await roomManagementApi.getRoomTypes();
-      setRoomTypes((d || []).filter(t => t && t.type && t.label && typeof t.roomCount === "number"));
+      setRoomTypes((d||[]).filter(t => t && t.type && t.label && typeof t.roomCount==="number"));
     } catch { setRoomTypes([]); }
   };
 
@@ -168,7 +170,7 @@ function RoomManagement() {
         setWsConnected(true);
         const sub = webSocketService.subscribeToAllRooms((event) => {
           if (event.type === "ROOM_STATUS_CHANGE") {
-            setNotification({ type: "success", message: `Room ${event.roomName}: ${event.oldStatus} → ${event.newStatus}`, timestamp: Date.now() });
+            setNotification({ type:"success", message:`Room ${event.roomName}: ${event.oldStatus} → ${event.newStatus}`, timestamp:Date.now() });
             setTimeout(() => setNotification(null), 5000);
             fetchAllData().catch(console.error);
           }
@@ -191,9 +193,9 @@ function RoomManagement() {
   const filteredRooms = rooms.filter((room) => {
     if (room.roomName === "WAREHOUSE" || room.roomName === "WAREHOUSE_FAIL") return false;
     let match = true;
-    if (floorFilter) match = match && room.floor?.toString() === floorFilter;
-    if (roomTypeFilter) match = match && room.roomType === roomTypeFilter;
-    if (equipmentBrokenFilter === "true") match = match && room.equipmentBroken > 0;
+    if (floorFilter)               match = match && room.floor?.toString() === floorFilter;
+    if (roomTypeFilter)            match = match && room.roomType === roomTypeFilter;
+    if (equipmentBrokenFilter === "true")  match = match && room.equipmentBroken > 0;
     if (equipmentBrokenFilter === "false") match = match && room.equipmentBroken === 0;
     return match;
   });
@@ -201,7 +203,7 @@ function RoomManagement() {
   // Group by branch → floor
   const groupedByBranch = filteredRooms.reduce((acc, room) => {
     const bName = room.branchName || "Unknown Branch";
-    const bId = room.branchId || "unknown";
+    const bId   = room.branchId   || "unknown";
     if (!acc[bId]) acc[bId] = { branchId: bId, branchName: bName, floors: {} };
     const floor = room.floor || 0;
     if (!acc[bId].floors[floor]) acc[bId].floors[floor] = [];
@@ -210,17 +212,90 @@ function RoomManagement() {
   }, {});
 
   const branchGroups = Object.values(groupedByBranch).sort(
-    (a, b) => (a.branchName || "").localeCompare(b.branchName || "")
+    (a,b) => (a.branchName||"").localeCompare(b.branchName||"")
   );
 
   /* ─── Handlers ──────────────────────────────────────────────────────── */
 
   const handleSearch = (e) => { e.preventDefault(); setSearch(inputVal); };
 
-  const handleViewRoom = (room) => { setSelectedRoom(room); setShowDetailModal(true); };
+  const handleDeleteRoom = async (room) => {
+    if (room?.status === "OCCUPIED") {
+      Swal.fire({
+        icon: "error",
+        title: "Opps!",
+        text: "Không thể xóa phòng đang có người ở",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const today = new Date();
+      const fromDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+        let typeId = room?.roomTypeId || room?.typeId;
+        if (!typeId) {
+          // Fallback if UI is cached and didn't map typeId payload yet, get directly from Detail endpoint
+          const fullRoomData = await roomManagementApi.getRoomDetail(room.roomId);
+          typeId = fullRoomData?.roomTypeId || fullRoomData?.typeId || fullRoomData?.room?.typeId || fullRoomData?.room?.roomTypeId;
+        }
+
+        if (!typeId) {
+          setLoading(false);
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Cannot resolve room type ID. Please reload the page."
+          });
+          return;
+        }
+        const inventories = await roomInventoryManagementApi.listInventories({
+          roomTypeId: typeId,
+          fromDate
+        });
+      const zeroAvailableDays = inventories.filter(inv => inv.availability === 0);
+      if (zeroAvailableDays.length > 0) {
+        setLoading(false);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Không thể xóa phòng (Availability tương lai = 0).",
+        });
+        return;
+      }
+
+      setLoading(false);
+      const result = await Swal.fire({
+        title: "Are you sure?",
+        text: "This action will delete the room and reset its furniture to warehouse.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#dc3545",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Yes, delete it!"
+      });
+
+      if (result.isConfirmed) {
+        setLoading(true);
+        await roomManagementApi.deleteRoom(room.roomId);
+        Swal.fire("Deleted!", "Room has been deleted.", "success");
+        fetchAllData().catch(console.error);
+      }
+    } catch (err) {
+      setLoading(false);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.response?.data?.message || err.message || "Failed to delete room."
+      });
+    }
+  };
+
+  const handleViewRoom   = (room) => { setSelectedRoom(room); setShowDetailModal(true); };
   const handleReportIssue = (room) => { setSelectedRoom(room); setShowReportModal(true); };
 
-  const showNotif = (message, type = "success") => {
+  const showNotif = (message, type="success") => {
     setNotification({ type, message, timestamp: Date.now() });
     setTimeout(() => setNotification(null), 5000);
   };
@@ -233,32 +308,32 @@ function RoomManagement() {
   /* ─── Utilities ─────────────────────────────────────────────────────── */
 
   const statusLabel = (s) => {
-    const map = { AVAILABLE: "Available", OCCUPIED: "Occupied", CLEANING: "Cleaning", MAINTENANCE: "Maintenance" };
-    return map[(s || "").toUpperCase()] || s || "Unknown";
+    const map = { AVAILABLE:"Available", OCCUPIED:"Occupied", CLEANING:"Cleaning", MAINTENANCE:"Maintenance" };
+    return map[(s||"").toUpperCase()] || s || "Unknown";
   };
   const statusColor = (s) => {
-    const map = { AVAILABLE: "#198754", OCCUPIED: "#0d6efd", CLEANING: "#fd7e14", MAINTENANCE: "#dc3545" };
-    return map[(s || "").toUpperCase()] || "#6c757d";
+    const map = { AVAILABLE:"#198754", OCCUPIED:"#0d6efd", CLEANING:"#fd7e14", MAINTENANCE:"#dc3545" };
+    return map[(s||"").toUpperCase()] || "#6c757d";
   };
 
   /* ─── Render ────────────────────────────────────────────────────────── */
 
   const STAT_CARDS = [
-    { key: "total", label: "Total Rooms", value: statistics.totalRooms, icon: "bi-building", color: "#5C6F4E" },
-    { key: "available", label: "Available", value: statistics.availableRooms, icon: "bi-check-circle-fill", color: "#198754" },
-    { key: "occupied", label: "Occupied", value: statistics.occupiedRooms, icon: "bi-person-fill-check", color: "#0d6efd" },
-    { key: "cleaning", label: "Cleaning", value: statistics.cleaningRooms, icon: "bi-arrow-clockwise", color: "#fd7e14" },
-    { key: "maintenance", label: "Maintenance", value: statistics.maintenanceRooms, icon: "bi-hammer", color: "#dc3545" },
-    { key: "broken", label: "Broken Items", value: statistics.brokenEquipment, icon: "bi-exclamation-octagon-fill", color: "#ffc107" },
+    { key:"total",       label:"Total Rooms",   value:statistics.totalRooms,       icon:"bi-building",              color:"#5C6F4E" },
+    { key:"available",   label:"Available",     value:statistics.availableRooms,   icon:"bi-check-circle-fill",     color:"#198754" },
+    { key:"occupied",    label:"Occupied",      value:statistics.occupiedRooms,    icon:"bi-person-fill-check",     color:"#0d6efd" },
+    { key:"cleaning",    label:"Cleaning",      value:statistics.cleaningRooms,    icon:"bi-arrow-clockwise",       color:"#fd7e14" },
+    { key:"maintenance", label:"Maintenance",   value:statistics.maintenanceRooms, icon:"bi-hammer",                color:"#dc3545" },
+    { key:"broken",      label:"Broken Items",  value:statistics.brokenEquipment,  icon:"bi-exclamation-octagon-fill", color:"#ffc107" },
   ];
 
   const hasActiveFilters = search || floorFilter || roomTypeFilter || equipmentBrokenFilter ||
     (branchFilter && branchFilter !== "all");
 
-  const sortedRooms = [...filteredRooms].sort((a, b) => {
-    if (sortBy === "floor") return (a.floor || 0) - (b.floor || 0);
-    if (sortBy === "type") return (a.roomType || "").localeCompare(b.roomType || "");
-    return (a.roomName || "").localeCompare(b.roomName || "");
+  const sortedRooms = [...filteredRooms].sort((a,b) => {
+    if (sortBy === "floor") return (a.floor||0)-(b.floor||0);
+    if (sortBy === "type")  return (a.roomType||"").localeCompare(b.roomType||"");
+    return (a.roomName||"").localeCompare(b.roomName||"");
   });
 
   return (
@@ -404,47 +479,47 @@ function RoomManagement() {
       {/* ── Toast Notification ── */}
       {notification && (
         <div className="rm-notif">
-          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(25,135,84,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <i className="bi bi-bell-fill" style={{ color: "#198754", fontSize: "1rem" }}></i>
+          <div style={{ width:36,height:36,borderRadius:"50%",background:"rgba(25,135,84,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+            <i className="bi bi-bell-fill" style={{ color:"#198754",fontSize:"1rem" }}></i>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "#111", marginBottom: 3 }}>Live Update</div>
-            <div style={{ fontSize: "0.83rem", color: "#555" }}>{notification.message}</div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontWeight:700,fontSize:"0.82rem",color:"#111",marginBottom:3 }}>Live Update</div>
+            <div style={{ fontSize:"0.83rem",color:"#555" }}>{notification.message}</div>
           </div>
-          <button onClick={() => setNotification(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa", padding: 0, fontSize: "1.1rem" }}>
+          <button onClick={() => setNotification(null)} style={{ background:"none",border:"none",cursor:"pointer",color:"#aaa",padding:0,fontSize:"1.1rem" }}>
             <i className="bi bi-x"></i>
           </button>
         </div>
       )}
 
       <div className="rm-root">
-        <div style={{ maxWidth: 1600, margin: "0 auto", padding: "28px 28px" }}>
+        <div style={{ maxWidth:1600, margin:"0 auto", padding:"28px 28px" }}>
 
           {/* ── Page Header ── */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28,flexWrap:"wrap",gap:16 }}>
             <div>
-              <h1 style={{ fontSize: "1.65rem", fontWeight: 700, color: "#111", margin: 0, letterSpacing: "-0.5px" }}>
+              <h1 style={{ fontSize:"1.65rem",fontWeight:700,color:"#111",margin:0,letterSpacing:"-0.5px" }}>
                 Room Management
               </h1>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
-                <p style={{ color: "#888", fontSize: "0.85rem", margin: 0 }}>
+              <div style={{ display:"flex",alignItems:"center",gap:10,marginTop:6 }}>
+                <p style={{ color:"#888",fontSize:"0.85rem",margin:0 }}>
                   Real-time monitoring of room status, equipment health &amp; incidents.
                 </p>
                 <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "3px 10px", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700,
-                  background: wsConnected ? "rgba(25,135,84,0.1)" : "rgba(108,117,125,0.1)",
-                  color: wsConnected ? "#198754" : "#6c757d",
+                  display:"inline-flex",alignItems:"center",gap:5,
+                  padding:"3px 10px",borderRadius:20,fontSize:"0.7rem",fontWeight:700,
+                  background:wsConnected?"rgba(25,135,84,0.1)":"rgba(108,117,125,0.1)",
+                  color:wsConnected?"#198754":"#6c757d",
                 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: wsConnected ? "#198754" : "#aaa", display: "inline-block" }}></span>
+                  <span style={{ width:6,height:6,borderRadius:"50%",background:wsConnected?"#198754":"#aaa",display:"inline-block" }}></span>
                   {wsConnected ? "Live" : "Offline"}
                 </span>
               </div>
             </div>
             <button
-              style={{ background: BRAND, color: "#fff", border: "none", borderRadius: 12, padding: "11px 22px", fontWeight: 700, fontSize: "0.88rem", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s", boxShadow: "0 4px 14px rgba(92,111,78,0.35)" }}
-              onMouseOver={e => e.currentTarget.style.opacity = "0.88"}
-              onMouseOut={e => e.currentTarget.style.opacity = "1"}
+              style={{ background:BRAND,color:"#fff",border:"none",borderRadius:12,padding:"11px 22px",fontWeight:700,fontSize:"0.88rem",cursor:"pointer",display:"flex",alignItems:"center",gap:8,transition:"all 0.2s",boxShadow:"0 4px 14px rgba(92,111,78,0.35)" }}
+              onMouseOver={e => e.currentTarget.style.opacity="0.88"}
+              onMouseOut={e => e.currentTarget.style.opacity="1"}
               onClick={() => setShowAddRoomModal(true)}
             >
               <i className="bi bi-plus-circle-fill"></i> Add New Room
@@ -452,20 +527,20 @@ function RoomManagement() {
           </div>
 
           {/* ── Stat Cards ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 14, marginBottom: 24 }} className="rm-stats-grid">
+          <div style={{ display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:14,marginBottom:24 }} className="rm-stats-grid">
             <style>{`
               @media (max-width:1200px) { .rm-stats-grid { grid-template-columns: repeat(3,1fr) !important; } }
               @media (max-width:640px)  { .rm-stats-grid { grid-template-columns: repeat(2,1fr) !important; } }
             `}</style>
-            {STAT_CARDS.map((s, i) => (
-              <div key={s.key} className="rm-stat-card" style={{ animationDelay: `${i * 60}ms` }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: `${s.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <i className={`bi ${s.icon}`} style={{ color: s.color, fontSize: "1.15rem" }}></i>
+            {STAT_CARDS.map((s,i) => (
+              <div key={s.key} className="rm-stat-card" style={{ animationDelay:`${i*60}ms` }}>
+                <div style={{ width:44,height:44,borderRadius:12,flexShrink:0,background:`${s.color}18`,display:"flex",alignItems:"center",justifyContent:"center" }}>
+                  <i className={`bi ${s.icon}`} style={{ color:s.color,fontSize:"1.15rem" }}></i>
                 </div>
                 <div>
-                  <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 4 }}>{s.label}</div>
-                  <div style={{ fontSize: "1.55rem", fontWeight: 700, color: "#111", lineHeight: 1 }}>
-                    {loading ? <div className="spinner-border spinner-border-sm text-secondary" style={{ width: 18, height: 18 }} /> : (s.value ?? 0)}
+                  <div style={{ fontSize:"0.68rem",fontWeight:700,color:"#aaa",textTransform:"uppercase",letterSpacing:"0.6px",marginBottom:4 }}>{s.label}</div>
+                  <div style={{ fontSize:"1.55rem",fontWeight:700,color:"#111",lineHeight:1 }}>
+                    {loading ? <div className="spinner-border spinner-border-sm text-secondary" style={{ width:18,height:18 }} /> : (s.value ?? 0)}
                   </div>
                 </div>
               </div>
@@ -474,21 +549,21 @@ function RoomManagement() {
 
           {/* ── Error Banner ── */}
           {error && (
-            <div style={{ background: "rgba(220,53,69,0.07)", border: "1px solid rgba(220,53,69,0.2)", borderRadius: 12, padding: "12px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10, color: "#dc3545", fontSize: "0.88rem" }}>
+            <div style={{ background:"rgba(220,53,69,0.07)",border:"1px solid rgba(220,53,69,0.2)",borderRadius:12,padding:"12px 18px",marginBottom:20,display:"flex",alignItems:"center",gap:10,color:"#dc3545",fontSize:"0.88rem" }}>
               <i className="bi bi-exclamation-triangle-fill"></i>
               <span>{error}</span>
             </div>
           )}
 
           {/* ── Filters Panel ── */}
-          <div style={{ background: "#fff", borderRadius: 18, border: "1px solid rgba(0,0,0,0.06)", padding: "20px 24px", marginBottom: 24 }}>
+          <div style={{ background:"#fff",borderRadius:18,border:"1px solid rgba(0,0,0,0.06)",padding:"20px 24px",marginBottom:24 }}>
 
             {/* Search + View Toggle */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "flex-end", flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 240, position: "relative" }}>
+            <div style={{ display:"flex",gap:12,marginBottom:16,alignItems:"flex-end",flexWrap:"wrap" }}>
+              <div style={{ flex:1,minWidth:240,position:"relative" }}>
                 <label className="rm-filter-label">Search</label>
-                <i className="bi bi-search" style={{ position: "absolute", left: 14, bottom: 11, color: "#aaa", fontSize: "0.85rem" }}></i>
-                <form onSubmit={handleSearch} style={{ margin: 0 }}>
+                <i className="bi bi-search" style={{ position:"absolute",left:14,bottom:11,color:"#aaa",fontSize:"0.85rem" }}></i>
+                <form onSubmit={handleSearch} style={{ margin:0 }}>
                   <input
                     className="rm-search-input"
                     type="text"
@@ -500,28 +575,28 @@ function RoomManagement() {
               </div>
 
               {/* View Toggle */}
-              <div style={{ display: "flex", background: "#F4F5F0", borderRadius: 10, padding: 5, gap: 4, alignSelf: "flex-end" }}>
-                <button className={`rm-view-btn ${viewMode === "grouped" ? "active" : ""}`} onClick={() => setViewMode("grouped")}>
+              <div style={{ display:"flex",background:"#F4F5F0",borderRadius:10,padding:5,gap:4,alignSelf:"flex-end" }}>
+                <button className={`rm-view-btn ${viewMode==="grouped"?"active":""}`} onClick={() => setViewMode("grouped")}>
                   <i className="bi bi-diagram-3-fill"></i> Grouped
                 </button>
-                <button className={`rm-view-btn ${viewMode === "grid" ? "active" : ""}`} onClick={() => setViewMode("grid")}>
+                <button className={`rm-view-btn ${viewMode==="grid"?"active":""}`} onClick={() => setViewMode("grid")}>
                   <i className="bi bi-grid-fill"></i> Grid
                 </button>
-                <button className={`rm-view-btn ${viewMode === "list" ? "active" : ""}`} onClick={() => setViewMode("list")}>
+                <button className={`rm-view-btn ${viewMode==="list"?"active":""}`} onClick={() => setViewMode("list")}>
                   <i className="bi bi-list-task"></i> List
                 </button>
               </div>
             </div>
 
             {/* Filter Selects */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 12 }}>
+            <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12 }}>
               <div>
                 <label className="rm-filter-label"><i className="bi bi-building me-1"></i>Branch</label>
                 <select className="rm-select" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
                   <option value="all">All My Branches</option>
-                  {branches.map((b, i) => (
-                    <option key={`${b.branchId || b.id}-${i}`} value={b.branchId || b.id}>
-                      {b.branchName || b.name}
+                  {branches.map((b,i) => (
+                    <option key={`${b.branchId||b.id}-${i}`} value={b.branchId||b.id}>
+                      {b.branchName||b.name}
                     </option>
                   ))}
                 </select>
@@ -531,7 +606,7 @@ function RoomManagement() {
                 <label className="rm-filter-label"><i className="bi bi-layers me-1"></i>Floor</label>
                 <select className="rm-select" value={floorFilter} onChange={e => setFloorFilter(e.target.value)}>
                   <option value="">All Floors</option>
-                  {floors.map((f, i) => (
+                  {floors.map((f,i) => (
                     <option key={`floor-${f.floor}-${i}`} value={String(f.floor)}>Floor {f.floor}</option>
                   ))}
                 </select>
@@ -541,7 +616,7 @@ function RoomManagement() {
                 <label className="rm-filter-label"><i className="bi bi-door-closed me-1"></i>Room Type</label>
                 <select className="rm-select" value={roomTypeFilter} onChange={e => setRoomTypeFilter(e.target.value)}>
                   <option value="">All Types</option>
-                  {roomTypes.map((t, i) => (
+                  {roomTypes.map((t,i) => (
                     <option key={`${t.type}-${i}`} value={t.type}>{t.label}</option>
                   ))}
                 </select>
@@ -568,18 +643,18 @@ function RoomManagement() {
 
             {/* Active Filter Tags */}
             {hasActiveFilters && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "1px solid #f0f0ea" }}>
-                <span style={{ fontSize: "0.75rem", color: "#aaa", fontWeight: 600, alignSelf: "center" }}>Active filters:</span>
+              <div style={{ display:"flex",flexWrap:"wrap",gap:8,marginTop:14,paddingTop:14,borderTop:"1px solid #f0f0ea" }}>
+                <span style={{ fontSize:"0.75rem",color:"#aaa",fontWeight:600,alignSelf:"center" }}>Active filters:</span>
                 {search && <span className="rm-filter-tag"><i className="bi bi-search"></i>"{search}"</span>}
                 {branchFilter && branchFilter !== "all" && (
                   <span className="rm-filter-tag">
                     <i className="bi bi-building"></i>
-                    {branches.find(b => String(b.branchId || b.id) === String(branchFilter))?.branchName || "Branch"}
+                    {branches.find(b => String(b.branchId||b.id)===String(branchFilter))?.branchName || "Branch"}
                   </span>
                 )}
                 {floorFilter && <span className="rm-filter-tag"><i className="bi bi-layers"></i>Floor {floorFilter}</span>}
-                {roomTypeFilter && <span className="rm-filter-tag"><i className="bi bi-door-closed"></i>{roomTypes.find(t => t.type === roomTypeFilter)?.label || roomTypeFilter}</span>}
-                {equipmentBrokenFilter === "true" && <span className="rm-filter-tag"><i className="bi bi-tools"></i>Has Broken Items</span>}
+                {roomTypeFilter && <span className="rm-filter-tag"><i className="bi bi-door-closed"></i>{roomTypes.find(t=>t.type===roomTypeFilter)?.label||roomTypeFilter}</span>}
+                {equipmentBrokenFilter==="true" && <span className="rm-filter-tag"><i className="bi bi-tools"></i>Has Broken Items</span>}
                 <span className="rm-clear-tag" onClick={clearFilters}>
                   <i className="bi bi-x-circle"></i> Clear All
                 </span>
@@ -589,9 +664,9 @@ function RoomManagement() {
 
           {/* ── Loading ── */}
           {loading && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "60px 0", gap: 14 }}>
-              <div style={{ width: 40, height: 40, border: `3px solid ${BRAND}30`, borderTop: `3px solid ${BRAND}`, borderRadius: "50%", animation: "spin 0.8s linear infinite" }}></div>
-              <span style={{ color: "#aaa", fontSize: "0.85rem" }}>Syncing room data…</span>
+            <div style={{ display:"flex",flexDirection:"column",alignItems:"center",padding:"60px 0",gap:14 }}>
+              <div style={{ width:40,height:40,border:`3px solid ${BRAND}30`,borderTop:`3px solid ${BRAND}`,borderRadius:"50%",animation:"spin 0.8s linear infinite" }}></div>
+              <span style={{ color:"#aaa",fontSize:"0.85rem" }}>Syncing room data…</span>
             </div>
           )}
 
@@ -599,41 +674,41 @@ function RoomManagement() {
           {!loading && (
             <>
               {filteredRooms.length === 0 ? (
-                <div style={{ background: "#fff", borderRadius: 12, border: "1px solid rgba(0,0,0,0.06)", padding: "60px 24px", textAlign: "center" }}>
-                  <i className="bi bi-inbox" style={{ fontSize: "3rem", color: "#ccc", display: "block", marginBottom: 16 }}></i>
-                  <h5 style={{ color: "#888", fontWeight: 600, marginBottom: 12 }}>No rooms match your filters</h5>
-                  <button style={{ background: "none", border: "none", color: BRAND, fontWeight: 600, cursor: "pointer", fontSize: "0.88rem" }} onClick={clearFilters}>
+                <div style={{ background:"#fff",borderRadius:12,border:"1px solid rgba(0,0,0,0.06)",padding:"60px 24px",textAlign:"center" }}>
+                  <i className="bi bi-inbox" style={{ fontSize:"3rem",color:"#ccc",display:"block",marginBottom:16 }}></i>
+                  <h5 style={{ color:"#888",fontWeight:600,marginBottom:12 }}>No rooms match your filters</h5>
+                  <button style={{ background:"none",border:"none",color:BRAND,fontWeight:600,cursor:"pointer",fontSize:"0.88rem" }} onClick={clearFilters}>
                     Clear all filters
                   </button>
                 </div>
               ) : viewMode === "grouped" ? (
                 /* ──── Grouped by branch → floor ──── */
                 branchGroups.map(branchGroup => {
-                  const totalCount = Object.values(branchGroup.floors).flat().length;
+                  const totalCount     = Object.values(branchGroup.floors).flat().length;
                   const availableCount = Object.values(branchGroup.floors).flat()
-                    .filter(r => (r.status || "").toUpperCase() === "AVAILABLE").length;
-                  const sortedFloors = Object.keys(branchGroup.floors).map(Number).sort((a, b) => a - b);
+                    .filter(r => (r.status||"").toUpperCase() === "AVAILABLE").length;
+                  const sortedFloors = Object.keys(branchGroup.floors).map(Number).sort((a,b)=>a-b);
                   return (
                     <div key={branchGroup.branchId} className="rm-branch-block">
                       <div className="rm-branch-header">
                         <span><i className="bi bi-building me-2"></i>{branchGroup.branchName}</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ background: "rgba(255,255,255,0.18)", borderRadius: 20, padding: "2px 10px", fontSize: "0.75rem", fontWeight: 600 }}>
+                        <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                          <span style={{ background:"rgba(255,255,255,0.18)",borderRadius:20,padding:"2px 10px",fontSize:"0.75rem",fontWeight:600 }}>
                             {totalCount} rooms
                           </span>
-                          <span style={{ color: "#a8f0c0", fontSize: "0.8rem", fontWeight: 700 }}>
+                          <span style={{ color:"#a8f0c0",fontSize:"0.8rem",fontWeight:700 }}>
                             &bull; {availableCount} available
                           </span>
                         </div>
                       </div>
                       {sortedFloors.map(floor => {
-                        const floorRooms = branchGroup.floors[floor].sort((a, b) => (a.roomName || "").localeCompare(b.roomName || ""));
-                        const floorAvail = floorRooms.filter(r => (r.status || "").toUpperCase() === "AVAILABLE").length;
+                        const floorRooms = branchGroup.floors[floor].sort((a,b)=>(a.roomName||"").localeCompare(b.roomName||""));
+                        const floorAvail = floorRooms.filter(r=>(r.status||"").toUpperCase()==="AVAILABLE").length;
                         return (
                           <div key={floor}>
                             <div className="rm-floor-header">
                               <span>FLOOR {floor}</span>
-                              <span style={{ color: "#888", fontWeight: 500, textTransform: "none" }}>
+                              <span style={{ color:"#888",fontWeight:500,textTransform:"none" }}>
                                 {floorRooms.length} rooms &nbsp;&middot;&nbsp; {floorAvail} available
                               </span>
                             </div>
@@ -641,42 +716,51 @@ function RoomManagement() {
                               {floorRooms.map(room => {
                                 const sc = statusColor(room.status);
                                 const sl = statusLabel(room.status);
-                                const hasBroken = (room.equipmentBroken || 0) > 0;
-                                const hasIssues = (room.totalIssues || 0) > 0;
+                                const hasBroken = (room.equipmentBroken||0) > 0;
+                                const hasIssues = (room.totalIssues||0) > 0;
                                 return (
                                   <div key={room.roomId} className="rm-room-card" onClick={() => handleViewRoom(room)}>
-                                    <div style={{ padding: "12px 14px" }}>
-                                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                                        <div style={{ fontSize: "0.62rem", fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: "0.5px", lineHeight: 1.2 }}>
+                                    <div style={{ padding:"12px 14px" }}>
+                                      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4 }}>
+                                        <div style={{ fontSize:"0.62rem",fontWeight:700,color:"#999",textTransform:"uppercase",letterSpacing:"0.5px",lineHeight:1.2 }}>
                                           {room.roomTypeName || "Standard"}
                                         </div>
-                                        <span className="rm-badge" style={{ color: sc, fontSize: "0.68rem" }}>
-                                          <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: sc }}></span>
+                                        <span className="rm-badge" style={{ color:sc,fontSize:"0.68rem" }}>
+                                          <span style={{ display:"inline-block",width:6,height:6,borderRadius:"50%",background:sc }}></span>
                                           {sl}
                                         </span>
                                       </div>
-                                      <div style={{ fontWeight: 700, fontSize: "1.1rem", color: "#222", marginBottom: 10 }}>
+                                      <div style={{ fontWeight:700,fontSize:"1.1rem",color:"#222",marginBottom:10 }}>
                                         {room.roomName}
                                       </div>
-                                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderTop: "1px solid #edf0ea", paddingTop: 8 }}>
+                                      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",borderTop:"1px solid #edf0ea",paddingTop:8 }}>
                                         {[
-                                          { label: "EQUIP", value: room.totalEquipment || 0, alert: false },
-                                          { label: "BROKEN", value: room.equipmentBroken || 0, alert: hasBroken },
-                                          { label: "ISSUES", value: room.totalIssues || 0, alert: hasIssues },
-                                        ].map((m, mi) => (
-                                          <div key={mi} style={{ textAlign: "center", borderRight: mi < 2 ? "1px solid #eee" : "none" }}>
-                                            <div style={{ fontSize: "0.55rem", fontWeight: 700, color: "#bbb", letterSpacing: "0.4px", marginBottom: 2 }}>{m.label}</div>
-                                            <div style={{ fontSize: "0.9rem", fontWeight: 700, color: m.alert ? "#dc3545" : "#333" }}>{m.value}</div>
+                                          { label:"EQUIP",  value:room.totalEquipment||0, alert:false },
+                                          { label:"BROKEN", value:room.equipmentBroken||0, alert:hasBroken },
+                                          { label:"ISSUES", value:room.totalIssues||0,     alert:hasIssues },
+                                        ].map((m,mi) => (
+                                          <div key={mi} style={{ textAlign:"center",borderRight:mi<2?"1px solid #eee":"none" }}>
+                                            <div style={{ fontSize:"0.55rem",fontWeight:700,color:"#bbb",letterSpacing:"0.4px",marginBottom:2 }}>{m.label}</div>
+                                            <div style={{ fontSize:"0.9rem",fontWeight:700,color:m.alert?"#dc3545":"#333" }}>{m.value}</div>
                                           </div>
                                         ))}
                                       </div>
-                                      <button
-                                        className="rm-action-btn"
-                                        style={{ marginTop: 10 }}
-                                        onClick={e => { e.stopPropagation(); handleViewRoom(room); }}
-                                      >
-                                        <i className="bi bi-sliders2"></i> Manage Details
-                                      </button>
+                                        <div style={{ display: "flex", gap: "8px", marginTop: 10 }}>
+                                          <button
+                                            className="rm-action-btn"
+                                            style={{ flex: 1 }}
+                                            onClick={e => { e.stopPropagation(); handleViewRoom(room); }}
+                                          >
+                                            <i className="bi bi-sliders2"></i> Manage
+                                          </button>
+                                          <button
+                                            className="rm-action-btn"
+                                            style={{ flex: 1, backgroundColor: "transparent", color: "#dc3545", border: "1px solid rgba(220,53,69,0.2)" }}
+                                            onClick={e => { e.stopPropagation(); handleDeleteRoom(room); }}
+                                          >
+                                            <i className="bi bi-trash"></i> Delete
+                                          </button>
+                                        </div>
                                     </div>
                                   </div>
                                 );
@@ -690,46 +774,55 @@ function RoomManagement() {
                 })
               ) : viewMode === "grid" ? (
                 /* ──── Flat grid ──── */
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 18 }}>
-                  {sortedRooms.map((room, index) => {
+                <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:18 }}>
+                  {sortedRooms.map((room,index) => {
                     const sc = statusColor(room.status);
                     const sl = statusLabel(room.status);
                     return (
-                      <div key={room.roomId || `room-${index}`} className="rm-room-card" style={{ animationDelay: `${index * 40}ms` }}>
-                        <div style={{ height: 4, background: sc }}></div>
-                        <div style={{ padding: "18px 18px 14px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                      <div key={room.roomId||`room-${index}`} className="rm-room-card" style={{ animationDelay:`${index*40}ms` }}>
+                        <div style={{ height:4,background:sc }}></div>
+                        <div style={{ padding:"18px 18px 14px" }}>
+                          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10 }}>
                             <div>
-                              <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 4 }}>
-                                {room.roomTypeName || "Standard"}
+                              <div style={{ fontSize:"0.65rem",fontWeight:700,color:"#aaa",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4 }}>
+                                {room.roomTypeName||"Standard"}
                               </div>
-                              <h4 style={{ fontWeight: 700, fontSize: "1.15rem", color: "#111", margin: 0 }}>{room.roomName}</h4>
+                              <h4 style={{ fontWeight:700,fontSize:"1.15rem",color:"#111",margin:0 }}>{room.roomName}</h4>
                             </div>
-                            <span className="rm-badge" style={{ color: sc, fontSize: "0.7rem" }}>
-                              <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: sc }}></span>
+                            <span className="rm-badge" style={{ color:sc,fontSize:"0.7rem" }}>
+                              <span style={{ display:"inline-block",width:6,height:6,borderRadius:"50%",background:sc }}></span>
                               {sl}
                             </span>
                           </div>
-                          <div style={{ fontSize: "0.75rem", color: "#aaa", marginBottom: 14 }}>
+                          <div style={{ fontSize:"0.75rem",color:"#aaa",marginBottom:14 }}>
                             <i className="bi bi-layers-fill me-1"></i>Floor {room.floor}
-                            <span style={{ margin: "0 6px" }}>&middot;</span>
-                            <i className="bi bi-geo-alt-fill me-1"></i>{room.branchName || "—"}
+                            <span style={{ margin:"0 6px" }}>&middot;</span>
+                            <i className="bi bi-geo-alt-fill me-1"></i>{room.branchName||"—"}
                           </div>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", background: "#F8F9F5", borderRadius: 10, padding: "10px 0", marginBottom: 12 }}>
+                          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",background:"#F8F9F5",borderRadius:10,padding:"10px 0",marginBottom:12 }}>
                             {[
-                              { label: "Equipment", value: room.totalEquipment || 0, alert: false },
-                              { label: "Broken", value: room.equipmentBroken || 0, alert: (room.equipmentBroken || 0) > 0 },
-                              { label: "Issues", value: room.totalIssues || 0, alert: (room.totalIssues || 0) > 0 },
-                            ].map((m, mi) => (
-                              <div key={mi} style={{ textAlign: "center", borderRight: mi < 2 ? "1px solid #eee" : "none" }}>
-                                <div style={{ fontSize: "0.6rem", fontWeight: 700, color: "#bbb", textTransform: "uppercase", marginBottom: 2 }}>{m.label}</div>
-                                <div style={{ fontWeight: 700, color: m.alert ? "#dc3545" : "#333" }}>{m.value}</div>
+                              { label:"Equipment", value:room.totalEquipment||0, alert:false },
+                              { label:"Broken",    value:room.equipmentBroken||0, alert:(room.equipmentBroken||0)>0 },
+                              { label:"Issues",    value:room.totalIssues||0,    alert:(room.totalIssues||0)>0 },
+                            ].map((m,mi) => (
+                              <div key={mi} style={{ textAlign:"center",borderRight:mi<2?"1px solid #eee":"none" }}>
+                                <div style={{ fontSize:"0.6rem",fontWeight:700,color:"#bbb",textTransform:"uppercase",marginBottom:2 }}>{m.label}</div>
+                                <div style={{ fontWeight:700,color:m.alert?"#dc3545":"#333" }}>{m.value}</div>
                               </div>
                             ))}
                           </div>
-                          <button className="rm-action-btn" onClick={() => handleViewRoom(room)}>
-                            <i className="bi bi-sliders2"></i> Manage Details
-                          </button>
+                            <div style={{ display: "flex", gap: "8px", marginTop: 10 }}>
+                              <button className="rm-action-btn" style={{ flex: 1 }} onClick={() => handleViewRoom(room)}>
+                                <i className="bi bi-sliders2"></i> Manage
+                              </button>
+                              <button 
+                                className="rm-action-btn" 
+                                style={{ flex: 1, backgroundColor: "transparent", color: "#dc3545", border: "1px solid rgba(220,53,69,0.2)" }} 
+                                onClick={e => { e.stopPropagation(); handleDeleteRoom(room); }}
+                              >
+                                <i className="bi bi-trash"></i> Delete
+                              </button>
+                            </div>
                         </div>
                       </div>
                     );
