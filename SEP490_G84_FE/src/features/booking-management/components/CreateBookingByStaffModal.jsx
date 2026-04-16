@@ -27,8 +27,15 @@ const initialFormState = {
     specialRequests: "",
     staffNote: "",
     isPaidInitially: false,
+    paymentMethod: "CASH",
     rooms: [makeEmptyRoom()],
 };
+
+const PAYMENT_METHODS = [
+    { value: "CASH", icon: "bi-cash-coin", label: "Cash", description: "Collect immediately at the desk" },
+    { value: "TRANSFER", icon: "bi-bank", label: "Bank transfer", description: "Record a bank transfer payment" },
+    { value: "CARD", icon: "bi-credit-card-2-front", label: "Card", description: "Collect payment by card" },
+];
 
 const DETAIL_LEVEL_TYPES = new Set(["ADVANCE_BOOKING", "AVAILABILITY", "POLICY"]);
 const BOOKING_LEVEL_TYPES = new Set(["LENGTH_OF_STAY", "OCCUPANCY", "USER_HISTORY_DISCOUNT"]);
@@ -224,6 +231,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
     }, [roomTypes]);
 
     const updateForm = (patch) => setForm((prev) => ({ ...prev, ...patch }));
+
+    const updatePaymentMethod = (paymentMethod) => {
+        updateForm({ paymentMethod });
+    };
 
     const updateCustomer = (key, value) => {
         setForm((prev) => ({
@@ -480,6 +491,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
     }, [roomSummaryRows]);
 
     const selectedIsPaidInitially = payableNowAmount > 0;
+    const selectedPaymentMethod = form.paymentMethod || "CASH";
 
     const estimatedGrandTotal = useMemo(() => {
         return Math.max(0, roomTotalAfterRoomModifiers + bookingModifierDeltaTotal);
@@ -538,6 +550,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 specialRequests: form.specialRequests?.trim() || "",
                 staffNote: form.staffNote?.trim() || "",
                 isPaidInitially: selectedIsPaidInitially,
+                paymentMethod: selectedPaymentMethod,
             };
 
             const result = await onSubmit(payload);
@@ -866,18 +879,47 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
 
                 <div className="cbsm-card">
                     <div className="cbsm-card-title">Payment Option</div>
-                    <div className="cbsm-pay-choice cbsm-pay-choice-static">
-                        <div className="cbsm-pay-item cbsm-pay-item-static active">
-                            <span>{selectedPaymentLabel}</span>
-                            <span className="cbsm-pay-item-meta">
-                                {selectedPaymentType === "PAY_AT_HOTEL"
-                                    ? "Collected at hotel"
-                                    : selectedPaymentType === "MIXED"
-                                        ? "Resolve pricing packages to continue"
-                                        : `${formatVnd(payableNowAmount)} is collected during booking confirmation`}
-                            </span>
+                    <div className="cbsm-pay-summary">
+                        <div>
+                            <div className="cbsm-summary-label">Amount to collect now</div>
+                            <div className="cbsm-summary-value cbsm-summary-value-amount">{formatVnd(payableNowAmount)}</div>
+                        </div>
+                        <div>
+                            <div className="cbsm-summary-label">Collection policy</div>
+                            <div className="cbsm-summary-value">{selectedPaymentLabel}</div>
                         </div>
                     </div>
+
+                    {selectedIsPaidInitially ? (
+                        <>
+                            <div className="cbsm-pay-hint">
+                                Choose how the customer pays now. This payment will be recorded immediately and the booking will be confirmed.
+                            </div>
+                            <div className="cbsm-pay-choice">
+                                {PAYMENT_METHODS.map((method) => {
+                                    const active = selectedPaymentMethod === method.value;
+                                    return (
+                                        <button
+                                            key={method.value}
+                                            type="button"
+                                            className={`cbsm-pay-item ${active ? "active" : ""}`}
+                                            onClick={() => updatePaymentMethod(method.value)}
+                                        >
+                                            <i className={`bi ${method.icon}`} />
+                                            <div className="cbsm-pay-item-body">
+                                                <span>{method.label}</span>
+                                                <span className="cbsm-pay-item-meta">{method.description}</span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="cbsm-pay-note">
+                            This booking has no payment due at creation time. It will remain unpaid until collected later.
+                        </div>
+                    )}
                 </div>
             </div>
         );
