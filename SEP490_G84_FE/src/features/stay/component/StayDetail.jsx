@@ -372,6 +372,7 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
   const [selectedStayForChange, setSelectedStayForChange] = useState(null);
   const [isDamageModalOpen, setIsDamageModalOpen]         = useState(false);
   const [selectedStayForDamage, setSelectedStayForDamage] = useState(null);
+  const [errorMessage, setErrorMessage]                   = useState('');
 
   const handleOpenChangeRoom = (stay) => {
     setSelectedStayForChange({ ...stay, bookingId: booking.bookingId });
@@ -398,7 +399,8 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
       setCancelModalData({ isOpen: false, orderId: null, serviceName: '' });
       onRefresh();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error cancelling service!');
+      setCancelModalData({ isOpen: false, orderId: null, serviceName: '' });
+      setErrorMessage(error.response?.data?.message || 'Error cancelling service!');
     }
   };
 
@@ -599,6 +601,32 @@ const StayDetail = ({ booking, onBack, onRefresh }) => {
               >Close</button>
               <button className="btn-confirm-cancel" onClick={executeCancelService}>
                 Confirm Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Error Notification Modal ── */}
+      {errorMessage && (
+        <div className="confirm-overlay">
+          <div className="confirm-modal" style={{ borderTop: '4px solid #dc3545' }}>
+            <div className="confirm-header" style={{ background: '#fff', color: '#dc3545', paddingBottom: '10px' }}>
+              <h3 style={{ margin: '0 auto', fontSize: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '36px' }}>⛔</span>
+                Action Denied
+              </h3>
+            </div>
+            <div className="confirm-body" style={{ fontSize: '16px', fontWeight: '500', color: '#444', padding: '10px 24px 28px' }}>
+              {errorMessage}
+            </div>
+            <div className="confirm-footer" style={{ justifyContent: 'center', background: '#fff', borderTop: 'none' }}>
+              <button
+                className="btn-confirm-cancel"
+                style={{ width: '100%', padding: '12px' }}
+                onClick={() => setErrorMessage('')}
+              >
+                Understood
               </button>
             </div>
           </div>
