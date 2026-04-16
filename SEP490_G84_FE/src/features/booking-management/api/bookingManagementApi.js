@@ -14,6 +14,7 @@ const normalizeBooking = (item = {}) => {
 
     return {
         bookingId: item.bookingId || item.id || item.reservationId || "-",
+        bookingCode: item.bookingCode || item.booking_code || item.code || "",
         customerName:
             item.customerName ||
             item.guestName ||
