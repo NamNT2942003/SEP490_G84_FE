@@ -350,6 +350,7 @@ const PaymentSelection = () => {
                                 checkIn={checkIn}
                                 checkOut={checkOut}
                                 selectedPolicy={selectedPolicy}
+                                prepaidAmount={effectiveAmount}
                                 depositAmount={effectiveAmount}
                                 bookingTotalAmount={displayedBookingTotal}
                             />
@@ -361,6 +362,7 @@ const PaymentSelection = () => {
                                 checkIn={checkIn}
                                 checkOut={checkOut}
                                 selectedPolicy={selectedPolicy}
+                                prepaidAmount={effectiveAmount}
                                 depositAmount={effectiveAmount}
                                 bookingTotalAmount={displayedBookingTotal}
                             />

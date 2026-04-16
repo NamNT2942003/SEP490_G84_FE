@@ -10,7 +10,7 @@ const getAbsoluteImageUrl = (url) => {
     return url;
 };
 
-const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, depositAmount = null, bookingTotalAmount = null }) => {
+const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, depositAmount = null, prepaidAmount = null, bookingTotalAmount = null }) => {
     const HIDDEN_MODIFIER_TYPES = new Set(['POLICY']);
 
     const getVisibleAppliedModifiers = (room) =>
@@ -241,7 +241,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
     const policyAdjustment = getPolicyAdjustment();
     const hasPolicyAdjustment = Math.abs(policyAdjustment) > 0;
     
-    const normalizedDepositAmount = Number.isFinite(Number(depositAmount)) ? Number(depositAmount) : subtotal;
+    const normalizedDepositAmount = Number.isFinite(Number(prepaidAmount)) ? Number(prepaidAmount) : Number.isFinite(Number(depositAmount)) ? Number(depositAmount) : subtotal;
     const normalizedBookingTotalAmount = Number.isFinite(Number(bookingTotalAmount)) ? Number(bookingTotalAmount) : subtotal;
     const safeNights = nights > 0 ? nights : 1;
     const averageBookingPerNight = normalizedBookingTotalAmount / safeNights;
@@ -415,6 +415,17 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                     <span className="text-muted">Booking total</span>
                     <span className="text-muted">{formatCurrency(normalizedBookingTotalAmount)}</span>
                 </div>
+                {normalizedDepositAmount !== normalizedBookingTotalAmount && (
+                    <div className="p-2 rounded-3 mt-2 mb-2" style={{ background: '#f4f8ef', border: '1px solid #dbe6cf' }}>
+                        <div className="d-flex justify-content-between align-items-center mb-1">
+                            <span className="fw-bold text-olive">Prepaid amount (pay now)</span>
+                            <span className="fw-bold text-olive">{formatCurrency(normalizedDepositAmount)}</span>
+                        </div>
+                        <small className="text-muted d-block">
+                            Balance {formatCurrency(normalizedBookingTotalAmount - normalizedDepositAmount)} remaining after booking
+                        </small>
+                    </div>
+                )}
                 <div className="d-flex justify-content-between align-items-start mt-1">
                     <span className="text-muted">Avg booking / night</span>
                     <div className="text-end">

@@ -695,7 +695,7 @@ const GuestInformation = () => {
             }
 
             const bookingTotalAmount = backendTotalAmount;
-            const paymentAmount = normalizeMoney(data?.prepaidAmount ?? bookingTotalAmount);
+            const prepaidAmountValue = normalizeMoney(data?.prepaidAmount ?? bookingTotalAmount);
 
             if (!createdBookingId) {
                 Swal.fire({ icon: 'error', title: 'Booking Error', text: 'Did not receive a booking ID from the server.', confirmButtonColor: '#d33' });
@@ -708,7 +708,8 @@ const GuestInformation = () => {
                     totalAmount: bookingTotalAmount,
                     finalAmount: bookingTotalAmount,
                     bookingTotalAmount,
-                    depositAmount: paymentAmount,
+                    prepaidAmount: prepaidAmountValue,
+                    depositAmount: prepaidAmountValue,
                     rooms,
                     checkIn,
                     checkOut,
