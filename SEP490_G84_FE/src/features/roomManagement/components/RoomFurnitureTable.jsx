@@ -131,7 +131,7 @@ function RoomFurnitureTable({ furnitureList, roomId, branchId, onChanged }) {
                   </div>
                 </td>
                 <td className="text-end pe-4 align-middle">
-                  {bad && (
+                  {bad ? (
                     <div className="d-flex justify-content-end gap-2">
                     <button
                       className="btn btn-sm px-3"
@@ -163,6 +163,24 @@ function RoomFurnitureTable({ furnitureList, roomId, branchId, onChanged }) {
                     >
                       <i className="bi bi-arrow-repeat me-1"></i> Replace from stock
                     </button>
+                    </div>
+                  ) : (
+                    <div className="d-flex justify-content-end gap-2">
+                      <button
+                        className="btn btn-sm px-3"
+                        style={{
+                          backgroundColor: "rgba(220,53,69,0.08)",
+                          color: "#dc3545",
+                          border: "1px solid rgba(220,53,69,0.15)",
+                          borderRadius: 10,
+                          fontWeight: 600,
+                          fontSize: "0.78rem",
+                        }}
+                        onClick={() => setPending({ item, nextStatus: "BROKEN" })}
+                        disabled={saving}
+                      >
+                        <i className="bi bi-x-circle me-1"></i> Report Damage
+                      </button>
                     </div>
                   )}
                 </td>
