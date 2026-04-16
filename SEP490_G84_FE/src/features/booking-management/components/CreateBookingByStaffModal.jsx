@@ -38,7 +38,7 @@ const PAYMENT_METHODS = [
     { value: "CARD", icon: "bi-credit-card-2-front", label: "Card", description: "Collect payment by card" },
 ];
 
-const DETAIL_LEVEL_TYPES = new Set(["ADVANCE_BOOKING", "AVAILABILITY", "POLICY"]);
+const DETAIL_LEVEL_TYPES = new Set(["DAY_OF_WEEK", "DATE_RANGE", "ADVANCE_BOOKING", "AVAILABILITY", "POLICY"]);
 const BOOKING_LEVEL_TYPES = new Set(["LENGTH_OF_STAY", "OCCUPANCY", "USER_HISTORY_DISCOUNT"]);
 
 const normalizePricingOption = (option = {}) => ({
