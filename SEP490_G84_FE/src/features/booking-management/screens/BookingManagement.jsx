@@ -389,7 +389,7 @@ export default function BookingManagement() {
                                     <tr key={booking.bookingId}>
                                         <td className="ps-4">
                                             <div className="fw-semibold" style={{ color: COLORS.PRIMARY }}>
-                                                {booking.bookingCode || `#${booking.bookingId}`}
+                                                {booking.bookingCode || "-"}
                                             </div>
                                             <div className="text-muted" style={{ fontSize: "0.75rem" }}>
                                                 {formatDate(booking.createdAt)}
