@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { roomManagementApi } from "../api/roomManagementApi";
 import MainLayout from "../../../components/layout/MainLayout"; // eslint-disable-line no-unused-vars
-import RoomDetailModal from "../components/RoomDetailModal";
+import AdminRoomDetailModal from "../components/AdminRoomDetailModal";
 import AddRoomModal from "../components/AddRoomModal";
 import RoomList from "../components/RoomList";
 import ReportIssueModal from "../components/ReportIssueModal";
@@ -746,13 +746,10 @@ function RoomManagement() {
 
       {/* ── Modals ── */}
       {showDetailModal && selectedRoom && (
-        <RoomDetailModal
-          show={showDetailModal}
+        <AdminRoomDetailModal
           room={selectedRoom}
-          onHide={() => { setShowDetailModal(false); setSelectedRoom(null); }}
-          onReportIssue={room => { setShowDetailModal(false); handleReportIssue(room); }}
-          onShowNotification={n => { setNotification(n); setTimeout(() => setNotification(null), 5000); }}
-          onRoomUpdated={() => fetchAllData().catch(console.error)}
+          onClose={() => { setShowDetailModal(false); setSelectedRoom(null); }}
+          onRefresh={() => fetchAllData().catch(console.error)}
         />
       )}
 
