@@ -36,6 +36,7 @@ const ExpenseReportScreen = () => {
     // 4. Form States (Quản lý Form nhập liệu)
     const [isDeclaring, setIsDeclaring] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [suggestions, setSuggestions] = useState([]);
 
     // 1. Khai báo state lưu danh sách chi nhánh lấy từ API
     const [branches, setBranches] = useState([]);
@@ -145,6 +146,17 @@ const ExpenseReportScreen = () => {
         }
     };
 
+    // Open the declaration form and load suggestions in parallel
+    const handleOpenDeclare = async () => {
+        setIsDeclaring(true);
+        try {
+            const data = await reportApi.getExpenseSuggestions(selectedBranch, selectedMonth, selectedYear);
+            setSuggestions(data || []);
+        } catch {
+            setSuggestions([]);
+        }
+    };
+
     const totalMonthlyExpense = monthlyData.reduce((sum, item) => sum + (item.amount || 0), 0);
     const formatCurrency = (val) => val !== null && val !== undefined ? new Intl.NumberFormat('en-US').format(val) + ' VND' : 'N/A';
     const hasData = monthlyData.some(d => d.amount !== null);
@@ -220,6 +232,7 @@ const ExpenseReportScreen = () => {
                         year={selectedYear}
                         branchName={branches.find(b => b.branchId === selectedBranch)?.branchName}
                         initialData={monthlyData}
+                        suggestions={suggestions}
                         onSave={handleSaveExpenses}
                         onCancel={() => setIsDeclaring(false)}
                         isSaving={isSaving}
@@ -281,7 +294,7 @@ const ExpenseReportScreen = () => {
                                     <button 
                                         className="btn text-white fw-bold btn-sm shadow-sm px-3" 
                                         style={{ backgroundColor: COLORS.PRIMARY }}
-                                        onClick={() => setIsDeclaring(true)}
+                                        onClick={handleOpenDeclare}
                                     >
                                         <i className="bi bi-journal-text me-2"></i> {hasData ? 'Review / Edit Declaration' : 'Declare Expenses'}
                                     </button>
