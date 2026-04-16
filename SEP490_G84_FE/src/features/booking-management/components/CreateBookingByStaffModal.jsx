@@ -140,7 +140,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         }
 
         let isMounted = true;
-                    price: selected.finalPrice,
+        const fetchRoomTypes = async () => {
             try {
                 setLoadingRoomTypes(true);
                 const data = await roomTypeManagementApi.listRoomTypesByBranch(form.branchId);
@@ -366,7 +366,6 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             setError(err);
             return;
         }
-                        price: Number(room.price ?? option?.finalPrice ?? option?.basePrice ?? 0),
         setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
     };
 
