@@ -63,8 +63,8 @@ const PaymentSelection = () => {
         checkOut = '',
         selectedPolicy = null,
     } = location.state || { bookingId: null, totalAmount: 0 };
-    const effectiveAmount = Number(finalAmount ?? bookingTotalAmount ?? totalAmount ?? depositAmount ?? 0);
-    const displayedBookingTotal = Number(finalAmount ?? bookingTotalAmount ?? totalAmount ?? effectiveAmount);
+    const effectiveAmount = Number(depositAmount ?? finalAmount ?? totalAmount ?? bookingTotalAmount ?? 0);
+    const displayedBookingTotal = Number(bookingTotalAmount ?? totalAmount ?? finalAmount ?? effectiveAmount);
 
     const [selectedMethod, setSelectedMethod] = useState(effectiveAmount <= 0 ? 'CASH' : 'STRIPE');
     const [isLoading, setIsLoading] = useState(false);
