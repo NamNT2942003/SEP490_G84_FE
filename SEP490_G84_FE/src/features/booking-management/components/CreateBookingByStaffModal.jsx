@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 import roomTypeManagementApi from "@/features/room-type-management/api/roomTypeManagementApi";
 import { roomService } from "@/features/booking/api/roomService";
+import { cancellationPolicyService } from "@/features/booking/api/cancellationPolicyService";
 import { useMyBranches } from "@/hooks/useMyBranches";
 import "./CreateBookingByStaffModal.css";
 
@@ -68,6 +69,14 @@ const toMoney = (value) => Number(value || 0);
 
 const normalizePaymentType = (value) => String(value || "").trim().toUpperCase();
 
+const normalizePolicy = (policy = {}) => ({
+    id: policy?.id ?? policy?.policyId ?? null,
+    name: policy?.name || "",
+    type: String(policy?.type || "").trim().toUpperCase(),
+    prepaidRate: Number(policy?.prepaidRate ?? 0),
+    refunRate: Number(policy?.refunRate ?? 0),
+});
+
 const paymentTypeLabel = (value) => {
     switch (normalizePaymentType(value)) {
         case "PAY_AT_HOTEL":
@@ -101,6 +110,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
     const [roomTypes, setRoomTypes] = useState([]);
     const [roomPricingMap, setRoomPricingMap] = useState({});
     const [expandedOptionRows, setExpandedOptionRows] = useState({});
+    const [selectedPolicy, setSelectedPolicy] = useState(null);
     const [form, setForm] = useState(initialFormState);
     const [error, setError] = useState("");
 
@@ -112,6 +122,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         setRoomTypes([]);
         setRoomPricingMap({});
         setExpandedOptionRows({});
+        setSelectedPolicy(null);
         setForm((prev) => ({
             ...initialFormState,
             branchId:
@@ -129,7 +140,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         }
 
         let isMounted = true;
-        const fetchRoomTypes = async () => {
+                    price: selected.finalPrice,
             try {
                 setLoadingRoomTypes(true);
                 const data = await roomTypeManagementApi.listRoomTypesByBranch(form.branchId);
@@ -216,7 +227,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                     ...room,
                     selectedOptionCode: selected.optionCode,
                     priceModifierIds: detailIds,
-                    price: selected.basePrice,
+                    price: selected.finalPrice,
                 };
             }),
         }));
@@ -267,7 +278,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         ...nextRooms[index],
                         selectedOptionCode: selected.optionCode,
                         priceModifierIds: detailIds,
-                        price: selected.basePrice,
+                        price: selected.finalPrice,
                     };
                     return { ...prev, rooms: nextRooms };
                 });
@@ -305,7 +316,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 ...room,
                 selectedOptionCode: option?.optionCode || "",
                 priceModifierIds: detailIds,
-                price: option?.basePrice ?? room.price,
+                price: option?.finalPrice ?? room.price,
             };
             return { ...prev, rooms: nextRooms };
         });
@@ -355,7 +366,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             setError(err);
             return;
         }
-        setError("");
+                        price: Number(room.price ?? option?.finalPrice ?? option?.basePrice ?? 0),
         setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
     };
 
@@ -482,20 +493,51 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
 
     const selectedPolicyId = selectedPolicyIds.length === 1 ? selectedPolicyIds[0] : null;
 
-    const selectedPaymentLabel = selectedPaymentType === "MIXED"
-        ? "Mixed payment policies"
-        : paymentTypeLabel(selectedPaymentType);
+    useEffect(() => {
+        if (!show || !selectedPolicyId) {
+            setSelectedPolicy(null);
+            return;
+        }
 
-    const payableNowAmount = useMemo(() => {
-        return roomSummaryRows.reduce((sum, row) => sum + toMoney(row.payableNow), 0);
-    }, [roomSummaryRows]);
+        let isMounted = true;
 
-    const selectedIsPaidInitially = payableNowAmount > 0;
-    const selectedPaymentMethod = form.paymentMethod || "CASH";
+        const fetchSelectedPolicy = async () => {
+            try {
+                const data = await cancellationPolicyService.getById(selectedPolicyId);
+                if (isMounted) {
+                    setSelectedPolicy(normalizePolicy(data));
+                }
+            } catch {
+                if (isMounted) {
+                    setSelectedPolicy(null);
+                }
+            }
+        };
+
+        fetchSelectedPolicy();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [show, selectedPolicyId]);
+
+    const selectedPolicyType = String(selectedPolicy?.type || "").trim().toUpperCase();
+    const selectedPaymentLabel = selectedPolicy?.name
+        ? selectedPolicy.name
+        : selectedPaymentType === "MIXED"
+            ? "Mixed payment policies"
+            : paymentTypeLabel(selectedPaymentType);
 
     const estimatedGrandTotal = useMemo(() => {
         return Math.max(0, roomTotalAfterRoomModifiers + bookingModifierDeltaTotal);
     }, [roomTotalAfterRoomModifiers, bookingModifierDeltaTotal]);
+
+    const payableNowAmount = useMemo(() => {
+        return estimatedGrandTotal;
+    }, [estimatedGrandTotal]);
+
+    const selectedIsPaidInitially = payableNowAmount > 0;
+    const selectedPaymentMethod = form.paymentMethod || "CASH";
 
     if (!show) return null;
 
@@ -540,7 +582,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                     return {
                         roomTypeId: String(room.roomTypeId),
                         quantity: Number(room.quantity),
-                        price: null,
+                        price: Number(room.price ?? option?.finalPrice ?? option?.basePrice ?? 0),
                         priceModifierId: modifierIds[0] || null,
                         priceModifierIds: modifierIds,
                     };
