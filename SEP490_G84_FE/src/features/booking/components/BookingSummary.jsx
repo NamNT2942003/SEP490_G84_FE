@@ -11,6 +11,8 @@ const getAbsoluteImageUrl = (url) => {
 };
 
 const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, depositAmount = null, prepaidAmount = null, bookingTotalAmount = null }) => {
+    console.log("BookingSummary RENDERING. selectedRooms:", selectedRooms);
+    console.log("Image URL for first room:", selectedRooms?.[0]?.image);
     const HIDDEN_MODIFIER_TYPES = new Set(['POLICY']);
 
     const getVisibleAppliedModifiers = (room) =>
@@ -252,6 +254,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 alt="Resort Room"
                 className="img-fluid rounded-3 mb-3"
                 src={getAbsoluteImageUrl(selectedRooms[0]?.image) || "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"}
+                onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"; }}
                 style={{ height: '160px', width: '100%', objectFit: 'cover' }}
             />
 
