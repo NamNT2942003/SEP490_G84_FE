@@ -656,6 +656,7 @@ const GuestInformation = () => {
             checkOut,
             adults: Number(searchParams?.adults ?? 1),
             children: Number(searchParams?.children ?? 0),
+            totalRooms: roomsSnapshot.reduce((sum, room) => sum + (Number(room?.quantity) || 1), 0),
             roomTypeIds,
             size: Math.max(roomsSnapshot.length, 10),
             page: 0,

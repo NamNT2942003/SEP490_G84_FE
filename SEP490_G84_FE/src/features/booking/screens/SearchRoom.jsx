@@ -298,6 +298,7 @@ const SearchRoom = () => {
             ...searchParams,
             branchId: filters.branchId,
             roomTypeIds,
+            totalRooms: selectedCart.reduce((sum, room) => sum + (Number(room?.quantity) || 1), 0),
             page: 0,
             size: Math.max(roomTypeIds.length, 10),
             sortPrice: filters.sortPrice,
