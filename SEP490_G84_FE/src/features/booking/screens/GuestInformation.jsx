@@ -184,13 +184,33 @@ const uniqueIds = (items) => [...new Set((items || []).filter((v) => v !== null 
 
 const getOptionModifiers = (room) => Array.isArray(room?.selectedPricingOption?.modifiers) ? room.selectedPricingOption.modifiers : [];
 
+const resolveSafeFallbackModifierId = (room) => {
+    const fallbackId = room?.appliedPriceModifierId;
+    if (!fallbackId) return null;
+
+    const optionModifiers = getOptionModifiers(room);
+    if (!optionModifiers.length) return fallbackId;
+
+    const matched = optionModifiers.find((m) => String(m?.priceModifierId) === String(fallbackId));
+    if (!matched) {
+        // Ignore stale fallback id that does not belong to the currently selected pricing option.
+        return null;
+    }
+
+    if (!room?.policyApplied && matched?.type === 'POLICY') {
+        return null;
+    }
+
+    return fallbackId;
+};
+
 const getRoomDetailModifierIds = (room) => {
     const optionDetailIds = getOptionModifiers(room)
         .filter((m) => DETAIL_LEVEL_TYPES.has(m?.type))
         .filter((m) => room?.policyApplied || m?.type !== 'POLICY')
         .map((m) => m?.priceModifierId);
 
-    const fallbackId = room?.appliedPriceModifierId;
+    const fallbackId = resolveSafeFallbackModifierId(room);
 
     return uniqueIds([...optionDetailIds, fallbackId]);
 };
@@ -209,7 +229,7 @@ const getAppliedModifierId = (room) => {
     const bookingIds = getRoomBookingLevelModifierIds(room);
     if (bookingIds.length > 0) return bookingIds[0];
 
-    return room?.appliedPriceModifierId ?? null;
+    return resolveSafeFallbackModifierId(room);
 };
 
 const normalizeEmailForSearch = (emailRaw) => {
