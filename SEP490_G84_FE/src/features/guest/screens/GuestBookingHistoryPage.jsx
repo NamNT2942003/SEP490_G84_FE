@@ -273,10 +273,12 @@ export default function GuestBookingHistoryPage() {
                                     <div style={S.list}>
                                         {paginatedBookings.map((b, i) => (
                                             <div key={b.bookingCode} style={{ animation: `fadeUp .4s ${i * 0.06}s ease both`, opacity: 0 }}>
-                                                <div style={{ position: "relative" }}>
+                                                <div>
                                                     <BookingCard booking={b} />
                                                     {b.cancelRequested && (
-                                                        <div style={S.requestHint}>Cancellation request pending review</div>
+                                                        <div style={S.requestHintWrap}>
+                                                            <div style={S.requestHint}>Cancellation request pending review</div>
+                                                        </div>
                                                     )}
                                                     {!b.cancelRequested && b.status !== "CANCELLED" && (
                                                         <div style={S.bookingActions}>
@@ -458,18 +460,23 @@ const S = {
         fontWeight: 700,
         cursor: "pointer",
     },
+    requestHintWrap: {
+        display: "flex",
+        justifyContent: "flex-end",
+        marginTop: "8px",
+    },
     requestHint: {
-        position: "absolute",
-        top: "12px",
-        right: "12px",
+        display: "inline-flex",
+        alignItems: "center",
         background: C.redBg,
         color: C.red,
         border: `1px solid rgba(220,53,69,0.2)`,
         borderRadius: "999px",
-        padding: "4px 10px",
+        padding: "5px 11px",
         fontSize: "11px",
         fontWeight: 700,
-        pointerEvents: "none",
+        maxWidth: "100%",
+        whiteSpace: "normal",
     },
 
     /* Pagination */
