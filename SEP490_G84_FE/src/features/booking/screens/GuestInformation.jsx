@@ -66,6 +66,27 @@ const getPolicyDeltaFromOption = (room, option) => {
         .reduce((sum, modifier) => sum + getModifierDelta(room, modifier), 0);
 };
 
+const stripPolicyFromOption = (room, option) => {
+    if (!option) return option;
+
+    const policyDelta = getPolicyDeltaFromOption(room, option);
+    const finalPrice = Math.max(0, safeNumber(option?.finalPrice, 0) - policyDelta);
+
+    return {
+        ...option,
+        finalPrice,
+        delta: Math.max(0, safeNumber(option?.delta, 0) - policyDelta),
+        cancellationPolicyId: null,
+        cancellationPolicyType: '',
+        cancellationPolicyName: '',
+        prepaidRate: 0,
+        refunRate: 0,
+        modifiers: Array.isArray(option?.modifiers)
+            ? option.modifiers.filter((modifier) => modifier?.type !== 'POLICY')
+            : [],
+    };
+};
+
 const getVisiblePriceFromOption = (room, option) => {
     const effectiveOption = option || room?.selectedPricingOption || null;
     if (!effectiveOption) return safeNumber(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0, 0);
@@ -139,8 +160,6 @@ const applyPolicySelectionToRoom = (room, policyId) => {
     if (!selectedOption) return room;
 
     const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
-    const policyDelta = getPolicyDeltaFromOption(room, selectedOption);
-    const selectedOptionFinal = safeNumber(selectedOption?.finalPrice, 0);
     const hasSelectedPolicyValue = !(policyId === null || policyId === undefined || `${policyId}`.trim() === '');
     const optionPolicyId = selectedOption?.cancellationPolicyId;
     const optionMatchesSelectedPolicy = hasSelectedPolicyValue
@@ -149,16 +168,16 @@ const applyPolicySelectionToRoom = (room, policyId) => {
         && Number(optionPolicyId) === Number(policyId)
         && optionHasPolicyModifier(selectedOption);
 
-    const policyNeutralPrice = optionMatchesSelectedPolicy
-        ? null
-        : Math.max(0, selectedOptionFinal - policyDelta);
+    const effectiveOption = optionMatchesSelectedPolicy
+        ? selectedOption
+        : stripPolicyFromOption(room, selectedOption);
 
     return {
         ...room,
-        selectedPricingOption: selectedOption,
+        selectedPricingOption: effectiveOption,
         selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : 0,
         policyApplied: optionMatchesSelectedPolicy,
-        policyNeutralPrice,
+        policyNeutralPrice: optionMatchesSelectedPolicy ? null : effectiveOption?.finalPrice ?? null,
     };
 };
 
