@@ -2,8 +2,6 @@ import React, { useState, useCallback, useEffect } from "react";
 import bookingManagementApi from "../api/bookingManagementApi";
 import "./BookingDetailModal.css";
 import Buttons from "@/components/ui/Buttons";
-import Swal from "sweetalert2";
-import { COLORS } from "@/constants";
 
 const STATUS_CONFIG = {
     CONFIRMED: { bg: "rgba(25,135,84,0.12)", text: "#198754", dot: "#198754" },
@@ -24,8 +22,6 @@ const formatDate = (value) => {
 
 const formatVND = (amount) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount || 0);
-
-const isInternalFrontendBooking = (source) => (source || "").trim().toUpperCase() === "FRONT_END";
 
 // ─── Sub-components ────────────────────────────────────────────────────────
 
@@ -57,7 +53,7 @@ const InfoItem = ({ label, value, wide }) => (
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
-export default function BookingDetailModal({ show, bookingId, onHide, onStatusChanged, onBookingCancelled }) {
+export default function BookingDetailModal({ show, bookingId, onHide, onStatusChanged }) {
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
@@ -101,46 +97,6 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
             onStatusChanged?.(updated);
         } catch (err) {
             setError(err?.response?.data?.message || "Failed to update status.");
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    const handleCancel = async () => {
-        if (!isInternalFrontendBooking(booking?.source)) {
-            await Swal.fire({
-                icon: "warning",
-                title: "Not allowed",
-                text: "Only internal FRONT_END bookings can be cancelled.",
-            });
-            return;
-        }
-
-        const refundAmount = Number(booking?.refundAmount || 0);
-        const retainedAmount = Number(booking?.retainedAmount || 0);
-        const result = await Swal.fire({
-            title: 'Cancel Booking?',
-            html:
-                `This action cannot be undone.<br/>` +
-                `Amount to refund customer: <b>${formatVND(refundAmount)}</b><br/>` +
-                `Amount retained by hotel: <b>${formatVND(retainedAmount)}</b>`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: COLORS.PRIMARY,
-            confirmButtonText: 'Yes, cancel it',
-            cancelButtonText: 'Go back'
-        });
-        if (!result.isConfirmed) return;
-        try {
-            setActionLoading(true);
-            setError("");
-            const updated = await bookingManagementApi.cancelBooking(bookingId);
-            setBooking(updated);
-            onBookingCancelled?.(updated);
-            setTimeout(onHide, 1200);
-        } catch (err) {
-            setError(err?.response?.data?.message || "Failed to cancel booking.");
         } finally {
             setActionLoading(false);
         }
@@ -331,18 +287,6 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
 
                 {/* Footer */}
                 <div className="bm-modal-footer">
-                    {booking?.status !== "CANCELLED" && isInternalFrontendBooking(booking?.source) && (
-                        <Buttons
-                            variant="danger"
-                            className="btn-sm"
-                            icon={<i className="bi bi-x-circle" />}
-                            isLoading={actionLoading}
-                            disabled={loading}
-                            onClick={handleCancel}
-                        >
-                            Cancel Booking
-                        </Buttons>
-                    )}
                     <Buttons variant="outline" className="btn-sm" onClick={onHide} disabled={actionLoading}>
                         Close
                     </Buttons>

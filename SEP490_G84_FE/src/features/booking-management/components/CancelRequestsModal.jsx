@@ -36,7 +36,7 @@ export default function CancelRequestsModal({ show, requests = [], onClose, onCa
                                 <div
                                     key={booking.bookingId}
                                     className="border rounded-3 p-3"
-                                    style={{ background: "rgba(220,53,69,0.04)", borderColor: "rgba(220,53,69,0.18)" }}
+                                    style={{ background: "rgba(220,53,69,0.10)", borderColor: "rgba(220,53,69,0.35)", borderLeftWidth: "5px" }}
                                 >
                                     <div className="d-flex justify-content-between gap-3 flex-wrap align-items-start mb-2">
                                         <div>
@@ -70,7 +70,7 @@ export default function CancelRequestsModal({ show, requests = [], onClose, onCa
                                             icon={<i className="bi bi-x-circle" />}
                                             onClick={() => onCancelBooking?.(booking.bookingId)}
                                         >
-                                            Cancel booking
+                                            Open cancel review
                                         </Buttons>
                                     </div>
                                 </div>

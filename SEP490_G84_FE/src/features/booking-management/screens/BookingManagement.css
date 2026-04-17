@@ -26,15 +26,44 @@
 }
 
 /* ── Stat Cards ── */
+.bm-stats-row {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+}
+
+@media (max-width: 1199px) {
+    .bm-stats-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767px) {
+    .bm-stats-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 479px) {
+    .bm-stats-row {
+        grid-template-columns: 1fr;
+    }
+}
+
 .stat-card {
     border: none;
     border-radius: 12px;
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
     transition: transform 0.2s, box-shadow 0.2s;
+    width: 100%;
+    cursor: default;
 }
 .stat-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+.stat-card-clickable {
+    cursor: pointer;
 }
 .stat-icon {
     width: 44px;
@@ -145,10 +174,43 @@
 .booking-table tbody tr:hover {
     background-color: #fafbf8;
 }
+.booking-row-cancel-requested {
+    background: linear-gradient(90deg, rgba(220, 53, 69, 0.12) 0, rgba(220, 53, 69, 0.02) 120px, transparent 100%);
+}
+.booking-row-cancel-requested td:first-child {
+    box-shadow: inset 3px 0 0 #dc3545;
+}
 .booking-table tbody td {
     padding: 11px 14px;
     border: none;
     vertical-align: middle;
+}
+
+.booking-code-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.cancel-request-chip {
+    display: inline-flex;
+    align-items: center;
+    background: #b02a37;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.cancel-request-note {
+    margin-top: 3px;
+    color: #8f1f2b;
+    font-size: 0.7rem;
+    font-weight: 600;
 }
 
 /* ── Status Badge ── */

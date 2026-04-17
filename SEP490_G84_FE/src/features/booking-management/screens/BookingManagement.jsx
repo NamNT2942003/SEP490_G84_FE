@@ -3,6 +3,7 @@ import bookingManagementApi from "../api/bookingManagementApi";
 import BookingDetailModal from "../components/BookingDetailModal";
 import CreateBookingByStaffModal from "../components/CreateBookingByStaffModal";
 import CancelRequestsModal from "../components/CancelRequestsModal";
+import CancelBookingModal from "../components/CancelBookingModal";
 import "./BookingManagement.css";
 import Buttons from "@/components/ui/Buttons";
 import { COLORS } from "@/constants";
@@ -66,22 +67,25 @@ const StatusBadge = ({ status }) => {
     );
 };
 
-const StatCard = ({ card, value, loading }) => (
-    <div className="col-6 col-md-3">
-        <div className="card stat-card h-100">
-            <div className="card-body d-flex align-items-center gap-3 py-3 px-3 px-md-4">
-                <div className="stat-icon" style={{ backgroundColor: card.bg }}>
-                    <i className={`bi ${card.icon}`} style={{ color: card.color }} />
+const StatCard = ({ card, value, loading, isClickable, onClick }) => (
+    <button
+        type="button"
+        className={`card stat-card h-100 text-start ${isClickable ? "stat-card-clickable" : ""}`}
+        onClick={onClick}
+        disabled={!isClickable}
+    >
+        <div className="card-body d-flex align-items-center gap-3 py-3 px-3 px-md-4">
+            <div className="stat-icon" style={{ backgroundColor: card.bg }}>
+                <i className={`bi ${card.icon}`} style={{ color: card.color }} />
+            </div>
+            <div>
+                <div className="fw-bold fs-4 lh-1 mb-1" style={{ color: card.color }}>
+                    {loading ? <span className="placeholder col-4" /> : value}
                 </div>
-                <div>
-                    <div className="fw-bold fs-4 lh-1 mb-1" style={{ color: card.color }}>
-                        {loading ? <span className="placeholder col-4" /> : value}
-                    </div>
-                    <div className="text-muted" style={{ fontSize: "0.78rem" }}>{card.label}</div>
-                </div>
+                <div className="text-muted" style={{ fontSize: "0.78rem" }}>{card.label}</div>
             </div>
         </div>
-    </div>
+    </button>
 );
 
 // ─── Main Component ────────────────────────────────────────────────────────
@@ -109,6 +113,8 @@ export default function BookingManagement() {
 
     const [selectedBookingId, setSelectedBookingId] = useState(null);
     const [showDetail, setShowDetail] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelBookingId, setCancelBookingId] = useState(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const prevCancelRequestCountRef = useRef(null);
 
@@ -251,6 +257,16 @@ export default function BookingManagement() {
         setSelectedBookingId(null);
     };
 
+    const openCancelModal = (bookingId) => {
+        setCancelBookingId(bookingId);
+        setShowCancelModal(true);
+    };
+
+    const closeCancelModal = () => {
+        setShowCancelModal(false);
+        setCancelBookingId(null);
+    };
+
     const handleCreateBooking = async (payload) => {
         return bookingManagementApi.createBookingByStaff(payload);
     };
@@ -299,11 +315,16 @@ export default function BookingManagement() {
             </div>
 
             {/* Stat Cards */}
-            <div className="row g-3 mb-4">
+            <div className="bm-stats-row mb-4">
                 {STAT_CARDS.map((card) => (
-                    <div key={card.key} onClick={card.key === "cancelRequested" ? () => setShowCancelRequests(true) : undefined} style={{ cursor: card.key === "cancelRequested" ? "pointer" : "default" }}>
-                        <StatCard card={card} value={stats[card.key] || 0} loading={loading} />
-                    </div>
+                    <StatCard
+                        key={card.key}
+                        card={card}
+                        value={stats[card.key] || 0}
+                        loading={loading}
+                        isClickable={card.key === "cancelRequested"}
+                        onClick={card.key === "cancelRequested" ? () => setShowCancelRequests(true) : undefined}
+                    />
                 ))}
             </div>
 
@@ -441,12 +462,17 @@ export default function BookingManagement() {
                                 bookings.map((booking) => {
                                     const sourceBadge = getSourceBadge(booking.source);
                                     return (
-                                    <tr key={booking.bookingId} style={booking.cancelRequested ? { backgroundColor: "rgba(220,53,69,0.05)" } : undefined}>
+                                    <tr
+                                        key={booking.bookingId}
+                                        className={`booking-row ${booking.cancelRequested ? "booking-row-cancel-requested" : ""}`}
+                                    >
                                         <td className="ps-4">
-                                            <div className="fw-semibold" style={{ color: COLORS.PRIMARY }}>
-                                                {booking.bookingCode || "-"}
+                                            <div className="booking-code-line">
+                                                <span className="fw-semibold" style={{ color: COLORS.PRIMARY }}>
+                                                    {booking.bookingCode || "-"}
+                                                </span>
                                                 {booking.cancelRequested && (
-                                                    <span className="badge ms-2" style={{ backgroundColor: "rgba(220,53,69,0.12)", color: "#b02a37", fontSize: "0.7rem" }}>
+                                                    <span className="cancel-request-chip">
                                                         Request cancel
                                                     </span>
                                                 )}
@@ -454,6 +480,9 @@ export default function BookingManagement() {
                                             <div className="text-muted" style={{ fontSize: "0.75rem" }}>
                                                 {formatDate(booking.createdAt)}
                                             </div>
+                                            {booking.cancelRequested && (
+                                                <div className="cancel-request-note">Guest is waiting for cancellation review.</div>
+                                            )}
                                         </td>
                                         <td>
                                             <div className="fw-semibold">{booking.customerName}</div>
@@ -485,7 +514,7 @@ export default function BookingManagement() {
                                                     className="btn btn-sm btn-outline-danger"
                                                     style={{ fontSize: "0.78rem", padding: "3px 10px" }}
                                                     title="Cancel Booking"
-                                                    onClick={() => openDetail(booking.bookingId)}
+                                                    onClick={() => openCancelModal(booking.bookingId)}
                                                 >
                                                     <i className="bi bi-x-circle me-1" />
                                                     Cancel
@@ -533,7 +562,16 @@ export default function BookingManagement() {
                 bookingId={selectedBookingId}
                 onHide={closeDetail}
                 onStatusChanged={fetchBookings}
-                onBookingCancelled={fetchBookings}
+            />
+
+            <CancelBookingModal
+                show={showCancelModal}
+                bookingId={cancelBookingId}
+                onHide={closeCancelModal}
+                onCancelled={async () => {
+                    await fetchBookings();
+                    await fetchCancelRequests();
+                }}
             />
 
             <CreateBookingByStaffModal
@@ -547,21 +585,9 @@ export default function BookingManagement() {
                 show={showCancelRequests}
                 requests={cancelRequests}
                 onClose={() => setShowCancelRequests(false)}
-                onCancelBooking={async (bookingId) => {
-                    const result = await Swal.fire({
-                        title: "Cancel booking?",
-                        text: "This will execute the same cancel flow as the booking detail modal.",
-                        icon: "warning",
-                        showCancelButton: true,
-                        confirmButtonColor: "#dc3545",
-                        cancelButtonColor: COLORS.PRIMARY,
-                        confirmButtonText: "Yes, cancel",
-                        cancelButtonText: "Keep request",
-                    });
-                    if (!result.isConfirmed) return;
-                    await bookingManagementApi.cancelBooking(bookingId);
-                    await fetchBookings();
-                    await fetchCancelRequests();
+                onCancelBooking={(bookingId) => {
+                    setShowCancelRequests(false);
+                    openCancelModal(bookingId);
                 }}
             />
         </div>
