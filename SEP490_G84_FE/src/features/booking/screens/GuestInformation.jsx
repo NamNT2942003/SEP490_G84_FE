@@ -139,8 +139,14 @@ const applyPolicySelectionToRoom = (room, policyId) => {
     const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
     const policyDelta = getPolicyDeltaFromOption(room, selectedOption);
     const selectedOptionFinal = safeNumber(selectedOption?.finalPrice, 0);
-    const hasPolicySelected = !(policyId === null || policyId === undefined || `${policyId}`.trim() === '');
-    const policyNeutralPrice = hasPolicySelected
+    const hasSelectedPolicyValue = !(policyId === null || policyId === undefined || `${policyId}`.trim() === '');
+    const optionPolicyId = selectedOption?.cancellationPolicyId;
+    const optionMatchesSelectedPolicy = hasSelectedPolicyValue
+        && optionPolicyId !== null
+        && optionPolicyId !== undefined
+        && Number(optionPolicyId) === Number(policyId);
+
+    const policyNeutralPrice = optionMatchesSelectedPolicy
         ? null
         : Math.max(0, selectedOptionFinal - policyDelta);
 
@@ -148,7 +154,7 @@ const applyPolicySelectionToRoom = (room, policyId) => {
         ...room,
         selectedPricingOption: selectedOption,
         selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : 0,
-        policyApplied: hasPolicySelected,
+        policyApplied: optionMatchesSelectedPolicy,
         policyNeutralPrice,
     };
 };
