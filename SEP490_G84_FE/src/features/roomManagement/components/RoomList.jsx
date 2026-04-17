@@ -220,32 +220,36 @@ function RoomList({ rooms, onRefresh, onDeleteRoom }) {
                   <StatusPill status={room.status} />
                 </td>
                 <td className="text-end pe-4">
-                  <button
-                    className="btn btn-sm d-inline-flex align-items-center gap-1 px-3 py-1 rounded-2"
-                    style={{
-                      backgroundColor: "rgba(92,111,78,0.08)",
-                      color: BRAND,
-                      border: "none",
-                      fontSize: "0.78rem",
-                      fontWeight: 600,
-                    }}
-                    onClick={() => setSelectedRoom(room)}
-                  >
-                    <i className="bi bi-eye"></i> View
-                  </button>
-                  <button
-                    className="btn btn-sm d-inline-flex align-items-center gap-1 px-3 py-1 rounded-2 ms-2"
-                    style={{
-                      backgroundColor: "rgba(220,53,69,0.08)",
-                      color: "#dc3545",
-                      border: "none",
-                      fontSize: "0.78rem",
-                      fontWeight: 600,
-                    }}
-                    onClick={(e) => { e.stopPropagation(); if(onDeleteRoom) onDeleteRoom(room); }}
-                  >
-                    <i className="bi bi-trash"></i> Delete
-                  </button>
+                  <div className="d-flex justify-content-end gap-2 align-items-center flex-nowrap">
+                    <button
+                      className="btn btn-sm d-inline-flex align-items-center gap-1 px-3 py-1 rounded-2"
+                      style={{
+                        backgroundColor: "rgba(92,111,78,0.08)",
+                        color: BRAND,
+                        border: "none",
+                        fontSize: "0.78rem",
+                        fontWeight: 600,
+                        whiteSpace: "nowrap"
+                      }}
+                      onClick={() => setSelectedRoom(room)}
+                    >
+                      <i className="bi bi-eye"></i> View
+                    </button>
+                    <button
+                      className="btn btn-sm d-inline-flex align-items-center gap-1 px-3 py-1 rounded-2"
+                      style={{
+                        backgroundColor: "rgba(220,53,69,0.08)",
+                        color: "#dc3545",
+                        border: "none",
+                        fontSize: "0.78rem",
+                        fontWeight: 600,
+                        whiteSpace: "nowrap"
+                      }}
+                      onClick={(e) => { e.stopPropagation(); if(onDeleteRoom) onDeleteRoom(room); }}
+                    >
+                      <i className="bi bi-trash"></i> Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
