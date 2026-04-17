@@ -218,10 +218,6 @@ const SearchRoom = () => {
                 try {
                     const data = await cancellationPolicyService.getPoliciesByBranch(filters.branchId);
                     setPolicies(data);
-                    if (data.length > 0) {
-                        const firstActivePolicy = data.find((policy) => policy?.active !== false) || data[0];
-                        setSelectedPolicyId(firstActivePolicy?.id ?? firstActivePolicy?.policyId ?? null);
-                    }
                 } catch (e) { console.error("Policies error:", e); }
             })();
         }
