@@ -191,6 +191,12 @@ const resolveSafeFallbackModifierId = (room) => {
     const fallbackId = room?.appliedPriceModifierId;
     if (!fallbackId) return null;
 
+    if (!room?.policyApplied) {
+        // Do not carry forward legacy fallback modifier when policy is not applied
+        // to this room; it may contain stale POLICY ids from previous selections.
+        return null;
+    }
+
     const optionModifiers = getOptionModifiers(room);
     if (!optionModifiers.length) return fallbackId;
 
