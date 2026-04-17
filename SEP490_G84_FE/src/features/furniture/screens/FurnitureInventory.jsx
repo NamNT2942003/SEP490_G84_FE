@@ -13,6 +13,7 @@ const BRAND = '#5C6F4E';
 const FurnitureInventory = () => {
     const navigate = useNavigate();
     const currentUser = useCurrentUser();
+    const baseBranchId = currentUser?.branchId ? String(currentUser.branchId) : '';
 
     useEffect(() => {
         if (!currentUser) { navigate('/login'); return; }
@@ -20,7 +21,7 @@ const FurnitureInventory = () => {
     }, [currentUser, navigate]);
 
     const [rows, setRows] = useState([]);
-    const [selectedBranch, setSelectedBranch] = useState(currentUser?.defaultBranchId ? String(currentUser.defaultBranchId) : 'all');
+    const [selectedBranch, setSelectedBranch] = useState(baseBranchId || 'all');
     const [nameDraft, setNameDraft] = useState('');
     const [typeFilterDraft, setTypeFilterDraft] = useState('all');
     const [typeFilterApplied, setTypeFilterApplied] = useState('all');
@@ -58,16 +59,26 @@ const FurnitureInventory = () => {
     const [showItemHistoryPanel, setShowItemHistoryPanel] = useState(false);
     const [itemHistoryData, setItemHistoryData] = useState([]);
 
+    const getBranchLabel = useCallback((branchId) => {
+        const normalized = String(branchId || '');
+        const fromRaw = rawBranches.find(b => String(b.branchId) === normalized)?.branchName;
+        const fromOptions = branches.find(b => String(b.value) === normalized)?.label;
+        return fromRaw || fromOptions || currentUser?.branchName || 'Branch';
+    }, [rawBranches, branches, currentUser?.branchName]);
+
     useEffect(() => {
-        if (rawBranches && rawBranches.length > 0) {
-             setBranches([
-                  { value: 'all', label: 'All branches' },
-                  ...rawBranches.map(b => ({ value: String(b.branchId), label: b.branchName }))
-             ]);
-        } else {
-             setBranches([{ value: 'all', label: 'All branches' }]);
+        const options = [{ value: 'all', label: 'All branches' }];
+        if (baseBranchId) {
+            options.push({
+                value: baseBranchId,
+                label: `Base branch${currentUser?.branchName ? ` - ${currentUser.branchName}` : ''}`,
+            });
         }
-    }, [rawBranches]);
+        setBranches(options);
+        if (selectedBranch !== 'all' && selectedBranch !== baseBranchId) {
+            setSelectedBranch(baseBranchId || 'all');
+        }
+    }, [baseBranchId, currentUser?.branchName, selectedBranch]);
 
     // Fetch types separately
     useEffect(() => {
@@ -83,21 +94,62 @@ const FurnitureInventory = () => {
     }, []);
 
     const fetchFurnitureData = useCallback(async (branchId, searchKeyword = '', typeId = 'all', pageNum = 1) => {
-        if (branchId === 'all') { setRows([]); return; }
         try {
-            let response;
-            if (searchKeyword.trim()) {
-                response = await furnitureApi.searchFurnitureInventoryByBranch(branchId, searchKeyword, pageNum - 1, pageSize, typeId === 'all' ? null : typeId);
-            } else {
-                response = await furnitureApi.listFurnitureInventoryByBranch(branchId, pageNum - 1, pageSize, typeId === 'all' ? null : typeId);
+            if (branchId === 'all') {
+                const targetBranchIds = (rawBranches || []).map(b => String(b.branchId));
+                if (targetBranchIds.length === 0) {
+                    setRows([]);
+                    setTotalElements(0);
+                    return;
+                }
+
+                const requests = targetBranchIds.map(async (bId) => {
+                    const res = searchKeyword.trim()
+                        ? await furnitureApi.searchFurnitureInventoryByBranch(bId, searchKeyword, 0, 1000, typeId === 'all' ? null : typeId)
+                        : await furnitureApi.listFurnitureInventoryByBranch(bId, 0, 1000, typeId === 'all' ? null : typeId);
+                    const content = Array.isArray(res?.content) ? res.content : [];
+                    return content.map(item => ({
+                        ...item,
+                        __branchId: String(item?.branchId ?? bId),
+                    }));
+                });
+
+                const merged = (await Promise.all(requests)).flat();
+                const start = (pageNum - 1) * pageSize;
+                const paged = merged.slice(start, start + pageSize);
+                setTotalElements(merged.length);
+                setRows(paged.map(item => ({
+                    id: `${item.furnitureId}-${item.__branchId}`,
+                    furnitureId: item.furnitureId,
+                    name: item.furnitorName,
+                    facility: `${getBranchLabel(item.__branchId)} - ${item.condition || 'Area'}`,
+                    branch: getBranchLabel(item.__branchId),
+                    quantity: item.quantity || 0,
+                    price: item.price || 0,
+                    inUse: item.inUse || 0,
+                    inStock: item.inStock || 0,
+                    broken: item.broken || 0,
+                    brokenInUse: item.brokenInUse || 0,
+                    brokenInStock: item.brokenInStock || 0,
+                    roomsUsing: item.roomsUsing || [],
+                    roomsBroken: item.roomsBroken || [],
+                    type: item.type,
+                    code: item.furnitureCode,
+                })));
+                return;
             }
+
+            const response = searchKeyword.trim()
+                ? await furnitureApi.searchFurnitureInventoryByBranch(branchId, searchKeyword, pageNum - 1, pageSize, typeId === 'all' ? null : typeId)
+                : await furnitureApi.listFurnitureInventoryByBranch(branchId, pageNum - 1, pageSize, typeId === 'all' ? null : typeId);
+
             const data = response.content || response || [];
             setTotalElements(response.totalElements || data.length);
             setRows(Array.isArray(data) ? data.map(item => ({
                 id: item.furnitureId, furnitureId: item.furnitureId,
                 name: item.furnitorName,
-                facility: `${branches.find(b => b.value === branchId)?.label || 'Branch'} - ${item.condition || 'Area'}`,
-                branch: branches.find(b => b.value === branchId)?.label || 'Unknown',
+                facility: `${getBranchLabel(branchId)} - ${item.condition || 'Area'}`,
+                branch: getBranchLabel(branchId),
                 quantity: item.quantity || 0, price: item.price || 0,
                 inUse: item.inUse || 0, inStock: item.inStock || 0,
                 broken: item.broken || 0, brokenInUse: item.brokenInUse || 0,
@@ -106,7 +158,7 @@ const FurnitureInventory = () => {
                 type: item.type, code: item.furnitureCode,
             })) : []);
         } catch (err) { console.error('Failed to fetch furniture:', err); setRows([]); }
-    }, [branches, pageSize]);
+    }, [getBranchLabel, pageSize, rawBranches]);
 
     useEffect(() => { setPage(1); }, [selectedBranch, nameApplied, typeFilterApplied]);
     useEffect(() => { fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page); }, [page, fetchFurnitureData, selectedBranch, nameApplied, typeFilterApplied]);

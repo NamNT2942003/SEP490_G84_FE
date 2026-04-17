@@ -9,10 +9,14 @@ import RoomList from "../components/RoomList";
 import ReportIssueModal from "../components/ReportIssueModal";
 import webSocketService from "../../../services/webSocketService";
 import { useMyBranches } from "../../../hooks/useMyBranches";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const BRAND = "#5C6F4E";
 
 function RoomManagement() {
+  const currentUser = useCurrentUser();
+  const baseBranchId = currentUser?.branchId ? String(currentUser.branchId) : "";
+
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -25,11 +29,11 @@ function RoomManagement() {
   const { branches } = useMyBranches();
 
   // ── Refs to avoid stale closures in event/ws handlers ──────────────────
-  const branchFilterRef = useRef("all");
+  const branchFilterRef = useRef(baseBranchId || "all");
   const branchesRef     = useRef([]);
   const searchRef       = useRef("");
 
-  const [branchFilter, _setBranchFilter] = useState("all");
+  const [branchFilter, _setBranchFilter] = useState(baseBranchId || "all");
   const setBranchFilter = (v) => { branchFilterRef.current = v; _setBranchFilter(v); };
 
   const [sortBy, setSortBy] = useState("name");
@@ -61,16 +65,12 @@ function RoomManagement() {
   const fetchRooms = async () => {
     const currentFilter  = branchFilterRef.current;
     const currentSearch  = searchRef.current;
-    const managed        = branchesRef.current;
     try {
       setLoading(true);
       setError(null);
       if (!currentFilter || currentFilter === "all") {
-        if (managed.length === 0) { setRooms([]); return; }
-        const results = await Promise.all(
-          managed.map(b => roomManagementApi.listRooms(currentSearch, "", 0, 1000, b.branchId))
-        );
-        setRooms(results.flatMap(r => r.content || []));
+        const data = await roomManagementApi.listRooms(currentSearch, "", 0, 1000, "");
+        setRooms(data.content || []);
       } else {
         const data = await roomManagementApi.listRooms(currentSearch, "", 0, 1000, currentFilter);
         setRooms(data.content || []);
@@ -126,15 +126,14 @@ function RoomManagement() {
 
   /* ─── Effects ───────────────────────────────────────────────────────── */
 
-  // Validate: if a specific branch ID is selected but no longer managed, reset to 'all'
+  // Keep branch filter constrained to All/Base modes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (branches && branches.length > 0 && branchFilter !== "all") {
-      if (!branches.some(b => String(b.branchId) === String(branchFilter))) {
-        setBranchFilter("all");
-      }
+    const safeBase = baseBranchId || "all";
+    if (branchFilter !== "all" && branchFilter !== safeBase) {
+      setBranchFilter(safeBase);
     }
-  }, [branches]);
+  }, [baseBranchId, branchFilter]);
 
   // Re-fetch rooms whenever search or branch changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -302,7 +301,7 @@ function RoomManagement() {
 
   const clearFilters = () => {
     setSearch(""); setInputVal(""); setFloorFilter(""); setRoomTypeFilter("");
-    setBranchFilter("all"); setEquipmentBrokenFilter("");
+    setBranchFilter(baseBranchId || "all"); setEquipmentBrokenFilter("");
   };
 
   /* ─── Utilities ─────────────────────────────────────────────────────── */
@@ -593,12 +592,10 @@ function RoomManagement() {
               <div>
                 <label className="rm-filter-label"><i className="bi bi-building me-1"></i>Branch</label>
                 <select className="rm-select" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
-                  <option value="all">All My Branches</option>
-                  {branches.map((b,i) => (
-                    <option key={`${b.branchId||b.id}-${i}`} value={b.branchId||b.id}>
-                      {b.branchName||b.name}
-                    </option>
-                  ))}
+                  <option value="all">All branches</option>
+                  <option value={baseBranchId || ""} disabled={!baseBranchId}>
+                    Base branch{currentUser?.branchName ? ` - ${currentUser.branchName}` : ""}
+                  </option>
                 </select>
               </div>
 
@@ -649,7 +646,7 @@ function RoomManagement() {
                 {branchFilter && branchFilter !== "all" && (
                   <span className="rm-filter-tag">
                     <i className="bi bi-building"></i>
-                    {branches.find(b => String(b.branchId||b.id)===String(branchFilter))?.branchName || "Branch"}
+                    {currentUser?.branchName || branches.find(b => String(b.branchId||b.id)===String(branchFilter))?.branchName || "Base branch"}
                   </span>
                 )}
                 {floorFilter && <span className="rm-filter-tag"><i className="bi bi-layers"></i>Floor {floorFilter}</span>}

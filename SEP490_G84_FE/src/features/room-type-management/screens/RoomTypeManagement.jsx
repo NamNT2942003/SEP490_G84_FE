@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
 import enumOptionsApi from "@/features/common/api/enumOptionsApi";
 import roomTypeManagementApi from "@/features/room-type-management/api/roomTypeManagementApi";
@@ -34,8 +35,11 @@ const toAbsoluteImageUrl = (url) => {
 
 export default function RoomTypeManagement() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
+  const baseBranchId = currentUser?.branchId ? String(currentUser.branchId) : "";
   const [branches, setBranches] = useState([]);
-  const [branchId, setBranchId] = useState("");
+  const [branchScope, setBranchScope] = useState(baseBranchId ? "base" : "all");
+  const [branchId, setBranchId] = useState(baseBranchId || "");
   const [roomTypes, setRoomTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -74,16 +78,16 @@ export default function RoomTypeManagement() {
     }
   };
 
-  const loadRoomTypes = async (selectedBranchId) => {
-    if (!selectedBranchId) {
-      setRoomTypes([]);
-      return;
-    }
-
+  const loadRoomTypes = async (scope, selectedBranchId) => {
     try {
       setLoading(true);
       setError("");
-      const data = await roomTypeManagementApi.listRoomTypesByBranch(selectedBranchId);
+      let data = [];
+      if (scope === "all") {
+        data = await roomTypeManagementApi.listRoomTypes();
+      } else if (selectedBranchId) {
+        data = await roomTypeManagementApi.listRoomTypesByBranch(selectedBranchId);
+      }
       setRoomTypes(data || []);
     } catch (err) {
       setRoomTypes([]);
@@ -112,13 +116,20 @@ export default function RoomTypeManagement() {
   }, []);
 
   useEffect(() => {
-    loadRoomTypes(branchId);
-  }, [branchId]);
+    if (baseBranchId && branchScope === "base") {
+      setBranchId(baseBranchId);
+    }
+  }, [baseBranchId, branchScope]);
+
+  useEffect(() => {
+    loadRoomTypes(branchScope, branchId);
+  }, [branchScope, branchId]);
 
   const selectedBranchName = useMemo(() => {
+    if (branchScope === "all") return "All branches";
     const found = branches.find((b) => String(b.branchId) === String(branchId));
-    return found?.branchName || "";
-  }, [branches, branchId]);
+    return found?.branchName || currentUser?.branchName || "Base branch";
+  }, [branchScope, branches, branchId, currentUser?.branchName]);
 
   /* ======================== Create / Edit Modal ======================== */
 
@@ -260,7 +271,7 @@ export default function RoomTypeManagement() {
       setShowFormModal(false);
       setCoverFile(null);
       setCoverPreview(null);
-      await loadRoomTypes(formData.branchId);
+      await loadRoomTypes(branchScope, branchScope === "all" ? branchId : (baseBranchId || formData.branchId));
       if (!branchId) setBranchId(String(formData.branchId));
     } catch (err) {
       setFormError(parseApiError(err, "Save room type failed."));
@@ -282,7 +293,7 @@ export default function RoomTypeManagement() {
 
     try {
       await roomTypeManagementApi.deleteRoomType(roomTypeId);
-      await loadRoomTypes(branchId);
+      await loadRoomTypes(branchScope, branchId);
       Swal.fire({ icon: 'success', title: 'Deleted!', timer: 1500, showConfirmButton: false });
     } catch (err) {
       Swal.fire({ icon: 'error', title: 'Failed', text: parseApiError(err, "Delete room type failed.") });
@@ -385,12 +396,10 @@ export default function RoomTypeManagement() {
       <div className="rt-card card">
         <div className="rt-toolbar">
           <div className="d-flex align-items-center gap-2">
-            <label className="form-label mb-0 fw-semibold">Branch</label>
-            <select className="form-select" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-              <option value="">Select branch</option>
-              {branches.map((b) => (
-                <option key={b.branchId} value={b.branchId}>{b.branchName}</option>
-              ))}
+            <label className="form-label mb-0 fw-semibold">Scope</label>
+            <select className="form-select" value={branchScope} onChange={(e) => setBranchScope(e.target.value)}>
+              <option value="all">All branches</option>
+              <option value="base" disabled={!baseBranchId}>Base branch</option>
             </select>
           </div>
           <span className="text-muted small">{selectedBranchName || "No branch selected"}</span>
