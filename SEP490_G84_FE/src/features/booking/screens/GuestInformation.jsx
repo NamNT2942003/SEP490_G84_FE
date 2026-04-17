@@ -59,6 +59,13 @@ const getModifierDelta = (room, modifier) => {
     return adjustmentValue;
 };
 
+const getPolicyDeltaFromOption = (room, option) => {
+    if (!option || !Array.isArray(option?.modifiers)) return 0;
+    return option.modifiers
+        .filter((modifier) => modifier?.type === 'POLICY')
+        .reduce((sum, modifier) => sum + getModifierDelta(room, modifier), 0);
+};
+
 const getVisiblePriceFromOption = (room, option) => {
     const effectiveOption = option || room?.selectedPricingOption || null;
     if (!effectiveOption) return safeNumber(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0, 0);
@@ -72,7 +79,7 @@ const getVisiblePriceFromOption = (room, option) => {
 };
 
 const calculateRoomUnitPrice = (room) => {
-    return room.selectedPricingOption?.finalPrice ?? room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+    return room.policyNeutralPrice ?? room.selectedPricingOption?.finalPrice ?? room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
 };
 
 const normalizePolicyId = (policy) => policy?.id ?? policy?.policyId ?? null;
@@ -130,11 +137,19 @@ const applyPolicySelectionToRoom = (room, policyId) => {
     if (!selectedOption) return room;
 
     const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
+    const policyDelta = getPolicyDeltaFromOption(room, selectedOption);
+    const selectedOptionFinal = safeNumber(selectedOption?.finalPrice, 0);
+    const hasPolicySelected = !(policyId === null || policyId === undefined || `${policyId}`.trim() === '');
+    const policyNeutralPrice = hasPolicySelected
+        ? null
+        : Math.max(0, selectedOptionFinal - policyDelta);
 
     return {
         ...room,
         selectedPricingOption: selectedOption,
         selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : 0,
+        policyApplied: hasPolicySelected,
+        policyNeutralPrice,
     };
 };
 
@@ -166,6 +181,7 @@ const getOptionModifiers = (room) => Array.isArray(room?.selectedPricingOption?.
 const getRoomDetailModifierIds = (room) => {
     const optionDetailIds = getOptionModifiers(room)
         .filter((m) => DETAIL_LEVEL_TYPES.has(m?.type))
+        .filter((m) => room?.policyApplied || m?.type !== 'POLICY')
         .map((m) => m?.priceModifierId);
 
     const fallbackId = room?.appliedPriceModifierId;
