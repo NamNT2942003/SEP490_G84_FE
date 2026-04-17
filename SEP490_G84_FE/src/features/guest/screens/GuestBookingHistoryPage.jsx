@@ -4,6 +4,7 @@ import { guest } from "../api/guestService.js";
 import BookingCard from "../components/BookingCard.jsx";
 import { Link } from "react-router-dom";
 import { COLORS } from "../../../constants";
+import Swal from "sweetalert2";
 
 /* ─── Colours – light theme ─── */
 const C = {
@@ -98,6 +99,7 @@ export default function GuestBookingHistoryPage() {
     const [errorMsg, setErrorMsg]     = useState("");
     const [activeTab, setActiveTab]   = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
+    const [requestingBookingCode, setRequestingBookingCode] = useState("");
 
     useEffect(() => {
         if (!token) { setPageStatus("invalid"); return; }
@@ -126,6 +128,46 @@ export default function GuestBookingHistoryPage() {
 
     // Reset page on tab change
     useEffect(() => { setCurrentPage(1); }, [activeTab]);
+
+    const handleRequestCancel = async (booking) => {
+        if (!booking?.bookingCode || !token) return;
+
+        const result = await Swal.fire({
+            title: "Request cancellation?",
+            text: "The staff will be notified and will review this booking.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: C.red,
+            cancelButtonColor: C.primary,
+            confirmButtonText: "Send request",
+            cancelButtonText: "Keep booking",
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            setRequestingBookingCode(booking.bookingCode);
+            await guest.requestCancel(token, booking.bookingCode);
+            const refreshed = await guest.getBookingsByToken(token);
+            setBookings(refreshed);
+            setPageStatus(refreshed.length === 0 ? "empty" : "success");
+            await Swal.fire({
+                icon: "success",
+                title: "Request sent",
+                text: "Your cancellation request has been sent to the staff.",
+                timer: 1600,
+                showConfirmButton: false,
+            });
+        } catch (err) {
+            await Swal.fire({
+                icon: "error",
+                title: "Unable to send request",
+                text: err.response?.data || "Please try again later.",
+            });
+        } finally {
+            setRequestingBookingCode("");
+        }
+    };
 
     return (
         <>
@@ -231,7 +273,24 @@ export default function GuestBookingHistoryPage() {
                                     <div style={S.list}>
                                         {paginatedBookings.map((b, i) => (
                                             <div key={b.bookingCode} style={{ animation: `fadeUp .4s ${i * 0.06}s ease both`, opacity: 0 }}>
-                                                <BookingCard booking={b} />
+                                                <div style={{ position: "relative" }}>
+                                                    <BookingCard booking={b} />
+                                                    {b.cancelRequested && (
+                                                        <div style={S.requestHint}>Cancellation request pending review</div>
+                                                    )}
+                                                    {!b.cancelRequested && b.status !== "CANCELLED" && (
+                                                        <div style={S.bookingActions}>
+                                                            <button
+                                                                type="button"
+                                                                style={S.requestBtn}
+                                                                onClick={() => handleRequestCancel(b)}
+                                                                disabled={requestingBookingCode === b.bookingCode}
+                                                            >
+                                                                {requestingBookingCode === b.bookingCode ? "Sending..." : "Request cancel"}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -384,6 +443,34 @@ const S = {
     /* List */
     list: { display: "flex", flexDirection: "column", gap: "12px" },
     emptyList: { textAlign: "center", padding: "60px 24px", color: C.textMuted },
+    bookingActions: {
+        display: "flex",
+        justifyContent: "flex-end",
+        marginTop: "8px",
+    },
+    requestBtn: {
+        border: `1px solid ${C.red}`,
+        color: C.red,
+        background: "#fff",
+        borderRadius: "999px",
+        padding: "7px 14px",
+        fontSize: "12px",
+        fontWeight: 700,
+        cursor: "pointer",
+    },
+    requestHint: {
+        position: "absolute",
+        top: "12px",
+        right: "12px",
+        background: C.redBg,
+        color: C.red,
+        border: `1px solid rgba(220,53,69,0.2)`,
+        borderRadius: "999px",
+        padding: "4px 10px",
+        fontSize: "11px",
+        fontWeight: 700,
+        pointerEvents: "none",
+    },
 
     /* Pagination */
     pagination: {

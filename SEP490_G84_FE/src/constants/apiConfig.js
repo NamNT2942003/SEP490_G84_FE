@@ -49,5 +49,6 @@ export const API_ENDPOINTS = {
     REQUEST_ACCESS: "/guest/request-access",
     VERIFY_OTP: "/guest/verify-otp",
     BOOKINGS: "/guest/bookings",
+    REQUEST_CANCEL: "/guest/bookings/:bookingCode/request-cancel",
   },
 };

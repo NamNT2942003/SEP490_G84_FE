@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import bookingManagementApi from "../api/bookingManagementApi";
 import BookingDetailModal from "../components/BookingDetailModal";
 import CreateBookingByStaffModal from "../components/CreateBookingByStaffModal";
+import CancelRequestsModal from "../components/CancelRequestsModal";
 import "./BookingManagement.css";
 import Buttons from "@/components/ui/Buttons";
 import { COLORS } from "@/constants";
 import Swal from "sweetalert2";
 import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
+import { useRef } from "react";
 
 const PAGE_SIZE = 10;
 
@@ -22,6 +24,7 @@ const STAT_CARDS = [
     { key: "confirmed", label: "Confirmed", icon: "bi-check2-circle",color: "#198754", bg: "rgba(25,135,84,0.10)" },
     { key: "pending",   label: "Pending",   icon: "bi-clock-history",color: "#997404", bg: "rgba(255,193,7,0.14)" },
     { key: "cancelled", label: "Cancelled", icon: "bi-x-circle",     color: "#b02a37", bg: "rgba(220,53,69,0.10)" },
+    { key: "cancelRequested", label: "Cancel Requests", icon: "bi-bell-fill", color: "#b02a37", bg: "rgba(220,53,69,0.12)" },
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -96,15 +99,18 @@ export default function BookingManagement() {
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
     const [branches, setBranches] = useState([]);
+    const [cancelRequests, setCancelRequests] = useState([]);
+    const [showCancelRequests, setShowCancelRequests] = useState(false);
 
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
-    const [stats, setStats] = useState({ total: 0, confirmed: 0, pending: 0, cancelled: 0 });
+    const [stats, setStats] = useState({ total: 0, confirmed: 0, pending: 0, cancelled: 0, cancelRequested: 0 });
 
     const [selectedBookingId, setSelectedBookingId] = useState(null);
     const [showDetail, setShowDetail] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const prevCancelRequestCountRef = useRef(null);
 
     const branchOptions = useMemo(
         () => [...branches].sort((a, b) => String(a.branchName || "").localeCompare(String(b.branchName || ""))),
@@ -169,7 +175,54 @@ export default function BookingManagement() {
         }
     }, [page, search, statusFilter, branchFilter, sourceFilter, fromDate, toDate]);
 
+    const playNotificationSound = useCallback(() => {
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+            const audioContext = new AudioContextClass();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.type = "sine";
+            oscillator.frequency.value = 880;
+            gainNode.gain.value = 0.0001;
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.start();
+            gainNode.gain.exponentialRampToValueAtTime(0.2, audioContext.currentTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.28);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        } catch (err) {
+            console.warn("Failed to play notification sound", err);
+        }
+    }, []);
+
+    const fetchCancelRequests = useCallback(async () => {
+        try {
+            const data = await bookingManagementApi.getCancelRequests();
+            setCancelRequests(data || []);
+
+            const nextCount = (data || []).length;
+            if (prevCancelRequestCountRef.current !== null && nextCount > prevCancelRequestCountRef.current) {
+                playNotificationSound();
+            }
+            prevCancelRequestCountRef.current = nextCount;
+            setStats((prev) => ({ ...prev, cancelRequested: nextCount }));
+        } catch (err) {
+            console.warn("Failed to load cancel requests", err);
+            setCancelRequests([]);
+        }
+    }, [playNotificationSound]);
+
     useEffect(() => { fetchBookings(); }, [fetchBookings]);
+
+    useEffect(() => {
+        fetchCancelRequests();
+        const timer = window.setInterval(() => {
+            fetchBookings();
+            fetchCancelRequests();
+        }, 30000);
+        return () => window.clearInterval(timer);
+    }, [fetchBookings, fetchCancelRequests]);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -248,7 +301,9 @@ export default function BookingManagement() {
             {/* Stat Cards */}
             <div className="row g-3 mb-4">
                 {STAT_CARDS.map((card) => (
-                    <StatCard key={card.key} card={card} value={stats[card.key] || 0} loading={loading} />
+                    <div key={card.key} onClick={card.key === "cancelRequested" ? () => setShowCancelRequests(true) : undefined} style={{ cursor: card.key === "cancelRequested" ? "pointer" : "default" }}>
+                        <StatCard card={card} value={stats[card.key] || 0} loading={loading} />
+                    </div>
                 ))}
             </div>
 
@@ -386,10 +441,15 @@ export default function BookingManagement() {
                                 bookings.map((booking) => {
                                     const sourceBadge = getSourceBadge(booking.source);
                                     return (
-                                    <tr key={booking.bookingId}>
+                                    <tr key={booking.bookingId} style={booking.cancelRequested ? { backgroundColor: "rgba(220,53,69,0.05)" } : undefined}>
                                         <td className="ps-4">
                                             <div className="fw-semibold" style={{ color: COLORS.PRIMARY }}>
                                                 {booking.bookingCode || "-"}
+                                                {booking.cancelRequested && (
+                                                    <span className="badge ms-2" style={{ backgroundColor: "rgba(220,53,69,0.12)", color: "#b02a37", fontSize: "0.7rem" }}>
+                                                        Request cancel
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="text-muted" style={{ fontSize: "0.75rem" }}>
                                                 {formatDate(booking.createdAt)}
@@ -481,6 +541,28 @@ export default function BookingManagement() {
                 onClose={() => setShowCreateModal(false)}
                 onSubmit={handleCreateBooking}
                 onSuccess={handleCreatedSuccess}
+            />
+
+            <CancelRequestsModal
+                show={showCancelRequests}
+                requests={cancelRequests}
+                onClose={() => setShowCancelRequests(false)}
+                onCancelBooking={async (bookingId) => {
+                    const result = await Swal.fire({
+                        title: "Cancel booking?",
+                        text: "This will execute the same cancel flow as the booking detail modal.",
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonColor: "#dc3545",
+                        cancelButtonColor: COLORS.PRIMARY,
+                        confirmButtonText: "Yes, cancel",
+                        cancelButtonText: "Keep request",
+                    });
+                    if (!result.isConfirmed) return;
+                    await bookingManagementApi.cancelBooking(bookingId);
+                    await fetchBookings();
+                    await fetchCancelRequests();
+                }}
             />
         </div>
     );

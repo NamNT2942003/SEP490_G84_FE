@@ -30,4 +30,15 @@ export const guest = {
         const response = await apiClient.get(`${API_ENDPOINTS.GUEST.BOOKINGS}?token=${token}`);
         return response.data;
     },
+
+    /**
+     * Gửi yêu cầu hủy booking của guest đang xác thực.
+     * @param {string} token
+     * @param {string} bookingCode
+     */
+    requestCancel: async (token, bookingCode) => {
+        const endpoint = API_ENDPOINTS.GUEST.REQUEST_CANCEL.replace(":bookingCode", encodeURIComponent(bookingCode));
+        const response = await apiClient.post(`${endpoint}?token=${encodeURIComponent(token)}`);
+        return response.data;
+    },
 };

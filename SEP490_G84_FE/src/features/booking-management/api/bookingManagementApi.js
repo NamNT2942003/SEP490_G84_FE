@@ -29,6 +29,7 @@ const normalizeBooking = (item = {}) => {
         checkInDate: item.checkInDate || item.arrival_date || item.arrivalDate || "",
         checkOutDate: item.checkOutDate || item.departure_date || item.departureDate || "",
         createdAt: item.createdAt || item.createdDate || item.bookingDate || "",
+        cancelRequested: Boolean(item.cancelRequested),
         status,
         source,
         raw: item,
@@ -129,6 +130,12 @@ const bookingManagementApi = {
         return response.data;
     },
 
+    getCancelRequests: async () => {
+        const response = await apiClient.get(`${ADMIN_BOOKING_BASE}/cancel-requests`);
+        const data = response.data;
+        return Array.isArray(data) ? data.map(normalizeBooking) : [];
+    },
+
     createBookingByStaff: async (payload) => {
         const response = await apiClient.post(`${ADMIN_BOOKING_BASE}/create`, payload);
         return response.data;
@@ -152,6 +159,7 @@ const bookingManagementApi = {
                     confirmed: toNumber(data.confirmedBookings ?? data.confirmed, 0),
                     pending: toNumber(data.pendingBookings ?? data.pending, 0),
                     cancelled: toNumber(data.cancelledBookings ?? data.cancelled, 0),
+                    cancelRequested: toNumber(data.cancelRequestedBookings ?? data.cancelRequested, 0),
                 };
             } catch (error) {
                 lastError = error;

@@ -61,9 +61,10 @@ export default function BookingCard({ booking }) {
     const usedServices = booking.usedServices || [];
 
     const hasServiceFee = booking.status === "CHECKED_OUT" && booking.serviceFee > 0;
+    const cancelRequested = Boolean(booking.cancelRequested);
 
     return (
-        <div style={S.card}>
+        <div style={{ ...S.card, ...(cancelRequested ? S.cardRequested : null) }}>
             {/* Header row */}
             <div style={S.cardHead}>
                 <div>
@@ -83,6 +84,11 @@ export default function BookingCard({ booking }) {
                         <span style={{ ...S.dot, background: s.color }} />
                         {s.label}
                     </span>
+                    {cancelRequested && (
+                        <span style={S.requestBadge}>
+                            Request cancel
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -145,6 +151,12 @@ export default function BookingCard({ booking }) {
                     {booking.specialRequests}
                 </div>
             )}
+
+            {cancelRequested && (
+                <div style={S.requestBanner}>
+                    A cancellation request has been sent to staff.
+                </div>
+            )}
         </div>
     );
 }
@@ -156,6 +168,11 @@ const S = {
         borderRadius: "6px",
         overflow: "hidden",
         boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+    },
+    cardRequested: {
+        borderColor: "rgba(220,53,69,0.45)",
+        boxShadow: "0 0 0 1px rgba(220,53,69,0.10), 0 4px 14px rgba(220,53,69,0.08)",
+        background: "linear-gradient(180deg, rgba(255,248,248,0.92) 0%, #ffffff 44%)",
     },
     cardHead: {
         display: "flex", alignItems: "center",
@@ -180,6 +197,17 @@ const S = {
         display: "inline-flex", alignItems: "center", gap: "4px",
         padding: "4px 10px", borderRadius: "4px",
         fontSize: "12px", fontWeight: 500,
+    },
+    requestBadge: {
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "4px 10px",
+        borderRadius: "999px",
+        fontSize: "12px",
+        fontWeight: 700,
+        color: C.red,
+        background: C.redDim,
+        border: `1px solid rgba(220,53,69,0.25)`,
     },
     dot: { width: 6, height: 6, borderRadius: "50%" },
     cardBody: {
@@ -236,6 +264,16 @@ const S = {
         borderLeft: `3px solid ${C.border}`,
         padding: "8px 12px",
         fontSize: "13px", color: C.text,
+    },
+    requestBanner: {
+        margin: "0 20px 16px",
+        padding: "10px 12px",
+        borderRadius: "6px",
+        background: "rgba(220,53,69,0.06)",
+        border: `1px solid rgba(220,53,69,0.18)`,
+        color: C.red,
+        fontSize: "12px",
+        fontWeight: 600,
     },
     specialLabel: {
         display: "block",
