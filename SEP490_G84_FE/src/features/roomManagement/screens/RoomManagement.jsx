@@ -453,10 +453,10 @@ function RoomManagement() {
         }
 
         .rm-action-btn {
-          padding: 8px 14px; border-radius: 8px; border: 1px solid #d0dbc8;
-          font-size: 0.8rem; font-weight: 600; cursor: pointer;
-          transition: all 0.2s; display: flex; align-items: center;
-          justify-content: center; gap: 6px; width: 100%;
+          padding: 6px 8px; border-radius: 8px; border: 1px solid #d0dbc8;
+            font-size: 0.75rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; display: flex; align-items: center;
+            justify-content: center; gap: 4px; width: 100%; white-space: nowrap;
           background: #fff; color: ${BRAND};
         }
         .rm-action-btn:hover { background: ${BRAND}; color: #fff; border-color: ${BRAND}; }
@@ -872,3 +872,4 @@ function RoomManagement() {
 }
 
 export default RoomManagement;
+
