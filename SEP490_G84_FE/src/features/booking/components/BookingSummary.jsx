@@ -10,7 +10,9 @@ const getAbsoluteImageUrl = (url) => {
     return url;
 };
 
-const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, depositAmount = null, bookingTotalAmount = null }) => {
+const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, depositAmount = null, prepaidAmount = null, bookingTotalAmount = null }) => {
+    console.log("BookingSummary RENDERING. selectedRooms:", selectedRooms);
+    console.log("Image URL for first room:", selectedRooms?.[0]?.image);
     const HIDDEN_MODIFIER_TYPES = new Set(['POLICY']);
 
     const getVisibleAppliedModifiers = (room) =>
@@ -34,7 +36,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
         if (!reason) return '';
         let text = String(reason).replace(/\s*\[\s*-?\d+(?:\.\d+)?\s*\]$/, '').trim();
 
-        text = text.replace(/Occupancy proxy/gi, 'Booking volume');
+        text = text.replace(/Occupancy proxy/gi, 'Room quantity in booking');
         text = text.replace(/Customer history/gi, 'Returning guest');
 
         // Singular/plural cleanup for guest wording from backend reason.
@@ -46,7 +48,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
 
     const normalizeModifierTypeText = (type) => {
         if (!type) return 'UNKNOWN';
-        if (type === 'OCCUPANCY') return 'BOOKING_VOLUME';
+        if (type === 'OCCUPANCY') return 'ROOM_QUANTITY';
         if (type === 'USER_HISTORY_DISCOUNT') return 'RETURNING_GUEST';
         return type;
     };
@@ -241,7 +243,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
     const policyAdjustment = getPolicyAdjustment();
     const hasPolicyAdjustment = Math.abs(policyAdjustment) > 0;
     
-    const normalizedDepositAmount = Number.isFinite(Number(depositAmount)) ? Number(depositAmount) : subtotal;
+    const normalizedDepositAmount = Number.isFinite(Number(prepaidAmount)) ? Number(prepaidAmount) : Number.isFinite(Number(depositAmount)) ? Number(depositAmount) : subtotal;
     const normalizedBookingTotalAmount = Number.isFinite(Number(bookingTotalAmount)) ? Number(bookingTotalAmount) : subtotal;
     const safeNights = nights > 0 ? nights : 1;
     const averageBookingPerNight = normalizedBookingTotalAmount / safeNights;
@@ -252,6 +254,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 alt="Resort Room"
                 className="img-fluid rounded-3 mb-3"
                 src={getAbsoluteImageUrl(selectedRooms[0]?.image) || "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"}
+                onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"; }}
                 style={{ height: '160px', width: '100%', objectFit: 'cover' }}
             />
 
@@ -332,11 +335,11 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                         </div>
                         <div className="row mt-3">
                             <div className="col-6">
-                                <div className="text-muted small">Estimated deposit amount</div>
+                                <div className="text-muted small">Final amount</div>
                                 <div className="fw-bold text-olive fs-6">{formatCurrency(normalizedDepositAmount)}</div>
                             </div>
                             <div className="col-6 text-end">
-                                <div className="text-muted small">Remaining balance</div>
+                                <div className="text-muted small">Difference to booking total</div>
                                 <div className="fw-bold text-dark fs-6">{formatCurrency(normalizedBookingTotalAmount - normalizedDepositAmount)}</div>
                             </div>
                         </div>
@@ -415,6 +418,17 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                     <span className="text-muted">Booking total</span>
                     <span className="text-muted">{formatCurrency(normalizedBookingTotalAmount)}</span>
                 </div>
+                {normalizedDepositAmount !== normalizedBookingTotalAmount && (
+                    <div className="p-2 rounded-3 mt-2 mb-2" style={{ background: '#f4f8ef', border: '1px solid #dbe6cf' }}>
+                        <div className="d-flex justify-content-between align-items-center mb-1">
+                            <span className="fw-bold text-olive">Prepaid amount (pay now)</span>
+                            <span className="fw-bold text-olive">{formatCurrency(normalizedDepositAmount)}</span>
+                        </div>
+                        <small className="text-muted d-block">
+                            Balance {formatCurrency(normalizedBookingTotalAmount - normalizedDepositAmount)} remaining after booking
+                        </small>
+                    </div>
+                )}
                 <div className="d-flex justify-content-between align-items-start mt-1">
                     <span className="text-muted">Avg booking / night</span>
                     <div className="text-end">
@@ -439,7 +453,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                     </div>
                 </div>
                 <div className="d-flex justify-content-between align-items-center">
-                    <span className="text-muted">Deposit now</span>
+                    <span className="text-muted">Final price</span>
                     <span className="fw-bold text-olive">{formatCurrency(normalizedDepositAmount)}</span>
                 </div>
                 <div className="mt-2">

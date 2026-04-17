@@ -25,6 +25,8 @@ const formatDate = (value) => {
 const formatVND = (amount) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount || 0);
 
+const isInternalFrontendBooking = (source) => (source || "").trim().toUpperCase() === "FRONT_END";
+
 // ─── Sub-components ────────────────────────────────────────────────────────
 
 const StatusBadge = ({ status }) => {
@@ -105,9 +107,23 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
     };
 
     const handleCancel = async () => {
+        if (!isInternalFrontendBooking(booking?.source)) {
+            await Swal.fire({
+                icon: "warning",
+                title: "Not allowed",
+                text: "Only internal FRONT_END bookings can be cancelled.",
+            });
+            return;
+        }
+
+        const refundAmount = Number(booking?.refundAmount || 0);
+        const retainedAmount = Number(booking?.retainedAmount || 0);
         const result = await Swal.fire({
             title: 'Cancel Booking?',
-            text: 'This action cannot be undone. The booking will be cancelled immediately.',
+            html:
+                `This action cannot be undone.<br/>` +
+                `Amount to refund customer: <b>${formatVND(refundAmount)}</b><br/>` +
+                `Amount retained by hotel: <b>${formatVND(retainedAmount)}</b>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc3545',
@@ -258,6 +274,11 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                     <InfoItem label="Total Amount" value={<span className="fw-semibold text-success">{formatVND(booking.totalAmount)}</span>} />
                                     <InfoItem label="Invoice Status" value={booking.invoiceStatus} />
                                 </div>
+                                <div className="info-row mt-2">
+                                    <InfoItem label="Total Paid" value={formatVND(booking.totalPaidAmount)} />
+                                    <InfoItem label="Refund Amount" value={<span className="fw-semibold text-danger">{formatVND(booking.refundAmount)}</span>} />
+                                    <InfoItem label="Retained Amount" value={formatVND(booking.retainedAmount)} />
+                                </div>
 
                                 {/* Room Details table */}
                                 {booking.details?.length > 0 && (
@@ -310,7 +331,7 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
 
                 {/* Footer */}
                 <div className="bm-modal-footer">
-                    {booking?.status !== "CANCELLED" && (
+                    {booking?.status !== "CANCELLED" && isInternalFrontendBooking(booking?.source) && (
                         <Buttons
                             variant="danger"
                             className="btn-sm"

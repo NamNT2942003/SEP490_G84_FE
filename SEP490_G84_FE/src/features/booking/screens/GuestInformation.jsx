@@ -32,8 +32,47 @@ const getPaymentText = (paymentType) => {
     return 'Room-based payment method';
 };
 
+const safeNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const HIDDEN_PRICE_MODIFIER_TYPES = new Set(['POLICY', 'USER_HISTORY_DISCOUNT']);
+
+const extractDeltaFromReason = (reason) => {
+    if (!reason) return null;
+    const deltaRegex = new RegExp('\\[\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\]$');
+    const match = String(reason).match(deltaRegex);
+    if (!match) return null;
+    return safeNumber(match[1], 0);
+};
+
+const getModifierDelta = (room, modifier) => {
+    const fromReason = extractDeltaFromReason(modifier?.reason);
+    if (fromReason !== null) return fromReason;
+
+    const adjustmentValue = safeNumber(modifier?.adjustmentValue, 0);
+    if (modifier?.adjustmentType === 'PERCENT' || modifier?.adjustmentType === 'PERCENTAGE') {
+        const percentBase = safeNumber(room?.basePrice ?? room?.price ?? room?.selectedPrice, 0);
+        return (percentBase * adjustmentValue) / 100;
+    }
+    return adjustmentValue;
+};
+
+const getVisiblePriceFromOption = (room, option) => {
+    const effectiveOption = option || room?.selectedPricingOption || null;
+    if (!effectiveOption) return safeNumber(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0, 0);
+
+    const hiddenDelta = (Array.isArray(effectiveOption.modifiers) ? effectiveOption.modifiers : [])
+        .filter((modifier) => HIDDEN_PRICE_MODIFIER_TYPES.has(modifier?.type))
+        .reduce((sum, modifier) => sum + getModifierDelta(room, modifier), 0);
+
+    const visiblePrice = safeNumber(effectiveOption.finalPrice, 0) - hiddenDelta;
+    return visiblePrice > 0 ? visiblePrice : 0;
+};
+
 const calculateRoomUnitPrice = (room) => {
-    return room.selectedPrice ?? room.selectedPricingOption?.finalPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+    return room.selectedPricingOption?.finalPrice ?? room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
 };
 
 const normalizePolicyId = (policy) => policy?.id ?? policy?.policyId ?? null;
@@ -62,7 +101,7 @@ const applyPolicySelectionToRoom = (room, policyId) => {
     const selectedOption = findPricingOptionForPolicy(room, policyId);
     if (!selectedOption) return room;
 
-    const selectedPrice = Number(selectedOption?.finalPrice ?? room?.selectedPrice ?? room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0);
+    const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
 
     return {
         ...room,
@@ -89,7 +128,7 @@ const formatPolicyTypeLabel = (type) => {
     }
 };
 
-const DETAIL_LEVEL_TYPES = new Set(['ADVANCE_BOOKING', 'AVAILABILITY', 'POLICY']);
+const DETAIL_LEVEL_TYPES = new Set(['DAY_OF_WEEK', 'DATE_RANGE', 'ADVANCE_BOOKING', 'AVAILABILITY', 'POLICY']);
 const BOOKING_LEVEL_TYPES = new Set(['LENGTH_OF_STAY', 'OCCUPANCY', 'USER_HISTORY_DISCOUNT']);
 
 const uniqueIds = (items) => [...new Set((items || []).filter((v) => v !== null && v !== undefined && `${v}`.trim() !== '').map((v) => `${v}`))];
@@ -144,7 +183,16 @@ const toPricingOption = (option = {}) => ({
     modifierIds: Array.isArray(option?.modifierIds) ? option.modifierIds : [],
     modifierNames: Array.isArray(option?.modifierNames) ? option.modifierNames : [],
     reasons: Array.isArray(option?.reasons) ? option.reasons : [],
-    modifiers: Array.isArray(option?.modifiers) ? option.modifiers : [],
+    modifiers: Array.isArray(option?.modifiers)
+        ? option.modifiers.map((m) => ({
+            priceModifierId: m?.priceModifierId,
+            name: m?.name,
+            type: m?.type,
+            adjustmentType: m?.adjustmentType,
+            adjustmentValue: safeNumber(m?.adjustmentValue, 0),
+            reason: m?.reason,
+        }))
+        : [],
     combinationKey: option?.combinationKey || option?.optionCode || option?.mode || 'UNKNOWN',
 });
 
@@ -186,17 +234,17 @@ const withPricingState = (room, preferredOption = null) => {
 
     const selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
 
-    const selectedPrice = selectedOption?.finalPrice
-        ?? Number(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0);
+    const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
 
     return {
         ...room,
         pricingOptions: options,
         selectedPricingOption: selectedOption,
+        selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : safeNumber(room?.basePrice ?? room?.price, 0),
     };
 };
 
-const buildBookingPayload = (formData, rooms, checkIn, checkOut) => {
+const buildBookingPayload = (formData, rooms, checkIn, checkOut, expectedTotalAmount) => {
     const bookingLevelIds = uniqueIds(
         rooms.flatMap((room) => getRoomBookingLevelModifierIds(room)),
     );
@@ -207,6 +255,7 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut) => {
 
     return {
         appliedPolicyId: formData.appliedPolicyId,
+        expectedTotalAmount,
         otaReservationId: otaId,
         arrivalDate: checkIn,
         departureDate: checkOut,
@@ -322,6 +371,7 @@ const GuestInformation = () => {
         selectedRooms = [],
         checkIn = '',
         checkOut = '',
+        searchParams = {},
         totalPrice = 0,
         prefillEmail = '',
         appliedPolicyId = null,
@@ -520,8 +570,8 @@ const GuestInformation = () => {
             branchId: branchId || 1,
             checkIn,
             checkOut,
-            adults: 1,
-            children: 0,
+            adults: Number(searchParams?.adults ?? 1),
+            children: Number(searchParams?.children ?? 0),
             roomTypeIds,
             size: Math.max(roomsSnapshot.length, 10),
             page: 0,
@@ -556,7 +606,7 @@ const GuestInformation = () => {
             // Ignore transient repricing failures to avoid interrupting typing flow.
             console.warn('Failed to refresh room pricing by email', error);
         }
-    }, [branchId, checkIn, checkOut, formData.email, selectedPolicyId]);
+    }, [branchId, checkIn, checkOut, formData.email, selectedPolicyId, searchParams?.adults, searchParams?.children]);
 
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
@@ -573,10 +623,14 @@ const GuestInformation = () => {
         );
     };
 
+    const normalizeMoney = (value) => {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return 0;
+        return Math.round(Math.max(0, n) * 100) / 100;
+    };
+
     const selectedPolicy = policies.find((policy) => Number(policy.id) === Number(selectedPolicyId)) || null;
-    const selectedPolicyRate = selectedPolicy ? Number(selectedPolicy.prepaidRate ?? 0) : 100;
-    const effectiveDepositRate = Number.isFinite(selectedPolicyRate) ? Math.min(100, Math.max(0, selectedPolicyRate)) : 100;
-    const estimatedDepositAmount = Math.max(0, Math.round(calculateTotalPrice() * effectiveDepositRate / 100));
+    const finalBookingAmount = normalizeMoney(calculateTotalPrice());
 
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
@@ -623,12 +677,25 @@ const GuestInformation = () => {
         }
 
         try {
-            const payload = buildBookingPayload(formData, rooms, checkIn, checkOut);
+            const payload = buildBookingPayload(formData, rooms, checkIn, checkOut, finalBookingAmount);
             const currentBranchId = branchId || 1;
             const data = await bookingService.createFromFrontend(currentBranchId, payload);
             const createdBookingId = data?.bookingId ?? data?.id;
-            const bookingDepositAmount = Number(data?.prepaidAmount ?? estimatedDepositAmount);
-            const bookingTotalAmount = Number(data?.totalAmount ?? calculateTotalPrice());
+            const backendTotalAmount = normalizeMoney(data?.totalAmount);
+
+            if (Math.abs(backendTotalAmount - finalBookingAmount) > 0.01) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Price changed',
+                    text: `Backend recalculated ${formatVND(backendTotalAmount)} but Guest Information shows ${formatVND(finalBookingAmount)}. Please review room pricing and continue again.`,
+                    confirmButtonColor: '#5C6F4E',
+                });
+                await refreshRoomsByEmail();
+                return;
+            }
+
+            const bookingTotalAmount = backendTotalAmount;
+            const prepaidAmountValue = normalizeMoney(data?.prepaidAmount ?? bookingTotalAmount);
 
             if (!createdBookingId) {
                 Swal.fire({ icon: 'error', title: 'Booking Error', text: 'Did not receive a booking ID from the server.', confirmButtonColor: '#d33' });
@@ -638,9 +705,11 @@ const GuestInformation = () => {
             navigate('/payment-selection', {
                 state: {
                     bookingId: createdBookingId,
-                    totalAmount: bookingDepositAmount,
+                    totalAmount: bookingTotalAmount,
+                    finalAmount: bookingTotalAmount,
                     bookingTotalAmount,
-                    depositAmount: bookingDepositAmount,
+                    prepaidAmount: prepaidAmountValue,
+                    depositAmount: prepaidAmountValue,
                     rooms,
                     checkIn,
                     checkOut,
@@ -842,8 +911,8 @@ const GuestInformation = () => {
                                     checkIn={checkIn}
                                     checkOut={checkOut}
                                     selectedPolicy={selectedPolicy}
-                                    depositAmount={estimatedDepositAmount}
-                                    bookingTotalAmount={calculateTotalPrice()}
+                                    depositAmount={finalBookingAmount}
+                                    bookingTotalAmount={finalBookingAmount}
                                 />
                             </div>
                         </div>
@@ -854,8 +923,8 @@ const GuestInformation = () => {
                                 checkIn={checkIn}
                                 checkOut={checkOut}
                                 selectedPolicy={selectedPolicy}
-                                depositAmount={estimatedDepositAmount}
-                                bookingTotalAmount={calculateTotalPrice()}
+                                depositAmount={finalBookingAmount}
+                                bookingTotalAmount={finalBookingAmount}
                             />
                         </div>
                     </div>
@@ -866,12 +935,12 @@ const GuestInformation = () => {
             <footer className="fixed-bottom bg-white border-top p-3 shadow-lg" style={{ zIndex: 1031 }}>
                 <div className="container d-flex justify-content-between align-items-center">
                     <div>
-                        <small className="text-muted fw-bold text-uppercase">Estimated deposit</small>
+                        <small className="text-muted fw-bold text-uppercase">Final price</small>
                         <h4 className="mb-0 fw-bold" style={{ color: '#5C6F4E' }}>
-                            {formatVND(estimatedDepositAmount)}
+                            {formatVND(finalBookingAmount)}
                         </h4>
                         <div className="text-muted small mt-1">
-                            Total booking: {formatVND(calculateTotalPrice())}
+                            All pricing adjustments are already included.
                         </div>
                     </div>
                     <button

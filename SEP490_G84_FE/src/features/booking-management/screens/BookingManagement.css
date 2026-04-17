@@ -92,6 +92,13 @@
     width: 150px;
     flex-shrink: 0;
 }
+
+.bm-toolbar-form .bm-btn-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 @media (max-width: 575px) {
     .bm-toolbar-form .form-select {
         width: 100%;
@@ -103,7 +110,7 @@
     .bm-toolbar-form .bm-btn-group {
         width: 100%;
         display: flex;
-        gap: 8px;
+        gap: 12px;
     }
     .bm-toolbar-form .bm-btn-group button {
         flex: 1;
@@ -153,6 +160,40 @@
     border-radius: 20px;
     font-size: 0.72rem;
     font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ── Source Badge ── */
+.source-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.source-badge-internal {
+    background: rgba(25, 135, 84, 0.14);
+    color: #198754;
+}
+
+.source-badge-external {
+    background: rgba(13, 110, 253, 0.12);
+    color: #0d6efd;
+}
+
+.source-badge-unknown {
+    background: rgba(108, 117, 125, 0.16);
+    color: #495057;
+}
+
+.source-note {
+    margin-top: 2px;
+    font-size: 0.68rem;
+    color: #6c757d;
     white-space: nowrap;
 }
 

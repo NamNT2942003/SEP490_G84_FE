@@ -500,12 +500,7 @@ const SearchRoom = () => {
             </div>
 
             <div className="container bc-bar" style={{ position: 'relative', zIndex: 1 }}>
-                <nav aria-label="breadcrumb">
-                    <ol className="breadcrumb">
-                        <li className="breadcrumb-item"><Link to="/public"><i className="bi bi-house-door me-1"></i>Home</Link></li>
-                        <li className="breadcrumb-item active">Search Results</li>
-                    </ol>
-                </nav>
+
                 {uiMessage && (
                     <div className={`ux-msg ${uiMessage.type === "success" ? "success" : "warn"}`} role="alert" aria-live="polite">
                         <i className={`bi ${uiMessage.type === "success" ? "bi-check-circle" : "bi-exclamation-triangle"}`}></i>

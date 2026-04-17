@@ -35,6 +35,23 @@ const formatDate = (value) => {
 const formatVND = (amount) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount || 0);
 
+const isInternalFrontendBooking = (source) => (source || "").trim().toUpperCase() === "FRONT_END";
+
+const getSourceBadge = (source) => {
+    const raw = (source || "").trim();
+    const normalized = raw.toUpperCase();
+
+    if (normalized === "FRONT_END") {
+        return { label: "Internal", sub: "Can cancel", className: "source-badge source-badge-internal" };
+    }
+
+    if (!raw) {
+        return { label: "Unknown", sub: "Cannot cancel", className: "source-badge source-badge-unknown" };
+    }
+
+    return { label: raw, sub: "Cannot cancel", className: "source-badge source-badge-external" };
+};
+
 // ─── Sub-components ────────────────────────────────────────────────────────
 
 const StatusBadge = ({ status }) => {
@@ -75,6 +92,7 @@ export default function BookingManagement() {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
     const [branchFilter, setBranchFilter] = useState("");
+    const [sourceFilter, setSourceFilter] = useState("");
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
     const [branches, setBranches] = useState([]);
@@ -117,6 +135,7 @@ export default function BookingManagement() {
                 search,
                 status: statusFilter,
                 branchId: branchFilter,
+                sourceType: sourceFilter,
                 fromDate,
                 toDate,
             });
@@ -148,7 +167,7 @@ export default function BookingManagement() {
         } finally {
             setLoading(false);
         }
-    }, [page, search, statusFilter, branchFilter, fromDate, toDate]);
+    }, [page, search, statusFilter, branchFilter, sourceFilter, fromDate, toDate]);
 
     useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
@@ -163,6 +182,7 @@ export default function BookingManagement() {
         setSearch("");
         setStatusFilter("");
         setBranchFilter("");
+        setSourceFilter("");
         setFromDate("");
         setToDate("");
         setPage(0);
@@ -182,11 +202,15 @@ export default function BookingManagement() {
         return bookingManagementApi.createBookingByStaff(payload);
     };
 
-    const handleCreatedSuccess = async () => {
+    const handleCreatedSuccess = async (createdBooking) => {
+        const prepaidAmount = Number(createdBooking?.prepaidAmount || 0);
         await Swal.fire({
             icon: "success",
             title: "Booking created",
-            text: "New booking was created successfully.",
+            text:
+                prepaidAmount > 0
+                    ? `New booking was created. Amount collected now: ${formatVND(prepaidAmount)}.`
+                    : "New booking was created successfully.",
             timer: 1600,
             showConfirmButton: false,
         });
@@ -271,6 +295,15 @@ export default function BookingManagement() {
                             <option value="COMPLETED">Completed</option>
                             <option value="CANCELLED">Cancelled</option>
                         </select>
+                        <select
+                            className="form-select bm-filter-select"
+                            value={sourceFilter}
+                            onChange={(e) => { setSourceFilter(e.target.value); setPage(0); }}
+                        >
+                            <option value="">All sources</option>
+                            <option value="internal">Internal (can cancel)</option>
+                            <option value="external">External (cannot cancel)</option>
+                        </select>
                         <input
                             type="date"
                             className="form-control bm-filter-date"
@@ -326,6 +359,7 @@ export default function BookingManagement() {
                                 <th className="ps-4">Booking</th>
                                 <th>Guest</th>
                                 <th>Branch</th>
+                                <th>Source</th>
                                 <th>Check-in</th>
                                 <th>Check-out</th>
                                 <th>Amount</th>
@@ -336,23 +370,27 @@ export default function BookingManagement() {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-5 text-muted">
+                                    <td colSpan={9} className="text-center py-5 text-muted">
                                         <div className="spinner-border spinner-border-sm me-2" role="status" />
                                         Loading bookings...
                                     </td>
                                 </tr>
                             ) : bookings.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-5 text-muted">
+                                    <td colSpan={9} className="text-center py-5 text-muted">
                                         <i className="bi bi-inbox fs-3 d-block mb-2" />
                                         No bookings found
                                     </td>
                                 </tr>
                             ) : (
-                                bookings.map((booking) => (
+                                bookings.map((booking) => {
+                                    const sourceBadge = getSourceBadge(booking.source);
+                                    return (
                                     <tr key={booking.bookingId}>
                                         <td className="ps-4">
-                                            <div className="fw-semibold" style={{ color: COLORS.PRIMARY }}>#{booking.bookingId}</div>
+                                            <div className="fw-semibold" style={{ color: COLORS.PRIMARY }}>
+                                                {booking.bookingCode || "-"}
+                                            </div>
                                             <div className="text-muted" style={{ fontSize: "0.75rem" }}>
                                                 {formatDate(booking.createdAt)}
                                             </div>
@@ -363,6 +401,10 @@ export default function BookingManagement() {
                                         </td>
                                         <td>
                                             <div className="small">{booking.branchName || "-"}</div>
+                                        </td>
+                                        <td>
+                                            <div className={sourceBadge.className}>{sourceBadge.label}</div>
+                                            <div className="source-note">{sourceBadge.sub}</div>
                                         </td>
                                         <td className="small">{formatDate(booking.checkInDate)}</td>
                                         <td className="small">{formatDate(booking.checkOutDate)}</td>
@@ -378,7 +420,7 @@ export default function BookingManagement() {
                                                 <i className="bi bi-eye me-1" />
                                                 View
                                             </button>
-                                            {booking.status !== "CANCELLED" && (
+                                            {booking.status !== "CANCELLED" && isInternalFrontendBooking(booking.source) && (
                                                 <button
                                                     className="btn btn-sm btn-outline-danger"
                                                     style={{ fontSize: "0.78rem", padding: "3px 10px" }}
@@ -391,7 +433,8 @@ export default function BookingManagement() {
                                             )}
                                         </td>
                                     </tr>
-                                ))
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
