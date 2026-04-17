@@ -88,13 +88,41 @@ const normalizePolicy = (policy) => {
     };
 };
 
+const optionHasPolicyModifier = (option) =>
+    Array.isArray(option?.modifiers) && option.modifiers.some((modifier) => modifier?.type === 'POLICY');
+
+const findOptionWithoutPolicyAdjustment = (room) => {
+    const options = Array.isArray(room?.pricingOptions) ? room.pricingOptions : [];
+    if (!options.length) return null;
+
+    const nonPolicyOptions = options.filter((option) => {
+        const hasPolicyId = option?.cancellationPolicyId !== null && option?.cancellationPolicyId !== undefined && `${option.cancellationPolicyId}`.trim() !== '';
+        return !hasPolicyId && !optionHasPolicyModifier(option);
+    });
+
+    if (!nonPolicyOptions.length) {
+        return room?.selectedPricingOption || options[0] || null;
+    }
+
+    return findPreferredPricingOption(nonPolicyOptions, room?.selectedPricingOption)
+        || nonPolicyOptions[0]
+        || null;
+};
+
 const findPricingOptionForPolicy = (room, policyId) => {
     const options = Array.isArray(room?.pricingOptions) ? room.pricingOptions : [];
-    if (!options.length || !policyId) return room?.selectedPricingOption || null;
+    if (!options.length) return room?.selectedPricingOption || null;
+
+    if (policyId === null || policyId === undefined || `${policyId}`.trim() === '') {
+        return findOptionWithoutPolicyAdjustment(room);
+    }
 
     const normalizedPolicyId = Number(policyId);
     const matched = options.find((option) => Number(option?.cancellationPolicyId) === normalizedPolicyId);
-    return matched || room?.selectedPricingOption || options[0] || null;
+    if (matched) return matched;
+
+    // Policy not available for this room type => no policy adjustment for this room.
+    return findOptionWithoutPolicyAdjustment(room);
 };
 
 const applyPolicySelectionToRoom = (room, policyId) => {
@@ -248,8 +276,6 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut, expectedTotalAm
     const bookingLevelIds = uniqueIds(
         rooms.flatMap((room) => getRoomBookingLevelModifierIds(room)),
     );
-
-    const emailRegex = new RegExp('.+@.+\\..+');
     const safePhone = (formData.phone || '').replace(new RegExp('\\s+', 'g'), '');
     const otaId = `WEB-${safePhone || 'GUEST'}-${checkIn}-${checkOut}`;
 
@@ -372,9 +398,7 @@ const GuestInformation = () => {
         checkIn = '',
         checkOut = '',
         searchParams = {},
-        totalPrice = 0,
         prefillEmail = '',
-        appliedPolicyId = null,
         branchId = 1,
     } = location.state || {};
 
@@ -384,15 +408,15 @@ const GuestInformation = () => {
         email: prefillEmail || '',
         phone: '',
         specialRequests: '',
-        appliedPolicyId: appliedPolicyId,
+        appliedPolicyId: null,
     });
     const [policies, setPolicies] = useState([]);
-    const [selectedPolicyId, setSelectedPolicyId] = useState(appliedPolicyId || null);
+    const [selectedPolicyId, setSelectedPolicyId] = useState(null);
     const [policyLoading, setPolicyLoading] = useState(false);
     const [hasLoadedPolicies, setHasLoadedPolicies] = useState(false);
     const latestPricingRequestIdRef = useRef(0);
     const roomsRef = useRef(selectedRooms);
-    const selectedPolicyIdRef = useRef(appliedPolicyId || null);
+    const selectedPolicyIdRef = useRef(null);
     const policySnapshotRef = useRef('');
 
     useEffect(() => {
@@ -446,18 +470,8 @@ const GuestInformation = () => {
 
             const currentSelected = selectedPolicyIdRef.current;
             const hasCurrentSelected = normalized.some((policy) => Number(policy.id) === Number(currentSelected));
-            const hasAppliedPolicy = normalized.some((policy) => Number(policy.id) === Number(appliedPolicyId));
+            const nextSelectedPolicyId = hasCurrentSelected ? Number(currentSelected) : null;
 
-            let nextSelectedPolicyId = null;
-            if (hasCurrentSelected) {
-                nextSelectedPolicyId = Number(currentSelected);
-            } else if (hasAppliedPolicy) {
-                nextSelectedPolicyId = Number(appliedPolicyId);
-            } else {
-                nextSelectedPolicyId = normalized[0]?.id ?? null;
-            }
-
-            const normalizedCurrent = normalizeNullablePolicyId(currentSelected);
             const normalizedNext = normalizeNullablePolicyId(nextSelectedPolicyId);
 
             if (snapshot !== policySnapshotRef.current) {
@@ -469,7 +483,7 @@ const GuestInformation = () => {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Policy Updated',
-                    text: 'The selected cancellation policy was deleted or deactivated. A valid policy has been selected automatically.',
+                    text: 'The selected cancellation policy was deleted or deactivated. Please choose another policy.',
                     confirmButtonColor: '#5C6F4E',
                 });
             }
@@ -489,7 +503,7 @@ const GuestInformation = () => {
                 setPolicyLoading(false);
             }
         }
-    }, [branchId, appliedPolicyId, hasLoadedPolicies]);
+    }, [branchId, hasLoadedPolicies]);
 
     useEffect(() => {
         refreshPolicies(false);
