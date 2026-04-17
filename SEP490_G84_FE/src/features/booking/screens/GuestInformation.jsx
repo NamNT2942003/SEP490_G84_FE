@@ -125,7 +125,9 @@ const findPricingOptionForPolicy = (room, policyId) => {
     }
 
     const normalizedPolicyId = Number(policyId);
-    const matched = options.find((option) => Number(option?.cancellationPolicyId) === normalizedPolicyId);
+    const matched = options.find(
+        (option) => Number(option?.cancellationPolicyId) === normalizedPolicyId && optionHasPolicyModifier(option),
+    );
     if (matched) return matched;
 
     // Policy not available for this room type => no policy adjustment for this room.
@@ -144,7 +146,8 @@ const applyPolicySelectionToRoom = (room, policyId) => {
     const optionMatchesSelectedPolicy = hasSelectedPolicyValue
         && optionPolicyId !== null
         && optionPolicyId !== undefined
-        && Number(optionPolicyId) === Number(policyId);
+        && Number(optionPolicyId) === Number(policyId)
+        && optionHasPolicyModifier(selectedOption);
 
     const policyNeutralPrice = optionMatchesSelectedPolicy
         ? null

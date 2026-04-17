@@ -113,6 +113,8 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
 
     const calculateRoomUnitPrice = (room) => {
         const baseOptPrice = safeNumber(
+            room?.policyNeutralPrice
+                ??
             room?.selectedPrice
                 ?? room?.selectedPricingOption?.finalPrice
                 ?? room?.appliedPrice
@@ -223,6 +225,9 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
         if (!selectedRooms.length) return 0;
         let totalPolicyAdj = 0;
         for (const room of selectedRooms) {
+            if (!room?.policyApplied) {
+                continue;
+            }
             const qty = room.quantity || 1;
             const modifiers = (Array.isArray(room?.selectedPricingOption?.modifiers) ? room.selectedPricingOption.modifiers : [])
                 .filter((modifier) => modifier?.type === 'POLICY');
