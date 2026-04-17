@@ -199,8 +199,8 @@ const formatPolicyTypeLabel = (type) => {
     }
 };
 
-const DETAIL_LEVEL_TYPES = new Set(['DAY_OF_WEEK', 'DATE_RANGE', 'ADVANCE_BOOKING', 'AVAILABILITY', 'POLICY']);
-const BOOKING_LEVEL_TYPES = new Set(['LENGTH_OF_STAY', 'OCCUPANCY', 'USER_HISTORY_DISCOUNT']);
+const DETAIL_LEVEL_TYPES = new Set(['DAY_OF_WEEK', 'DATE_RANGE', 'ADVANCE_BOOKING', 'AVAILABILITY', 'POLICY', 'USER_HISTORY_DISCOUNT']);
+const BOOKING_LEVEL_TYPES = new Set(['LENGTH_OF_STAY', 'OCCUPANCY']);
 
 const uniqueIds = (items) => [...new Set((items || []).filter((v) => v !== null && v !== undefined && `${v}`.trim() !== '').map((v) => `${v}`))];
 
