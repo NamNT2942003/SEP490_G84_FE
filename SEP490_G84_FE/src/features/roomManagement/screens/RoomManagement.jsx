@@ -224,7 +224,7 @@ function RoomManagement() {
       Swal.fire({
         icon: "error",
         title: "Opps!",
-        text: "Không thể xóa phòng đang có người ở",
+        text: "Unable to delete a room that is currently occupied.",
       });
       return;
     }
@@ -260,7 +260,7 @@ function RoomManagement() {
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: "Không thể xóa phòng (Availability tương lai = 0).",
+          text: "Can not delete room (Availability in future days = 0).",
         });
         return;
       }
