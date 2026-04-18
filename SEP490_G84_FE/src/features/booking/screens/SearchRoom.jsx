@@ -47,7 +47,8 @@ const toPricingOption = (option = {}) => ({
 
 const getSearchRoomPrice = (room) =>
     safeNumber(
-        room?.selectedPrice
+        room?.lockedUnitPrice
+            ?? room?.selectedPrice
             ?? room?.selectedPricingOption?.finalPrice
             ?? room?.appliedPrice
             ?? room?.basePrice
@@ -125,6 +126,7 @@ const syncCartWithLatestRooms = (prevCart, latestRooms) => {
                 ...mergedRoom,
                 // Keep the price/option chosen in cart to avoid re-applying frontend
                 // pricing transformations when room data refreshes.
+                lockedUnitPrice: cartItem.lockedUnitPrice ?? cartItem.selectedPrice ?? mergedRoom.selectedPrice,
                 selectedPrice: cartItem.selectedPrice ?? mergedRoom.selectedPrice,
                 selectedPricingOption: cartItem.selectedPricingOption ?? mergedRoom.selectedPricingOption,
                 quantity: Math.min(cartItem.quantity || 1, mergedRoom.availableCount || 999),
@@ -306,11 +308,18 @@ const SearchRoom = () => {
 
     const handleBooking = (room) => {
         const roomForCart = withPricingState(room, room.selectedPricingOption);
+        const lockedUnitPrice = getSearchRoomPrice(roomForCart);
         const existingIndex = selectedCart.findIndex(r => r.roomTypeId === room.roomTypeId);
         if (existingIndex >= 0) {
             setSelectedCart(prev => prev.map((r, idx) =>
                 idx === existingIndex
-                    ? { ...r, ...roomForCart, quantity: Math.min(r.quantity || 1, roomForCart.availableCount || (r.quantity || 1)) }
+                    ? {
+                        ...r,
+                        ...roomForCart,
+                        lockedUnitPrice: r.lockedUnitPrice ?? r.selectedPrice ?? lockedUnitPrice,
+                        selectedPrice: r.selectedPrice ?? lockedUnitPrice,
+                        quantity: Math.min(r.quantity || 1, roomForCart.availableCount || (r.quantity || 1)),
+                    }
                     : r
             ));
             showUiMessage("success", `${roomForCart.name} pricing has been updated.`);
@@ -319,7 +328,15 @@ const SearchRoom = () => {
                 showUiMessage("warning", `${roomForCart.name} is fully booked.`);
                 return;
             }
-            setSelectedCart(prev => [...prev, { ...roomForCart, quantity: 1 }]);
+            setSelectedCart(prev => [
+                ...prev,
+                {
+                    ...roomForCart,
+                    lockedUnitPrice,
+                    selectedPrice: lockedUnitPrice,
+                    quantity: 1,
+                },
+            ]);
             showUiMessage("success", `${roomForCart.name} has been added to your selection.`);
         }
     };
