@@ -55,11 +55,11 @@ export default function EditRoomModal({ room, onClose, onSubmitted }) {
       
       const payload = {
         roomName: roomName,
-        floor: floor,
+        floor: floor ? parseInt(floor) : null,
         roomTypeId: parseInt(roomTypeId),
         furnitures: furnitures.map(f => ({
           furnitureId: f.id,
-          quantity: f.qty
+          quantity: parseInt(f.qty)
         }))
       };
 

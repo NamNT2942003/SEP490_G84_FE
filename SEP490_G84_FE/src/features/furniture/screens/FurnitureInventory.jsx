@@ -277,13 +277,14 @@ const FurnitureInventory = () => {
         }
         try {
             setIsProcessingBroken(true);
-            const branchIdParam = selectedBranch === 'all' ? "" : selectedBranch;
-            const data = await furnitureApi.listRooms('WAREHOUSE_FAIL', '', 0, 10, branchIdParam);
-            const wf = data?.content?.find(r => r.roomName === 'WAREHOUSE_FAIL');
-            if (!wf) { alert('No warehouse fail room found!'); return; }
-            if (action === 'fix') await furnitureApi.fixWarehouseFailFurniture(wf.roomId, brokenDetailInfo.id, brokenActionQuantity);
-            else await furnitureApi.discardWarehouseFailFurniture(wf.roomId, brokenDetailInfo.id, brokenActionQuantity);
-            setBrokenDetailInfo(null); setBrokenActionQuantity(1);
+            const dummyRoomId = 0; // Backend ignores the room ID for fixing/discarding warehouse broken items
+            if (action === 'fix') {
+                await furnitureApi.fixWarehouseFailFurniture(dummyRoomId, brokenDetailInfo.id, brokenActionQuantity);
+            } else {
+                await furnitureApi.discardWarehouseFailFurniture(dummyRoomId, brokenDetailInfo.id, brokenActionQuantity);
+            }
+            setBrokenDetailInfo(null); 
+            setBrokenActionQuantity(1);
             fetchFurnitureData(selectedBranch, nameApplied, typeFilterApplied, page);
         } catch (e) {
             alert(e?.response?.data?.message || 'Error during processing!');
