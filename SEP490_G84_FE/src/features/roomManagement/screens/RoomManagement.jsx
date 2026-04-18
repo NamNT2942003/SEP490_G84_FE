@@ -127,15 +127,6 @@ function RoomManagement() {
 
   /* ─── Effects ───────────────────────────────────────────────────────── */
 
-  // Keep branch filter constrained to All/Base modes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const safeBase = baseBranchId || "all";
-    if (branchFilter !== "all" && branchFilter !== safeBase) {
-      setBranchFilter(safeBase);
-    }
-  }, [baseBranchId, branchFilter]);
-
   // Re-fetch rooms whenever search or branch changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
