@@ -4,17 +4,20 @@ export const safeNumber = (value, fallback = 0) => {
 };
 
 /**
- * Tính giá đơn vị hiển thị của một phòng (bao gồm manual promotion nếu có).
- * Đây là "nguồn sự thật" duy nhất cho giá phòng trên toàn bộ luồng booking.
+ * Tính giá đơn vị sau khi đã áp dụng policy / promotion (dùng ở GuestInformation và BookingSummary).
+ *
+ * KHÔNG dùng lockedUnitPrice ở đây — lockedUnitPrice chỉ dành cho SearchRoom cart
+ * (được đọc qua getSearchRoomPrice trong SearchRoom.jsx / RoomCard.jsx).
+ * Nếu thêm lockedUnitPrice vào chain này, applyPolicySelectionToRoom sẽ cập nhật
+ * selectedPrice nhưng giá hiển thị vẫn giữ nguyên giá cũ → policy không có tác dụng.
  *
  * Thứ tự ưu tiên:
- *   lockedUnitPrice > selectedPrice > selectedPricingOption.finalPrice
+ *   selectedPrice (policy-adjusted) > selectedPricingOption.finalPrice
  *   > appliedPrice > basePrice > price
  */
 export const calculateDisplayedRoomPrice = (room) => {
     const basePrice = safeNumber(
-        room?.lockedUnitPrice
-            ?? room?.selectedPrice
+        room?.selectedPrice
             ?? room?.selectedPricingOption?.finalPrice
             ?? room?.appliedPrice
             ?? room?.basePrice

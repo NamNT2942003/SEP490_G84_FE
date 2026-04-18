@@ -56,6 +56,16 @@ const getSearchRoomPrice = (room) =>
         0,
     );
 
+// Modifier types yêu cầu dữ liệu người dùng mới có được (email hoặc policy được chọn rõ ràng).
+// Những modifier này KHÔNG được tự áp dụng khi user chưa cung cấp thông tin tương ứng.
+const CONTEXT_SENSITIVE_MODIFIER_TYPES = new Set(['USER_HISTORY_DISCOUNT', 'POLICY']);
+
+// Option “trung lập”: không có modifier nào yêu cầu email/policy — dùng cho lần hiển thị đầu tiên.
+const isNeutralOption = (option) => {
+    if (!Array.isArray(option?.modifiers)) return true;
+    return !option.modifiers.some((m) => CONTEXT_SENSITIVE_MODIFIER_TYPES.has(m?.type));
+};
+
 const pricingOptionSignature = (option) => {
     if (!option) return "";
     return `${option.mode || ""}-${option.finalPrice || 0}-${(option.modifierIds || []).join("_")}`;
@@ -94,7 +104,18 @@ const withPricingState = (room, preferredOption = null) => {
         .map(toPricingOption)
         .sort((a, b) => a.finalPrice - b.finalPrice);
 
-    const selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
+    let selectedOption;
+    if (preferredOption) {
+        // Có preferred option (từ cart sync / email repricing / policy repricing):
+        // tìm đúng option đó, fallback về options[0] (rẻ nhất, có thể có discount đã áp dụng).
+        selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
+    } else {
+        // Không có preferred option (hiển thị lần đầu):
+        // Chọn option trung lập (không có USER_HISTORY_DISCOUNT và POLICY modifier)
+        // để tránh tự áp dụng giãm giá email / phụ phí policy khi user chưa cung cấp thông tin.
+        const neutralOptions = options.filter(isNeutralOption);
+        selectedOption = neutralOptions[0] || options[0] || null;
+    }
 
     // Ưu tiên finalPrice từ option của API — không dùng room.selectedPrice cũ
     // để tránh "nhiễm" giá cũ khi đối tượng room được merge từ cartItem.
