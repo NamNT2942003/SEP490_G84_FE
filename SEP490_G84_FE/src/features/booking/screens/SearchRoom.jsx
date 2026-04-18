@@ -188,6 +188,9 @@ const SearchRoom = () => {
     const [uiMessage, setUiMessage] = useState(null);
     const [customerHistoryEmail, setCustomerHistoryEmail] = useState("");
     const customerHistoryEmailRef = useRef("");
+    // Ref để refreshCartPricingByEmail đọc cart data ổn định mà không cần đưa
+    // selectedCart vào dependency array (tránh vòng lặp: cart đổi → fn mới → effect chạy → cart đổi).
+    const selectedCartRef = useRef([]);
     const latestRequestIdRef = useRef(0);
     const loadingTimerRef = useRef(null);
 
@@ -240,6 +243,7 @@ const SearchRoom = () => {
     }, []);
 
     useEffect(() => {
+        selectedCartRef.current = selectedCart;
         if (isInitialized) saveCart(selectedCart);
     }, [selectedCart, isInitialized]);
 
@@ -265,9 +269,9 @@ const SearchRoom = () => {
 
             const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
             setRooms(fetchedRooms);
-            // allowReprice=true: cart luôn hiển thị giá mới nhất từ API,
-            // nhất quán với giá hiển thị trên RoomCard.
-            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms, { allowReprice: true }));
+            // allowReprice=false: giữ nguyên giá đã lock trong cart khi tải lại danh sách phòng.
+            // Giá cart chỉ được cập nhật khi user nhập email (refreshCartPricingByEmail).
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms, { allowReprice: false }));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
@@ -281,35 +285,40 @@ const SearchRoom = () => {
         }
     }, [searchParams, filters]);
 
+    // Dùng selectedCartRef.current để đọc cart data ổn định mà không cần selectedCart trong deps.
+    // Điều này ngăn vòng lặp: cart thay đổi → fn mới → useEffect chạy → cart thay đổi...
     const refreshCartPricingByEmail = useCallback(async () => {
-        if (!searchParams || selectedCart.length === 0) return;
+        const currentCart = selectedCartRef.current;
+        if (!searchParams || currentCart.length === 0) return;
 
-        const roomTypeIds = [...new Set(selectedCart.map((room) => room?.roomTypeId).filter(Boolean))];
+        const normalizedEmail = normalizeEmailForSearch(customerHistoryEmailRef.current);
+        // Chỉ gọi API khi có email hợp lệ — không reprice khi email trống.
+        if (!normalizedEmail) return;
+
+        const roomTypeIds = [...new Set(currentCart.map((room) => room?.roomTypeId).filter(Boolean))];
         if (roomTypeIds.length === 0) return;
 
         const apiParams = {
             ...searchParams,
             branchId: filters.branchId,
             roomTypeIds,
-            totalRooms: selectedCart.reduce((sum, room) => sum + (Number(room?.quantity) || 1), 0),
+            totalRooms: currentCart.reduce((sum, room) => sum + (Number(room?.quantity) || 1), 0),
             page: 0,
             size: Math.max(roomTypeIds.length, 10),
             sortPrice: filters.sortPrice,
+            customerEmail: normalizedEmail,
         };
-
-        const normalizedEmail = normalizeEmailForSearch(customerHistoryEmailRef.current);
-        if (normalizedEmail) {
-            apiParams.customerEmail = normalizedEmail;
-        }
 
         try {
             const res = await roomService.searchRooms(apiParams);
             const latestRooms = (res?.content || []).map((room) => withPricingState(room));
+            // allowReprice=true: cập nhật giá cart theo kết quả mới (có thể có discount hội viên).
             setSelectedCart((prev) => syncCartWithLatestRooms(prev, latestRooms, { allowReprice: true }));
         } catch (err) {
             console.error("Failed to refresh cart pricing by email:", err);
         }
-    }, [searchParams, filters.branchId, filters.sortPrice, selectedCart]);
+    // selectedCart KHÔNG có trong deps — đọc qua selectedCartRef.current để ổn định.
+    }, [searchParams, filters.branchId, filters.sortPrice]);
 
     const handleFilterChange = (nf) => setFilters(p => ({ ...p, ...nf, page: 0 }));
     const handleSortChange = (e) => setFilters(p => ({ ...p, sortPrice: e.target.value, page: 0 }));
@@ -418,19 +427,21 @@ const SearchRoom = () => {
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
         const timer = setTimeout(() => {
-            console.log("🔄 Refetching rooms due to criteria change");
             refetchRooms();
         }, 300);
         return () => clearTimeout(timer);
     }, [filters, searchParams, isInitialized, refetchRooms]);
 
+    // Chỉ trigger repricing khi customerHistoryEmail thay đổi.
+    // refreshCartPricingByEmail ổn định (không đổi theo cart) → không cần trong deps.
     useEffect(() => {
-        if (!isInitialized || !searchParams || selectedCart.length === 0) return;
+        if (!isInitialized || !searchParams) return;
+        if (!customerHistoryEmail.trim()) return; // Bỏ qua khi email trống
         const timer = setTimeout(() => {
             refreshCartPricingByEmail();
-        }, 300);
+        }, 500); // 500ms debounce để tránh gọi API liên tục khi đang gõ
         return () => clearTimeout(timer);
-    }, [customerHistoryEmail, isInitialized, searchParams, selectedCart.length, refreshCartPricingByEmail]);
+    }, [customerHistoryEmail, isInitialized, searchParams, refreshCartPricingByEmail]);
 
     useEffect(() => {
         if (!uiMessage) return;
