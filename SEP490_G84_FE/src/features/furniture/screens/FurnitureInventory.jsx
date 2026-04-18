@@ -68,17 +68,13 @@ const FurnitureInventory = () => {
 
     useEffect(() => {
         const options = [{ value: 'all', label: 'All branches' }];
-        if (baseBranchId) {
-            options.push({
-                value: baseBranchId,
-                label: `Base branch${currentUser?.branchName ? ` - ${currentUser.branchName}` : ''}`,
+        if (rawBranches && rawBranches.length > 0) {
+            rawBranches.forEach(b => {
+                options.push({ value: String(b.branchId || b.id), label: b.branchName });
             });
         }
         setBranches(options);
-        if (selectedBranch !== 'all' && selectedBranch !== baseBranchId) {
-            setSelectedBranch(baseBranchId || 'all');
-        }
-    }, [baseBranchId, currentUser?.branchName, selectedBranch]);
+    }, [rawBranches]);
 
     // Fetch types separately
     useEffect(() => {

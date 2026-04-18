@@ -38,7 +38,7 @@ export default function RoomTypeManagement() {
   const currentUser = useCurrentUser();
   const baseBranchId = currentUser?.branchId ? String(currentUser.branchId) : "";
   const [branches, setBranches] = useState([]);
-  const [branchScope, setBranchScope] = useState(baseBranchId ? "base" : "all");
+  const [branchScope, setBranchScope] = useState(baseBranchId ? "specific" : "all");
   const [branchId, setBranchId] = useState(baseBranchId || "");
   const [roomTypes, setRoomTypes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -116,19 +116,13 @@ export default function RoomTypeManagement() {
   }, []);
 
   useEffect(() => {
-    if (baseBranchId && branchScope === "base") {
-      setBranchId(baseBranchId);
-    }
-  }, [baseBranchId, branchScope]);
-
-  useEffect(() => {
     loadRoomTypes(branchScope, branchId);
   }, [branchScope, branchId]);
 
   const selectedBranchName = useMemo(() => {
     if (branchScope === "all") return "All branches";
     const found = branches.find((b) => String(b.branchId) === String(branchId));
-    return found?.branchName || currentUser?.branchName || "Base branch";
+    return found?.branchName || currentUser?.branchName || "Selected branch";
   }, [branchScope, branches, branchId, currentUser?.branchName]);
 
   /* ======================== Create / Edit Modal ======================== */
@@ -397,9 +391,22 @@ export default function RoomTypeManagement() {
         <div className="rt-toolbar">
           <div className="d-flex align-items-center gap-2">
             <label className="form-label mb-0 fw-semibold">Scope</label>
-            <select className="form-select" value={branchScope} onChange={(e) => setBranchScope(e.target.value)}>
+            <select 
+              className="form-select" 
+              value={branchScope === "all" ? "all" : branchId} 
+              onChange={(e) => {
+                if (e.target.value === "all") {
+                  setBranchScope("all");
+                } else {
+                  setBranchScope("specific");
+                  setBranchId(e.target.value);
+                }
+              }}
+            >
               <option value="all">All branches</option>
-              <option value="base" disabled={!baseBranchId}>Base branch</option>
+              {branches.map(b => (
+                <option key={b.branchId} value={b.branchId}>{b.branchName}</option>
+              ))}
             </select>
           </div>
           <span className="text-muted small">{selectedBranchName || "No branch selected"}</span>

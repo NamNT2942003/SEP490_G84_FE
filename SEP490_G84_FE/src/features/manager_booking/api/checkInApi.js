@@ -30,6 +30,12 @@ export const checkInApi = {
     return data;
   },
 
+  // 4b. Pay deposit balance
+  payDepositBalance: async (bookingId, paymentMethod) => {
+    const { data } = await apiClient.post(`/front-desk/bookings/${bookingId}/pay-deposit`, { paymentMethod });
+    return data;
+  },
+
   // 5. Undo check-in
   undoCheckIn: async (bookingId) => {
     const { data } = await apiClient.post(`/front-desk/bookings/${bookingId}/undo-checkin`);
