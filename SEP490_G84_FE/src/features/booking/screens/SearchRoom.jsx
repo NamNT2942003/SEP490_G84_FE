@@ -529,7 +529,7 @@ const SearchRoom = () => {
                     <div className="col-lg-3 col-md-4">
                         <div className="cart-panel shadow-sm rounded-4 overflow-hidden border-0">
                             <div className="cart-header p-3 pb-0">
-                                <h5 className="mb-0 fw-bold text-white"><i className="bi bi-bag-check me-2"></i>Book Now</h5>
+                                <h5 className="mb-0 fw-bold text-white"><i className="bi bi-bag-check me-2"></i>My Booking</h5>
                                 <div className="text-white-50 small mt-1">{nights} {nights > 1 ? "nights" : "night"} stay</div>
                             </div>
 

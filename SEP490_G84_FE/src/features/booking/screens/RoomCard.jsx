@@ -125,7 +125,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                         >
                             {sold
                                 ? <><i className="bi bi-x-octagon-fill"></i> Sold out</>
-                                : <><i className="bi bi-cart-plus-fill"></i> Add to cart</>}
+                                : <><i className="bi bi-cart-plus-fill"></i> Add to my booking</>}
                         </button>
                     </div>
                 </div>
