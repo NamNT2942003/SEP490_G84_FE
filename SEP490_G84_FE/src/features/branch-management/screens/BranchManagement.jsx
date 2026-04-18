@@ -7,6 +7,24 @@ import { COLORS } from "@/constants";
 import Swal from "sweetalert2";
 import "./BranchManagement.css";
 
+const translatePropertyType = (val) => {
+  if (!val) return val;
+  const lower = val.toLowerCase();
+  if (lower.includes("khách sạn")) return "Hotel";
+  if (lower.includes("nhà nghỉ")) return "Motel";
+  if (lower.includes("căn hộ")) return "Apartment";
+  if (lower.includes("nhà khách")) return "Guesthouse";
+  if (lower.includes("khu nghỉ dưỡng")) return "Resort";
+  if (lower.includes("Homestay")) return "HomeStay";
+  // fallback for codes or already-English labels
+  if (val === "HOTEL") return "Hotel";
+  if (val === "MOTEL") return "Motel";
+  if (val === "APARTMENT") return "Apartment";
+  if (val === "GUESTHOUSE") return "Guesthouse";
+  if (val === "RESORT") return "Resort";
+  if (val === "HOMESTAY") return "HomeStay";
+  return val;
+};
 
 const EMPTY_FORM = {
   branchName: "",
@@ -389,7 +407,7 @@ export default function BranchManagement() {
                     <div className="fw-semibold" style={{ color: COLORS.PRIMARY }}>{branch.branchName || "-"}</div>
                     {branch.branchId && <div className="text-muted" style={{ fontSize: "0.72rem" }}>ID #{branch.branchId}</div>}
                   </td>
-                  <td className="branch-value">{branch.propertyType || "-"}</td>
+                    <td className="branch-value">{translatePropertyType(branch.propertyType) || "-"}</td>
                   <td>
                     <div className="branch-value">{branch.address || "-"}</div>
                     <div className="branch-meta">{branch.city || "-"}{branch.country ? `, ${countryCodeToName.get(branch.country) || branch.country}` : ""}</div>
@@ -495,7 +513,7 @@ export default function BranchManagement() {
                           </option>
                           {propertyTypeOptions.map((option) => (
                             <option key={option.code || option.value} value={option.value}>
-                              {option.label}
+                                {translatePropertyType(option.label)}
                             </option>
                           ))}
                         </select>
