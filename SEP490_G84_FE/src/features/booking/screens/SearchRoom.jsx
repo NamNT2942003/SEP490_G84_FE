@@ -97,7 +97,8 @@ const withPricingState = (room, preferredOption = null) => {
     const selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
 
     const selectedPrice = safeNumber(
-        selectedOption?.finalPrice
+        room?.selectedPrice
+            ?? selectedOption?.finalPrice
             ?? room?.appliedPrice
             ?? room?.basePrice
             ?? room?.price,
