@@ -42,7 +42,7 @@ function RoomManagement() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAddRoomModal, setShowAddRoomModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [page, setPage] = useState(0); // eslint-disable-line no-unused-vars
+  const [page, setPage] = useState(1);
 
   const [statistics, setStatistics] = useState({
     totalRooms: 0, availableRooms: 0, occupiedRooms: 0,
@@ -337,6 +337,13 @@ function RoomManagement() {
     return (a.roomName||"").localeCompare(b.roomName||"");
   });
 
+  // Pagination for grid/list views
+  const PAGE_SIZE = 10;
+  const totalSorted = sortedRooms.length;
+  const totalPages = Math.ceil(totalSorted / PAGE_SIZE) || 1;
+  const currentSafely = Math.max(1, Math.min((page || 1), totalPages));
+  const paginatedRooms = sortedRooms.slice((currentSafely - 1) * PAGE_SIZE, currentSafely * PAGE_SIZE);
+
   return (
     <>
       {/* ── Styles ── */}
@@ -345,6 +352,18 @@ function RoomManagement() {
 
         .rm-root * { font-family: 'DM Sans', sans-serif; }
         .rm-root { min-height: 100vh; }
+        
+        /* Pagination */
+        .rm-pager { display: flex; gap: 3px; justify-content: center; margin-top: 20px; }
+        .rm-pager-btn {
+          width: 28px; height: 28px; border-radius: 6px;
+          border: 1px solid #dee2e6;
+          background: #fff; cursor: pointer; font-size: .75rem;
+          display: flex; align-items: center; justify-content: center;
+          transition: all .1s;
+        }
+        .rm-pager-btn:hover { background: #f8f9fa; }
+        .rm-pager-btn.on { background: #465c47; color: white; border-color: #465c47; }
 
         @keyframes slideInRight {
           from { transform: translateX(110%); opacity: 0; }
@@ -773,12 +792,13 @@ function RoomManagement() {
                 })
               ) : viewMode === "grid" ? (
                 /* ──── Flat grid ──── */
-                <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:18 }}>
-                  {sortedRooms.map((room,index) => {
-                    const sc = statusColor(room.status);
-                    const sl = statusLabel(room.status);
-                    return (
-                      <div key={room.roomId||`room-${index}`} className="rm-room-card" style={{ animationDelay:`${index*40}ms` }}>
+                <div>
+                  <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:18 }}>
+                    {paginatedRooms.map((room,index) => {
+                      const sc = statusColor(room.status);
+                      const sl = statusLabel(room.status);
+                      return (
+                        <div key={room.roomId||`room-${index}`} className="rm-room-card" style={{ animationDelay:`${index*40}ms` }}>
                         <div style={{ height:4,background:sc }}></div>
                         <div style={{ padding:"18px 18px 14px" }}>
                           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10 }}>
@@ -827,9 +847,42 @@ function RoomManagement() {
                     );
                   })}
                 </div>
+                  {totalPages > 1 && (
+                    <div className="rm-pager">
+                      <button className="rm-pager-btn" disabled={currentSafely <= 1} onClick={() => setPage(page - 1)}>
+                        <i className="bi bi-chevron-left"></i>
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                        <button key={p} className={`rm-pager-btn ${currentSafely === p ? 'on' : ''}`} onClick={() => setPage(p)}>
+                          {p}
+                        </button>
+                      ))}
+                      <button className="rm-pager-btn" disabled={currentSafely >= totalPages} onClick={() => setPage(page + 1)}>
+                        <i className="bi bi-chevron-right"></i>
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : (
                 /* ──── List view ──── */
-                <RoomList rooms={sortedRooms} onRefresh={fetchAllData} />
+                <div>
+                  <RoomList rooms={paginatedRooms} onRefresh={fetchAllData} />
+                  {totalPages > 1 && (
+                    <div className="rm-pager">
+                      <button className="rm-pager-btn" disabled={currentSafely <= 1} onClick={() => setPage(page - 1)}>
+                        <i className="bi bi-chevron-left"></i>
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                        <button key={p} className={`rm-pager-btn ${currentSafely === p ? 'on' : ''}`} onClick={() => setPage(p)}>
+                          {p}
+                        </button>
+                      ))}
+                      <button className="rm-pager-btn" disabled={currentSafely >= totalPages} onClick={() => setPage(page + 1)}>
+                        <i className="bi bi-chevron-right"></i>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </>
           )}
