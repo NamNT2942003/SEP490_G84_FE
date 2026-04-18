@@ -114,7 +114,8 @@ const withPricingState = (room, preferredOption = null) => {
     };
 };
 
-const syncCartWithLatestRooms = (prevCart, latestRooms) => {
+const syncCartWithLatestRooms = (prevCart, latestRooms, options = {}) => {
+    const { allowReprice = false } = options;
     if (!prevCart.length) return prevCart;
     const roomMap = new Map((latestRooms || []).map((room) => [room.roomTypeId, room]));
     return prevCart
@@ -127,8 +128,12 @@ const syncCartWithLatestRooms = (prevCart, latestRooms) => {
                 ...mergedRoom,
                 // Keep the price/option chosen in cart to avoid re-applying frontend
                 // pricing transformations when room data refreshes.
-                lockedUnitPrice: cartItem.lockedUnitPrice ?? cartItem.selectedPrice ?? mergedRoom.selectedPrice,
-                selectedPrice: cartItem.selectedPrice ?? mergedRoom.selectedPrice,
+                lockedUnitPrice: allowReprice
+                    ? mergedRoom.selectedPrice
+                    : (cartItem.lockedUnitPrice ?? cartItem.selectedPrice ?? mergedRoom.selectedPrice),
+                selectedPrice: allowReprice
+                    ? mergedRoom.selectedPrice
+                    : (cartItem.selectedPrice ?? mergedRoom.selectedPrice),
                 selectedPricingOption: cartItem.selectedPricingOption ?? mergedRoom.selectedPricingOption,
                 quantity: Math.min(cartItem.quantity || 1, mergedRoom.availableCount || 999),
             };
@@ -297,7 +302,7 @@ const SearchRoom = () => {
         try {
             const res = await roomService.searchRooms(apiParams);
             const latestRooms = (res?.content || []).map((room) => withPricingState(room));
-            setSelectedCart((prev) => syncCartWithLatestRooms(prev, latestRooms));
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, latestRooms, { allowReprice: true }));
         } catch (err) {
             console.error("Failed to refresh cart pricing by email:", err);
         }
