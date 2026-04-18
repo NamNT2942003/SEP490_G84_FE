@@ -102,8 +102,8 @@ const buildFallbackPricingOptions = (room, matchedModifiers) => {
 const cleanRoomType = (room) => {
     if (!room) return room;
 
-    const matchedPriceModifiers = Array.isArray(room.matchedPriceModifiers)
-        ? room.matchedPriceModifiers.map(normalizeModifier)
+    const availablePriceModifiers = Array.isArray(room.availablePriceModifiers)
+        ? room.availablePriceModifiers.map(normalizeModifier)
         : [];
 
     const pricingOptions = Array.isArray(room.pricingOptions) && room.pricingOptions.length > 0
@@ -133,7 +133,7 @@ const cleanRoomType = (room) => {
                 : [],
             combinationKey: option?.combinationKey || option?.optionCode || option?.mode || "UNKNOWN",
         }))
-        : buildFallbackPricingOptions(room, matchedPriceModifiers);
+        : buildFallbackPricingOptions(room, availablePriceModifiers);
 
     return {
         ...room, // Giữ lại tất cả các trường (bao gồm availableCount, branchId, branchName...)
@@ -150,7 +150,7 @@ const cleanRoomType = (room) => {
                 contactNumber: room.branch.contactNumber,
             }
             : null,
-        matchedPriceModifiers,
+        availablePriceModifiers,
         pricingOptions,
         pricingCombinationPolicy: room.pricingCombinationPolicy
             ? {

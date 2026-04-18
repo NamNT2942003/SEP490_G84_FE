@@ -332,6 +332,7 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut, expectedTotalAm
 
     return {
         appliedPolicyId: formData.appliedPolicyId,
+        policy: formData.appliedPolicyId ?? null,
         expectedTotalAmount,
         otaReservationId: otaId,
         arrivalDate: checkIn,
