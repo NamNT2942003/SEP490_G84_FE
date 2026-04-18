@@ -5,6 +5,7 @@ import Input from '@/components/ui/Input';
 import bookingService from '@/features/booking/api/bookingService';
 import { roomService } from '@/features/booking/api/roomService';
 import { cancellationPolicyService } from '@/features/booking/api/cancellationPolicyService';
+import { calculateRoomUnitPrice } from '@/features/booking/utils/roomPrice';
 import Swal from 'sweetalert2';
 import './GuestInformation.css';
 import { saveCart } from "@/utils/cartStorage";
@@ -81,9 +82,8 @@ const getVisiblePriceFromOption = (room, option) => {
     return visiblePrice > 0 ? visiblePrice : 0;
 };
 
-const calculateRoomUnitPrice = (room) => {
-    return room.selectedPrice ?? room.appliedPrice ?? room.selectedPricingOption?.finalPrice ?? room.basePrice ?? room.price ?? 0;
-};
+// calculateRoomUnitPrice được import từ utils/roomPrice.js — dùng chung với BookingSummary
+// để đảm bảo giá ở footer và sidebar luôn nhất quán.
 
 const normalizePolicyId = (policy) => policy?.id ?? policy?.policyId ?? null;
 
@@ -688,6 +688,10 @@ const GuestInformation = () => {
 
     const selectedPolicy = policies.find((policy) => Number(policy.id) === Number(selectedPolicyId)) || null;
     const finalBookingAmount = normalizeMoney(calculateTotalPrice());
+    // Tính số tiền cần trả trước (deposit) theo prepaidRate của policy.
+    // Nếu chưa chọn policy → deposit = 100% (tức bằng finalBookingAmount).
+    const depositRate = selectedPolicy ? safeNumber(selectedPolicy.prepaidRate, 100) : 100;
+    const depositAmount = normalizeMoney(finalBookingAmount * depositRate / 100);
 
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
@@ -968,7 +972,7 @@ const GuestInformation = () => {
                                     checkIn={checkIn}
                                     checkOut={checkOut}
                                     selectedPolicy={selectedPolicy}
-                                    depositAmount={finalBookingAmount}
+                                    depositAmount={depositAmount}
                                     bookingTotalAmount={finalBookingAmount}
                                 />
                             </div>
@@ -980,7 +984,7 @@ const GuestInformation = () => {
                                 checkIn={checkIn}
                                 checkOut={checkOut}
                                 selectedPolicy={selectedPolicy}
-                                depositAmount={finalBookingAmount}
+                                depositAmount={depositAmount}
                                 bookingTotalAmount={finalBookingAmount}
                             />
                         </div>

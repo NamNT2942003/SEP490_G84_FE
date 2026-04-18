@@ -12,8 +12,6 @@ const getAbsoluteImageUrl = (url) => {
 };
 
 const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, depositAmount = null, prepaidAmount = null, bookingTotalAmount = null }) => {
-    console.log("BookingSummary RENDERING. selectedRooms:", selectedRooms);
-    console.log("Image URL for first room:", selectedRooms?.[0]?.image);
     const HIDDEN_MODIFIER_TYPES = new Set(['POLICY']);
 
     const getVisibleAppliedModifiers = (room) =>
