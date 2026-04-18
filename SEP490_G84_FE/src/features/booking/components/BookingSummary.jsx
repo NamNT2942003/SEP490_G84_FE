@@ -113,8 +113,6 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
 
     const calculateRoomUnitPrice = (room) => {
         const baseOptPrice = safeNumber(
-            room?.policyNeutralPrice
-                ??
             room?.selectedPrice
                 ?? room?.selectedPricingOption?.finalPrice
                 ?? room?.appliedPrice
@@ -286,9 +284,6 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                                 )}
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                     {(room.quantity || 1)} {(room.quantity || 1) > 1 ? 'rooms' : 'room'} for selected stay
-                                </p>
-                                <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
-                                    {getCancellationText(room.cancellationType, room.freeCancelBeforeDays)} · {getPaymentText(room.selectedPricingOption?.cancellationPolicyType || room.paymentType)}
                                 </p>
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                     Base: {formatCurrency(calculateRoomBaseUnitPrice(room))}

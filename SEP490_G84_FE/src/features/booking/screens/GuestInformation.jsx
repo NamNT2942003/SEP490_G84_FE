@@ -14,24 +14,6 @@ import { saveCart } from "@/utils/cartStorage";
 const formatVND = (amount) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
-const getCancellationText = (cancellationType, freeCancelBeforeDays) => {
-    if (cancellationType === 'NON_REFUNDABLE') return 'Non-refundable';
-    if (cancellationType === 'REFUNDABLE' && freeCancelBeforeDays > 0) {
-        return `Free cancellation before ${freeCancelBeforeDays} days`;
-    }
-    if (cancellationType === 'REFUNDABLE') return 'Free cancellation';
-    return 'Cancellation policy by room';
-};
-
-const getPaymentText = (paymentType) => {
-    if (paymentType === 'FREE_CANCEL') return 'Free cancellation';
-    if (paymentType === 'PARTIAL_REFUND') return 'Partial refund';
-    if (paymentType === 'NON_REFUND') return 'Non-refundable';
-    if (paymentType === 'PREPAID') return 'Prepaid';
-    if (paymentType === 'PAY_AT_HOTEL') return 'Pay at hotel';
-    return 'Room-based payment method';
-};
-
 const safeNumber = (value, fallback = 0) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
@@ -100,7 +82,7 @@ const getVisiblePriceFromOption = (room, option) => {
 };
 
 const calculateRoomUnitPrice = (room) => {
-    return room.policyNeutralPrice ?? room.selectedPricingOption?.finalPrice ?? room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+    return room.selectedPrice ?? room.appliedPrice ?? room.selectedPricingOption?.finalPrice ?? room.basePrice ?? room.price ?? 0;
 };
 
 const normalizePolicyId = (policy) => policy?.id ?? policy?.policyId ?? null;
@@ -177,7 +159,6 @@ const applyPolicySelectionToRoom = (room, policyId) => {
         selectedPricingOption: effectiveOption,
         selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : 0,
         policyApplied: optionMatchesSelectedPolicy,
-        policyNeutralPrice: optionMatchesSelectedPolicy ? null : effectiveOption?.finalPrice ?? null,
     };
 };
 
@@ -393,16 +374,7 @@ const RoomItem = ({ room, onQuantityChange, onRemove }) => {
                         <div className="room-price fw-semibold text-secondary mb-2" style={{ fontSize: '0.9rem' }}>
                             <i className="bi bi-currency-dollar me-1"></i>{new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ stay</span>
                         </div>
-                        <div className="d-flex gap-3">
-                            <div className="small px-2 py-1 rounded" style={{ background: '#ebf4ff', color: '#3182ce', fontWeight: 600 }}>
-                                <i className="bi bi-shield-check me-1" />
-                                {getCancellationText(room.cancellationType, room.freeCancelBeforeDays)}
-                            </div>
-                            <div className="small px-2 py-1 rounded" style={{ background: '#e6fffa', color: '#319795', fontWeight: 600 }}>
-                                <i className="bi bi-credit-card me-1" />
-                                {getPaymentText(room.selectedPricingOption?.cancellationPolicyType || room.paymentType)}
-                            </div>
-                        </div>
+                        <div className="d-flex gap-3" />
                     </div>
                     <button
                         type="button"
