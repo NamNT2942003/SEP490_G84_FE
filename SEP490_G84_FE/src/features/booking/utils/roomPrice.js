@@ -5,8 +5,8 @@ const safeNumber = (value, fallback = 0) => {
 
 export const calculateDisplayedRoomPrice = (room) => {
     const basePrice = safeNumber(
-        room?.selectedPricingOption?.finalPrice
-            ?? room?.selectedPrice
+        room?.selectedPrice
+            ?? room?.selectedPricingOption?.finalPrice
             ?? room?.appliedPrice
             ?? room?.basePrice
             ?? room?.price,

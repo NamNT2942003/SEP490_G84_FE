@@ -8,7 +8,6 @@ import { roomService } from "../api/roomService.js";
 import { branchService } from "../api/branchService.js";
 import { cancellationPolicyService } from "../api/cancellationPolicyService.js";
 import { getOrCreateCartId, getCart, saveCart } from "../../../utils/cartStorage.js";
-import { calculateDisplayedRoomPrice } from "@/features/booking/utils/roomPrice";
 import Swal from "sweetalert2";
 import "./SearchRoom.css";
 
@@ -18,8 +17,6 @@ const safeNumber = (value, fallback = 0) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
 };
-
-const HIDDEN_PRICE_MODIFIER_TYPES = new Set(["POLICY"]);
 
 const toPricingOption = (option = {}) => ({
     optionCode: option?.optionCode || option?.combinationKey || option?.mode || "UNKNOWN",
@@ -48,37 +45,15 @@ const toPricingOption = (option = {}) => ({
     combinationKey: option?.combinationKey || option?.optionCode || option?.mode || "UNKNOWN",
 });
 
-const extractDeltaFromReason = (reason) => {
-    if (!reason) return null;
-    const deltaRegex = new RegExp("\\[\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\]$");
-    const match = String(reason).match(deltaRegex);
-    if (!match) return null;
-    return safeNumber(match[1], 0);
-};
-
-const getModifierDelta = (room, modifier) => {
-    const fromReason = extractDeltaFromReason(modifier?.reason);
-    if (fromReason !== null) return fromReason;
-
-    const adjustmentValue = safeNumber(modifier?.adjustmentValue, 0);
-    if (modifier?.adjustmentType === "PERCENT" || modifier?.adjustmentType === "PERCENTAGE") {
-        const percentBase = safeNumber(room?.basePrice ?? room?.price ?? room?.selectedPrice, 0);
-        return (percentBase * adjustmentValue) / 100;
-    }
-    return adjustmentValue;
-};
-
-const getVisiblePriceFromOption = (room, option) => {
-    const effectiveOption = option || room?.selectedPricingOption || null;
-    if (!effectiveOption) return safeNumber(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0, 0);
-
-    const hiddenDelta = (Array.isArray(effectiveOption.modifiers) ? effectiveOption.modifiers : [])
-        .filter((modifier) => HIDDEN_PRICE_MODIFIER_TYPES.has(modifier?.type))
-        .reduce((sum, modifier) => sum + getModifierDelta(room, modifier), 0);
-
-    const visiblePrice = safeNumber(effectiveOption.finalPrice, 0) - hiddenDelta;
-    return visiblePrice > 0 ? visiblePrice : 0;
-};
+const getSearchRoomPrice = (room) =>
+    safeNumber(
+        room?.selectedPrice
+            ?? room?.selectedPricingOption?.finalPrice
+            ?? room?.appliedPrice
+            ?? room?.basePrice
+            ?? room?.price,
+        0,
+    );
 
 const pricingOptionSignature = (option) => {
     if (!option) return "";
@@ -120,7 +95,13 @@ const withPricingState = (room, preferredOption = null) => {
 
     const selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
 
-    const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
+    const selectedPrice = safeNumber(
+        selectedOption?.finalPrice
+            ?? room?.appliedPrice
+            ?? room?.basePrice
+            ?? room?.price,
+        0,
+    );
 
     return {
         ...room,
@@ -161,10 +142,6 @@ const normalizeEmailForSearch = (emailRaw) => {
     if (!email) return "";
     const emailRegex = new RegExp(".+@.+\\..+");
     return emailRegex.test(email) ? email : "";
-};
-
-const calculateUserHistoryModifierUnitDelta = (room, modifier) => {
-    return getModifierDelta(room, modifier);
 };
 
 // ─── Main Component ────────────────────────────────────────────────────────
@@ -360,7 +337,7 @@ const SearchRoom = () => {
 
     const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
     const cartTotal = selectedCart.reduce((sum, r) => {
-        const unitPrice = r.selectedPrice ?? r.appliedPrice ?? r.basePrice ?? r.price ?? 0;
+        const unitPrice = getSearchRoomPrice(r);
         return sum + (unitPrice * (r.quantity || 1));
     }, 0);
 
@@ -447,29 +424,6 @@ const SearchRoom = () => {
     }, [loading]);
 
     const totalSelectedRooms = selectedCart.reduce((sum, r) => sum + (r.quantity || 1), 0);
-    const selectedCartHistoryModifiers = selectedCart
-        .map((room) => ({
-            room,
-            modifier: Array.isArray(room?.selectedPricingOption?.modifiers)
-                ? room.selectedPricingOption.modifiers.find((m) => m?.type === "USER_HISTORY_DISCOUNT")
-                : null,
-        }))
-        .filter((item) => item.modifier);
-    const userHistoryDiscountTotal = selectedCartHistoryModifiers.reduce((sum, item) => {
-        const qty = item.room.quantity || 1;
-        const unitDelta = calculateUserHistoryModifierUnitDelta(item.room, item.modifier);
-        return sum + (unitDelta * qty);
-    }, 0);
-    const cartTotalAfterLoyalty = cartTotal + userHistoryDiscountTotal;
-    const userHistoryBookingCountLabel = selectedCartHistoryModifiers.length > 0
-        ? (() => {
-            const reason = selectedCartHistoryModifiers[0].modifier?.reason || "";
-            const countRegex = new RegExp('\\((\\d+)\\s+bookings?', 'i');
-            const match = reason.match(countRegex);
-            return match ? match[1] : null;
-        })()
-        : null;
-    const hasUserHistoryDiscount = selectedCartHistoryModifiers.length > 0;
     const isEmailEntered = customerHistoryEmail.trim().length > 0;
     const isEmailValid = normalizeEmailForSearch(customerHistoryEmail).length > 0;
     const hasValidStayDates =
@@ -519,7 +473,7 @@ const SearchRoom = () => {
                             <div className="cart-room-list">
                                 {selectedCart.length > 0 ? (
                                     selectedCart.map((room, idx) => {
-                                        const roomUnitPrice = calculateDisplayedRoomPrice(room);
+                                        const roomUnitPrice = getSearchRoomPrice(room);
                                         const roomTotal = roomUnitPrice * (room.quantity || 1);
                                         return (
                                             <div key={idx} className="cart-room-item">
@@ -605,36 +559,18 @@ const SearchRoom = () => {
                                             onChange={(e) => setCustomerHistoryEmail(e.target.value)}
                                             placeholder="name@example.com"
                                         />
-                                        {hasUserHistoryDiscount ? (
-                                            <div className="cart-loyalty-note ok">
-                                                <div>
-                                                    <i className="bi bi-check-circle me-1"></i>
-                                                    Auto-applied returning guest discount
-                                                    {userHistoryBookingCountLabel ? ` (${userHistoryBookingCountLabel} bookings)` : ""}.
-                                                </div>
-                                                <div>
-                                                    Adjustment: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(userHistoryDiscountTotal)}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className={`cart-loyalty-note ${isEmailEntered && !isEmailValid ? 'warn' : ''}`}>
-                                                {isEmailEntered && !isEmailValid
-                                                    ? 'Please enter a valid email to check returning guest discount.'
-                                                    : 'Enter guest email to auto-check returning guest discount in real time.'}
-                                            </div>
-                                        )}
+                                        <div className={`cart-loyalty-note ${isEmailEntered && !isEmailValid ? 'warn' : ''}`}>
+                                            {isEmailEntered && !isEmailValid
+                                                ? 'Please enter a valid email to check returning guest discount.'
+                                                : 'Returning guest discount is already included in each room price.'}
+                                        </div>
                                     </div>
                                     <div className="cart-total-section">
                                         <span className="cart-total-label"><i className="bi bi-wallet2 me-1"></i>Total:</span>
                                         <span className="cart-total-amount">
-                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cartTotalAfterLoyalty)}
+                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cartTotal)}
                                         </span>
                                     </div>
-                                    {hasUserHistoryDiscount && (
-                                        <div className="text-end mb-2" style={{ fontSize: '0.76rem', opacity: 0.9 }}>
-                                            Before loyalty discount: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cartTotal)}
-                                        </div>
-                                    )}
                                     <button
                                         className="cart-continue-btn"
                                         onClick={handleCheckout}

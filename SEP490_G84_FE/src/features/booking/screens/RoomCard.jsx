@@ -1,5 +1,4 @@
 import apiClient from "@/services/apiClient";
-import { calculateDisplayedRoomPrice } from "@/features/booking/utils/roomPrice";
 
 const toAbsoluteImageUrl = (url) => {
     if (!url) return null;
@@ -12,13 +11,28 @@ const toAbsoluteImageUrl = (url) => {
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=400&h=300&fit=crop";
 
+const safeNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const getSearchRoomPrice = (room) =>
+    safeNumber(
+        room?.selectedPrice
+            ?? room?.selectedPricingOption?.finalPrice
+            ?? room?.appliedPrice
+            ?? room?.basePrice
+            ?? room?.price,
+        0,
+    );
+
 const RoomCard = ({ room, onBooking, onViewDetail }) => {
     const formatPrice = (price) =>
         new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", minimumFractionDigits: 0 }).format(price);
 
     const imageSrc = room.image ? toAbsoluteImageUrl(room.image) : FALLBACK_IMAGE;
     const sold = room.availableCount <= 0;
-    const visiblePrice = calculateDisplayedRoomPrice(room);
+    const visiblePrice = getSearchRoomPrice(room);
 
     return (
         <>
