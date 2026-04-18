@@ -18,7 +18,8 @@ const safeNumber = (value, fallback = 0) => {
 
 const getSearchRoomPrice = (room) =>
     safeNumber(
-        room?.selectedPrice
+        room?.lockedUnitPrice
+            ?? room?.selectedPrice
             ?? room?.selectedPricingOption?.finalPrice
             ?? room?.appliedPrice
             ?? room?.basePrice
