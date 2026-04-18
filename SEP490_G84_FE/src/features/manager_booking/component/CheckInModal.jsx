@@ -742,7 +742,12 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
       Swal.fire({ icon: 'success', title: 'Check-in Complete!', text: 'Guest has been successfully checked in.', timer: 2000, showConfirmButton: false });
       onSuccess(); onClose();
     } catch (err) {
-      console.error('=== CHECK-IN ERROR LOG ===', err);
+      console.error('=== CHECK-IN ERROR LOG ===');
+      console.error('Full Error Object:', err);
+      console.error('Response Status:', err.response?.status);
+      console.error('Response Data:', err.response?.data);
+      console.error('Error Message:', err.message);
+      
       const errorMsg = err.response?.data?.error || 'A system error occurred.';
       Swal.fire({
         icon: 'error',
