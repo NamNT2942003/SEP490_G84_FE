@@ -664,8 +664,8 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
     ? Math.max(0, Number(booking.totalAmount) - Number(booking.prepaidAmount))
     : 0;
   const hasUnpaidBalance = amountDue > 0;
-  // Staff can toggle whether to collect the remaining balance now (default ON when balance exists)
-  const [collectRemainingAtCheckIn, setCollectRemainingAtCheckIn] = useState(true);
+  // Thu nốt tiền phòng là bắt buộc — không có lựa chọn Skip
+  const collectRemainingAtCheckIn = true;
 
   const showAllocationStep = applyEarlyCheckIn && Number(earlyCheckInFee || 0) > 0 && assignments.length > 1;
   const currentSteps = showAllocationStep 
@@ -809,51 +809,28 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
 
                   <div style={{ borderTop: '1px solid #fcd34d', paddingTop: '12px' }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
-                      COLLECT NOW?
+                      PAYMENT METHOD
                     </div>
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: collectRemainingAtCheckIn ? '12px' : 0 }}>
-                      {[
-                        { val: true,  label: 'Collect Now',  sub: 'Record payment at counter' },
-                        { val: false, label: 'Skip for Now', sub: 'Add to checkout bill' },
-                      ].map(opt => (
-                        <div
-                          key={String(opt.val)}
-                          onClick={() => !isSubmitting && setCollectRemainingAtCheckIn(opt.val)}
-                          style={{
-                            flex: 1, padding: '10px 14px', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                            border: `2px solid ${collectRemainingAtCheckIn === opt.val ? '#f59e0b' : C.BORDER}`,
-                            background: collectRemainingAtCheckIn === opt.val ? '#fef3c7' : C.SURFACE,
-                            transition: 'all .15s',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{
-                              width: 13, height: 13, borderRadius: '50%',
-                              border: `2px solid ${collectRemainingAtCheckIn === opt.val ? '#f59e0b' : C.BORDER}`,
-                              background: collectRemainingAtCheckIn === opt.val ? '#f59e0b' : 'transparent',
-                            }} />
-                            <span style={{ fontSize: '13px', fontWeight: 700, color: collectRemainingAtCheckIn === opt.val ? '#92400e' : C.TEXT_DARK }}>
-                              {opt.label}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '11.5px', color: C.MUTED, marginTop: '3px', marginLeft: '21px' }}>{opt.sub}</div>
-                        </div>
-                      ))}
+                    <div style={{
+                      padding: '10px 14px', borderRadius: '8px',
+                      border: '2px solid #f59e0b', background: '#fef3c7', marginBottom: '12px',
+                    }}>
+                      <div style={{ fontSize: '12.5px', color: '#92400e', marginBottom: '6px' }}>
+                        ⚠️ <strong>Collection required before room assignment.</strong> Select payment method below.
+                      </div>
                     </div>
-                    {collectRemainingAtCheckIn && (
-                      <Field label="Payment Method for Remaining Balance">
-                        <select
-                          style={S.select(false)}
-                          value={remainingPaymentMethod}
-                          onChange={e => setRemainingPaymentMethod(e.target.value)}
-                          disabled={isSubmitting}
-                        >
-                          <option value="CASH">Cash</option>
-                          <option value="CARD">Card</option>
-                          <option value="TRANSFER">Bank Transfer</option>
-                        </select>
-                      </Field>
-                    )}
+                    <Field label="Payment Method for Remaining Balance">
+                      <select
+                        style={S.select(false)}
+                        value={remainingPaymentMethod}
+                        onChange={e => setRemainingPaymentMethod(e.target.value)}
+                        disabled={isSubmitting}
+                      >
+                        <option value="CASH">Cash</option>
+                        <option value="CARD">Card</option>
+                        <option value="TRANSFER">Bank Transfer</option>
+                      </select>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -966,14 +943,11 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
               ? <button style={S.btnPrimary(isSubmitting)} onClick={handleSubmitCheckIn} disabled={isSubmitting}>
                   {isSubmitting ? 'Processing...' : 'Confirm Check-in'}
                 </button>
-              : <button style={S.btnPrimary(!canAssignRooms && step === 0)} 
+              : <button style={S.btnPrimary(!canAssignRooms && step === 0)}
                   onClick={() => {
-                    // step=1 → if showAllocationStep go to 2 (Fee Allocation), else jump to 2 (Confirm, no alloc)
-                    // step=2 with showAllocationStep → go to 3 (Confirm)
-                    // All other steps → step + 1
                     setStep(step + 1);
-                  }} 
-                  disabled={isMarkingArrived || (step === 0 && !canAssignRooms)}>
+                  }}
+                  disabled={isMarkingArrived || (step === 0 && (!canAssignRooms || (hasUnpaidBalance && !remainingPaymentMethod)))}>  
                   Proceed to Next Step →
                 </button>
             }
