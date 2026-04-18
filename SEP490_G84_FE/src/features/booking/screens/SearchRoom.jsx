@@ -529,7 +529,7 @@ const SearchRoom = () => {
                     <div className="col-lg-3 col-md-4">
                         <div className="cart-panel shadow-sm rounded-4 overflow-hidden border-0">
                             <div className="cart-header p-3 pb-0">
-                                <h5 className="mb-0 fw-bold text-white"><i className="bi bi-bag-check me-2"></i>Cart</h5>
+                                <h5 className="mb-0 fw-bold text-white"><i className="bi bi-bag-check me-2"></i>Book Now</h5>
                                 <div className="text-white-50 small mt-1">{nights} {nights > 1 ? "nights" : "night"} stay</div>
                             </div>
 
@@ -613,7 +613,7 @@ const SearchRoom = () => {
                                     <div className="cart-loyalty-box">
                                         <div className="cart-loyalty-label">
                                             <i className="bi bi-person-vcard me-1"></i>
-                                            Returning Guest Email
+                                            Loyal Guest Email
                                         </div>
                                         <input
                                             type="email"
@@ -624,8 +624,8 @@ const SearchRoom = () => {
                                         />
                                         <div className={`cart-loyalty-note ${isEmailEntered && !isEmailValid ? 'warn' : ''}`}>
                                             {isEmailEntered && !isEmailValid
-                                                ? 'Please enter a valid email to check returning guest discount.'
-                                                : 'Returning guest discount is already included in each room price.'}
+                                                ? 'Please enter a valid email to check loyal guest discount.'
+                                                : 'Enter guest email to auto-check loyal guest discount in real time.'}
                                         </div>
                                     </div>
                                     <div className="cart-total-section">
