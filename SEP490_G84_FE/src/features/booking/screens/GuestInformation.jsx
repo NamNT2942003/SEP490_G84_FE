@@ -323,7 +323,7 @@ const withPricingState = (room, preferredOption = null) => {
     };
 };
 
-const buildBookingPayload = (formData, rooms, checkIn, checkOut, expectedTotalAmount) => {
+const buildBookingPayload = (formData, selectedPolicyId, rooms, checkIn, checkOut, expectedTotalAmount) => {
     const bookingLevelIds = uniqueIds(
         rooms.flatMap((room) => getRoomBookingLevelModifierIds(room)),
     );
@@ -331,7 +331,7 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut, expectedTotalAm
     const otaId = `WEB-${safePhone || 'GUEST'}-${checkIn}-${checkOut}`;
 
     const payload = {
-        appliedPolicyId: formData.appliedPolicyId,
+        appliedPolicyId: selectedPolicyId ?? null,
         expectedTotalAmount,
         otaReservationId: otaId,
         arrivalDate: checkIn,
@@ -356,10 +356,6 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut, expectedTotalAm
         },
         specialRequests: formData.specialRequests,
     };
-
-    if (formData.appliedPolicyId !== null && formData.appliedPolicyId !== undefined) {
-        payload.policy = formData.appliedPolicyId;
-    }
 
     return payload;
 };
@@ -641,6 +637,10 @@ const GuestInformation = () => {
             sortPrice: 'priceAsc',
         };
 
+        if (selectedPolicyId !== null && selectedPolicyId !== undefined) {
+            params.policy = selectedPolicyId;
+        }
+
         const normalizedEmail = normalizeEmailForSearch(formData.email);
         if (normalizedEmail) {
             params.customerEmail = normalizedEmail;
@@ -744,7 +744,7 @@ const GuestInformation = () => {
         }
 
         try {
-            const payload = buildBookingPayload(formData, rooms, checkIn, checkOut, finalBookingAmount);
+            const payload = buildBookingPayload(formData, selectedPolicyId, rooms, checkIn, checkOut, finalBookingAmount);
             const currentBranchId = branchId || 1;
             const data = await bookingService.createFromFrontend(currentBranchId, payload);
             const createdBookingId = data?.bookingId ?? data?.id;
