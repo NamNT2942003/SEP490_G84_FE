@@ -16,14 +16,47 @@ const safeNumber = (value, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const extractAdjustmentFromReason = (reason) => {
+    const text = String(reason || "");
+    const bracketMatch = text.match(/\[\s*([-+]?\d+(?:[.,]\d+)?)\s*\]/);
+    if (!bracketMatch) return null;
+
+    const parsed = Number(bracketMatch[1].replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const calculateModifierAdjustment = (basePrice, modifier = {}) => {
+    const reasonBasedAdjustment = extractAdjustmentFromReason(modifier?.reason);
+    if (reasonBasedAdjustment !== null) {
+        return reasonBasedAdjustment;
+    }
+
+    const adjustmentType = String(modifier?.adjustmentType || "").toUpperCase();
+    const adjustmentValue = safeNumber(modifier?.adjustmentValue, 0);
+
+    if (adjustmentType === "PERCENT") {
+        return (basePrice * adjustmentValue) / 100;
+    }
+
+    return adjustmentValue;
+};
+
+const getRoomPriceFromAvailableModifiers = (room) => {
+    const basePrice = safeNumber(room?.basePrice ?? room?.price, 0);
+    const modifiers = Array.isArray(room?.availablePriceModifiers) ? room.availablePriceModifiers : [];
+    const totalAdjustment = modifiers.reduce(
+        (sum, modifier) => sum + calculateModifierAdjustment(basePrice, modifier),
+        0,
+    );
+
+    return Math.max(0, basePrice + totalAdjustment);
+};
+
 const getSearchRoomPrice = (room) =>
     safeNumber(
         room?.lockedUnitPrice
             ?? room?.selectedPrice
-            ?? room?.selectedPricingOption?.finalPrice
-            ?? room?.appliedPrice
-            ?? room?.basePrice
-            ?? room?.price,
+            ?? getRoomPriceFromAvailableModifiers(room),
         0,
     );
 
@@ -114,7 +147,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                                 <span className="rc-opt-per">/ night</span>
                             </div>
                             <div className="rc-price-note">
-                                Adjustments from policy and returning guest discounts are finalized in the guest information step.
+                                Includes base price and current available price modifiers.
                             </div>
                         </div>
 
