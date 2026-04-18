@@ -46,7 +46,7 @@ function RoomManagement() {
 
   const [statistics, setStatistics] = useState({
     totalRooms: 0, availableRooms: 0, occupiedRooms: 0,
-    cleaningRooms: 0, maintenanceRooms: 0,
+    cleaningRooms: 0, maintenanceRooms: 0, dirtyRooms: 0,
     totalEquipment: 0, brokenEquipment: 0, totalIssues: 0,
   });
   const [floors, setFloors] = useState([]);
@@ -97,12 +97,13 @@ function RoomManagement() {
         occupiedRooms:    stats.occupiedRooms    || 0,
         cleaningRooms:    stats.cleaningRooms    || 0,
         maintenanceRooms: stats.maintenanceRooms || 0,
+        dirtyRooms:       stats.dirtyRooms       || 0,
         totalEquipment:   stats.totalEquipment   || 0,
         brokenEquipment:  stats.brokenEquipment  || 0,
         totalIssues:      stats.totalIssues      || 0,
       });
     } catch {
-      setStatistics({ totalRooms:0,availableRooms:0,occupiedRooms:0,cleaningRooms:0,maintenanceRooms:0,totalEquipment:0,brokenEquipment:0,totalIssues:0 });
+      setStatistics({ totalRooms:0,availableRooms:0,occupiedRooms:0,cleaningRooms:0,maintenanceRooms:0,dirtyRooms:0,totalEquipment:0,brokenEquipment:0,totalIssues:0 });
     }
   };
 
@@ -307,11 +308,11 @@ function RoomManagement() {
   /* ─── Utilities ─────────────────────────────────────────────────────── */
 
   const statusLabel = (s) => {
-    const map = { AVAILABLE:"Available", OCCUPIED:"Occupied", CLEANING:"Cleaning", MAINTENANCE:"Maintenance" };
+    const map = { AVAILABLE:"Available", OCCUPIED:"Occupied", CLEANING:"Cleaning", DIRTY:"Dirty", MAINTENANCE:"Maintenance" };
     return map[(s||"").toUpperCase()] || s || "Unknown";
   };
   const statusColor = (s) => {
-    const map = { AVAILABLE:"#198754", OCCUPIED:"#0d6efd", CLEANING:"#fd7e14", MAINTENANCE:"#dc3545" };
+    const map = { AVAILABLE:"#198754", OCCUPIED:"#0d6efd", CLEANING:"#fd7e14", DIRTY:"#6f42c1", MAINTENANCE:"#dc3545" };
     return map[(s||"").toUpperCase()] || "#6c757d";
   };
 
@@ -322,6 +323,7 @@ function RoomManagement() {
     { key:"available",   label:"Available",     value:statistics.availableRooms,   icon:"bi-check-circle-fill",     color:"#198754" },
     { key:"occupied",    label:"Occupied",      value:statistics.occupiedRooms,    icon:"bi-person-fill-check",     color:"#0d6efd" },
     { key:"cleaning",    label:"Cleaning",      value:statistics.cleaningRooms,    icon:"bi-arrow-clockwise",       color:"#fd7e14" },
+    { key:"dirty",       label:"Dirty",         value:statistics.dirtyRooms,       icon:"bi-droplet-fill",          color:"#6f42c1" },
     { key:"maintenance", label:"Maintenance",   value:statistics.maintenanceRooms, icon:"bi-hammer",                color:"#dc3545" },
     { key:"broken",      label:"Broken Items",  value:statistics.brokenEquipment,  icon:"bi-exclamation-octagon-fill", color:"#ffc107" },
   ];

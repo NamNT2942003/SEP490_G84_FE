@@ -31,6 +31,13 @@ const STAT_CARDS = [
     bgAlpha: "rgba(52,152,219,0.08)",
   },
   {
+    key: "dirty",
+    label: "Dirty",
+    icon: "bi-droplet-fill",
+    color: "#6f42c1",
+    bgAlpha: "rgba(111,66,193,0.08)",
+  },
+  {
     key: "maintenance",
     label: "Maintenance",
     icon: "bi-tools",
@@ -64,6 +71,8 @@ function RoomManagement() {
     totalRooms: 0,
     availableRooms: 0,
     occupiedRooms: 0,
+    cleaningRooms: 0,
+    dirtyRooms: 0,
     maintenanceRooms: 0,
   });
   const [floors, setFloors] = useState([]);
@@ -261,6 +270,8 @@ function RoomManagement() {
         totalRooms: stats.totalRooms || 0,
         availableRooms: stats.availableRooms || 0,
         occupiedRooms: stats.occupiedRooms || 0,
+        cleaningRooms: stats.cleaningRooms || 0,
+        dirtyRooms: stats.dirtyRooms || 0,
         maintenanceRooms: stats.maintenanceRooms || 0,
         totalEquipment: stats.totalEquipment || 0,
         brokenEquipment: stats.brokenEquipment || 0,
@@ -274,6 +285,8 @@ function RoomManagement() {
         totalRooms: 0,
         availableRooms: 0,
         occupiedRooms: 0,
+        cleaningRooms: 0,
+        dirtyRooms: 0,
         maintenanceRooms: 0,
         totalEquipment: 0,
         brokenEquipment: 0,

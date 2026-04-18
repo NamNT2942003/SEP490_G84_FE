@@ -16,6 +16,18 @@ const STATUS_CONFIG = {
     badgeBg: "rgba(220,53,69,0.1)",
     badgeColor: "#dc3545",
   },
+  CLEANING: {
+    label: "Cleaning",
+    dot: "#fd7e14",
+    badgeBg: "rgba(253,126,20,0.1)",
+    badgeColor: "#c75000",
+  },
+  DIRTY: {
+    label: "Dirty",
+    dot: "#6f42c1",
+    badgeBg: "rgba(111,66,193,0.1)",
+    badgeColor: "#6f42c1",
+  },
   MAINTENANCE: {
     label: "Maintenance",
     dot: "#fd7e14",
