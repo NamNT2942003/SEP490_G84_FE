@@ -11,7 +11,7 @@ const MONTHS_EN = [
   'July','August','September','October','November','December'
 ];
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 
 const _today = new Date();
 const CURRENT_YEAR  = _today.getFullYear();
@@ -157,17 +157,17 @@ const InventoryReport = ({
 
 
         <div className="table-responsive">
-          <table className="table table-bordered table-hover align-middle mb-0" style={{ tableLayout: 'fixed', minWidth: 900 }}>
+          <table className="table table-bordered table-hover align-middle mb-0" style={{ tableLayout: 'fixed', minWidth: 1050 }}>
             <colgroup>
-              <col style={{ width: 42 }} />
+              <col style={{ width: 45 }} />
               <col style={{ width: '22%' }} />
-              <col style={{ width: 60 }} />
-              <col style={{ width: 140 }} />
-              <col style={{ width: 160 }} />
-              <col style={{ width: 160 }} />
-              <col style={{ width: 180 }} />
-              <col style={{ width: 160 }} />
-              <col />
+              <col style={{ width: 65 }} />
+              <col style={{ width: 145 }} />
+              <col style={{ width: 145 }} />
+              <col style={{ width: 145 }} />
+              <col style={{ width: 155 }} />
+              <col style={{ width: 165 }} />
+              <col style={{ minWidth: 150 }} />
             </colgroup>
             <thead className="table-light">
               <tr>
@@ -274,11 +274,11 @@ const InventoryReport = ({
 
           {pages > 1 && (
             <div className="inv-pager">
-              {page > 1 && <button className="inv-pager-btn" onClick={() => setPage(p => p-1)}>‹</button>}
+              {page > 1 && <button className="inv-pager-btn" onClick={() => setPage(p => p-1)}><i className="bi bi-chevron-left"></i></button>}
               {Array.from({ length: pages }, (_, idx) => idx+1).map(p => (
                 <button key={p} className={`inv-pager-btn ${p===page?'on':''}`} onClick={() => setPage(p)}>{p}</button>
               ))}
-              {page < pages && <button className="inv-pager-btn" onClick={() => setPage(p => p+1)}>›</button>}
+              {page < pages && <button className="inv-pager-btn" onClick={() => setPage(p => p+1)}><i className="bi bi-chevron-right"></i></button>}
             </div>
           )}
         </div>
