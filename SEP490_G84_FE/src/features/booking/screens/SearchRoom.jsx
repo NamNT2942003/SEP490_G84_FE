@@ -45,14 +45,47 @@ const toPricingOption = (option = {}) => ({
     combinationKey: option?.combinationKey || option?.optionCode || option?.mode || "UNKNOWN",
 });
 
+const extractAdjustmentFromReason = (reason) => {
+    const text = String(reason || "");
+    const bracketMatch = text.match(/\[\s*([-+]?\d+(?:[.,]\d+)?)\s*\]/);
+    if (!bracketMatch) return null;
+
+    const parsed = Number(bracketMatch[1].replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const calculateModifierAdjustment = (basePrice, modifier = {}) => {
+    const reasonBasedAdjustment = extractAdjustmentFromReason(modifier?.reason);
+    if (reasonBasedAdjustment !== null) {
+        return reasonBasedAdjustment;
+    }
+
+    const adjustmentType = String(modifier?.adjustmentType || "").toUpperCase();
+    const adjustmentValue = safeNumber(modifier?.adjustmentValue, 0);
+
+    if (adjustmentType === "PERCENT") {
+        return (basePrice * adjustmentValue) / 100;
+    }
+
+    return adjustmentValue;
+};
+
+const getRoomPriceFromAvailableModifiers = (room) => {
+    const basePrice = safeNumber(room?.basePrice ?? room?.price, 0);
+    const modifiers = Array.isArray(room?.availablePriceModifiers) ? room.availablePriceModifiers : [];
+    const totalAdjustment = modifiers.reduce(
+        (sum, modifier) => sum + calculateModifierAdjustment(basePrice, modifier),
+        0,
+    );
+
+    return Math.max(0, basePrice + totalAdjustment);
+};
+
 const getSearchRoomPrice = (room) =>
     safeNumber(
         room?.lockedUnitPrice
             ?? room?.selectedPrice
-            ?? room?.selectedPricingOption?.finalPrice
-            ?? room?.appliedPrice
-            ?? room?.basePrice
-            ?? room?.price,
+            ?? getRoomPriceFromAvailableModifiers(room),
         0,
     );
 
@@ -117,13 +150,9 @@ const withPricingState = (room, preferredOption = null) => {
         selectedOption = neutralOptions[0] || options[0] || null;
     }
 
-    // Ưu tiên finalPrice từ option của API — không dùng room.selectedPrice cũ
-    // để tránh "nhiễm" giá cũ khi đối tượng room được merge từ cartItem.
+    // Giá hiển thị ở trang tìm kiếm chỉ lấy basePrice + availablePriceModifiers của room.
     const selectedPrice = safeNumber(
-        selectedOption?.finalPrice
-            ?? room?.appliedPrice
-            ?? room?.basePrice
-            ?? room?.price,
+        getRoomPriceFromAvailableModifiers(room),
         0,
     );
 

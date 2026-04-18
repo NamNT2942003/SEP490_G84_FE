@@ -614,9 +614,9 @@ function RoomManagement() {
                 <label className="rm-filter-label"><i className="bi bi-building me-1"></i>Branch</label>
                 <select className="rm-select" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
                   <option value="all">All branches</option>
-                  <option value={baseBranchId || ""} disabled={!baseBranchId}>
-                    Base branch{currentUser?.branchName ? ` - ${currentUser.branchName}` : ""}
-                  </option>
+                  {branches.map(b => (
+                    <option key={b.branchId || b.id} value={b.branchId || b.id}>{b.branchName}</option>
+                  ))}
                 </select>
               </div>
 
