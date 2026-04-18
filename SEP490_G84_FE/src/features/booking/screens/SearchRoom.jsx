@@ -123,6 +123,10 @@ const syncCartWithLatestRooms = (prevCart, latestRooms) => {
             return {
                 ...cartItem,
                 ...mergedRoom,
+                // Keep the price/option chosen in cart to avoid re-applying frontend
+                // pricing transformations when room data refreshes.
+                selectedPrice: cartItem.selectedPrice ?? mergedRoom.selectedPrice,
+                selectedPricingOption: cartItem.selectedPricingOption ?? mergedRoom.selectedPricingOption,
                 quantity: Math.min(cartItem.quantity || 1, mergedRoom.availableCount || 999),
             };
         })
