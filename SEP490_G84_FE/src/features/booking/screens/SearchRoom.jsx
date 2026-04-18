@@ -18,7 +18,7 @@ const safeNumber = (value, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const HIDDEN_PRICE_MODIFIER_TYPES = new Set(["POLICY", "USER_HISTORY_DISCOUNT"]);
+const HIDDEN_PRICE_MODIFIER_TYPES = new Set(["POLICY"]);
 
 const toPricingOption = (option = {}) => ({
     optionCode: option?.optionCode || option?.combinationKey || option?.mode || "UNKNOWN",
