@@ -734,10 +734,15 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
         payNow: applyEarlyCheckIn ? payNow : false,
         paymentMethod: applyEarlyCheckIn && payNow ? paymentMethod : null,
       };
+      console.log('=== CHECK-IN FE DEBUG LOG ===');
+      console.log('Booking Data:', booking);
+      console.log('Payload Sent to checkInApi:', payload);
+
       await checkInApi.processCheckIn(booking.id, payload);
       Swal.fire({ icon: 'success', title: 'Check-in Complete!', text: 'Guest has been successfully checked in.', timer: 2000, showConfirmButton: false });
       onSuccess(); onClose();
     } catch (err) {
+      console.error('=== CHECK-IN ERROR LOG ===', err);
       const errorMsg = err.response?.data?.error || 'A system error occurred.';
       Swal.fire({
         icon: 'error',
