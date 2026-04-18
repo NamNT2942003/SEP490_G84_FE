@@ -174,8 +174,13 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                     Selected Rooms
                 </p>
                 {selectedRooms.length > 0 ? (
-                    selectedRooms.map((room, index) => (
-                        <div key={index} className="mb-1">
+                    selectedRooms.map((room, index) => {
+                        const qty = room.quantity || 1;
+                        const unitPrice = calculateRoomUnitPrice(room);
+                        const roomTotal = unitPrice * qty;
+
+                        return (
+                        <div key={index} className="mb-2 pb-2" style={{ borderBottom: '1px dashed #e9ecef' }}>
                             <div>
                                 <p className="fw-semibold text-dark mb-0 small">{room.quantity}x {room.name}</p>
                                 {room.selectedPricingOption?.mode && (
@@ -188,6 +193,9 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                                 </p>
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                     Base: {formatCurrency(calculateRoomBaseUnitPrice(room))}
+                                </p>
+                                <p className="fw-semibold mb-0" style={{ fontSize: '11px', color: '#5C6F4E' }}>
+                                    Current: {formatCurrency(unitPrice)} / room · Total: {formatCurrency(roomTotal)}
                                 </p>
                                 {getAppliedModifierBreakdown(room).length > 0 && (
                                     <div className="mt-1">
@@ -205,7 +213,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                                 )}
                             </div>
                         </div>
-                    ))
+                    )})
                 ) : (
                     <p className="text-danger small">No rooms selected</p>
                 )}

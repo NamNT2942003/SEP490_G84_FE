@@ -680,6 +680,14 @@ const GuestInformation = () => {
         return () => clearTimeout(timer);
     }, [formData.email, checkIn, checkOut, refreshRoomsByEmail]);
 
+    useEffect(() => {
+        if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
+        const timer = setTimeout(() => {
+            refreshRoomsByEmail();
+        }, 200);
+        return () => clearTimeout(timer);
+    }, [selectedPolicyId, checkIn, checkOut, refreshRoomsByEmail]);
+
     const calculateTotalPrice = () => {
         return rooms.reduce(
             (sum, room) => sum + calculateRoomUnitPrice(room) * (room.quantity || 1),
