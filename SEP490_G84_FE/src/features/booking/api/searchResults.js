@@ -1,9 +1,112 @@
 // Helper functions to clean API response data and avoid circular references
 
+const safeNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizeModifier = (modifier) => ({
+    priceModifierId: modifier?.priceModifierId,
+    name: modifier?.name,
+    type: modifier?.type,
+    adjustmentType: modifier?.adjustmentType,
+    adjustmentValue: safeNumber(modifier?.adjustmentValue, 0),
+    reason: modifier?.reason,
+});
+
+const getModifierLayer = (type) => {
+    switch (type) {
+        case 'DAY_OF_WEEK':
+        case 'DATE_RANGE':
+            return 1;
+        case 'ADVANCE_BOOKING':
+        case 'LENGTH_OF_STAY':
+        case 'OCCUPANCY':
+        case 'AVAILABILITY':
+            return 2;
+        case 'USER_HISTORY_DISCOUNT':
+        case 'POLICY':
+            return 3;
+        default:
+            return 4;
+    }
+};
+
+const calculateAdjustment = (reference, modifier) => {
+    if (!modifier) return 0;
+    const value = safeNumber(modifier.adjustmentValue, 0);
+    const type = String(modifier.adjustmentType || '').toUpperCase();
+    if (type === 'PERCENT' || type === 'PERCENTAGE') {
+        return (reference * value) / 100;
+    }
+    return value;
+};
+
+const buildFallbackPricingOptions = (room, matchedModifiers) => {
+    const modifiers = Array.isArray(matchedModifiers) ? matchedModifiers.map(normalizeModifier) : [];
+    const basePrice = safeNumber(room?.basePrice ?? room?.price, 0);
+
+    if (!modifiers.length) {
+        return [];
+    }
+
+    const ordered = [...modifiers].sort((a, b) => {
+        const layerDiff = getModifierLayer(a?.type) - getModifierLayer(b?.type);
+        if (layerDiff !== 0) return layerDiff;
+        return safeNumber(a?.priceModifierId, 0) - safeNumber(b?.priceModifierId, 0);
+    });
+
+    let rate1 = basePrice;
+    let rate2 = basePrice;
+    let finalRate = basePrice;
+
+    ordered.forEach((modifier) => {
+        if (getModifierLayer(modifier?.type) === 1) {
+            rate1 += calculateAdjustment(basePrice, modifier);
+        }
+    });
+    rate2 = rate1;
+    ordered.forEach((modifier) => {
+        if (getModifierLayer(modifier?.type) === 2) {
+            rate2 += calculateAdjustment(rate1, modifier);
+        }
+    });
+    finalRate = rate2;
+    ordered.forEach((modifier) => {
+        if (getModifierLayer(modifier?.type) === 3) {
+            finalRate += calculateAdjustment(rate2, modifier);
+        }
+    });
+
+    const finalPrice = Math.max(0, safeNumber(finalRate, basePrice));
+
+    return [{
+        optionCode: 'MATCHED',
+        mode: 'Matched modifiers',
+        basePrice,
+        finalPrice,
+        delta: finalPrice - basePrice,
+        cancellationPolicyId: null,
+        cancellationPolicyType: '',
+        cancellationPolicyName: '',
+        prepaidRate: 0,
+        refunRate: 0,
+        modifierIds: modifiers.map((m) => m.priceModifierId),
+        modifierNames: modifiers.map((m) => m.name).filter(Boolean),
+        reasons: modifiers.map((m) => m.reason).filter(Boolean),
+        modifiers,
+        combinationKey: 'MATCHED',
+    }];
+};
+
 const cleanRoomType = (room) => {
     if (!room) return room;
 
-    const pricingOptions = Array.isArray(room.pricingOptions)
+    const matchedPriceModifiers = Array.isArray(room.matchedPriceModifiers)
+        ? room.matchedPriceModifiers.map(normalizeModifier)
+        : [];
+
+    const pricingOptions = Array.isArray(room.pricingOptions) && room.pricingOptions.length > 0
         ? room.pricingOptions.map((option) => ({
             optionCode: option?.optionCode || option?.combinationKey || option?.mode || "UNKNOWN",
             mode: option?.mode || "UNKNOWN",
@@ -30,7 +133,7 @@ const cleanRoomType = (room) => {
                 : [],
             combinationKey: option?.combinationKey || option?.optionCode || option?.mode || "UNKNOWN",
         }))
-        : [];
+        : buildFallbackPricingOptions(room, matchedPriceModifiers);
 
     return {
         ...room, // Giữ lại tất cả các trường (bao gồm availableCount, branchId, branchName...)
@@ -47,6 +150,7 @@ const cleanRoomType = (room) => {
                 contactNumber: room.branch.contactNumber,
             }
             : null,
+        matchedPriceModifiers,
         pricingOptions,
         pricingCombinationPolicy: room.pricingCombinationPolicy
             ? {
