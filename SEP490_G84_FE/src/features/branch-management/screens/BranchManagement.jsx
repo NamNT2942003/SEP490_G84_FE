@@ -257,6 +257,13 @@ export default function BranchManagement() {
       setShowFormModal(false);
       await fetchBranches();
     } catch (err) {
+      console.error('[BranchManagement] saveBranch failed:', {
+        mode: editingBranch?.branchId ? 'update' : 'create',
+        branchId: editingBranch?.branchId,
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message,
+      });
       setFormError(err?.response?.data?.error || err?.response?.data?.message || "Save branch failed.");
     } finally {
       setSubmitLoading(false);
