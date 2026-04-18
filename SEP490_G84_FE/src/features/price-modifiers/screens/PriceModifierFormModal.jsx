@@ -1,6 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import Buttons from "@/components/ui/Buttons";
 
+const SINGLE_THRESHOLD_TYPES = new Set([
+    'ADVANCE_BOOKING',
+    'LENGTH_OF_STAY',
+    'OCCUPANCY',
+    'AVAILABILITY'
+]);
+
+const normalizeThresholdValue = (value) => {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return null;
+    }
+    return Math.max(0, Math.trunc(parsed));
+};
+
+const readSingleThreshold = (metadata, type) => {
+    const m = metadata || {};
+    if (m.value !== undefined && m.value !== null) return m.value;
+    if (m.threshold !== undefined && m.threshold !== null) return m.threshold;
+
+    switch (type) {
+        case 'ADVANCE_BOOKING': return m.daysBefore ?? m.minDaysBefore ?? m.min ?? null;
+        case 'LENGTH_OF_STAY': return m.nights ?? m.minNights ?? m.min ?? null;
+        case 'OCCUPANCY': return m.rooms ?? m.minRooms ?? m.minGuests ?? m.min ?? null;
+        case 'AVAILABILITY': return m.availableRooms ?? m.minAvailableRooms ?? m.min ?? null;
+        default: return null;
+    }
+};
+
 const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOptions = [], loadingPolicies = false }) => {
     const [formData, setFormData] = useState({
         name: '',
@@ -13,13 +45,35 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
 
     useEffect(() => {
         if (initialData) {
+            const normalizedMetadata = { ...(initialData.metadata || {}) };
+            if (SINGLE_THRESHOLD_TYPES.has(initialData.type)) {
+                normalizedMetadata.value = normalizeThresholdValue(readSingleThreshold(initialData.metadata, initialData.type));
+                delete normalizedMetadata.threshold;
+                delete normalizedMetadata.min;
+                delete normalizedMetadata.max;
+                delete normalizedMetadata.minDaysBefore;
+                delete normalizedMetadata.maxDaysBefore;
+                delete normalizedMetadata.minNights;
+                delete normalizedMetadata.maxNights;
+                delete normalizedMetadata.minRooms;
+                delete normalizedMetadata.maxRooms;
+                delete normalizedMetadata.minGuests;
+                delete normalizedMetadata.maxGuests;
+                delete normalizedMetadata.minAvailableRooms;
+                delete normalizedMetadata.maxAvailableRooms;
+                delete normalizedMetadata.daysBefore;
+                delete normalizedMetadata.nights;
+                delete normalizedMetadata.rooms;
+                delete normalizedMetadata.availableRooms;
+            }
+
             setFormData({
                 name: initialData.name || '',
                 type: initialData.type || 'DATE_RANGE',
                 adjustmentType: initialData.adjustmentType || 'PERCENT',
                 adjustmentValue: initialData.adjustmentValue || 0,
                 active: initialData.active ?? true,
-                metadata: initialData.metadata || {}
+                metadata: normalizedMetadata
             });
         }
     }, [initialData]);
@@ -53,6 +107,12 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        let nextMetadata = { ...formData.metadata };
+        if (SINGLE_THRESHOLD_TYPES.has(formData.type)) {
+            const threshold = normalizeThresholdValue(nextMetadata.value);
+            nextMetadata = threshold === null ? {} : { value: threshold };
+        }
+
         // Validation format
         const payload = {
             name: formData.name,
@@ -60,7 +120,7 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
             adjustmentType: formData.adjustmentType,
             adjustmentValue: parseFloat(formData.adjustmentValue) || 0,
             active: formData.active,
-            metadata: { ...formData.metadata }
+            metadata: nextMetadata
         };
         onSave(payload);
     };
@@ -105,13 +165,17 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
         if (t === 'ADVANCE_BOOKING') {
             return (
                 <div className="row g-3">
-                    <div className="col-md-6">
-                        <label className="form-label small text-muted">Min Days Before Check-in</label>
-                        <input type="number" min="0" className="form-control" value={m.minDaysBefore ?? ''} onChange={(e) => handleMetaChange('minDaysBefore', e.target.value ? parseInt(e.target.value) : null)} />
-                    </div>
-                    <div className="col-md-6">
-                        <label className="form-label small text-muted">Max Days Before Check-in</label>
-                        <input type="number" min="0" className="form-control" value={m.maxDaysBefore ?? ''} onChange={(e) => handleMetaChange('maxDaysBefore', e.target.value ? parseInt(e.target.value) : null)} />
+                    <div className="col-md-12">
+                        <label className="form-label small text-muted">Threshold Days Before Check-in</label>
+                        <input
+                            type="number"
+                            min="0"
+                            className="form-control"
+                            value={m.value ?? ''}
+                            onChange={(e) => handleMetaChange('value', normalizeThresholdValue(e.target.value))}
+                            placeholder="Example: 7"
+                        />
+                        <div className="form-text">Apply when booking is at least this many days before check-in.</div>
                     </div>
                 </div>
             );
@@ -120,13 +184,17 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
         if (t === 'LENGTH_OF_STAY') {
             return (
                 <div className="row g-3">
-                    <div className="col-md-6">
-                        <label className="form-label small text-muted">Min Nights</label>
-                        <input type="number" min="0" className="form-control" value={m.minNights ?? ''} onChange={(e) => handleMetaChange('minNights', e.target.value ? parseInt(e.target.value) : null)} />
-                    </div>
-                    <div className="col-md-6">
-                        <label className="form-label small text-muted">Max Nights</label>
-                        <input type="number" min="0" className="form-control" value={m.maxNights ?? ''} onChange={(e) => handleMetaChange('maxNights', e.target.value ? parseInt(e.target.value) : null)} />
+                    <div className="col-md-12">
+                        <label className="form-label small text-muted">Threshold Nights</label>
+                        <input
+                            type="number"
+                            min="0"
+                            className="form-control"
+                            value={m.value ?? ''}
+                            onChange={(e) => handleMetaChange('value', normalizeThresholdValue(e.target.value))}
+                            placeholder="Example: 3"
+                        />
+                        <div className="form-text">Apply when stay length is at least this many nights.</div>
                     </div>
                 </div>
             );
@@ -135,13 +203,17 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
         if (t === 'OCCUPANCY') {
             return (
                 <div className="row g-3">
-                    <div className="col-md-6">
-                        <label className="form-label small text-muted">Min Rooms Booked</label>
-                        <input type="number" min="0" className="form-control" value={m.minRooms ?? ''} onChange={(e) => handleMetaChange('minRooms', e.target.value ? parseInt(e.target.value) : null)} />
-                    </div>
-                    <div className="col-md-6">
-                        <label className="form-label small text-muted">Max Rooms Booked</label>
-                        <input type="number" min="0" className="form-control" value={m.maxRooms ?? ''} onChange={(e) => handleMetaChange('maxRooms', e.target.value ? parseInt(e.target.value) : null)} />
+                    <div className="col-md-12">
+                        <label className="form-label small text-muted">Threshold Rooms</label>
+                        <input
+                            type="number"
+                            min="0"
+                            className="form-control"
+                            value={m.value ?? ''}
+                            onChange={(e) => handleMetaChange('value', normalizeThresholdValue(e.target.value))}
+                            placeholder="Example: 2"
+                        />
+                        <div className="form-text">Apply when total rooms in booking are at least this value.</div>
                     </div>
                 </div>
             );
@@ -150,13 +222,17 @@ const PriceModifierFormModal = ({ isOpen, onClose, onSave, initialData, policyOp
         if (t === 'AVAILABILITY') {
             return (
                 <div className="row g-3">
-                    <div className="col-md-6">
-                        <label className="form-label small text-muted">Min Available Rooms Pending</label>
-                        <input type="number" min="0" className="form-control" value={m.minAvailableRooms ?? ''} onChange={(e) => handleMetaChange('minAvailableRooms', e.target.value ? parseInt(e.target.value) : null)} />
-                    </div>
-                    <div className="col-md-6">
-                        <label className="form-label small text-muted">Max Available Rooms Pending</label>
-                        <input type="number" min="0" className="form-control" value={m.maxAvailableRooms ?? ''} onChange={(e) => handleMetaChange('maxAvailableRooms', e.target.value ? parseInt(e.target.value) : null)} />
+                    <div className="col-md-12">
+                        <label className="form-label small text-muted">Threshold Available Rooms</label>
+                        <input
+                            type="number"
+                            min="0"
+                            className="form-control"
+                            value={m.value ?? ''}
+                            onChange={(e) => handleMetaChange('value', normalizeThresholdValue(e.target.value))}
+                            placeholder="Example: 5"
+                        />
+                        <div className="form-text">Apply when available inventory is at least this many rooms.</div>
                     </div>
                 </div>
             );

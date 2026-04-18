@@ -817,7 +817,8 @@ const GuestInformation = () => {
                                     searchParams: nextSearchParams,
                                     filters: nextFilters,
                                     customerHistoryEmail: formData.email || prefillEmail || existingState?.customerHistoryEmail || "",
-                                    selectedPolicyId: selectedPolicyId ?? existingState?.selectedPolicyId ?? null,
+                                    selectedPolicyId: null,
+                                    policy: null,
                                 };
                                 sessionStorage.setItem(SEARCH_STATE_KEY, JSON.stringify(nextState));
                             } catch (err) {

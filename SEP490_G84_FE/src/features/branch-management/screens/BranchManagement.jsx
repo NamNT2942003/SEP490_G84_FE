@@ -257,6 +257,13 @@ export default function BranchManagement() {
       setShowFormModal(false);
       await fetchBranches();
     } catch (err) {
+      console.error('[BranchManagement] saveBranch failed:', {
+        mode: editingBranch?.branchId ? 'update' : 'create',
+        branchId: editingBranch?.branchId,
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message,
+      });
       setFormError(err?.response?.data?.error || err?.response?.data?.message || "Save branch failed.");
     } finally {
       setSubmitLoading(false);
@@ -284,6 +291,12 @@ export default function BranchManagement() {
       await fetchBranches();
       Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Branch has been removed.', timer: 1800, showConfirmButton: false });
     } catch (err) {
+      console.error('[BranchManagement] deleteBranch failed:', {
+        branchId,
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message,
+      });
       Swal.fire({ icon: 'error', title: 'Failed', text: err?.response?.data?.error || err?.response?.data?.message || 'Delete branch failed.' });
     }
   };

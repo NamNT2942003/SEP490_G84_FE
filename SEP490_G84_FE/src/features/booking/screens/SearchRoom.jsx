@@ -246,9 +246,7 @@ const SearchRoom = () => {
                 if (parsed?.searchParams) setSearchParams(parsed.searchParams);
                 if (parsed?.filters) setFilters((p) => ({ ...p, ...parsed.filters }));
                 if (parsed?.customerHistoryEmail) setCustomerHistoryEmail(parsed.customerHistoryEmail);
-                if (parsed?.selectedPolicyId !== undefined && parsed?.selectedPolicyId !== null) {
-                    setSelectedPolicyId(parsed.selectedPolicyId);
-                }
+                setSelectedPolicyId(parsed?.selectedPolicyId ?? null);
             }
         } catch (err) {
             console.warn("Failed to restore search state", err);
@@ -269,7 +267,7 @@ const SearchRoom = () => {
     }, [selectedCart, isInitialized]);
 
     const searchRooms = useCallback((sp) => {
-        setSearchParams(sp);
+        setSearchParams({ ...sp, policy: null });
         setFilters((p) => ({ ...p, page: 0 }));
     }, []);
 
@@ -283,7 +281,7 @@ const SearchRoom = () => {
                 setLoading(false); return;
             }
 
-            const apiParams = { ...searchParams, ...filters };
+            const apiParams = { ...searchParams, ...filters, policy: selectedPolicyId ?? null };
 
             const res = await roomService.searchRooms(apiParams);
             if (requestId !== latestRequestIdRef.current) return;
@@ -304,7 +302,7 @@ const SearchRoom = () => {
         } finally {
             if (requestId === latestRequestIdRef.current) setLoading(false);
         }
-    }, [searchParams, filters]);
+    }, [searchParams, filters, selectedPolicyId]);
 
     // Dùng selectedCartRef.current để đọc cart data ổn định mà không cần selectedCart trong deps.
     // Điều này ngăn vòng lặp: cart thay đổi → fn mới → useEffect chạy → cart thay đổi...
@@ -328,6 +326,7 @@ const SearchRoom = () => {
             size: Math.max(roomTypeIds.length, 10),
             sortPrice: filters.sortPrice,
             customerEmail: normalizedEmail,
+            policy: selectedPolicyId ?? null,
         };
 
         try {
@@ -339,7 +338,7 @@ const SearchRoom = () => {
             console.error("Failed to refresh cart pricing by email:", err);
         }
     // selectedCart KHÔNG có trong deps — đọc qua selectedCartRef.current để ổn định.
-    }, [searchParams, filters.branchId, filters.sortPrice]);
+    }, [searchParams, filters.branchId, filters.sortPrice, selectedPolicyId]);
 
     const handleFilterChange = (nf) => setFilters(p => ({ ...p, ...nf, page: 0 }));
     const handleSortChange = (e) => setFilters(p => ({ ...p, sortPrice: e.target.value, page: 0 }));
@@ -416,7 +415,8 @@ const SearchRoom = () => {
                 branchId: filters.branchId,
                 totalPrice: cartTotal,
                 prefillEmail: customerHistoryEmail.trim() || undefined,
-                appliedPolicyId: selectedPolicyId
+                appliedPolicyId: selectedPolicyId,
+                policy: selectedPolicyId ?? null,
             }
         });
     };
@@ -439,6 +439,7 @@ const SearchRoom = () => {
             filters,
             customerHistoryEmail,
             selectedPolicyId,
+            policy: selectedPolicyId ?? null,
         };
         sessionStorage.setItem(SEARCH_STATE_KEY, JSON.stringify(payload));
     }, [searchParams, filters, customerHistoryEmail, selectedPolicyId, hasRestoredSearch]);

@@ -126,16 +126,29 @@ const PriceModifierManagement = () => {
         return `${value > 0 ? '+' : ''}${formatCurrency(value)}`;
     };
 
+    const readSingleThreshold = (meta, type) => {
+        if (!meta) return null;
+        if (meta.value !== undefined && meta.value !== null) return meta.value;
+        if (meta.threshold !== undefined && meta.threshold !== null) return meta.threshold;
+        switch (type) {
+            case 'ADVANCE_BOOKING': return meta.daysBefore ?? meta.minDaysBefore ?? meta.min ?? null;
+            case 'LENGTH_OF_STAY': return meta.nights ?? meta.minNights ?? meta.min ?? null;
+            case 'OCCUPANCY': return meta.rooms ?? meta.minRooms ?? meta.minGuests ?? meta.min ?? null;
+            case 'AVAILABILITY': return meta.availableRooms ?? meta.minAvailableRooms ?? meta.min ?? null;
+            default: return null;
+        }
+    };
+
     const formatMetadataPreview = (type, meta) => {
         if (!meta) return "N/A";
         switch (type) {
             case 'DATE_RANGE': return `${meta.start} to ${meta.end}`;
             case 'DAY_OF_WEEK': return meta.days ? meta.days.join(", ") : "N/A";
-            case 'ADVANCE_BOOKING': return `Min ${meta.minDaysBefore || 0}D, Max ${meta.maxDaysBefore || '∞'}D before`;
-            case 'LENGTH_OF_STAY': return `Min ${meta.minNights || 1}N, Max ${meta.maxNights || '∞'}N`;
-            case 'OCCUPANCY': return `Booking Volume: Min ${meta.minRooms || 1} room, Max ${meta.maxRooms || '∞'} rooms`;
+            case 'ADVANCE_BOOKING': return `Threshold: ${readSingleThreshold(meta, type) ?? 0} day(s) before`;
+            case 'LENGTH_OF_STAY': return `Threshold: ${readSingleThreshold(meta, type) ?? 0} night(s)`;
+            case 'OCCUPANCY': return `Booking volume threshold: ${readSingleThreshold(meta, type) ?? 0} room(s)`;
             case 'USER_HISTORY_DISCOUNT': return `Returning Guest: Min ${meta.minBookings || 0} historical bookings`;
-            case 'AVAILABILITY': return `Min ${meta.minAvailableRooms || 0} Avail, Max ${meta.maxAvailableRooms || '∞'} Avail`;
+            case 'AVAILABILITY': return `Availability threshold: ${readSingleThreshold(meta, type) ?? 0} room(s)`;
             case 'POLICY': {
                 const selected = branchPolicies.find((p) => Number(p.id) === Number(meta.policyId));
                 return selected ? `Policy: ${selected.name}` : `Policy ID: ${meta.policyId}`;
