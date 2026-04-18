@@ -330,9 +330,8 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut, expectedTotalAm
     const safePhone = (formData.phone || '').replace(new RegExp('\\s+', 'g'), '');
     const otaId = `WEB-${safePhone || 'GUEST'}-${checkIn}-${checkOut}`;
 
-    return {
+    const payload = {
         appliedPolicyId: formData.appliedPolicyId,
-        policy: formData.appliedPolicyId ?? null,
         expectedTotalAmount,
         otaReservationId: otaId,
         arrivalDate: checkIn,
@@ -357,6 +356,12 @@ const buildBookingPayload = (formData, rooms, checkIn, checkOut, expectedTotalAm
         },
         specialRequests: formData.specialRequests,
     };
+
+    if (formData.appliedPolicyId !== null && formData.appliedPolicyId !== undefined) {
+        payload.policy = formData.appliedPolicyId;
+    }
+
+    return payload;
 };
 
 // ─── RoomItem ──────────────────────────────────────────────────────────────

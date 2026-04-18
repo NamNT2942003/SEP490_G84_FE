@@ -20,10 +20,6 @@ const normalizeSearchParams = (params = {}) => {
 
     const queryParams = new URLSearchParams();
     Object.entries(merged).forEach(([key, value]) => {
-        if (key === "policy" && (value === undefined || value === null || value === "")) {
-            queryParams.append(key, "");
-            return;
-        }
         if (value === undefined || value === null || value === "") return;
         if (Array.isArray(value)) {
             value.forEach((v) => queryParams.append(key, v));
