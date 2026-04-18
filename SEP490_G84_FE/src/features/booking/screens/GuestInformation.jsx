@@ -5,6 +5,7 @@ import Input from '@/components/ui/Input';
 import bookingService from '@/features/booking/api/bookingService';
 import { roomService } from '@/features/booking/api/roomService';
 import { cancellationPolicyService } from '@/features/booking/api/cancellationPolicyService';
+import { branchService } from '@/features/booking/api/branchService';
 import { calculateRoomUnitPrice } from '@/features/booking/utils/roomPrice';
 import Swal from 'sweetalert2';
 import './GuestInformation.css';
@@ -459,6 +460,7 @@ const GuestInformation = () => {
     const [selectedPolicyId, setSelectedPolicyId] = useState(null);
     const [policyLoading, setPolicyLoading] = useState(false);
     const [hasLoadedPolicies, setHasLoadedPolicies] = useState(false);
+    const [branchName, setBranchName] = useState("Loading...");
     const latestPricingRequestIdRef = useRef(0);
     const roomsRef = useRef(selectedRooms);
     const selectedPolicyIdRef = useRef(null);
@@ -476,6 +478,21 @@ const GuestInformation = () => {
             });
         }
     }, [location.state, selectedRooms.length, navigate]);
+
+    useEffect(() => {
+        if (!branchId) return;
+        (async () => {
+            try {
+                const data = await branchService.getBranchById(branchId);
+                if (data && data.branchName) {
+                    setBranchName(data.branchName);
+                }
+            } catch (e) {
+                console.error("Failed to load branch details:", e);
+                setBranchName("");
+            }
+        })();
+    }, [branchId]);
 
     useEffect(() => {
         roomsRef.current = rooms;
@@ -990,6 +1007,7 @@ const GuestInformation = () => {
                                     selectedPolicy={selectedPolicy}
                                     depositAmount={depositAmount}
                                     bookingTotalAmount={finalBookingAmount}
+                                    branchName={branchName}
                                 />
                             </div>
                         </div>
@@ -1002,6 +1020,7 @@ const GuestInformation = () => {
                                 selectedPolicy={selectedPolicy}
                                 depositAmount={depositAmount}
                                 bookingTotalAmount={finalBookingAmount}
+                                branchName={branchName}
                             />
                         </div>
                     </div>

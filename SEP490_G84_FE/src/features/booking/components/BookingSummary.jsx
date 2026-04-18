@@ -11,7 +11,7 @@ const getAbsoluteImageUrl = (url) => {
     return url;
 };
 
-const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null }) => {
+const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, branchName = '' }) => {
     const normalizeModeText = (mode) => {
         if (!mode) return 'Standard';
         const raw = String(mode).trim();
@@ -169,7 +169,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: '10px', letterSpacing: '1px' }}>
                     Booking Overview
                 </p>
-                <p className="fw-bold text-olive-dark mb-0 fs-6">Grand Heritage Resort</p>
+                <p className="fw-bold text-olive-dark mb-0 fs-6">{branchName || "Loading..."}</p>
             </div>
 
             <div className="mb-3">
