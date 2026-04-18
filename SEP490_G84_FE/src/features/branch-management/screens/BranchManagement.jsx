@@ -284,6 +284,12 @@ export default function BranchManagement() {
       await fetchBranches();
       Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Branch has been removed.', timer: 1800, showConfirmButton: false });
     } catch (err) {
+      console.error('[BranchManagement] deleteBranch failed:', {
+        branchId,
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message,
+      });
       Swal.fire({ icon: 'error', title: 'Failed', text: err?.response?.data?.error || err?.response?.data?.message || 'Delete branch failed.' });
     }
   };
