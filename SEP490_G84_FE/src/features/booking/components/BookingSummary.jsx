@@ -47,24 +47,6 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
         return type;
     };
 
-    const getCancellationText = (cancellationType, freeCancelBeforeDays) => {
-        if (cancellationType === 'NON_REFUNDABLE') return 'Non-refundable';
-        if (cancellationType === 'REFUNDABLE' && freeCancelBeforeDays > 0) {
-            return `Free cancellation before ${freeCancelBeforeDays} days`;
-        }
-        if (cancellationType === 'REFUNDABLE') return 'Free cancellation';
-        return 'Cancellation policy by room';
-    };
-
-    const getPaymentText = (paymentType) => {
-        if (paymentType === 'FREE_CANCEL') return 'Free cancellation';
-        if (paymentType === 'PARTIAL_REFUND') return 'Partial refund';
-        if (paymentType === 'NON_REFUND') return 'Non-refundable';
-        if (paymentType === 'PREPAID') return 'Prepaid';
-        if (paymentType === 'PAY_AT_HOTEL') return 'Pay at hotel';
-        return 'Room-based payment method';
-    };
-
     const calculateNights = (start, end) => {
         if (!start || !end) return 0;
         const d1 = new Date(start);
@@ -92,7 +74,11 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
     };
 
     const getOptionModifiers = (room) =>
-        (Array.isArray(room?.selectedPricingOption?.modifiers) ? room.selectedPricingOption.modifiers : []);
+        (Array.isArray(room?.availablePriceModifiers) && room.availablePriceModifiers.length > 0
+            ? room.availablePriceModifiers
+            : Array.isArray(room?.selectedPricingOption?.modifiers)
+                ? room.selectedPricingOption.modifiers
+                : []);
 
     const calculateRoomBaseUnitPrice = (room) => {
         return safeNumber(
@@ -105,6 +91,23 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
     };
 
     const calculateRoomUnitPrice = (room) => {
+        const modifiers = getOptionModifiers(room);
+        if (modifiers.length > 0) {
+            const basePrice = calculateRoomBaseUnitPrice(room);
+            const totalDelta = modifiers.reduce((sum, mod) => {
+                const deltaFromReason = extractDeltaFromReason(mod?.reason);
+                if (deltaFromReason !== null) return sum + deltaFromReason;
+
+                const adjustmentValue = safeNumber(mod?.adjustmentValue, 0);
+                if (mod?.adjustmentType === 'PERCENT' || mod?.adjustmentType === 'PERCENTAGE') {
+                    return sum + ((basePrice * adjustmentValue) / 100);
+                }
+                return sum + adjustmentValue;
+            }, 0);
+
+            return Math.max(0, basePrice + totalDelta);
+        }
+
         return calculateDisplayedRoomPrice(room);
     };
 
@@ -178,6 +181,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                         const qty = room.quantity || 1;
                         const unitPrice = calculateRoomUnitPrice(room);
                         const roomTotal = unitPrice * qty;
+                        const roomModifiers = getOptionModifiers(room);
 
                         return (
                         <div key={index} className="mb-2 pb-2" style={{ borderBottom: '1px dashed #e9ecef' }}>
@@ -194,10 +198,15 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                     Base: {formatCurrency(calculateRoomBaseUnitPrice(room))}
                                 </p>
+                                {selectedPolicy && (
+                                    <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
+                                        Policy: {selectedPolicy.name || 'Selected policy'}
+                                    </p>
+                                )}
                                 <p className="fw-semibold mb-0" style={{ fontSize: '11px', color: '#5C6F4E' }}>
                                     Current: {formatCurrency(unitPrice)} / room · Total: {formatCurrency(roomTotal)}
                                 </p>
-                                {getAppliedModifierBreakdown(room).length > 0 && (
+                                {roomModifiers.length > 0 && (
                                     <div className="mt-1">
                                         <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                             Adjustments:
