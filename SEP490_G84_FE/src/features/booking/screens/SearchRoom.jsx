@@ -96,9 +96,10 @@ const withPricingState = (room, preferredOption = null) => {
 
     const selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
 
+    // Ưu tiên finalPrice từ option của API — không dùng room.selectedPrice cũ
+    // để tránh "nhiễm" giá cũ khi đối tượng room được merge từ cartItem.
     const selectedPrice = safeNumber(
-        room?.selectedPrice
-            ?? selectedOption?.finalPrice
+        selectedOption?.finalPrice
             ?? room?.appliedPrice
             ?? room?.basePrice
             ?? room?.price,
@@ -264,7 +265,9 @@ const SearchRoom = () => {
 
             const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
             setRooms(fetchedRooms);
-            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms));
+            // allowReprice=true: cart luôn hiển thị giá mới nhất từ API,
+            // nhất quán với giá hiển thị trên RoomCard.
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms, { allowReprice: true }));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
@@ -322,8 +325,9 @@ const SearchRoom = () => {
                     ? {
                         ...r,
                         ...roomForCart,
-                        lockedUnitPrice: r.lockedUnitPrice ?? r.selectedPrice ?? lockedUnitPrice,
-                        selectedPrice: r.selectedPrice ?? lockedUnitPrice,
+                        // Cập nhật giá mới khi user chủ động bấm "Add to cart" lần nữa
+                        lockedUnitPrice,
+                        selectedPrice: lockedUnitPrice,
                         quantity: Math.min(r.quantity || 1, roomForCart.availableCount || (r.quantity || 1)),
                     }
                     : r
