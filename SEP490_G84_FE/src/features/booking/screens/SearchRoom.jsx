@@ -8,6 +8,7 @@ import { roomService } from "../api/roomService.js";
 import { branchService } from "../api/branchService.js";
 import { cancellationPolicyService } from "../api/cancellationPolicyService.js";
 import { getOrCreateCartId, getCart, saveCart } from "../../../utils/cartStorage.js";
+import { calculateDisplayedRoomPrice } from "@/features/booking/utils/roomPrice";
 import Swal from "sweetalert2";
 import "./SearchRoom.css";
 
@@ -518,7 +519,7 @@ const SearchRoom = () => {
                             <div className="cart-room-list">
                                 {selectedCart.length > 0 ? (
                                     selectedCart.map((room, idx) => {
-                                        const roomUnitPrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+                                        const roomUnitPrice = calculateDisplayedRoomPrice(room);
                                         const roomTotal = roomUnitPrice * (room.quantity || 1);
                                         return (
                                             <div key={idx} className="cart-room-item">

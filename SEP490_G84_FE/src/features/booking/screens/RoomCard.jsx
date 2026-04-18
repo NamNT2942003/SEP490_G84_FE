@@ -1,4 +1,5 @@
 import apiClient from "@/services/apiClient";
+import { calculateDisplayedRoomPrice } from "@/features/booking/utils/roomPrice";
 
 const toAbsoluteImageUrl = (url) => {
     if (!url) return null;
@@ -17,7 +18,7 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
 
     const imageSrc = room.image ? toAbsoluteImageUrl(room.image) : FALLBACK_IMAGE;
     const sold = room.availableCount <= 0;
-    const visiblePrice = room.selectedPrice ?? room.appliedPrice ?? room.basePrice ?? room.price ?? 0;
+    const visiblePrice = calculateDisplayedRoomPrice(room);
 
     return (
         <>

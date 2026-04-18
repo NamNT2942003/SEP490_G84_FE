@@ -1,5 +1,6 @@
 import React from 'react';
 import apiClient from '@/services/apiClient';
+import { calculateDisplayedRoomPrice } from '@/features/booking/utils/roomPrice';
 
 const getAbsoluteImageUrl = (url) => {
     if (!url) return null;
@@ -112,25 +113,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
     };
 
     const calculateRoomUnitPrice = (room) => {
-        const baseOptPrice = safeNumber(
-            room?.selectedPrice
-                ?? room?.selectedPricingOption?.finalPrice
-                ?? room?.appliedPrice
-                ?? room?.basePrice
-                ?? room?.price,
-            0,
-        );
-
-        const manual = room?.selectedManualPromotion;
-        if (!manual) return baseOptPrice;
-
-        const manualValue = safeNumber(manual?.adjustmentValue, 0);
-        const delta = manual?.adjustmentType === 'PERCENT' || manual?.adjustmentType === 'PERCENTAGE'
-            ? (safeNumber(room?.basePrice, baseOptPrice) * manualValue) / 100
-            : manualValue;
-
-        const finalPrice = baseOptPrice + delta;
-        return finalPrice > 0 ? finalPrice : 0;
+        return calculateDisplayedRoomPrice(room);
     };
 
     const getAppliedModifierBreakdown = (room) => {
