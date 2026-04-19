@@ -731,6 +731,13 @@ const GuestInformation = () => {
             Swal.fire({ icon: 'warning', title: 'Missing Information', text: 'Please fill in all guest information.', confirmButtonColor: '#5C6F4E' });
             return;
         }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            Swal.fire({ icon: 'warning', title: 'Invalid Email', text: 'Please provide a valid email address to receive the verification code.', confirmButtonColor: '#5C6F4E' });
+            return;
+        }
+
         if (rooms.length === 0) {
             Swal.fire({ icon: 'warning', title: 'No Rooms Selected', text: 'Please select at least one room.', confirmButtonColor: '#5C6F4E' });
             return;

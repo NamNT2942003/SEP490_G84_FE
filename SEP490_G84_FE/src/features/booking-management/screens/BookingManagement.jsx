@@ -162,8 +162,8 @@ export default function BookingManagement() {
                 const s = (data.content || []).reduce(
                     (acc, b) => {
                         acc.total++;
-                        if (b.status === "CONFIRMED") acc.confirmed++;
-                        if (b.status === "PENDING")   acc.pending++;
+                        if (["CONFIRMED", "CHECKED_IN", "CHECKED_OUT"].includes(b.status)) acc.confirmed++;
+                        if (b.status === "PENDING_PAYMENT" || b.status === "PENDING") acc.pending++;
                         if (b.status === "CANCELLED") acc.cancelled++;
                         return acc;
                     },
