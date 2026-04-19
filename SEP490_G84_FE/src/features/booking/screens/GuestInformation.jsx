@@ -7,6 +7,7 @@ import { roomService } from '@/features/booking/api/roomService';
 import { cancellationPolicyService } from '@/features/booking/api/cancellationPolicyService';
 import { branchService } from '@/features/booking/api/branchService';
 import { calculateRoomUnitPrice } from '@/features/booking/utils/roomPrice';
+import { guest } from '@/features/guest/api/guestService';
 import Swal from 'sweetalert2';
 import './GuestInformation.css';
 import { saveCart } from "@/utils/cartStorage";
@@ -770,11 +771,75 @@ const GuestInformation = () => {
         }
 
         try {
+            Swal.fire({
+                title: 'Sending Verification Code...',
+                text: `Wait a moment, we are sending an OTP to ${formData.email}`,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            await guest.sendBookingOtp(formData.email, formData.fullName);
+            Swal.close();
+
+            const { value: otpCode } = await Swal.fire({
+                title: 'Enter Verification Code',
+                text: `An OTP has been sent to ${formData.email}. It is valid for 15 minutes.`,
+                input: 'text',
+                inputPlaceholder: 'Enter 6-digit OTP',
+                showCancelButton: true,
+                confirmButtonColor: '#5C6F4E',
+                confirmButtonText: 'Verify & Continue',
+                inputValidator: (value) => {
+                    if (!value || value.trim().length !== 6) {
+                        return 'Please enter a valid 6-digit OTP!';
+                    }
+                }
+            });
+
+            if (!otpCode) {
+                return; // User cancelled
+            }
+
+            Swal.fire({
+                title: 'Verifying...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            await guest.verifyOtp(formData.email, otpCode.trim());
+            Swal.close();
+
+            // OTP verified successfully, proceed with booking creation
+            await proceedToBookingCreation();
+
+        } catch (error) {
+            console.error('OTP Verification Error:', error);
+            const message = error?.response?.data?.message || typeof error?.response?.data === 'string' ? error.response.data : error?.friendlyMessage || error.message || 'OTP verification failed';
+            Swal.fire({ icon: 'error', title: 'Verification Failed', text: message, confirmButtonColor: '#d33' });
+        }
+    };
+
+    const proceedToBookingCreation = async () => {
+        try {
+            Swal.fire({
+                title: 'Creating Booking...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             const payload = buildBookingPayload(formData, selectedPolicyId, rooms, checkIn, checkOut, finalBookingAmount);
             const currentBranchId = branchId || 1;
             const data = await bookingService.createFromFrontend(currentBranchId, payload);
             const createdBookingId = data?.bookingId ?? data?.id;
             const backendTotalAmount = normalizeMoney(data?.totalAmount);
+
+            Swal.close();
 
             if (Math.abs(backendTotalAmount - finalBookingAmount) > 0.01) {
                 Swal.fire({
@@ -818,8 +883,9 @@ const GuestInformation = () => {
                 },
             });
         } catch (error) {
+            Swal.close();
             console.error('Booking error:', error);
-            const message = error?.response?.data?.message || error?.friendlyMessage || error.message || 'Unable to create booking';
+            const message = error?.response?.data?.message || typeof error?.response?.data === 'string' ? error.response.data : error?.friendlyMessage || error.message || 'Unable to create booking';
             Swal.fire({ icon: 'error', title: 'Booking Error', text: message, confirmButtonColor: '#d33' });
         }
     };
