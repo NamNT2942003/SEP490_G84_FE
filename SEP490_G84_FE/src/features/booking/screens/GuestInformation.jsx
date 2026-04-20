@@ -950,7 +950,7 @@ const GuestInformation = () => {
             <main className="container mt-4 mb-5 pb-5">
                 <div className="row g-4 pb-5">
                     {/* Left column */}
-                    <div className="col-lg-8">
+                    <div className="col-xl-7 col-lg-6">
                         {rooms.length > 0 && (
                             <div className="guest-section">
                                 <h5>
@@ -1074,7 +1074,7 @@ const GuestInformation = () => {
                     </div>
 
                     {/* Right column – Booking Summary */}
-                    <div className="col-lg-4 mb-5 pb-5">
+                    <div className="col-xl-5 col-lg-6 mb-5 pb-5">
                         <div className="sticky-top d-none d-lg-block" style={{ top: '90px', zIndex: 1020, maxHeight: 'calc(100vh - 200px)' }}>
                             <div className="pe-1 pb-5 mb-5" style={{ maxHeight: '100%', overflowY: 'auto' }}>
                                 <BookingSummary
