@@ -706,143 +706,346 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         </div>
     );
 
-    const renderStep2 = () => (
-        <div className="cbsm-step-content">
-            <div className="cbsm-card">
-                <div className="cbsm-card-title">Room Lines</div>
-                {loadingRoomTypes && <div className="cbsm-muted">Loading room types...</div>}
-                {duplicateRoomTypeNames.length > 0 && (
-                    <div className="cbsm-warn-box">
-                        <div>
-                            Duplicate room type found: <strong>{duplicateRoomTypeNames.join(", ")}</strong>
-                        </div>
-                        <button type="button" className="cbsm-btn-outline btn-sm" onClick={mergeDuplicateRoomTypes}>
-                            Merge duplicate lines
-                        </button>
-                    </div>
-                )}
-                {form.rooms.map((room, index) => {
-                    const roomTypeId = String(room.roomTypeId || "");
-                    const roomPricing = roomPricingMap[roomTypeId] || null;
-                    const pricingOptions = roomPricing?.pricingOptions || [];
-                    const selectedOption = pricingOptions.find((opt) => opt.optionCode === room.selectedOptionCode) || pricingOptions[0] || null;
-                    const selectedByOthers = uniqueIds(
-                        form.rooms
-                            .filter((_, i) => i !== index)
-                            .map((r) => String(r.roomTypeId || ""))
-                            .filter(Boolean),
-                    );
-                    return (
-                        <div key={`room-line-${index}`} className="cbsm-room-line">
-                            <div className="cbsm-grid cbsm-grid-4">
-                                <div className="cbsm-field">
-                                    <label>Room type *</label>
-                                    <select
-                                        value={roomTypeId}
-                                        onChange={(e) => updateRoom(index, { roomTypeId: e.target.value, priceModifierIds: [] })}
-                                        disabled={!form.branchId}
-                                    >
-                                        <option value="">Select room type</option>
-                                        {roomTypes.map((rt) => (
-                                            <option
-                                                key={rt.roomTypeId}
-                                                value={rt.roomTypeId}
-                                                disabled={selectedByOthers.includes(String(rt.roomTypeId))}
-                                            >
-                                                {rt.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="cbsm-field">
-                                    <label>Quantity *</label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        value={room.quantity}
-                                        onChange={(e) => updateRoom(index, { quantity: e.target.value })}
-                                    />
-                                </div>
-                                <div className="cbsm-field">
-                                    <label>Auto price source</label>
-                                    <input
-                                        value={selectedOption ? `${formatVnd(selectedOption.finalPrice)} (${selectedOption.mode})` : (roomTypeId ? "No package available for selected dates" : "Select room type first")}
-                                        readOnly
-                                    />
-                                </div>
-                                <div className="cbsm-field cbsm-end-field">
-                                    <button
-                                        type="button"
-                                        className="cbsm-link-danger"
-                                        onClick={() => removeRoom(index)}
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
-                            </div>
+    const renderStep2 = () => {
+        const policyBadgeClass = () => {
+            switch (selectedPolicyType) {
+                case "FREE_CANCEL": return "cbsm-policy-badge-free";
+                case "PARTIAL_REFUND": return "cbsm-policy-badge-partial";
+                case "NON_REFUND": return "cbsm-policy-badge-nonrefund";
+                case "PAY_AT_HOTEL": return "cbsm-policy-badge-hotel";
+                default: return "cbsm-policy-badge-partial";
+            }
+        };
 
-                            <div className="cbsm-modifiers">
-                                <div className="cbsm-mod-title">Pricing Packages</div>
-                                {pricingOptions.length === 0 ? (
-                                    <div className="cbsm-muted">No pricing package available for this room type/date range.</div>
-                                ) : (
-                                    <div className="cbsm-option-list">
-                                        {pricingOptions.map((option) => {
-                                            const rowKey = `${index}-${option.optionCode}`;
-                                            const expanded = Boolean(expandedOptionRows[rowKey]);
-                                            const active = selectedOption?.optionCode === option.optionCode;
-                                            return (
-                                                <div key={rowKey} className={`cbsm-option-card ${active ? "active" : ""}`}>
-                                                    <label className="cbsm-option-head">
-                                                        <input
-                                                            type="radio"
-                                                            name={`room-option-${index}`}
-                                                            checked={active}
-                                                            onChange={() => choosePricingOption(index, option)}
-                                                        />
-                                                        <span className="cbsm-option-mode">{option.mode || "STANDARD"}</span>
-                                                        <span className="cbsm-option-price">{formatVnd(option.basePrice)} + {formatVnd(option.delta)} = {formatVnd(option.finalPrice)}</span>
-                                                    </label>
-                                                    {roomPricing?.paymentType && (
-                                                        <div className="cbsm-option-payment">Payment policy: {roomPricing.paymentType === "PAY_AT_HOTEL" ? "Pay at hotel" : "Prepaid"}</div>
-                                                    )}
+        const cartItems = form.rooms.filter(r => r.roomTypeId);
+        const totalRooms = cartItems.reduce((s, r) => s + Number(r.quantity || 0), 0);
+
+        return (
+            <div className="cbsm-s2-layout">
+                {/* ── LEFT: Room Type Catalog ── */}
+                <div className="cbsm-s2-left">
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#2f3f30" }}>
+                            <i className="bi bi-grid-3x2-gap-fill me-2" style={{ color: "#465c47" }} />
+                            Room Types
+                            {form.arrivalDate && form.departureDate && (
+                                <span style={{ fontWeight: 400, color: "#7a8a7b", fontSize: 12, marginLeft: 8 }}>
+                                    — pricing for {form.arrivalDate} → {form.departureDate}
+                                </span>
+                            )}
+                        </div>
+                        {loadingRoomTypes && (
+                            <span className="cbsm-muted" style={{ fontSize: 12 }}>
+                                <span className="spinner-border spinner-border-sm me-1" />Loading…
+                            </span>
+                        )}
+                    </div>
+
+                    {!form.branchId && (
+                        <div className="cbsm-muted" style={{ marginTop: 20, textAlign: "center", padding: "32px 0" }}>
+                            <i className="bi bi-building" style={{ fontSize: 28, display: "block", marginBottom: 8, opacity: 0.4 }} />
+                            Select a branch in Step 1 to see available rooms.
+                        </div>
+                    )}
+
+                    {duplicateRoomTypeNames.length > 0 && (
+                        <div className="cbsm-warn-box" style={{ marginBottom: 12 }}>
+                            <div>Duplicate: <strong>{duplicateRoomTypeNames.join(", ")}</strong></div>
+                            <button type="button" className="cbsm-btn-outline btn-sm" onClick={mergeDuplicateRoomTypes}>Merge</button>
+                        </div>
+                    )}
+
+                    <div className="cbsm-rt-grid">
+                        {roomTypes.map((rt) => {
+                            const rtId = String(rt.roomTypeId);
+                            const roomPricing = roomPricingMap[rtId] || null;
+                            const pricingOptions = roomPricing?.pricingOptions || [];
+                            const bestOption = pricingOptions[0] || null;
+                            const roomLine = form.rooms.find(r => String(r.roomTypeId) === rtId);
+                            const qty = roomLine ? Number(roomLine.quantity) : 0;
+                            const selectedOption = pricingOptions.find(o => o.optionCode === roomLine?.selectedOptionCode) || bestOption;
+                            const isSelected = qty > 0;
+                            const hasDiscount = bestOption && bestOption.basePrice > 0 && bestOption.finalPrice < bestOption.basePrice;
+                            const discountPct = hasDiscount
+                                ? Math.round((1 - bestOption.finalPrice / bestOption.basePrice) * 100)
+                                : 0;
+
+                            return (
+                                <div
+                                    key={rtId}
+                                    className={`cbsm-rt-card${isSelected ? " selected" : ""}`}
+                                    onClick={() => {
+                                        if (qty === 0) {
+                                            if (!roomLine) {
+                                                const newRoom = makeEmptyRoom();
+                                                newRoom.roomTypeId = rt.roomTypeId;
+                                                newRoom.quantity = 1;
+                                                if (bestOption) {
+                                                    newRoom.price = bestOption.finalPrice;
+                                                    newRoom.selectedOptionCode = bestOption.optionCode;
+                                                    newRoom.priceModifierIds = (bestOption.modifiers || [])
+                                                        .filter(m => DETAIL_LEVEL_TYPES.has(m?.type))
+                                                        .map(m => m.priceModifierId);
+                                                }
+                                                setForm(prev => ({ ...prev, rooms: [...prev.rooms.filter(r => r.roomTypeId), newRoom] }));
+                                            } else {
+                                                updateRoom(form.rooms.findIndex(r => String(r.roomTypeId) === rtId), { quantity: 1 });
+                                            }
+                                        }
+                                    }}
+                                >
+                                    {/* Image / placeholder */}
+                                    <div className="cbsm-rt-card-img">
+                                        {rt.image ? (
+                                            <img src={rt.image} alt={rt.name} />
+                                        ) : (
+                                            <i className="bi bi-building" />
+                                        )}
+                                    </div>
+
+                                    {isSelected && (
+                                        <div className="cbsm-rt-sel-badge">
+                                            <i className="bi bi-check-lg" />×{qty}
+                                        </div>
+                                    )}
+
+                                    <div className="cbsm-rt-card-body">
+                                        <div className="cbsm-rt-card-name">{rt.name}</div>
+                                        <div className="cbsm-rt-card-capacity">
+                                            {rt.maxAdults > 0 && <span><i className="bi bi-person me-1" />{rt.maxAdults} adults</span>}
+                                            {rt.maxChildren > 0 && <span><i className="bi bi-person-arms-up me-1" />{rt.maxChildren} children</span>}
+                                            {rt.area > 0 && <span><i className="bi bi-grid me-1" />{rt.area} m²</span>}
+                                        </div>
+
+                                        {/* Price row */}
+                                        <div className="cbsm-rt-card-price-row">
+                                            <span className="cbsm-rt-card-price">
+                                                {bestOption ? formatVnd(bestOption.finalPrice) : "—"}
+                                                <span style={{ fontSize: 11, fontWeight: 400, color: "#7a8a7b", marginLeft: 4 }}>/night</span>
+                                            </span>
+                                            {hasDiscount && (
+                                                <>
+                                                    <span className="cbsm-rt-card-base">{formatVnd(bestOption.basePrice)}</span>
+                                                    <span className="cbsm-rt-card-discount">-{discountPct}%</span>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        {/* Tags: modifiers */}
+                                        {bestOption && bestOption.modifiers?.length > 0 && (
+                                            <div className="cbsm-rt-card-tags">
+                                                {bestOption.modifiers.slice(0, 3).map((m, i) => (
+                                                    <span key={i} className="cbsm-rt-tag cbsm-rt-tag-blue">
+                                                        {m.name || m.type}
+                                                    </span>
+                                                ))}
+                                                {bestOption.modifiers.length > 3 && (
+                                                    <span className="cbsm-rt-tag cbsm-rt-tag-gray">+{bestOption.modifiers.length - 3} more</span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {!form.arrivalDate || !form.departureDate ? (
+                                            <div className="cbsm-muted" style={{ fontSize: 11 }}>
+                                                <i className="bi bi-info-circle me-1" />Enter dates to see live pricing
+                                            </div>
+                                        ) : pricingOptions.length === 0 && !loadingRoomTypes ? (
+                                            <div className="cbsm-muted" style={{ fontSize: 11 }}>
+                                                <i className="bi bi-x-circle me-1" />No packages for selected dates
+                                            </div>
+                                        ) : null}
+
+                                        {/* Package options (shown when selected) */}
+                                        {isSelected && pricingOptions.length > 1 && (
+                                            <div className="cbsm-pkg-list" onClick={e => e.stopPropagation()}>
+                                                <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "#7a8a7b", marginBottom: 4 }}>
+                                                    Pricing packages
+                                                </div>
+                                                {pricingOptions.map(option => {
+                                                    const active = selectedOption?.optionCode === option.optionCode;
+                                                    const modSum = (option.modifiers || []).map(m =>
+                                                        m.adjustmentType === "PERCENT"
+                                                            ? `${m.adjustmentValue > 0 ? "+" : ""}${m.adjustmentValue}%`
+                                                            : `${m.adjustmentValue > 0 ? "+" : ""}${formatVnd(m.adjustmentValue)}`
+                                                    ).join(", ");
+                                                    return (
+                                                        <div
+                                                            key={option.optionCode}
+                                                            className={`cbsm-pkg-option${active ? " active" : ""}`}
+                                                            onClick={() => choosePricingOption(form.rooms.findIndex(r => String(r.roomTypeId) === rtId), option)}
+                                                        >
+                                                            <input readOnly type="radio" className="cbsm-pkg-radio" checked={active} onChange={() => {}} />
+                                                            <div className="cbsm-pkg-info">
+                                                                <div className="cbsm-pkg-name">{option.mode || "STANDARD"}</div>
+                                                                {modSum && <div className="cbsm-pkg-sub">{modSum}</div>}
+                                                                {option.modifiers?.slice(0, 2).map((m, i) => (
+                                                                    <div key={i} className="cbsm-pkg-sub">{m.name || m.type}{m.reason ? ` — ${m.reason}` : ""}</div>
+                                                                ))}
+                                                            </div>
+                                                            <div className="cbsm-pkg-price">{formatVnd(option.finalPrice)}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {/* Footer: qty controls */}
+                                        <div className="cbsm-rt-card-footer" onClick={e => e.stopPropagation()}>
+                                            {isSelected ? (
+                                                <div className="cbsm-rt-card-qty">
                                                     <button
                                                         type="button"
-                                                        className="cbsm-option-expand"
-                                                        onClick={() => setExpandedOptionRows((prev) => ({ ...prev, [rowKey]: !expanded }))}
-                                                    >
-                                                        {expanded ? "Hide detail" : "Show detail"}
-                                                    </button>
-                                                    {expanded && (
-                                                        <div className="cbsm-option-details">
-                                                            {(option.modifiers || []).length > 0 ? (
-                                                                option.modifiers.map((m, mIndex) => (
-                                                                    <div key={`${rowKey}-${mIndex}`} className="cbsm-option-detail-row">
-                                                                        <div>{m.name || m.type || "Modifier"}</div>
-                                                                        <div className="cbsm-muted">{m.reason || (option.reasons || [])[mIndex] || "Condition-based adjustment"}</div>
-                                                                    </div>
-                                                                ))
-                                                            ) : (
-                                                                <div className="cbsm-muted">Standard package without extra modifier.</div>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                        className="cbsm-rt-qty-btn"
+                                                        onClick={() => {
+                                                            const idx = form.rooms.findIndex(r => String(r.roomTypeId) === rtId);
+                                                            if (qty <= 1) removeRoom(idx);
+                                                            else updateRoom(idx, { quantity: qty - 1 });
+                                                        }}
+                                                    >−</button>
+                                                    <span className="cbsm-rt-qty-num">{qty}</span>
+                                                    <button
+                                                        type="button"
+                                                        className="cbsm-rt-qty-btn"
+                                                        onClick={() => updateRoom(form.rooms.findIndex(r => String(r.roomTypeId) === rtId), { quantity: qty + 1 })}
+                                                    >+</button>
                                                 </div>
-                                            );
-                                        })}
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className="cbsm-btn-outline"
+                                                    style={{ fontSize: 12, padding: "5px 14px" }}
+                                                    disabled={!bestOption}
+                                                    onClick={() => {
+                                                        const newRoom = makeEmptyRoom();
+                                                        newRoom.roomTypeId = rt.roomTypeId;
+                                                        newRoom.quantity = 1;
+                                                        if (bestOption) {
+                                                            newRoom.price = bestOption.finalPrice;
+                                                            newRoom.selectedOptionCode = bestOption.optionCode;
+                                                            newRoom.priceModifierIds = (bestOption.modifiers || [])
+                                                                .filter(m => DETAIL_LEVEL_TYPES.has(m?.type))
+                                                                .map(m => m.priceModifierId);
+                                                        }
+                                                        setForm(prev => ({
+                                                            ...prev,
+                                                            rooms: [...prev.rooms.filter(r => r.roomTypeId), newRoom],
+                                                        }));
+                                                    }}
+                                                >
+                                                    <i className="bi bi-plus me-1" />Add
+                                                </button>
+                                            )}
+                                            <span className="cbsm-muted" style={{ fontSize: 11 }}>
+                                                {pricingOptions.length > 0
+                                                    ? `${pricingOptions.length} pkg${pricingOptions.length > 1 ? "s" : ""}`
+                                                    : "—"}
+                                            </span>
+                                        </div>
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
 
-                <button type="button" className="cbsm-btn-outline" onClick={addRoom}>
-                    + Add room line
-                </button>
+                {/* ── RIGHT: Sidebar ── */}
+                <div className="cbsm-s2-right">
+                    {/* Cart */}
+                    <div className="cbsm-sidebar-section">
+                        <div className="cbsm-sidebar-title">
+                            <i className="bi bi-cart3" />
+                            Booking cart
+                            {totalRooms > 0 && (
+                                <span style={{ marginLeft: "auto", background: "#465c47", color: "#fff", borderRadius: 20, fontSize: 10, padding: "1px 8px", fontWeight: 700 }}>
+                                    {totalRooms} room{totalRooms > 1 ? "s" : ""}
+                                </span>
+                            )}
+                        </div>
+
+                        {cartItems.length === 0 ? (
+                            <div className="cbsm-cart-empty">
+                                <i className="bi bi-inbox" style={{ fontSize: 24, display: "block", marginBottom: 6 }} />
+                                No rooms selected yet.<br />Click a room card to add.
+                            </div>
+                        ) : (
+                            <>
+                                {roomSummaryRows.map((row, i) => (
+                                    <div key={i} className="cbsm-cart-item">
+                                        <div>
+                                            <div className="cbsm-cart-name">{row.roomTypeName}</div>
+                                            <div className="cbsm-cart-meta">
+                                                ×{row.qty}
+                                                {row.lineDelta !== 0 && (
+                                                    <span className={row.lineDelta < 0 ? "cbsm-money-minus" : "cbsm-money-plus"} style={{ marginLeft: 6 }}>
+                                                        {row.lineDelta < 0 ? "−" : "+"}{formatVnd(Math.abs(row.lineDelta))}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="cbsm-cart-amount">{formatVnd(row.lineTotal)}</div>
+                                    </div>
+                                ))}
+                                <div className="cbsm-cart-total">
+                                    <span>Total</span>
+                                    <span style={{ color: "#465c47" }}>{formatVnd(estimatedGrandTotal)}</span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Cancellation Policy */}
+                    <div className="cbsm-sidebar-section">
+                        <div className="cbsm-sidebar-title">
+                            <i className="bi bi-shield-check" />Cancellation policy
+                        </div>
+                        {selectedPolicy ? (
+                            <div className={`cbsm-policy-badge ${policyBadgeClass()}`}>
+                                <div className="cbsm-policy-name">
+                                    {selectedPolicyType === "FREE_CANCEL" && <i className="bi bi-check-circle-fill me-1 text-success" />}
+                                    {selectedPolicyType === "NON_REFUND" && <i className="bi bi-x-circle-fill me-1 text-danger" />}
+                                    {selectedPolicyType === "PAY_AT_HOTEL" && <i className="bi bi-building-check me-1" />}
+                                    {selectedPolicyType === "PARTIAL_REFUND" && <i className="bi bi-arrow-left-right me-1" />}
+                                    {selectedPolicy.name}
+                                </div>
+                                <div className="cbsm-policy-row">
+                                    <span>Prepayment</span>
+                                    <strong>{selectedPolicy.prepaidRate}%</strong>
+                                </div>
+                                <div className="cbsm-policy-row">
+                                    <span>Refund on cancel</span>
+                                    <strong>{selectedPolicy.refunRate}%</strong>
+                                </div>
+                            </div>
+                        ) : cartItems.length > 0 ? (
+                            <div className="cbsm-muted" style={{ fontSize: 12 }}>
+                                <i className="bi bi-info-circle me-1" />No policy linked to selected pricing.
+                            </div>
+                        ) : (
+                            <div className="cbsm-muted" style={{ fontSize: 12 }}>Add rooms to see the applicable policy.</div>
+                        )}
+                    </div>
+
+                    {/* Payment type */}
+                    {cartItems.length > 0 && (
+                        <div className="cbsm-sidebar-section">
+                            <div className="cbsm-sidebar-title"><i className="bi bi-credit-card me-1" />Payment type</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "#2f3f30" }}>
+                                {selectedPaymentLabel || "—"}
+                            </div>
+                            {payableNowAmount > 0 && (
+                                <div className="cbsm-policy-row" style={{ marginTop: 8 }}>
+                                    <span>Due now</span>
+                                    <strong style={{ color: "#465c47" }}>{formatVnd(payableNowAmount)}</strong>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
+
+
 
     const renderStep3 = () => {
         const selectedBranch = (branches || []).find((b) => String(b.branchId) === String(form.branchId));
