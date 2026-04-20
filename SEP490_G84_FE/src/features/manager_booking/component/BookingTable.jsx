@@ -63,6 +63,7 @@ export default function BookingTable({
   onDetailsClick,
   onCheckoutClick,
   onLateCheckoutClick,
+  onCollectRemainingClick,
   onRefresh,
   mode = 'checkin',
   accent = '#2e7d32',
@@ -313,6 +314,17 @@ export default function BookingTable({
                           style={{ background: accent, color: '#fff', border: 'none', fontSize: '0.82rem' }}
                           onClick={() => onCheckInClick(booking)}>
                           <i className="bi bi-box-arrow-in-right me-1"></i>Check In
+                        </button>
+                      )}
+
+                    {/* Collect Remaining — only for partial-payment bookings */}
+                    {booking.paymentStatus !== 'PAID'
+                      && (booking.prepaidAmount ?? 0) > 0
+                      && booking.status !== 'NO_SHOW' && (
+                        <button className="btn btn-sm fw-semibold"
+                          style={{ background: '#fffbeb', color: '#92400e', border: '1px solid #f59e0b', fontSize: '0.79rem' }}
+                          onClick={() => onCollectRemainingClick && onCollectRemainingClick(booking)}>
+                          <i className="bi bi-cash-coin me-1"></i>Collect Remaining
                         </button>
                       )}
 
