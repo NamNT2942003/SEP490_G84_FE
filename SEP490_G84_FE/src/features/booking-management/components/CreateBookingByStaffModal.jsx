@@ -1073,36 +1073,82 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                             </div>
                         ) : availablePolicies.length > 0 ? (
                             <>
-                                <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "#9aaa9b", marginBottom: 6 }}>
-                                    <i className="bi bi-calendar-check me-1" />Active policies for this date
+                                <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "#9aaa9b", marginBottom: 8 }}>
+                                    <i className="bi bi-calendar-check me-1" />Applicable policies
                                 </div>
                                 {availablePolicies.map(p => {
                                     const pType = String(p.type || "").trim().toUpperCase();
-                                    const badgeCls = pType === "FREE_CANCEL" ? "cbsm-rt-tag-green"
-                                        : pType === "NON_REFUND" ? "cbsm-rt-tag-red"
-                                            : pType === "PAY_AT_HOTEL" ? "cbsm-rt-tag-blue"
-                                                : "cbsm-rt-tag-amber";
-                                    const isLinked = selectedPolicy?.id === p.id || selectedPolicy?.id === p.policyId;
+
+                                    // Tên type thân thiện
+                                    const typeLabel = {
+                                        FREE_CANCEL:    { text: "Free cancellation",  cls: "cbsm-rt-tag-green", icon: "bi-check-circle-fill text-success" },
+                                        PARTIAL_REFUND: { text: "Partial refund",     cls: "cbsm-rt-tag-amber", icon: "bi-arrow-left-right"                },
+                                        NON_REFUND:     { text: "Non-refundable",     cls: "cbsm-rt-tag-red",   icon: "bi-x-circle-fill text-danger"        },
+                                        PAY_AT_HOTEL:   { text: "Pay at hotel",       cls: "cbsm-rt-tag-blue",  icon: "bi-building-check"                   },
+                                    }[pType] || { text: pType, cls: "cbsm-rt-tag-gray", icon: "bi-shield" };
+
+                                    // Format mùa "08-01 → 05-01" → "Aug 1 – May 1"
+                                    const formatMonthDay = (md) => {
+                                        if (!md) return "";
+                                        const [mm, dd] = md.split("-").map(Number);
+                                        return new Date(2000, mm - 1, dd).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                                    };
+
+                                    const seasonLabel = p.activeTimeStart && p.activeTimeEnd
+                                        ? `${formatMonthDay(p.activeTimeStart)} – ${formatMonthDay(p.activeTimeEnd)}`
+                                        : null;
+
+                                    const freeCancelDays = p.dateRange ? parseInt(p.dateRange, 10) : null;
+                                    const isLinked = selectedPolicy?.id === p.id;
+
                                     return (
                                         <div key={p.id ?? p.policyId} style={{
-                                            border: isLinked ? "1.5px solid #465c47" : "1px solid #e2eae2",
-                                            borderRadius: 8, padding: "7px 10px", marginBottom: 6,
+                                            border: isLinked ? "2px solid #465c47" : "1px solid #e0e8e0",
+                                            borderRadius: 10,
+                                            padding: "10px 12px",
+                                            marginBottom: 8,
                                             background: isLinked ? "#f0f6f0" : "#fff",
-                                            fontSize: 12,
                                         }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                                                <span className={`cbsm-rt-tag ${badgeCls}`} style={{ fontSize: 9.5 }}>{pType.replace("_", " ")}</span>
-                                                <span style={{ fontWeight: 600, color: "#2f3f30" }}>{p.name}</span>
-                                                {isLinked && <i className="bi bi-check-circle-fill text-success" style={{ marginLeft: "auto", fontSize: 12 }} />}
+                                            {/* Header: type badge + name */}
+                                            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
+                                                <span className={`cbsm-rt-tag ${typeLabel.cls}`} style={{ fontSize: 10, whiteSpace: "nowrap", marginTop: 1 }}>
+                                                    <i className={`bi ${typeLabel.icon} me-1`} />{typeLabel.text}
+                                                </span>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontWeight: 700, fontSize: 12.5, color: "#1f2937", lineHeight: 1.3 }}>{p.name}</div>
+                                                    {isLinked && (
+                                                        <div style={{ fontSize: 10, color: "#16a34a", fontWeight: 600, marginTop: 1 }}>
+                                                            <i className="bi bi-check-circle-fill me-1" />Applied to booking
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div style={{ display: "flex", gap: 10, color: "#6b7280", fontSize: 11 }}>
-                                                <span>Prepaid: <strong>{p.prepaidRate}%</strong></span>
-                                                <span>Refund: <strong>{p.refunRate}%</strong></span>
-                                                {p.dateRange && <span>Free: <strong>{p.dateRange}d</strong></span>}
+
+                                            {/* Key figures: Prepaid + Refund side-by-side */}
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: freeCancelDays || seasonLabel ? 8 : 0 }}>
+                                                <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px" }}>
+                                                    <div style={{ fontSize: 9.5, color: "#9aaa9b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>Prepayment</div>
+                                                    <div style={{ fontSize: 14, fontWeight: 800, color: "#2f3f30" }}>{p.prepaidRate}%</div>
+                                                </div>
+                                                <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px" }}>
+                                                    <div style={{ fontSize: 9.5, color: "#9aaa9b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>Refund if cancelled</div>
+                                                    <div style={{ fontSize: 14, fontWeight: 800, color: p.refunRate > 0 ? "#16a34a" : "#dc2626" }}>{p.refunRate}%</div>
+                                                </div>
                                             </div>
-                                            {(p.activeTimeStart && p.activeTimeEnd) && (
-                                                <div style={{ fontSize: 10, color: "#9aaa9b", marginTop: 2 }}>
-                                                    <i className="bi bi-calendar-range me-1" />Season: {p.activeTimeStart} → {p.activeTimeEnd}
+
+                                            {/* Free cancellation window */}
+                                            {freeCancelDays > 0 && (
+                                                <div style={{ fontSize: 11, color: "#374151", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0 }}>
+                                                    <i className="bi bi-clock-history me-1 text-success" />
+                                                    Full refund if cancelled <strong>{freeCancelDays} days</strong> before check-in
+                                                </div>
+                                            )}
+
+                                            {/* Season indicator */}
+                                            {seasonLabel && (
+                                                <div style={{ fontSize: 10.5, color: "#6b7280", display: "flex", alignItems: "center", gap: 4 }}>
+                                                    <i className="bi bi-sun me-1" />
+                                                    Applies: <strong style={{ color: "#374151" }}>{seasonLabel}</strong>
                                                 </div>
                                             )}
                                         </div>
