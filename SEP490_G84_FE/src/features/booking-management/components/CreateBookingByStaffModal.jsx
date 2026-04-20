@@ -112,6 +112,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
     const [expandedOptionRows, setExpandedOptionRows] = useState({});
     const [selectedPolicy, setSelectedPolicy] = useState(null);
     const [availablePolicies, setAvailablePolicies] = useState([]);  // policies active theo seasonal window
+    const [loadingPolicies, setLoadingPolicies] = useState(false);
     const [form, setForm] = useState(initialFormState);
     const [error, setError] = useState("");
 
@@ -125,6 +126,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         setExpandedOptionRows({});
         setSelectedPolicy(null);
         setAvailablePolicies([]);
+        setLoadingPolicies(false);
         setForm((prev) => ({
             ...initialFormState,
             branchId:
@@ -210,25 +212,33 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
 
     // Fetch danh sách policy khả dĩ theo seasonal window của ngày check-in
     useEffect(() => {
-        if (!show || !form.branchId) {
+        const branchIdNum = Number(form.branchId);
+        if (!show || !form.branchId || !Number.isFinite(branchIdNum) || branchIdNum <= 0) {
             setAvailablePolicies([]);
             return;
         }
         let isMounted = true;
         const fetchActivePolicies = async () => {
+            setLoadingPolicies(true);
             try {
+                console.log("[CBSM] Fetching active policies:", { branchId: branchIdNum, checkIn: form.arrivalDate });
                 const data = await cancellationPolicyService.getActivePoliciesForDate(
-                    Number(form.branchId),
+                    branchIdNum,
                     form.arrivalDate || null,
                 );
-                if (isMounted) setAvailablePolicies(data || []);
-            } catch {
+                console.log("[CBSM] Active policies received:", data);
+                if (isMounted) setAvailablePolicies(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error("[CBSM] Failed to fetch active policies:", err);
                 if (isMounted) setAvailablePolicies([]);
+            } finally {
+                if (isMounted) setLoadingPolicies(false);
             }
         };
         fetchActivePolicies();
         return () => { isMounted = false; };
     }, [show, form.branchId, form.arrivalDate]);
+
 
     useEffect(() => {
         if (!show) return;
@@ -1056,7 +1066,12 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         ) : null}
 
                         {/* All active policies for this date — for staff advisory */}
-                        {availablePolicies.length > 0 && (
+                        {loadingPolicies ? (
+                            <div className="cbsm-muted" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                                <span className="spinner-border spinner-border-sm" />
+                                Loading policies…
+                            </div>
+                        ) : availablePolicies.length > 0 ? (
                             <>
                                 <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "#9aaa9b", marginBottom: 6 }}>
                                     <i className="bi bi-calendar-check me-1" />Active policies for this date
@@ -1094,7 +1109,14 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     );
                                 })}
                             </>
-                        )}
+                        ) : form.branchId ? (
+                            <div className="cbsm-muted" style={{ fontSize: 12 }}>
+                                <i className="bi bi-calendar-x me-1" />
+                                {form.arrivalDate
+                                    ? `No active policy for ${form.arrivalDate}.`
+                                    : "No active policy for this branch."}
+                            </div>
+                        ) : null}
 
                         {!form.branchId && (
                             <div className="cbsm-muted" style={{ fontSize: 12 }}>Select a branch to see applicable policies.</div>
