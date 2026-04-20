@@ -270,13 +270,31 @@ export default function BookingTable({
                 {/* Amount */}
                 <td>
                   <div className="fw-bold small">{booking.totalAmount?.toLocaleString('en-US')} VND</div>
-                  <span className="px-2 py-1 rounded-2 fw-bold" style={{
-                    fontSize: '0.71rem',
-                    background: booking.paymentStatus === 'PAID' ? '#e8f5e9' : '#fff3e0',
-                    color: booking.paymentStatus === 'PAID' ? '#2e7d32' : '#e65100',
-                  }}>
-                    {booking.paymentStatus === 'PAID' ? '✓ Paid' : '· Unpaid'}
-                  </span>
+                  {(() => {
+                    // OTA: platform already collected — no breakdown needed
+                    if (!isInternalFrontendBooking(booking.source)) return null;
+                    // Fully paid or no data — no breakdown needed
+                    if (booking.paymentStatus === 'PAID') return null;
+                    const paid  = Number(booking.prepaidAmount ?? 0);
+                    const total = Number(booking.totalAmount   ?? 0);
+                    const due   = Math.max(0, total - paid);
+                    // Only show breakdown when there's a partial payment
+                    if (paid <= 0) return null;
+                    return (
+                      <div className="d-flex flex-column gap-1 mt-1">
+                        <span className="px-2 py-1 rounded-2 fw-bold"
+                          style={{ fontSize: '0.71rem', background: '#e8f5e9', color: '#2e7d32' }}>
+                          ✓ {paid.toLocaleString('en-US')}
+                        </span>
+                        {due > 0 && (
+                          <span className="px-2 py-1 rounded-2 fw-bold"
+                            style={{ fontSize: '0.71rem', background: '#fff3e0', color: '#e65100' }}>
+                            · Due: {due.toLocaleString('en-US')}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </td>
 
                 {/* Status */}
