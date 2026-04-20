@@ -342,10 +342,10 @@ const PaymentSelection = () => {
                     </div>
 
                     {/* Right column – Booking Summary */}
-                    <div className="col-lg-4">
-                        <div className="sticky-top d-none d-lg-block" style={{ top: '90px', zIndex: 1020 }}>
-                            <h5 className="fw-bold mb-3" style={{ color: '#465c47' }}>Your Booking</h5>
-                            <BookingSummary
+                    <div className="col-lg-4 mb-5 pb-5">
+                        <div className="sticky-top d-none d-lg-block" style={{ top: '90px', zIndex: 1020, maxHeight: 'calc(100vh - 200px)' }}>
+                            <div className="pe-1 pb-5 mb-5" style={{ maxHeight: '100%', overflowY: 'auto' }}>
+                                <BookingSummary
                                 selectedRooms={rooms}
                                 checkIn={checkIn}
                                 checkOut={checkOut}
@@ -354,9 +354,9 @@ const PaymentSelection = () => {
                                 depositAmount={effectiveAmount}
                                 bookingTotalAmount={displayedBookingTotal}
                             />
+                            </div>
                         </div>
                         <div className="d-lg-none mt-4">
-                            <h5 className="fw-bold mb-3" style={{ color: '#465c47' }}>Your Booking</h5>
                             <BookingSummary
                                 selectedRooms={rooms}
                                 checkIn={checkIn}

@@ -176,10 +176,10 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
             <div className="bg-white rounded-3 p-3 border custom-shadow">
                 <img
                     alt="Resort Room"
-                    className="img-fluid rounded-3 mb-3"
+                    className="img-fluid rounded-3 mb-2"
                     src={getAbsoluteImageUrl(selectedRooms[0]?.image) || "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"}
                     onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"; }}
-                    style={{ height: '140px', width: '100%', objectFit: 'cover' }}
+                    style={{ height: '100px', width: '100%', objectFit: 'cover' }}
                 />
                 <div className="d-flex align-items-center gap-1 mb-1 text-warning" style={{ fontSize: '13px' }}>
                     <i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i>
@@ -194,10 +194,10 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
             </div>
 
             {/* Card 2: Your booking details */}
-            <div className="bg-white rounded-3 p-4 border custom-shadow">
-                <h5 className="fw-bold mb-4" style={{ fontSize: '18px' }}>Your booking details</h5>
+            <div className="bg-white rounded-3 p-3 border custom-shadow">
+                <h5 className="fw-bold mb-3" style={{ fontSize: '16px' }}>Your booking details</h5>
                 
-                <div className="row g-0 mb-3">
+                <div className="row g-0 mb-2">
                     <div className="col-6 border-end pe-3">
                         <p className="mb-1 text-dark fw-medium">Check-in</p>
                         <h6 className="fw-bold mb-1">{formatDateBig(checkIn)}</h6>
@@ -219,8 +219,8 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 <hr className="my-3 text-muted" />
                 
                 <div className="mb-1">
-                    <p className="text-dark fw-medium mb-2">You selected</p>
-                    <h6 className="fw-bold mb-4">
+                    <p className="text-dark fw-medium mb-1">You selected</p>
+                    <h6 className="fw-bold mb-3" style={{ fontSize: '15px' }}>
                         {nights} {nights > 1 ? 'nights' : 'night'}, {totalRooms} {totalRooms > 1 ? 'rooms' : 'room'} for {totalAdults} {totalAdults > 1 ? 'adults' : 'adult'} and {totalChildren} {totalChildren > 1 ? 'children' : 'child'}
                     </h6>
                     
@@ -238,16 +238,16 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
 
             {/* Card 3: Your price summary */}
             <div className="bg-white rounded-3 border custom-shadow overflow-hidden">
-                <div className="p-4">
-                    <h5 className="fw-bold mb-4" style={{ fontSize: '18px' }}>Your price summary</h5>
+                <div className="p-3">
+                    <h5 className="fw-bold mb-3" style={{ fontSize: '16px' }}>Your price summary</h5>
                     
-                    <div className="d-flex justify-content-between mb-3 text-dark">
+                    <div className="d-flex justify-content-between mb-2 text-dark">
                         <span>Original price</span>
                         <span>{formatCurrency(totalBasePrice)}</span>
                     </div>
                     
                     {allModifiers.map((mod, i) => (
-                        <div className="d-flex justify-content-between mb-3" key={i}>
+                        <div className="d-flex justify-content-between mb-2" key={i}>
                             <div className="text-dark">
                                 <div>{mod.name}</div>
                                 {mod.reason && <div className="text-muted small" style={{ fontSize: '11px', marginTop: '2px' }}>{mod.reason}</div>}
@@ -260,16 +260,16 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 </div>
                 
                 {/* Total Section with light blue background */}
-                <div className="p-4 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#ebf3ff' }}>
-                    <h4 className="fw-bold m-0 text-dark">Total</h4>
+                <div className="p-3 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#ebf3ff' }}>
+                    <h5 className="fw-bold m-0 text-dark">Total</h5>
                     <div className="text-end">
                         {totalBasePrice > bookingTotalAmount && (
-                            <div className="text-danger text-decoration-line-through mb-1 fw-medium" style={{ fontSize: '15px' }}>
+                            <div className="text-danger text-decoration-line-through mb-1 fw-medium" style={{ fontSize: '14px' }}>
                                 {formatCurrency(totalBasePrice)}
                             </div>
                         )}
-                        <h2 className="fw-bold m-0 text-dark">{formatCurrency(bookingTotalAmount)}</h2>
-                        <div className="text-muted mt-1" style={{ fontSize: '12px' }}>Includes taxes and fees</div>
+                        <h3 className="fw-bold m-0 text-dark">{formatCurrency(bookingTotalAmount)}</h3>
+                        <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Includes taxes and fees</div>
                     </div>
                 </div>
             </div>
