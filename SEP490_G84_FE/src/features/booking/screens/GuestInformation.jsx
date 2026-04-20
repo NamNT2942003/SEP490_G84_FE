@@ -371,12 +371,17 @@ const RoomItem = ({ room, onQuantityChange, onRemove }) => {
     const maxQty = room.availableCount || 999;
 
     return (
-        <div className="room-item shadow-sm border-0 rounded-4 overflow-hidden mb-4" style={{ background: '#fff', transition: 'all 0.3s' }}>
-            <div className="room-item-body">
-                <div className="d-flex justify-content-between align-items-start mb-3">
+        <div className="room-item shadow-sm border-0 rounded-4 overflow-hidden mb-3" style={{ background: '#fff', transition: 'all 0.3s' }}>
+            <div className="room-item-body p-3">
+                <div className="d-flex justify-content-between align-items-start mb-2">
                     <div>
-                        <div className="room-name fs-5 fw-bold text-dark mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>{room.name}</div>
-                        <div className="room-price fw-semibold text-secondary mb-2" style={{ fontSize: '0.9rem' }}>
+                        <div className="room-name fs-6 fw-bold text-dark mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+                            {room.name}
+                            <span className="text-secondary fw-normal ms-2" style={{ fontFamily: "Arial, sans-serif", fontSize: '0.85rem' }}>
+                                - Max Adult: {room.maxAdult || 0} , Max children: {room.maxChildren || 0}
+                            </span>
+                        </div>
+                        <div className="room-price fw-semibold text-secondary mb-1" style={{ fontSize: '0.85rem' }}>
                             <i className="bi bi-currency-dollar me-1"></i>{new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ stay</span>
                         </div>
                         <div className="d-flex gap-3" />
@@ -391,38 +396,38 @@ const RoomItem = ({ room, onQuantityChange, onRemove }) => {
                     </button>
                 </div>
 
-                <div className="d-flex justify-content-between align-items-center mt-4">
+                <div className="d-flex justify-content-between align-items-center mt-3">
                     <div className="qty-control shadow-sm border rounded-pill d-flex align-items-center p-1 bg-white">
                         <button
                             type="button"
                             className="btn btn-sm btn-light rounded-circle"
                             onClick={() => onQuantityChange(room.roomTypeId, qty - 1)}
-                            style={{ width: '32px', height: '32px', padding: 0 }}
+                            style={{ width: '28px', height: '28px', padding: 0 }}
                         >
                             <i className="bi bi-dash fw-bold" />
                         </button>
                         <input
                             type="number"
-                            className="form-control border-0 text-center text-dark fw-bold"
+                            className="form-control border-0 text-center text-dark fw-bold px-1"
                             value={qty}
                             min="1"
                             max={maxQty}
                             onChange={(e) =>
                                 onQuantityChange(room.roomTypeId, parseInt(e.target.value) || 1)
                             }
-                            style={{ width: '50px', background: 'transparent' }}
+                            style={{ width: '40px', height: '28px', background: 'transparent' }}
                         />
                         <button
                             type="button"
                             className="btn btn-sm btn-light rounded-circle"
                             onClick={() => onQuantityChange(room.roomTypeId, qty + 1)}
                             disabled={qty >= maxQty}
-                            style={{ width: '32px', height: '32px', padding: 0 }}
+                            style={{ width: '28px', height: '28px', padding: 0 }}
                         >
                             <i className="bi bi-plus fw-bold" />
                         </button>
                     </div>
-                    <div className="room-total fs-4 fw-bold" style={{ color: '#5C6F4E' }}>
+                    <div className="room-total fs-5 fw-bold" style={{ color: '#5C6F4E' }}>
                         {formatVND(unitPrice * qty)}
                     </div>
                 </div>
@@ -942,8 +947,8 @@ const GuestInformation = () => {
             </header>
 
             {/* Content */}
-            <main className="container mt-4">
-                <div className="row g-4">
+            <main className="container mt-4 mb-5 pb-5">
+                <div className="row g-4 pb-5">
                     {/* Left column */}
                     <div className="col-lg-8">
                         {rooms.length > 0 && (
