@@ -206,7 +206,7 @@ export default function FrontDeskDashboard() {
       { key: null, label: 'Checkout Today', value: s.todayCheckout ?? '–', sub: 'due for check-out today' },
       { key: null, label: 'Currently In-House', value: s.totalCheckout ?? '–', sub: 'guests staying now' },
       { key: 'upcoming', label: isCheckin ? 'Upcoming Arrivals' : 'Upcoming Departures', value: isCheckin ? (s.upcomingCheckin ?? '–') : (s.upcomingCheckout ?? '–'), sub: 'future bookings' },
-      { key: null, label: isCheckin ? 'Total sold room today' : 'Total Check-outs', value: isCheckin ? ((s.todaySoldRoom ?? 0) + (s.totalCheckout ?? 0)) : (s.totalCheckout ?? '–'), sub: 'all statuses' },
+      { key: null, label: isCheckin ? 'Total sold room today' : 'Total Check-outs', value: isCheckin ? (s.todaySoldRoom ?? '–') : (s.totalCheckout ?? '–'), sub: 'all statuses' },
     ];
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -253,11 +253,24 @@ export default function FrontDeskDashboard() {
           transition: all 0.2s;
           box-shadow: 0 1px 4px rgba(0,0,0,0.07);
           user-select: none;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
         }
         .fd-stat-card.clickable { cursor: pointer; }
         .fd-stat-card.clickable:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.13); transform: translateY(-2px); }
         .fd-stat-card.selected  { border-color: var(--fd-accent) !important; }
-        .fd-stat-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #999; letter-spacing: .05em; }
+        .fd-stat-label { 
+          font-size: 0.7rem; 
+          font-weight: 700; 
+          text-transform: uppercase; 
+          color: #999; 
+          letter-spacing: .05em; 
+          min-height: 2.2em; 
+          display: flex;
+          align-items: flex-start;
+          flex-grow: 1;
+        }
         .fd-stat-num   { font-size: 2rem; font-weight: 800; line-height: 1.1; color: #222; }
         .fd-stat-sub   { font-size: 0.75rem; color: #aaa; margin-top: 2px; }
         .fd-section    { background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
@@ -351,10 +364,10 @@ export default function FrontDeskDashboard() {
               onClick={() => card.key && toggleCardFilter(card.key)}
             >
               <span className="fd-stat-label">{card.label}</span>
-              <div className="fd-stat-num mt-2" style={{ color: statsLoading ? '#ccc' : '#222' }}>
+              <div className="fd-stat-num" style={{ color: statsLoading ? '#ccc' : '#222', marginTop: 'auto' }}>
                 {statsLoading ? '…' : card.value}
               </div>
-              <div className="fd-stat-sub">{card.sub}</div>
+              <div className="fd-stat-sub mt-1">{card.sub}</div>
               {card.key && cardFilter === card.key && (
                 <div className="mt-2" style={{ fontSize: '0.7rem', color: accent, fontWeight: 600 }}>
                   Filtering — click again to clear
