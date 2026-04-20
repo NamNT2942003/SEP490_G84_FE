@@ -380,7 +380,7 @@ export default function RoomTypeManagement() {
       <div className="rt-title-row">
         <div>
 
-          <h4 className="mb-0">Room Type Management</h4>
+          <h4 className="page-title">Room Type Management</h4>
         </div>
         <Buttons variant="primary" className="btn-sm" icon={<i className="bi bi-plus-circle me-1" />} onClick={openCreateModal}>
           Add Room Type

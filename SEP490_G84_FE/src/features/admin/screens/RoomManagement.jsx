@@ -733,7 +733,7 @@ function RoomManagement() {
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3">
           <div>
 
-            <h2 className="fw-bold mb-1 text-dark" style={{ letterSpacing: "-0.5px", fontSize: "1.75rem" }}>
+            <h2 className="mb-1 page-title">
               Room Management
             </h2>
             <div className="d-flex align-items-center gap-2 mb-1">

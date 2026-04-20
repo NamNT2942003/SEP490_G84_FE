@@ -258,7 +258,7 @@ const AccountList = () => {
         {/* Header */}
         <div className="account-header">
           <div>
-            <h1 className="account-title">
+            <h1 className="account-title page-title">
               Account List
             </h1>
           </div>

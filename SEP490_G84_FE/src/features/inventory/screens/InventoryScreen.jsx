@@ -160,7 +160,7 @@ const InventoryScreen = () => {
       {/* Page header & Global Filter */}
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
-          <h2 className="fw-bold mb-1" style={{ color: COLORS.PRIMARY }}>
+          <h2 className="mb-1 page-title" style={{ color: COLORS.PRIMARY }}>
             <i className="bi bi-box-seam me-2" />
             Inventory Management — <span className="inv-year-accent">{curYear}</span>
           </h2>

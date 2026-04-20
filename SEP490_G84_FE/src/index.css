@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap');
 /* src/index.css */
 
 /* Layout chính: sidebar trái cố định + content phải (dùng CSS thuần để luôn đúng) */
@@ -256,4 +257,13 @@ body {
     top: 0;
     margin-bottom: 20px;
   }
+}
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap');
+
+.page-title {
+  font-family: 'Raleway', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 28px !important;
+  color: #1a1a2e !important;
+  margin-bottom: 0 !important;
 }

@@ -222,7 +222,7 @@ export default function RoomInventoryManagement() {
       <div className="ri-title-row">
         <div>
 
-          <h4 className="mb-0">Room Inventory Management</h4>
+          <h4 className="page-title">Room Inventory Management</h4>
         </div>
         <Buttons variant="primary" className="btn-sm" icon={<i className="bi bi-plus-circle me-1" />} onClick={openCreateModal}>
           Upsert Inventory

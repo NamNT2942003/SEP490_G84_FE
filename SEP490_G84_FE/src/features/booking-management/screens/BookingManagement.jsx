@@ -291,7 +291,7 @@ export default function BookingManagement() {
             {/* Breadcrumb + title */}
             <div className="bm-title-row">
                 <div>
-                    <h4 className="fw-bold mb-0">Booking Management</h4>
+                    <h4 className="page-title">Booking Management</h4>
                 </div>
                 <div className="d-flex align-items-center gap-2">
                     <Buttons

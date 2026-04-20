@@ -509,7 +509,7 @@ function RoomManagement() {
           {/* ── Page Header ── */}
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28,flexWrap:"wrap",gap:16 }}>
             <div>
-              <h1 style={{ fontSize:"1.65rem",fontWeight:700,color:"#111",margin:0,letterSpacing:"-0.5px" }}>
+              <h1 className="page-title">
                 Room Management
               </h1>
               <div style={{ display:"flex",alignItems:"center",gap:10,marginTop:6 }}>

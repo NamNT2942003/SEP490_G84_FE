@@ -190,7 +190,7 @@ export const HousekeepingDashboard = () => {
           {/* ══ Title row ══════════════════════════════════════════════════════════ */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: P.primaryDark, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 className="page-title d-flex align-items-center gap-2">
                 <i className="bi bi-brush-fill" style={{ color: P.primary }} />
                 Housekeeping Board
               </h2>

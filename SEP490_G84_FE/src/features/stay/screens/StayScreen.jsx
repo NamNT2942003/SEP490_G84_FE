@@ -83,8 +83,8 @@ const StayScreen = () => {
   return (
     <div className="container-fluid p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold text-dark">In-house Bookings</h2>
-        
+        <h2 className="page-title">In-house Bookings</h2>
+
         <div className="d-flex gap-3 w-50 justify-content-end">
           {isAdminOrManager && (
             <select 

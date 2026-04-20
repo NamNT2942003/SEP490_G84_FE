@@ -503,7 +503,7 @@ const FurnitureInventory = () => {
                 <div className="container pb-5">
                     <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,marginTop:16 }}>
                         <div>
-                            <h1 style={{ fontSize:"1.65rem",fontWeight:700,color:"#111",margin:0,letterSpacing:"-0.5px" }}>
+                            <h1 className="page-title">
                                 Furniture Management
                             </h1>
                         </div>

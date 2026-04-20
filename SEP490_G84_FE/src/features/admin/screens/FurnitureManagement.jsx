@@ -60,7 +60,7 @@ export default function FurnitureManagement() {
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div>
 
-              <h4 className="fw-bold mb-0" style={{ color: "#1a1a2e", letterSpacing: "-0.3px" }}>
+              <h4 className="page-title">
                 Furniture Management
               </h4>
             </div>

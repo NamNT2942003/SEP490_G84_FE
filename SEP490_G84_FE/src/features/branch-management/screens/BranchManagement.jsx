@@ -324,7 +324,7 @@ export default function BranchManagement() {
       {/* Header */}
       <div className="branch-title-row">
         <div>
-          <h4 className="branch-page-title">Branch Management</h4>
+          <h4 className="branch-page-title page-title">Branch Management</h4>
         </div>
         <div className="d-flex gap-2 align-items-center">
           <Buttons variant="outline" className="btn-sm" icon={<i className="bi bi-arrow-clockwise" />} onClick={fetchBranches} isLoading={loading}>
