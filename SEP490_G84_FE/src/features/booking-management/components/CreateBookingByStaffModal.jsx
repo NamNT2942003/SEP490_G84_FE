@@ -582,7 +582,6 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         roomTypeId: String(room.roomTypeId),
                         quantity: Number(room.quantity),
                         price: Number(room.price ?? option?.finalPrice ?? option?.basePrice ?? 0),
-                        priceModifierId: modifierIds[0] || null,
                         priceModifierIds: modifierIds,
                     };
                 }),

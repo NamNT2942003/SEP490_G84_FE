@@ -347,7 +347,6 @@ const buildBookingPayload = (formData, selectedPolicyId, rooms, checkIn, checkOu
                 roomTypeId: room.roomTypeId,
                 price: calculateRoomUnitPrice(room),
                 quantity: room.quantity || 1,
-                priceModifierId: allIds[0] || null,
                 priceModifierIds: allIds,
             };
         }),

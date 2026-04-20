@@ -302,11 +302,11 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                             </div>
                         </div>
 
-                        {/* Days before check-in */}
+                        {/* Free cancellation window */}
                         <div className="mb-3">
                             <label className="form-label fw-semibold">
-                                <i className="bi bi-calendar-event me-1 text-primary"></i>
-                                Condition (days before check-in)
+                                <i className="bi bi-calendar-check me-1 text-success"></i>
+                                Free cancellation window (days before check-in)
                             </label>
                             <input
                                 type="number"
@@ -318,7 +318,7 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                                 placeholder="Example: 7"
                             />
                             <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>
-                                Enter a single number. For example, 7 means the policy applies up to 7 days before check-in.
+                                If cancelled <strong>≥ N days</strong> before check-in → <span style={{ color: "#16a34a", fontWeight: 600 }}>full refund (100%)</span>. After that window → refund follows the rate above.
                             </div>
                         </div>
 
@@ -653,7 +653,20 @@ const RefundPolicyManagement = () => {
                                         {/* Meta info */}
                                         <div className="d-flex flex-column gap-1 mb-3" style={{ fontSize: "0.8rem", color: "#718096" }}>
                                             {(p.daysBeforeCheckIn !== null && p.daysBeforeCheckIn !== undefined) || p.dateRange ? (
-                                                <div><i className="bi bi-calendar-event me-1 text-primary"></i>Applies when cancelled within <strong>{p.daysBeforeCheckIn ?? p.dateRange}</strong> days before check-in</div>
+                                                <div>
+                                                    <span style={{
+                                                        display: "inline-flex", alignItems: "center", gap: 4,
+                                                        background: "#dcfce7", color: "#16a34a",
+                                                        border: "1px solid #bbf7d0", borderRadius: 20,
+                                                        padding: "2px 10px", fontWeight: 700, fontSize: "0.75rem",
+                                                    }}>
+                                                        <i className="bi bi-calendar-check-fill" />
+                                                        Free cancel: {p.daysBeforeCheckIn ?? p.dateRange} days before
+                                                    </span>
+                                                    <div className="mt-1 text-muted" style={{ fontSize: "0.75rem" }}>
+                                                        Cancel &lt; {p.daysBeforeCheckIn ?? p.dateRange} days before → {p.refunRate}% refund
+                                                    </div>
+                                                </div>
                                             ) : null}
                                             {seasonal.start && seasonal.end && (
                                                 <div><i className="bi bi-calendar-range me-1 text-info"></i>Active Seasonal window: <strong>{seasonal.start} → {seasonal.end}</strong></div>
