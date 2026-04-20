@@ -12,6 +12,16 @@ export const guest = {
     },
 
     /**
+     * Gửi yêu cầu nhận OTP xác thực để đặt phòng.
+     * @param {string} email
+     * @param {string} fullName
+     */
+    sendBookingOtp: async (email, fullName) => {
+        const response = await apiClient.post(API_ENDPOINTS.GUEST.SEND_BOOKING_OTP, { email, fullName });
+        return response.data;
+    },
+
+    /**
      * Xác thực OTP → nhận session token.
      * @param {string} email
      * @param {string} otp  - 6 chữ số

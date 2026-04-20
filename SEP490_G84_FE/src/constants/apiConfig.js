@@ -50,5 +50,6 @@ export const API_ENDPOINTS = {
     VERIFY_OTP: "/guest/verify-otp",
     BOOKINGS: "/guest/bookings",
     REQUEST_CANCEL: "/guest/bookings/:bookingCode/request-cancel",
+    SEND_BOOKING_OTP: "/guest/booking-otp/send",
   },
 };

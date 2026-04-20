@@ -657,24 +657,12 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
 
   const [isMarkingArrived, setIsMarkingArrived] = useState(false);
 
-  const [remainingPaymentMethod, setRemainingPaymentMethod] = useState('CASH');
-  
-  const [localAmountDue, setLocalAmountDue] = useState(() => {
-    return (booking && booking.totalAmount && booking.prepaidAmount != null)
-      ? Math.max(0, Number(booking.totalAmount) - Number(booking.prepaidAmount))
-      : 0;
-  });
-  const hasUnpaidBalance = localAmountDue > 0;
-
   const showAllocationStep = applyEarlyCheckIn && Number(earlyCheckInFee || 0) > 0 && assignments.length > 1;
-  const baseSteps = showAllocationStep 
+  const currentSteps = showAllocationStep
     ? ['Arrival Info', 'Room Assignment', 'Fee Allocation', 'Confirm']
     : ['Arrival Info', 'Room Assignment', 'Confirm'];
-    
-  const currentSteps = hasUnpaidBalance ? ['Collect Deposit', ...baseSteps] : baseSteps;
-  
+
   const currentStepName = currentSteps[step];
-  const isDepositStep = currentStepName === 'Collect Deposit';
   const isArrivalStep = currentStepName === 'Arrival Info';
   const isAssignStep = currentStepName === 'Room Assignment';
   const isAllocStep = currentStepName === 'Fee Allocation';
@@ -758,24 +746,7 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
     } finally { setIsSubmitting(false); }
   };
 
-  const handlePayDeposit = async () => {
-    setErrorMessage('');
-    if (!remainingPaymentMethod) {
-      setErrorMessage('Please select a payment method.');
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await checkInApi.payDepositBalance(booking.id, remainingPaymentMethod);
-      Swal.fire({ icon: 'success', title: 'Payment Confirmed', text: 'Deposit balance recorded. You may now assign rooms.', timer: 2000, showConfirmButton: false });
-      setLocalAmountDue(0);
-      // Auto transitions since 'Collect Deposit' is removed from currentSteps, meaning step 0 becomes 'Arrival Info'.
-    } catch (err) {
-      setErrorMessage(err.response?.data?.error || 'Failed to record payment.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
 
   if (!show || !booking) return null;
 
@@ -812,58 +783,6 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
             </div>
           )}
 
-          {isDepositStep && (
-            <div style={{ padding: '20px 0' }}>
-              <div style={{
-                background: '#fff8e1', border: '1.5px solid #f59e0b',
-                borderRadius: '10px', padding: '16px 18px', marginBottom: '16px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '18px' }}>💰</span>
-                    <div>
-                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#92400e' }}>Remaining Balance Due</div>
-                      <div style={{ fontSize: '12px', color: '#b45309', marginTop: '2px' }}>
-                        Guest paid a partial deposit — remainder must be collected at check-in
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount Due</div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#92400e' }}>
-                      {localAmountDue.toLocaleString('vi-VN')} ₫
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ borderTop: '1px solid #fcd34d', paddingTop: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
-                    PAYMENT METHOD
-                  </div>
-                  <div style={{
-                    padding: '10px 14px', borderRadius: '8px',
-                    border: '2px solid #f59e0b', background: '#fef3c7', marginBottom: '12px',
-                  }}>
-                    <div style={{ fontSize: '12.5px', color: '#92400e', marginBottom: '6px' }}>
-                      ⚠️ <strong>Collection required before room assignment.</strong> Select payment method below.
-                    </div>
-                  </div>
-                  <Field label="Payment Method for Remaining Balance">
-                    <select
-                      style={S.select(false)}
-                      value={remainingPaymentMethod}
-                      onChange={e => setRemainingPaymentMethod(e.target.value)}
-                      disabled={isSubmitting}
-                    >
-                      <option value="CASH">Cash</option>
-                      <option value="CARD">Card</option>
-                      <option value="TRANSFER">Bank Transfer</option>
-                    </select>
-                  </Field>
-                </div>
-              </div>
-            </div>
-          )}
 
           {isArrivalStep && (
             <>
@@ -972,18 +891,14 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button style={S.btnOutline} onClick={onClose} disabled={isSubmitting || isMarkingArrived}>Cancel</button>
-            {isDepositStep ? (
-               <button style={S.btnPrimary(isSubmitting)} onClick={handlePayDeposit} disabled={isSubmitting}>
-                 {isSubmitting ? 'Processing...' : 'Confirm Payment & Continue ->'}
-               </button>
-            ) : isConfirmStep ? (
+            {isConfirmStep ? (
                <button style={S.btnPrimary(isSubmitting)} onClick={handleSubmitCheckIn} disabled={isSubmitting}>
                  {isSubmitting ? 'Processing...' : 'Confirm Check-in'}
                </button>
             ) : (
                <button style={S.btnPrimary(!canAssignRooms && isArrivalStep)}
                  onClick={() => setStep(step + 1)}
-                 disabled={isMarkingArrived || (isArrivalStep && !canAssignRooms)}>  
+                 disabled={isMarkingArrived || (isArrivalStep && !canAssignRooms)}>
                  Proceed to Next Step →
                </button>
             )}
