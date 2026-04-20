@@ -111,6 +111,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
     const [roomPricingMap, setRoomPricingMap] = useState({});
     const [expandedOptionRows, setExpandedOptionRows] = useState({});
     const [selectedPolicy, setSelectedPolicy] = useState(null);
+    const [availablePolicies, setAvailablePolicies] = useState([]);  // policies active theo seasonal window
     const [form, setForm] = useState(initialFormState);
     const [error, setError] = useState("");
 
@@ -123,6 +124,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         setRoomPricingMap({});
         setExpandedOptionRows({});
         setSelectedPolicy(null);
+        setAvailablePolicies([]);
         setForm((prev) => ({
             ...initialFormState,
             branchId:
@@ -206,6 +208,28 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         };
     }, [show, form.branchId, form.arrivalDate, form.departureDate]);
 
+    // Fetch danh sách policy khả dĩ theo seasonal window của ngày check-in
+    useEffect(() => {
+        if (!show || !form.branchId) {
+            setAvailablePolicies([]);
+            return;
+        }
+        let isMounted = true;
+        const fetchActivePolicies = async () => {
+            try {
+                const data = await cancellationPolicyService.getActivePoliciesForDate(
+                    Number(form.branchId),
+                    form.arrivalDate || null,
+                );
+                if (isMounted) setAvailablePolicies(data || []);
+            } catch {
+                if (isMounted) setAvailablePolicies([]);
+            }
+        };
+        fetchActivePolicies();
+        return () => { isMounted = false; };
+    }, [show, form.branchId, form.arrivalDate]);
+
     useEffect(() => {
         if (!show) return;
         setForm((prev) => ({
@@ -232,6 +256,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             }),
         }));
     }, [roomPricingMap, show]);
+
 
     const roomTypeById = useMemo(() => {
         const map = {};
@@ -874,7 +899,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                             className={`cbsm-pkg-option${active ? " active" : ""}`}
                                                             onClick={() => choosePricingOption(form.rooms.findIndex(r => String(r.roomTypeId) === rtId), option)}
                                                         >
-                                                            <input readOnly type="radio" className="cbsm-pkg-radio" checked={active} onChange={() => {}} />
+                                                            <input readOnly type="radio" className="cbsm-pkg-radio" checked={active} onChange={() => { }} />
                                                             <div className="cbsm-pkg-info">
                                                                 <div className="cbsm-pkg-name">{option.mode || "STANDARD"}</div>
                                                                 {modSum && <div className="cbsm-pkg-sub">{modSum}</div>}
@@ -993,19 +1018,27 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         )}
                     </div>
 
-                    {/* Cancellation Policy */}
+                    {/* Cancellation Policy — auto-resolved from pricing */}
                     <div className="cbsm-sidebar-section">
                         <div className="cbsm-sidebar-title">
                             <i className="bi bi-shield-check" />Cancellation policy
+                            {form.arrivalDate && (
+                                <span style={{ marginLeft: "auto", fontSize: 10, color: "#9aaa9b", fontWeight: 400 }}>
+                                    for {form.arrivalDate}
+                                </span>
+                            )}
                         </div>
+
+                        {/* Policy auto-linked from selected pricing package */}
                         {selectedPolicy ? (
-                            <div className={`cbsm-policy-badge ${policyBadgeClass()}`}>
+                            <div className={`cbsm-policy-badge ${policyBadgeClass()}`} style={{ marginBottom: 10 }}>
                                 <div className="cbsm-policy-name">
                                     {selectedPolicyType === "FREE_CANCEL" && <i className="bi bi-check-circle-fill me-1 text-success" />}
                                     {selectedPolicyType === "NON_REFUND" && <i className="bi bi-x-circle-fill me-1 text-danger" />}
                                     {selectedPolicyType === "PAY_AT_HOTEL" && <i className="bi bi-building-check me-1" />}
                                     {selectedPolicyType === "PARTIAL_REFUND" && <i className="bi bi-arrow-left-right me-1" />}
                                     {selectedPolicy.name}
+                                    <span style={{ fontSize: 10, fontWeight: 400, color: "#6b7280", marginLeft: 6 }}>(applied)</span>
                                 </div>
                                 <div className="cbsm-policy-row">
                                     <span>Prepayment</span>
@@ -1017,11 +1050,54 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                 </div>
                             </div>
                         ) : cartItems.length > 0 ? (
-                            <div className="cbsm-muted" style={{ fontSize: 12 }}>
+                            <div className="cbsm-muted" style={{ fontSize: 12, marginBottom: 10 }}>
                                 <i className="bi bi-info-circle me-1" />No policy linked to selected pricing.
                             </div>
-                        ) : (
-                            <div className="cbsm-muted" style={{ fontSize: 12 }}>Add rooms to see the applicable policy.</div>
+                        ) : null}
+
+                        {/* All active policies for this date — for staff advisory */}
+                        {availablePolicies.length > 0 && (
+                            <>
+                                <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "#9aaa9b", marginBottom: 6 }}>
+                                    <i className="bi bi-calendar-check me-1" />Active policies for this date
+                                </div>
+                                {availablePolicies.map(p => {
+                                    const pType = String(p.type || "").trim().toUpperCase();
+                                    const badgeCls = pType === "FREE_CANCEL" ? "cbsm-rt-tag-green"
+                                        : pType === "NON_REFUND" ? "cbsm-rt-tag-red"
+                                            : pType === "PAY_AT_HOTEL" ? "cbsm-rt-tag-blue"
+                                                : "cbsm-rt-tag-amber";
+                                    const isLinked = selectedPolicy?.id === p.id || selectedPolicy?.id === p.policyId;
+                                    return (
+                                        <div key={p.id ?? p.policyId} style={{
+                                            border: isLinked ? "1.5px solid #465c47" : "1px solid #e2eae2",
+                                            borderRadius: 8, padding: "7px 10px", marginBottom: 6,
+                                            background: isLinked ? "#f0f6f0" : "#fff",
+                                            fontSize: 12,
+                                        }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                                                <span className={`cbsm-rt-tag ${badgeCls}`} style={{ fontSize: 9.5 }}>{pType.replace("_", " ")}</span>
+                                                <span style={{ fontWeight: 600, color: "#2f3f30" }}>{p.name}</span>
+                                                {isLinked && <i className="bi bi-check-circle-fill text-success" style={{ marginLeft: "auto", fontSize: 12 }} />}
+                                            </div>
+                                            <div style={{ display: "flex", gap: 10, color: "#6b7280", fontSize: 11 }}>
+                                                <span>Prepaid: <strong>{p.prepaidRate}%</strong></span>
+                                                <span>Refund: <strong>{p.refunRate}%</strong></span>
+                                                {p.dateRange && <span>Free: <strong>{p.dateRange}d</strong></span>}
+                                            </div>
+                                            {(p.activeTimeStart && p.activeTimeEnd) && (
+                                                <div style={{ fontSize: 10, color: "#9aaa9b", marginTop: 2 }}>
+                                                    <i className="bi bi-calendar-range me-1" />Season: {p.activeTimeStart} → {p.activeTimeEnd}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </>
+                        )}
+
+                        {!form.branchId && (
+                            <div className="cbsm-muted" style={{ fontSize: 12 }}>Select a branch to see applicable policies.</div>
                         )}
                     </div>
 
