@@ -1081,10 +1081,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
 
                                     // Tên type thân thiện
                                     const typeLabel = {
-                                        FREE_CANCEL:    { text: "Free cancellation",  cls: "cbsm-rt-tag-green", icon: "bi-check-circle-fill text-success" },
-                                        PARTIAL_REFUND: { text: "Partial refund",     cls: "cbsm-rt-tag-amber", icon: "bi-arrow-left-right"                },
-                                        NON_REFUND:     { text: "Non-refundable",     cls: "cbsm-rt-tag-red",   icon: "bi-x-circle-fill text-danger"        },
-                                        PAY_AT_HOTEL:   { text: "Pay at hotel",       cls: "cbsm-rt-tag-blue",  icon: "bi-building-check"                   },
+                                        FREE_CANCEL: { text: "Free cancellation", cls: "cbsm-rt-tag-green", icon: "bi-check-circle-fill text-success" },
+                                        PARTIAL_REFUND: { text: "Partial refund", cls: "cbsm-rt-tag-amber", icon: "bi-arrow-left-right" },
+                                        NON_REFUND: { text: "Non-refundable", cls: "cbsm-rt-tag-red", icon: "bi-x-circle-fill text-danger" },
+                                        PAY_AT_HOTEL: { text: "Pay at hotel", cls: "cbsm-rt-tag-blue", icon: "bi-building-check" },
                                     }[pType] || { text: pType, cls: "cbsm-rt-tag-gray", icon: "bi-shield" };
 
                                     // Format mùa "08-01 → 05-01" → "Aug 1 – May 1"
