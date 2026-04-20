@@ -11,32 +11,23 @@ const getAbsoluteImageUrl = (url) => {
     return url;
 };
 
-const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, branchName = '' }) => {
+const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, branchName = '', bookingTotalAmount = 0 }) => {
     const normalizeModeText = (mode) => {
         if (!mode) return 'Standard';
         const raw = String(mode).trim();
         const lower = raw.toLowerCase();
-
-        if (lower.includes('chính sách') || lower.includes('chinh sach') || lower.includes('policy')) {
-            return 'Policy';
-        }
-        if (lower.includes('standard')) {
-            return 'Standard';
-        }
+        if (lower.includes('chính sách') || lower.includes('chinh sach') || lower.includes('policy')) return 'Policy';
+        if (lower.includes('standard')) return 'Standard';
         return raw;
     };
 
     const normalizeReasonText = (reason) => {
         if (!reason) return '';
         let text = String(reason).replace(/\s*\[\s*-?\d+(?:\.\d+)?\s*\]$/, '').trim();
-
         text = text.replace(/Occupancy proxy/gi, 'Room quantity in booking');
         text = text.replace(/Customer history/gi, 'Returning guest');
-
-        // Singular/plural cleanup for guest wording from backend reason.
         text = text.replace(/\((\d+)\s+guests\)/gi, (_, n) => `(${n} ${Number(n) === 1 ? 'guest' : 'guests'})`);
         text = text.replace(/\((\d+)\s+rooms\)/gi, (_, n) => `(${n} ${Number(n) === 1 ? 'room' : 'rooms'})`);
-
         return text;
     };
 
@@ -55,10 +46,16 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
-    const formatDateDisplay = (dateStr) => {
+    // Example: Mon, Apr 20, 2026
+    const formatDateBig = (dateStr) => {
         if (!dateStr) return '--';
         const date = new Date(dateStr);
-        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    const isToday = (dateStr) => {
+        if (!dateStr) return false;
+        return new Date().toDateString() === new Date(dateStr).toDateString();
     };
 
     const safeNumber = (value, fallback = 0) => {
@@ -97,23 +94,19 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
             const totalDelta = modifiers.reduce((sum, mod) => {
                 const deltaFromReason = extractDeltaFromReason(mod?.reason);
                 if (deltaFromReason !== null) return sum + deltaFromReason;
-
                 const adjustmentValue = safeNumber(mod?.adjustmentValue, 0);
                 if (mod?.adjustmentType === 'PERCENT' || mod?.adjustmentType === 'PERCENTAGE') {
                     return sum + ((basePrice * adjustmentValue) / 100);
                 }
                 return sum + adjustmentValue;
             }, 0);
-
             return Math.max(0, basePrice + totalDelta);
         }
-
         return calculateDisplayedRoomPrice(room);
     };
 
     const getAppliedModifierBreakdown = (room) => {
         const breakdown = [];
-
         for (const mod of getOptionModifiers(room)) {
             const deltaFromReason = extractDeltaFromReason(mod?.reason);
             const delta = deltaFromReason !== null
@@ -121,7 +114,6 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 : (mod?.adjustmentType === 'PERCENT' || mod?.adjustmentType === 'PERCENTAGE')
                     ? (safeNumber(calculateRoomBaseUnitPrice(room), 0) * safeNumber(mod?.adjustmentValue, 0)) / 100
                     : safeNumber(mod?.adjustmentValue, 0);
-
             breakdown.push({
                 source: 'option',
                 name: mod?.name || 'Modifier',
@@ -130,13 +122,11 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 delta,
             });
         }
-
         if (room?.selectedManualPromotion) {
             const manual = room.selectedManualPromotion;
             const manualDelta = (manual?.adjustmentType === 'PERCENT' || manual?.adjustmentType === 'PERCENTAGE')
                 ? (safeNumber(room?.basePrice, calculateRoomUnitPrice(room)) * safeNumber(manual?.adjustmentValue, 0)) / 100
                 : safeNumber(manual?.adjustmentValue, 0);
-
             breakdown.push({
                 source: 'manual',
                 name: manual?.name || 'Manual promotion',
@@ -145,7 +135,6 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 delta: manualDelta,
             });
         }
-
         return breakdown;
     };
 
@@ -153,124 +142,136 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
         new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
     const nights = calculateNights(checkIn, checkOut);
-
+    
+    let totalBasePrice = 0;
+    let allModifiers = [];
+    let totalRooms = 0;
+    let totalAdults = 0;
+    let totalChildren = 0;
+    
+    selectedRooms.forEach(room => {
+        const qty = room.quantity || 1;
+        totalRooms += qty;
+        totalAdults += (room.maxAdult || 0) * qty;
+        totalChildren += (room.maxChildren || 0) * qty;
+        totalBasePrice += calculateRoomBaseUnitPrice(room) * qty;
+        
+        getAppliedModifierBreakdown(room).forEach(mod => {
+            // multiply delta by qty to show total discount
+            const modDelta = mod.delta * qty; 
+            
+            // Check if we already have this modifier
+            const existIdx = allModifiers.findIndex(m => m.name === mod.name && m.type === mod.type);
+            if (existIdx >= 0) {
+                allModifiers[existIdx].delta += modDelta;
+            } else {
+                allModifiers.push({ ...mod, delta: modDelta });
+            }
+        });
+    });
 
     return (
-        <div className="bg-white rounded-3 p-3 border custom-shadow">
-            <img
-                alt="Resort Room"
-                className="img-fluid rounded-3 mb-3"
-                src={getAbsoluteImageUrl(selectedRooms[0]?.image) || "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"}
-                onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"; }}
-                style={{ height: '160px', width: '100%', objectFit: 'cover' }}
-            />
-
-            <div className="mb-3">
-                <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: '10px', letterSpacing: '1px' }}>
-                    Booking Overview
-                </p>
-                <p className="fw-bold text-olive-dark mb-0 fs-6">{branchName || "Loading..."}</p>
-            </div>
-
-            <div className="mb-3">
-                <p className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '10px', letterSpacing: '1px' }}>
-                    Selected Rooms
-                </p>
-                {selectedRooms.length > 0 ? (
-                    selectedRooms.map((room, index) => {
-                        const qty = room.quantity || 1;
-                        const unitPrice = calculateRoomUnitPrice(room);
-                        const roomTotal = unitPrice * qty;
-                        const roomModifiers = getOptionModifiers(room);
-
-                        return (
-                        <div key={index} className="mb-2 pb-2" style={{ borderBottom: '1px dashed #e9ecef' }}>
-                            <div>
-                                <p className="fw-semibold text-dark mb-0 small">{room.quantity}x {room.name}</p>
-                                {room.selectedPricingOption?.mode && (
-                                    <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
-                                        Mode: {normalizeModeText(room.selectedPricingOption.mode)}
-                                    </p>
-                                )}
-                                <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
-                                    {(room.quantity || 1)} {(room.quantity || 1) > 1 ? 'rooms' : 'room'} for selected stay
-                                </p>
-                                <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
-                                    Max {room.maxAdult || 0} Adults, {room.maxChildren || 0} Children / room
-                                </p>
-                                <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
-                                    Base: {formatCurrency(calculateRoomBaseUnitPrice(room))}
-                                </p>
-                                {selectedPolicy && (
-                                    <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
-                                        Policy: {selectedPolicy.name || 'Selected policy'}
-                                    </p>
-                                )}
-                                <p className="fw-semibold mb-0" style={{ fontSize: '11px', color: '#5C6F4E' }}>
-                                    Current: {formatCurrency(unitPrice)} / room · Total: {formatCurrency(roomTotal)}
-                                </p>
-                                {roomModifiers.length > 0 && (
-                                    <div className="mt-1">
-                                        <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
-                                            Adjustments:
-                                        </p>
-                                        {getAppliedModifierBreakdown(room).map((mod, modIdx) => (
-                                            <p key={`${index}-mod-${modIdx}`} className="text-muted mb-0" style={{ fontSize: '11px' }}>
-                                                • {mod.name} ({normalizeModifierTypeText(mod.type)})
-                                                : {mod.delta > 0 ? '+' : ''}{formatCurrency(mod.delta)}
-                                                {mod.reason ? ` - ${normalizeReasonText(mod.reason)}` : ''}
-                                            </p>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )})
-                ) : (
-                    <p className="text-danger small">No rooms selected</p>
-                )}
-            </div>
-
-            <div className="mb-3">
-                <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: '10px', letterSpacing: '1px' }}>
-                    Stay Dates
-                </p>
-                <div className="d-flex align-items-center gap-2 fw-semibold text-dark small mt-1">
-                    <i className="bi bi-calendar3 text-olive"></i>
-                    <span>
-            {formatDateDisplay(checkIn)} - {formatDateDisplay(checkOut)} ({nights} {nights > 1 ? 'Nights' : 'Night'})
-          </span>
+        <div className="d-flex flex-column gap-3">
+            {/* Card 1: Property Details */}
+            <div className="bg-white rounded-3 p-3 border custom-shadow">
+                <img
+                    alt="Resort Room"
+                    className="img-fluid rounded-3 mb-3"
+                    src={getAbsoluteImageUrl(selectedRooms[0]?.image) || "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"}
+                    onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"; }}
+                    style={{ height: '140px', width: '100%', objectFit: 'cover' }}
+                />
+                <div className="d-flex align-items-center gap-1 mb-1 text-warning" style={{ fontSize: '13px' }}>
+                    <i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i>
                 </div>
-                <div className="mt-2 text-muted fw-medium" style={{ fontSize: '11px' }}>
-                    <div><i className="bi bi-box-arrow-in-right me-1"></i> Check-in at 14:00 on {formatDateDisplay(checkIn)}</div>
-                    <div className="mt-1"><i className="bi bi-box-arrow-left me-1"></i> Check-out at 12:00 on {formatDateDisplay(checkOut)}</div>
+                <h5 className="fw-bold m-0">{branchName || "Hotel Property"}</h5>
+                {/* Normally we'd put the real address here, falling back to a placeholder */}
+                <p className="text-muted small mt-1 mb-2">Location available upon confirmation</p>
+                <div className="d-flex gap-3 text-dark small mt-2">
+                    <span><i className="bi bi-snow me-1"></i>Air conditioning</span>
+                    <span><i className="bi bi-wifi me-1"></i>Free WiFi</span>
                 </div>
             </div>
 
-            <div className="pt-3 border-top mt-2">
-                {selectedPolicy && (
-                    <div className="mb-3 p-3 rounded-3" style={{ background: '#f4f8ef', border: '1px solid #dbe6cf' }}>
-                        <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                            <div>
-                                <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '10px', letterSpacing: '1px' }}>Selected Policy</div>
-                                <div className="fw-bold text-dark">{selectedPolicy.name || 'Cancellation policy'}</div>
-                                <div className="text-muted small">{normalizeModeText(selectedPolicy.type)} · {selectedPolicy.description || 'Policy applied to booking'}</div>
-                            </div>
-                            <div className="text-end">
-                                <div className="fw-bold text-olive">{Number(selectedPolicy.prepaidRate ?? 0)}% deposit</div>
-                                <div className="text-muted small">{Number(selectedPolicy.refunRate ?? 0)}% refund rate</div>
-                            </div>
-                        </div>
-                        {selectedPolicy.freeCancelBeforeDays && (
-                            <div className="mt-2 p-2 rounded" style={{ background: '#fff', border: '1px solid #dbe6cf' }}>
-                                <span className="text-muted small">
-                                    <i className="bi bi-calendar-event me-1"></i>
-                                    Free cancellation up to {selectedPolicy.freeCancelBeforeDays} day(s) before arrival
-                                </span>
-                            </div>
-                        )}
+            {/* Card 2: Your booking details */}
+            <div className="bg-white rounded-3 p-4 border custom-shadow">
+                <h5 className="fw-bold mb-4" style={{ fontSize: '18px' }}>Your booking details</h5>
+                
+                <div className="row g-0 mb-3">
+                    <div className="col-6 border-end pe-3">
+                        <p className="mb-1 text-dark fw-medium">Check-in</p>
+                        <h6 className="fw-bold mb-1">{formatDateBig(checkIn)}</h6>
+                        <p className="text-muted small mb-0">From 14:00 (2:00 PM)</p>
+                    </div>
+                    <div className="col-6 ps-3">
+                        <p className="mb-1 text-dark fw-medium">Check-out</p>
+                        <h6 className="fw-bold mb-1">{formatDateBig(checkOut)}</h6>
+                        <p className="text-muted small mb-0">Until 12:00 PM</p>
+                    </div>
+                </div>
+
+                {isToday(checkIn) && (
+                    <div className="mb-3" style={{ color: '#d97706', fontSize: '14px', fontWeight: '600' }}>
+                        <i className="bi bi-exclamation-circle me-1"></i> Check-in is today
                     </div>
                 )}
+                
+                <hr className="my-3 text-muted" />
+                
+                <div className="mb-1">
+                    <p className="text-dark fw-medium mb-2">You selected</p>
+                    <h6 className="fw-bold mb-4">
+                        {nights} {nights > 1 ? 'nights' : 'night'}, {totalRooms} {totalRooms > 1 ? 'rooms' : 'room'} for {totalAdults} {totalAdults > 1 ? 'adults' : 'adult'} and {totalChildren} {totalChildren > 1 ? 'children' : 'child'}
+                    </h6>
+                    
+                    {selectedRooms.length > 0 ? (
+                        selectedRooms.map((room, index) => (
+                            <div key={index} className="text-dark mb-2">
+                                {room.quantity || 1} x {room.name}
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-danger small">No rooms selected</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Card 3: Your price summary */}
+            <div className="bg-white rounded-3 border custom-shadow overflow-hidden">
+                <div className="p-4">
+                    <h5 className="fw-bold mb-4" style={{ fontSize: '18px' }}>Your price summary</h5>
+                    
+                    <div className="d-flex justify-content-between mb-3 text-dark">
+                        <span>Original price</span>
+                        <span>{formatCurrency(totalBasePrice)}</span>
+                    </div>
+                    
+                    {allModifiers.map((mod, i) => (
+                        <div className="d-flex justify-content-between mb-3" key={i}>
+                            <div className="text-dark">
+                                <div>{mod.name}</div>
+                                {mod.reason && <div className="text-muted small" style={{ fontSize: '11px', marginTop: '2px' }}>{mod.reason}</div>}
+                            </div>
+                            <div className="text-dark">
+                                {mod.delta < 0 ? `- \${formatCurrency(Math.abs(mod.delta))}` : `+ \${formatCurrency(mod.delta)}`}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                
+                {/* Total Section with light blue background */}
+                <div className="p-4 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#ebf3ff' }}>
+                    <h4 className="fw-bold m-0 text-dark">Total</h4>
+                    <div className="text-end">
+                        {totalBasePrice > bookingTotalAmount && (
+                            <div className="text-danger text-decoration-line-through mb-1 fw-medium" style={{ fontSize: '15px' }}>
+                                {formatCurrency(totalBasePrice)}
+                            </div>
+                        )}
+                        <h2 className="fw-bold m-0 text-dark">{formatCurrency(bookingTotalAmount)}</h2>
+                        <div className="text-muted mt-1" style={{ fontSize: '12px' }}>Includes taxes and fees</div>
+                    </div>
+                </div>
             </div>
         </div>
     );
