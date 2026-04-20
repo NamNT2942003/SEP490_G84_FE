@@ -196,6 +196,9 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                                     {(room.quantity || 1)} {(room.quantity || 1) > 1 ? 'rooms' : 'room'} for selected stay
                                 </p>
                                 <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
+                                    Max {room.maxAdult || 0} Adults, {room.maxChildren || 0} Children / room
+                                </p>
+                                <p className="text-muted mb-0" style={{ fontSize: '11px' }}>
                                     Base: {formatCurrency(calculateRoomBaseUnitPrice(room))}
                                 </p>
                                 {selectedPolicy && (
@@ -232,11 +235,15 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: '10px', letterSpacing: '1px' }}>
                     Stay Dates
                 </p>
-                <div className="d-flex align-items-center gap-2 fw-semibold text-dark small">
+                <div className="d-flex align-items-center gap-2 fw-semibold text-dark small mt-1">
                     <i className="bi bi-calendar3 text-olive"></i>
                     <span>
             {formatDateDisplay(checkIn)} - {formatDateDisplay(checkOut)} ({nights} {nights > 1 ? 'Nights' : 'Night'})
           </span>
+                </div>
+                <div className="mt-2 text-muted fw-medium" style={{ fontSize: '11px' }}>
+                    <div><i className="bi bi-box-arrow-in-right me-1"></i> Check-in at 14:00 on {formatDateDisplay(checkIn)}</div>
+                    <div className="mt-1"><i className="bi bi-box-arrow-left me-1"></i> Check-out at 12:00 on {formatDateDisplay(checkOut)}</div>
                 </div>
             </div>
 
