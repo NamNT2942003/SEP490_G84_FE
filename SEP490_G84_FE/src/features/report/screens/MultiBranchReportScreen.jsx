@@ -455,7 +455,7 @@ const MultiBranchReportScreen = () => {
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <div>
                         <p className="text-secondary fw-bold text-uppercase mb-0" style={{ fontSize: '0.74rem', letterSpacing: '1px' }}>HOTEL SYSTEM</p>
-                        <h2 className="fw-bold m-0 text-dark">Multi-Branch Summary Report</h2>
+                          <h2 className="page-title">Multi-Branch Summary Report</h2>
                     </div>
                     <div className="btn-group shadow-sm">
                         <button className={`btn fw-semibold px-4 ${viewMode === 'monthly' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('monthly')}>

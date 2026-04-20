@@ -170,7 +170,7 @@ const ServiceList = () => {
   return (
     <div className="service-list-page">
       <div className="service-list-header">
-        <h1 className="service-list-title">Service List</h1>
+        <h1 className="service-list-title page-title">Service List</h1>
         <button type="button" className="btn btn-brand" onClick={() => setCreateModalOpen(true)}>
           <i className="bi bi-plus-lg me-1" /> Create Service
         </button>

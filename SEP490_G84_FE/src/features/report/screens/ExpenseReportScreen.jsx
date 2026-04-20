@@ -165,7 +165,7 @@ const ExpenseReportScreen = () => {
         <div className="container-fluid p-0 position-relative">
             {/* Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="fw-bold m-0" style={{ color: COLORS.PRIMARY }}>
+                  <h2 className="page-title">
                     EXPENSE REPORT {viewLevel === 'monthly' && `- MONTH ${selectedMonth}`}
                 </h2>
                 {viewLevel === 'monthly' && !isDeclaring && (
@@ -345,4 +345,4 @@ const ExpenseReportScreen = () => {
     );
 };
 
-export default ExpenseReportScreen;
+export default ExpenseReportScreen;

@@ -89,7 +89,7 @@ const CashflowScreen = () => {
       {/* HEADER */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h4 className="fw-bold mb-0" style={{ color: COLORS.PRIMARY }}>
+          <h4 className="page-title">
             Cash Flow Report
           </h4>
           <small className="text-muted">

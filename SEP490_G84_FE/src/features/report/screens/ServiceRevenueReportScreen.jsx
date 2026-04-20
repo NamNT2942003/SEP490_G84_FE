@@ -115,7 +115,7 @@ const ServiceRevenueReportScreen = () => {
         <div className="container-fluid p-0">
             {/* Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="fw-bold m-0" style={{ color: COLORS.PRIMARY }}>
+                  <h2 className="page-title">
                     SERVICE REVENUE {viewLevel === 'monthly' && `- MONTH ${selectedMonth}`}
                 </h2>
                 {viewLevel === 'monthly' && (

@@ -102,7 +102,7 @@ const RevenueReportScreen = () => {
     return (
         <div className="container-fluid p-0" style={{ backgroundColor: '#f9fafc', minHeight: '100vh', paddingBottom: '40px' }}>
             <div className="d-flex justify-content-between align-items-center mb-3 p-3 bg-white shadow-sm rounded-bottom-4">
-                <h4 className="fw-bold m-0" style={{ color: COLORS.PRIMARY, letterSpacing: '0.5px' }}>
+                  <h4 className="page-title">
                     REVENUE REPORT {viewLevel === 'monthly' && `- MONTH ${selectedMonth}`}
                 </h4>
                 {viewLevel === 'monthly' && (
