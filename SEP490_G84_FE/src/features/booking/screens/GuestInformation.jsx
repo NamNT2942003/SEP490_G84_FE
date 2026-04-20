@@ -1069,9 +1069,9 @@ const GuestInformation = () => {
                     </div>
 
                     {/* Right column – Booking Summary */}
-                    <div className="col-lg-4">
+                    <div className="col-lg-4 mb-5 pb-5">
                         <div className="sticky-top d-none d-lg-block" style={{ top: '90px', zIndex: 1020, maxHeight: 'calc(100vh - 120px)' }}>
-                            <div className="pe-1 pb-3" style={{ maxHeight: '100%', overflowY: 'auto' }}>
+                            <div className="pe-1 pb-5 mb-5" style={{ maxHeight: '100%', overflowY: 'auto' }}>
                                 <BookingSummary
                                     selectedRooms={rooms}
                                     checkIn={checkIn}
