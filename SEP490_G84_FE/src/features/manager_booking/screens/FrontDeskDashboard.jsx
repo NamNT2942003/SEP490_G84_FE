@@ -203,7 +203,7 @@ export default function FrontDeskDashboard() {
       { key: null, label: 'Checkout Today', value: s.todayCheckout ?? '–', sub: 'due for check-out today' },
       { key: null, label: 'Currently In-House', value: s.totalCheckout ?? '–', sub: 'guests staying now' },
       { key: 'upcoming', label: isCheckin ? 'Upcoming Arrivals' : 'Upcoming Departures', value: isCheckin ? (s.upcomingCheckin ?? '–') : (s.upcomingCheckout ?? '–'), sub: 'future bookings' },
-      { key: null, label: isCheckin ? 'Total Check-ins' : 'Total Check-outs', value: isCheckin ? (s.totalCheckin ?? '–') : (s.totalCheckout ?? '–'), sub: 'all statuses' },
+      { key: null, label: isCheckin ? 'Total sold room today' : 'Total Check-outs', value: isCheckin ? ((s.todaySoldRoom ?? 0) + (s.totalCheckout ?? 0)) : (s.totalCheckout ?? '–'), sub: 'all statuses' },
     ];
 
   // ─────────────────────────────────────────────────────────────────────────

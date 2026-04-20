@@ -658,7 +658,7 @@ function RoomManagement() {
                 {branchFilter && branchFilter !== "all" && (
                   <span className="rm-filter-tag">
                     <i className="bi bi-building"></i>
-                    {currentUser?.branchName || branches.find(b => String(b.branchId||b.id)===String(branchFilter))?.branchName || "Base branch"}
+                    {branches.find(b => String(b.branchId||b.id)===String(branchFilter))?.branchName || currentUser?.branchName || "Base branch"}
                   </span>
                 )}
                 {floorFilter && <span className="rm-filter-tag"><i className="bi bi-layers"></i>Floor {floorFilter}</span>}
