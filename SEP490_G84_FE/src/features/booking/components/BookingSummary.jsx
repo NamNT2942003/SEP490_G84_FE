@@ -253,7 +253,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                                 {mod.reason && <div className="text-muted" style={{ fontSize: '13px', marginTop: '2px' }}>{mod.reason}</div>}
                             </div>
                             <div className="text-dark">
-                                {mod.delta < 0 ? `- \${formatCurrency(Math.abs(mod.delta))}` : `+ \${formatCurrency(mod.delta)}`}
+                                {mod.delta < 0 ? `- ${formatCurrency(Math.abs(mod.delta))}` : `+ ${formatCurrency(mod.delta)}`}
                             </div>
                         </div>
                     ))}
