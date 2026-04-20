@@ -270,13 +270,41 @@ export default function BookingTable({
                 {/* Amount */}
                 <td>
                   <div className="fw-bold small">{booking.totalAmount?.toLocaleString('en-US')} VND</div>
-                  <span className="px-2 py-1 rounded-2 fw-bold" style={{
-                    fontSize: '0.71rem',
-                    background: booking.paymentStatus === 'PAID' ? '#e8f5e9' : '#fff3e0',
-                    color: booking.paymentStatus === 'PAID' ? '#2e7d32' : '#e65100',
-                  }}>
-                    {booking.paymentStatus === 'PAID' ? '✓ Paid' : '· Unpaid'}
-                  </span>
+                  {(() => {
+                    const paid   = Number(booking.prepaidAmount ?? 0);
+                    const total  = Number(booking.totalAmount   ?? 0);
+                    const remain = Math.max(0, total - paid);
+                    if (booking.paymentStatus === 'PAID') {
+                      return (
+                        <span className="px-2 py-1 rounded-2 fw-bold"
+                          style={{ fontSize: '0.71rem', background: '#e8f5e9', color: '#2e7d32' }}>
+                          ✓ Paid
+                        </span>
+                      );
+                    }
+                    return (
+                      <div className="d-flex flex-column gap-1 mt-1">
+                        {paid > 0 && (
+                          <span className="px-2 py-1 rounded-2 fw-bold"
+                            style={{ fontSize: '0.71rem', background: '#e8f5e9', color: '#2e7d32' }}>
+                            ✓ Collected: {paid.toLocaleString('en-US')}
+                          </span>
+                        )}
+                        {remain > 0 && (
+                          <span className="px-2 py-1 rounded-2 fw-bold"
+                            style={{ fontSize: '0.71rem', background: '#fff3e0', color: '#e65100' }}>
+                            · Due: {remain.toLocaleString('en-US')}
+                          </span>
+                        )}
+                        {paid === 0 && remain === 0 && (
+                          <span className="px-2 py-1 rounded-2 fw-bold"
+                            style={{ fontSize: '0.71rem', background: '#fff3e0', color: '#e65100' }}>
+                            · Unpaid
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </td>
 
                 {/* Status */}
