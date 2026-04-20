@@ -375,13 +375,13 @@ const RoomItem = ({ room, onQuantityChange, onRemove }) => {
             <div className="room-item-body p-3">
                 <div className="d-flex justify-content-between align-items-start mb-2">
                     <div>
-                        <div className="room-name fs-6 fw-bold text-dark mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        <div className="room-name fs-5 fw-bold text-dark mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
                             {room.name}
-                            <span className="text-secondary fw-normal ms-2" style={{ fontFamily: "Arial, sans-serif", fontSize: '0.85rem' }}>
+                            <span className="text-secondary fw-normal ms-2" style={{ fontFamily: "Arial, sans-serif", fontSize: '0.95rem' }}>
                                 - Max Adult: {room.maxAdult || 0} , Max children: {room.maxChildren || 0}
                             </span>
                         </div>
-                        <div className="room-price fw-semibold text-secondary mb-1" style={{ fontSize: '0.85rem' }}>
+                        <div className="room-price fw-semibold text-secondary mb-1" style={{ fontSize: '0.95rem' }}>
                             <i className="bi bi-currency-dollar me-1"></i>{new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ stay</span>
                         </div>
                         <div className="d-flex gap-3" />
@@ -402,7 +402,7 @@ const RoomItem = ({ room, onQuantityChange, onRemove }) => {
                             type="button"
                             className="btn btn-sm btn-light rounded-circle"
                             onClick={() => onQuantityChange(room.roomTypeId, qty - 1)}
-                            style={{ width: '28px', height: '28px', padding: 0 }}
+                            style={{ width: '32px', height: '32px', padding: 0 }}
                         >
                             <i className="bi bi-dash fw-bold" />
                         </button>
@@ -415,19 +415,19 @@ const RoomItem = ({ room, onQuantityChange, onRemove }) => {
                             onChange={(e) =>
                                 onQuantityChange(room.roomTypeId, parseInt(e.target.value) || 1)
                             }
-                            style={{ width: '40px', height: '28px', background: 'transparent' }}
+                            style={{ width: '45px', height: '32px', background: 'transparent' }}
                         />
                         <button
                             type="button"
                             className="btn btn-sm btn-light rounded-circle"
                             onClick={() => onQuantityChange(room.roomTypeId, qty + 1)}
                             disabled={qty >= maxQty}
-                            style={{ width: '28px', height: '28px', padding: 0 }}
+                            style={{ width: '32px', height: '32px', padding: 0 }}
                         >
                             <i className="bi bi-plus fw-bold" />
                         </button>
                     </div>
-                    <div className="room-total fs-5 fw-bold" style={{ color: '#5C6F4E' }}>
+                    <div className="room-total fs-4 fw-bold" style={{ color: '#5C6F4E' }}>
                         {formatVND(unitPrice * qty)}
                     </div>
                 </div>

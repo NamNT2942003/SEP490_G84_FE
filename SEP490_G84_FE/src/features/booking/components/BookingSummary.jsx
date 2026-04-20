@@ -176,81 +176,81 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
             <div className="bg-white rounded-3 p-3 border custom-shadow">
                 <img
                     alt="Resort Room"
-                    className="img-fluid rounded-3 mb-2"
+                    className="img-fluid rounded-3 mb-3"
                     src={getAbsoluteImageUrl(selectedRooms[0]?.image) || "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"}
                     onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800"; }}
-                    style={{ height: '70px', width: '100%', objectFit: 'cover' }}
+                    style={{ height: '90px', width: '100%', objectFit: 'cover' }}
                 />
-                <div className="d-flex align-items-center gap-1 mb-1 text-warning" style={{ fontSize: '11px' }}>
+                <div className="d-flex align-items-center gap-1 mb-2 text-warning" style={{ fontSize: '13px' }}>
                     <i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i><i className="bi bi-star-fill"></i>
                 </div>
-                <h6 className="fw-bold m-0" style={{ fontSize: '14px' }}>{branchName || "Hotel Property"}</h6>
+                <h5 className="fw-bold m-0" style={{ fontSize: '18px' }}>{branchName || "Hotel Property"}</h5>
                 {/* Normally we'd put the real address here, falling back to a placeholder */}
-                <p className="text-muted mb-1" style={{ fontSize: '11px' }}>Location available upon confirmation</p>
-                <div className="d-flex gap-2 text-dark mt-1" style={{ fontSize: '11px' }}>
+                <p className="text-muted mb-2 mt-1" style={{ fontSize: '13px' }}>Location available upon confirmation</p>
+                <div className="d-flex gap-3 text-dark mt-2" style={{ fontSize: '13px' }}>
                     <span><i className="bi bi-snow me-1"></i>Air conditioning</span>
                     <span><i className="bi bi-wifi me-1"></i>Free WiFi</span>
                 </div>
             </div>
 
             {/* Card 2: Your booking details */}
-            <div className="bg-white rounded-3 p-3 border custom-shadow">
-                <h6 className="fw-bold mb-2" style={{ fontSize: '14px' }}>Your booking details</h6>
+            <div className="bg-white rounded-3 p-4 border custom-shadow">
+                <h5 className="fw-bold mb-3" style={{ fontSize: '18px' }}>Your booking details</h5>
                 
-                <div className="row g-0 mb-2" style={{ fontSize: '12px' }}>
-                    <div className="col-6 border-end pe-2">
-                        <p className="mb-0 text-dark fw-medium">Check-in</p>
-                        <div className="fw-bold mb-0">{formatDateBig(checkIn)}</div>
-                        <p className="text-muted mb-0" style={{ fontSize: '11px' }}>From 14:00 (2:00 PM)</p>
+                <div className="row g-0 mb-3" style={{ fontSize: '14px' }}>
+                    <div className="col-6 border-end pe-3">
+                        <p className="mb-1 text-dark fw-medium">Check-in</p>
+                        <div className="fw-bold mb-1" style={{ fontSize: '16px' }}>{formatDateBig(checkIn)}</div>
+                        <p className="text-muted mb-0" style={{ fontSize: '13px' }}>From 14:00 (2:00 PM)</p>
                     </div>
-                    <div className="col-6 ps-2">
-                        <p className="mb-0 text-dark fw-medium">Check-out</p>
-                        <div className="fw-bold mb-0">{formatDateBig(checkOut)}</div>
-                        <p className="text-muted mb-0" style={{ fontSize: '11px' }}>Until 12:00 PM</p>
+                    <div className="col-6 ps-3">
+                        <p className="mb-1 text-dark fw-medium">Check-out</p>
+                        <div className="fw-bold mb-1" style={{ fontSize: '16px' }}>{formatDateBig(checkOut)}</div>
+                        <p className="text-muted mb-0" style={{ fontSize: '13px' }}>Until 12:00 PM</p>
                     </div>
                 </div>
 
                 {isToday(checkIn) && (
-                    <div className="mb-2" style={{ color: '#d97706', fontSize: '12px', fontWeight: '600' }}>
+                    <div className="mb-3" style={{ color: '#d97706', fontSize: '14px', fontWeight: '600' }}>
                         <i className="bi bi-exclamation-circle me-1"></i> Check-in is today
                     </div>
                 )}
                 
-                <hr className="my-2 text-muted" />
+                <hr className="my-3 text-muted" />
                 
-                <div className="mb-0" style={{ fontSize: '12px' }}>
+                <div className="mb-0" style={{ fontSize: '14px' }}>
                     <p className="text-dark fw-medium mb-1">You selected</p>
-                    <div className="fw-bold mb-2">
+                    <div className="fw-bold mb-2" style={{ fontSize: '16px' }}>
                         {nights} {nights > 1 ? 'nights' : 'night'}, {totalRooms} {totalRooms > 1 ? 'rooms' : 'room'} for {totalAdults} {totalAdults > 1 ? 'adults' : 'adult'} and {totalChildren} {totalChildren > 1 ? 'children' : 'child'}
                     </div>
                     
                     {selectedRooms.length > 0 ? (
                         selectedRooms.map((room, index) => (
-                            <div key={index} className="text-dark mb-1">
+                            <div key={index} className="text-dark mb-1" style={{ fontSize: '15px' }}>
                                 {room.quantity || 1} x {room.name}
                             </div>
                         ))
                     ) : (
-                        <p className="text-danger" style={{ fontSize: '11px' }}>No rooms selected</p>
+                        <p className="text-danger" style={{ fontSize: '13px' }}>No rooms selected</p>
                     )}
                 </div>
             </div>
 
             {/* Card 3: Your price summary */}
             <div className="bg-white rounded-3 border custom-shadow overflow-hidden">
-                <div className="p-3">
-                    <h6 className="fw-bold mb-2" style={{ fontSize: '14px' }}>Your price summary</h6>
+                <div className="p-4">
+                    <h5 className="fw-bold mb-3" style={{ fontSize: '18px' }}>Your price summary</h5>
                     
-                    <div className="d-flex justify-content-between mb-1 text-dark" style={{ fontSize: '13px' }}>
+                    <div className="d-flex justify-content-between mb-2 text-dark" style={{ fontSize: '16px' }}>
                         <span>Original price</span>
                         <span>{formatCurrency(totalBasePrice)}</span>
                     </div>
                     
                     {allModifiers.map((mod, i) => (
-                        <div className="d-flex justify-content-between mb-1" key={i} style={{ fontSize: '13px' }}>
+                        <div className="d-flex justify-content-between mb-2" key={i} style={{ fontSize: '15px' }}>
                             <div className="text-dark">
                                 <div>{mod.name}</div>
-                                {mod.reason && <div className="text-muted" style={{ fontSize: '10px', marginTop: '1px' }}>{mod.reason}</div>}
+                                {mod.reason && <div className="text-muted" style={{ fontSize: '13px', marginTop: '2px' }}>{mod.reason}</div>}
                             </div>
                             <div className="text-dark">
                                 {mod.delta < 0 ? `- \${formatCurrency(Math.abs(mod.delta))}` : `+ \${formatCurrency(mod.delta)}`}
@@ -260,16 +260,16 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 </div>
                 
                 {/* Total Section with light blue background */}
-                <div className="p-3 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#ebf3ff' }}>
-                    <h6 className="fw-bold m-0 text-dark" style={{ fontSize: '14px' }}>Total</h6>
+                <div className="p-4 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#ebf3ff' }}>
+                    <h5 className="fw-bold m-0 text-dark" style={{ fontSize: '18px' }}>Total</h5>
                     <div className="text-end">
                         {totalBasePrice > bookingTotalAmount && (
-                            <div className="text-danger text-decoration-line-through mb-0 fw-medium" style={{ fontSize: '12px' }}>
+                            <div className="text-danger text-decoration-line-through mb-1 fw-medium" style={{ fontSize: '15px' }}>
                                 {formatCurrency(totalBasePrice)}
                             </div>
                         )}
-                        <h4 className="fw-bold m-0 text-dark">{formatCurrency(bookingTotalAmount)}</h4>
-                        <div className="text-muted mt-1" style={{ fontSize: '10px' }}>Includes taxes and fees</div>
+                        <h3 className="fw-bold m-0 text-dark">{formatCurrency(bookingTotalAmount)}</h3>
+                        <div className="text-muted mt-1" style={{ fontSize: '13px' }}>Includes taxes and fees</div>
                     </div>
                 </div>
             </div>
