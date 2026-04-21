@@ -606,6 +606,7 @@ const SearchRoom = () => {
             <div className="container pb-5">
                 <div className="row g-4">
                     <div className="col-lg-3 col-md-4">
+                        <div style={{ position: 'sticky', top: '90px', zIndex: 1020 }}>
                         <div className="cart-panel shadow-sm rounded-4 overflow-hidden border-0">
                             <div className="cart-header p-3 pb-0">
                                 <h5 className="mb-0 fw-bold text-white">
@@ -771,6 +772,7 @@ const SearchRoom = () => {
                                 </button>
                             </div>
                         )}
+                        </div>
                     </div>
 
                     <div className="col-lg-9 col-md-8" style={{ position: 'relative', zIndex: 0 }}>
