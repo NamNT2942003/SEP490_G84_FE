@@ -132,19 +132,27 @@ const findPreferredPricingOption = (options, preferredOption) => {
     return null;
 };
 
-const withPricingState = (room, preferredOption = null) => {
+const withPricingState = (room, preferredOption = null, policyId = null) => {
     if (!room) return room;
 
     const options = (Array.isArray(room?.pricingOptions) ? room.pricingOptions : [])
         .map(toPricingOption)
         .sort((a, b) => a.finalPrice - b.finalPrice);
 
-    let selectedOption;
-    if (preferredOption) {
-        // Có preferred option (từ cart sync / email repricing / policy repricing):
+    let selectedOption = null;
+
+    if (policyId !== null && policyId !== undefined && String(policyId).trim() !== "") {
+        // Ưu tiên cao nhất là option tương ứng với policy user chọn
+        selectedOption = options.find(
+            (opt) => Number(opt.cancellationPolicyId) === Number(policyId) && !isNeutralOption(opt)
+        );
+    }
+
+    if (!selectedOption && preferredOption) {
+        // Có preferred option (từ cart sync / email repricing):
         // tìm đúng option đó, fallback về options[0] (rẻ nhất, có thể có discount đã áp dụng).
         selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
-    } else {
+    } else if (!selectedOption) {
         // Không có preferred option (hiển thị lần đầu):
         // Chọn option trung lập (không có USER_HISTORY_DISCOUNT và POLICY modifier)
         // để tránh tự áp dụng giãm giá email / phụ phí policy khi user chưa cung cấp thông tin.
@@ -170,7 +178,7 @@ const withPricingState = (room, preferredOption = null) => {
     };
 };
 
-const syncCartWithLatestRooms = (prevCart, latestRooms, options = {}) => {
+const syncCartWithLatestRooms = (prevCart, latestRooms, options = {}, policyId = null) => {
     const { allowReprice = false } = options;
     if (!prevCart.length) return prevCart;
     const roomMap = new Map((latestRooms || []).map((room) => [room.roomTypeId, room]));
@@ -182,7 +190,7 @@ const syncCartWithLatestRooms = (prevCart, latestRooms, options = {}) => {
                 // Giữ nguyên cart item — không xóa, không cập nhật giá.
                 return cartItem;
             }
-            const mergedRoom = withPricingState(latestRoom, cartItem.selectedPricingOption);
+            const mergedRoom = withPricingState(latestRoom, cartItem.selectedPricingOption, policyId);
             return {
                 ...cartItem,
                 ...mergedRoom,
@@ -349,9 +357,9 @@ const SearchRoom = () => {
             const res = await roomService.searchRooms(apiParams);
             if (requestId !== latestRequestIdRef.current) return;
 
-            const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
+            const fetchedRooms = (res.content || []).map((room) => withPricingState(room, null, selectedPolicyId));
             setRooms(fetchedRooms);
-            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms, { allowReprice: true }));
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms, { allowReprice: true }, selectedPolicyId));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {
@@ -396,8 +404,8 @@ const SearchRoom = () => {
 
         try {
             const res = await roomService.searchRooms(apiParams);
-            const latestRooms = (res?.content || []).map((room) => withPricingState(room));
-            setSelectedCart((prev) => syncCartWithLatestRooms(prev, latestRooms, { allowReprice: true }));
+            const latestRooms = (res?.content || []).map((room) => withPricingState(room, null, selectedPolicyIdRef.current));
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, latestRooms, { allowReprice: true }, selectedPolicyIdRef.current));
         } catch (err) {
             console.error("Failed to refresh cart pricing:", err);
         } finally {
@@ -410,7 +418,7 @@ const SearchRoom = () => {
     const handlePageChange = (page) => setFilters(p => ({ ...p, page }));
 
     const handleBooking = (room) => {
-        const roomForCart = withPricingState(room, room.selectedPricingOption);
+        const roomForCart = withPricingState(room, room.selectedPricingOption, selectedPolicyId);
         const currentPrice = getSearchRoomPrice(roomForCart);
         const existingIndex = selectedCart.findIndex(r => r.roomTypeId === room.roomTypeId);
         
@@ -740,7 +748,10 @@ const SearchRoom = () => {
                                             type="email"
                                             className="cart-loyalty-input"
                                             value={customerHistoryEmail}
-                                            onChange={(e) => setCustomerHistoryEmail(e.target.value)}
+                                            onChange={(e) => {
+                                            setSelectedPolicyId(e.target.value ? Number(e.target.value) : null);
+                                            setSearchVersion(v => v + 1);
+                                        }}
                                             placeholder="name@example.com"
                                         />
                                         <div className={`cart-loyalty-note ${isEmailEntered && !isEmailValid ? 'warn' : ''}`}>
