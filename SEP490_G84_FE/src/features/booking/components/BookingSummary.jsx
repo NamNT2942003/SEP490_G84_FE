@@ -11,7 +11,7 @@ const getAbsoluteImageUrl = (url) => {
     return url;
 };
 
-const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, branchName = '', bookingTotalAmount = 0 }) => {
+const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, branchName = '', bookingTotalAmount = 0, hasPolicySelected = false }) => {
     const normalizeModeText = (mode) => {
         if (!mode) return 'Standard';
         const raw = String(mode).trim();
@@ -236,43 +236,56 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 </div>
             </div>
 
-            {/* Card 3: Your price summary */}
-            <div className="bg-white rounded-3 border custom-shadow overflow-hidden">
-                <div className="p-4">
-                    <h5 className="fw-bold mb-3" style={{ fontSize: '18px' }}>Your price summary</h5>
-                    
-                    <div className="d-flex justify-content-between mb-2 text-dark" style={{ fontSize: '16px' }}>
-                        <span>Original price</span>
-                        <span>{formatCurrency(totalBasePrice)}</span>
-                    </div>
-                    
-                    {allModifiers.map((mod, i) => (
-                        <div className="d-flex justify-content-between mb-2" key={i} style={{ fontSize: '15px' }}>
-                            <div className="text-dark">
-                                <div>{mod.name}</div>
-                                {mod.reason && <div className="text-muted" style={{ fontSize: '13px', marginTop: '2px' }}>{mod.reason}</div>}
-                            </div>
-                            <div className="text-dark">
-                                {mod.delta < 0 ? `- ${formatCurrency(Math.abs(mod.delta))}` : `+ ${formatCurrency(mod.delta)}`}
-                            </div>
+            {/* Card 3: Your price summary — only when a policy is selected */}
+            {hasPolicySelected ? (
+                <div className="bg-white rounded-3 border custom-shadow overflow-hidden">
+                    <div className="p-4">
+                        <h5 className="fw-bold mb-3" style={{ fontSize: '18px' }}>Your price summary</h5>
+                        
+                        <div className="d-flex justify-content-between mb-2 text-dark" style={{ fontSize: '16px' }}>
+                            <span>Original price</span>
+                            <span>{formatCurrency(totalBasePrice)}</span>
                         </div>
-                    ))}
-                </div>
-                
-                {/* Total Section with light blue background */}
-                <div className="p-4 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#ebf3ff' }}>
-                    <h5 className="fw-bold m-0 text-dark" style={{ fontSize: '18px' }}>Total</h5>
-                    <div className="text-end">
-                        {totalBasePrice > bookingTotalAmount && (
-                            <div className="text-danger text-decoration-line-through mb-1 fw-medium" style={{ fontSize: '15px' }}>
-                                {formatCurrency(totalBasePrice)}
+                        
+                        {allModifiers.map((mod, i) => (
+                            <div className="d-flex justify-content-between mb-2" key={i} style={{ fontSize: '15px' }}>
+                                <div className="text-dark">
+                                    <div>{mod.name}</div>
+                                    {mod.reason && <div className="text-muted" style={{ fontSize: '13px', marginTop: '2px' }}>{mod.reason}</div>}
+                                </div>
+                                <div className="text-dark">
+                                    {mod.delta < 0 ? `- ${formatCurrency(Math.abs(mod.delta))}` : `+ ${formatCurrency(mod.delta)}`}
+                                </div>
                             </div>
-                        )}
-                        <h3 className="fw-bold m-0 text-dark">{formatCurrency(bookingTotalAmount)}</h3>
-                        <div className="text-muted mt-1" style={{ fontSize: '13px' }}>Includes taxes and fees</div>
+                        ))}
+                    </div>
+                    
+                    {/* Total Section with light blue background */}
+                    <div className="p-4 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#ebf3ff' }}>
+                        <h5 className="fw-bold m-0 text-dark" style={{ fontSize: '18px' }}>Total</h5>
+                        <div className="text-end">
+                            {totalBasePrice > bookingTotalAmount && (
+                                <div className="text-danger text-decoration-line-through mb-1 fw-medium" style={{ fontSize: '15px' }}>
+                                    {formatCurrency(totalBasePrice)}
+                                </div>
+                            )}
+                            <h3 className="fw-bold m-0 text-dark">{formatCurrency(bookingTotalAmount)}</h3>
+                            <div className="text-muted mt-1" style={{ fontSize: '13px' }}>Includes taxes and fees</div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            ) : (
+                <div className="bg-white rounded-3 border custom-shadow p-4">
+                    <h5 className="fw-bold mb-2" style={{ fontSize: '18px' }}>Your price summary</h5>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#d97706', fontSize: 14, fontWeight: 600 }}>
+                        <i className="bi bi-exclamation-circle" />
+                        Select a cancellation policy to view your total.
+                    </div>
+                    <div className="text-muted mt-2" style={{ fontSize: 12 }}>
+                        Your final price depends on the policy you choose.
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

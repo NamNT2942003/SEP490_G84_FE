@@ -1043,7 +1043,7 @@ const GuestInformation = () => {
                                 Cancellation Policy
                                 {checkIn && (
                                     <span style={{ fontSize: 12, fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>
-                                        — cho ngày check-in {checkIn}
+                                        — for check-in {checkIn}
                                     </span>
                                 )}
                             </h5>
@@ -1051,7 +1051,7 @@ const GuestInformation = () => {
                             {!hasLoadedPolicies && policyLoading ? (
                                 <div className="text-muted d-flex align-items-center gap-2">
                                     <span className="spinner-border spinner-border-sm" />
-                                    Đang tải chính sách...
+                                    Loading policies...
                                 </div>
                             ) : policies.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1059,11 +1059,18 @@ const GuestInformation = () => {
                                         const isSelected = Number(selectedPolicyId) === Number(policy.id);
                                         const pType = String(policy.type || '').trim().toUpperCase();
 
-                                        // Số tiền cụ thể
-                                        const prepaidAmount = normalizeMoney(finalBookingAmount * (safeNumber(policy.prepaidRate, 100)) / 100);
-                                        const refundAmount = normalizeMoney(finalBookingAmount * (safeNumber(policy.refunRate, 0)) / 100);
+                                        // Tính tổng tiền riêng cho policy này bằng cách áp dụng policy lên từng phòng
+                                        // — độc lập, không ảnh hưởng các card khác
+                                        const policyTotalAmount = normalizeMoney(
+                                            rooms.reduce((sum, room) => {
+                                                const roomWithPolicy = applyPolicySelectionToRoom(room, policy.id);
+                                                return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
+                                            }, 0)
+                                        );
+                                        const prepaidAmount = normalizeMoney(policyTotalAmount * (safeNumber(policy.prepaidRate, 100)) / 100);
+                                        const refundAmount  = normalizeMoney(policyTotalAmount * (safeNumber(policy.refunRate, 0)) / 100);
 
-                                        // Hạn huỷ miễn phí
+                                        // Free cancellation deadline
                                         const deadline = computeFreeCancelDeadline(checkIn, policy.dateRange);
                                         const deadlineStr = formatDeadlineDate(deadline);
                                         const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -1072,13 +1079,13 @@ const GuestInformation = () => {
                                         const isDeadlineToday = deadlineDay && deadlineDay.getTime() === today.getTime();
                                         const isDeadlinePast = deadline && !isDeadlineToday && deadline < today;
 
-                                        // Màu theo loại
+                                        // Color config by type
                                         const typeConfig = {
-                                            FREE_CANCEL: { label: 'Miễn phí huỷ', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', badgeBg: '#dcfce7', badgeColor: '#15803d', icon: 'bi-check-circle-fill' },
-                                            PARTIAL_REFUND: { label: 'Hoàn một phần', color: '#d97706', bg: '#fffbeb', border: '#fcd34d', badgeBg: '#fef3c7', badgeColor: '#92400e', icon: 'bi-arrow-left-right' },
-                                            NON_REFUND: { label: 'Không hoàn tiền', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', badgeBg: '#fee2e2', badgeColor: '#991b1b', icon: 'bi-x-circle-fill' },
-                                            PAY_AT_HOTEL: { label: 'Thanh toán tại khách sạn', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', badgeBg: '#dbeafe', badgeColor: '#1e40af', icon: 'bi-building-check' },
-                                        }[pType] || { label: pType || 'Chính sách chuẩn', color: '#6b7280', bg: '#f9fafb', border: '#d1d5db', badgeBg: '#f3f4f6', badgeColor: '#374151', icon: 'bi-shield' };
+                                            FREE_CANCEL:    { label: 'Free cancellation',   color: '#16a34a', bg: '#f0fdf4', border: '#86efac', badgeBg: '#dcfce7', badgeColor: '#15803d', icon: 'bi-check-circle-fill' },
+                                            PARTIAL_REFUND: { label: 'Partial refund',      color: '#d97706', bg: '#fffbeb', border: '#fcd34d', badgeBg: '#fef3c7', badgeColor: '#92400e', icon: 'bi-arrow-left-right' },
+                                            NON_REFUND:     { label: 'Non-refundable',      color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', badgeBg: '#fee2e2', badgeColor: '#991b1b', icon: 'bi-x-circle-fill' },
+                                            PAY_AT_HOTEL:   { label: 'Pay at hotel',        color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', badgeBg: '#dbeafe', badgeColor: '#1e40af', icon: 'bi-building-check' },
+                                        }[pType] || { label: pType || 'Standard policy', color: '#6b7280', bg: '#f9fafb', border: '#d1d5db', badgeBg: '#f3f4f6', badgeColor: '#374151', icon: 'bi-shield' };
 
                                         return (
                                             <div
@@ -1111,7 +1118,7 @@ const GuestInformation = () => {
                                                         </div>
                                                         {isSelected && (
                                                             <div style={{ fontSize: 11, color: typeConfig.color, fontWeight: 600, marginTop: 2 }}>
-                                                                <i className="bi bi-check-circle-fill me-1" />Đang áp dụng
+                                                                <i className="bi bi-check-circle-fill me-1" />Applied
                                                             </div>
                                                         )}
                                                     </div>
@@ -1126,25 +1133,25 @@ const GuestInformation = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* 3 số cốt lõi */}
+                                                {/* 3 key amounts */}
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: (deadlineStr || (policy.activeTimeStart && policy.activeTimeEnd)) ? 10 : 0 }}>
-                                                    {/* Trả trước */}
+                                                    {/* Prepaid */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
-                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Trả trước</div>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Prepaid</div>
                                                         <div style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>{formatVND(prepaidAmount)}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.prepaidRate ?? 0}% tổng tiền</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.prepaidRate ?? 0}% of total</div>
                                                     </div>
-                                                    {/* Hoàn tiền */}
+                                                    {/* Refund */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${refundAmount > 0 ? '#16a34a' : '#e5e7eb'}` }}>
-                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Hoàn nếu huỷ</div>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Refund if cancelled</div>
                                                         <div style={{ fontSize: 15, fontWeight: 800, color: refundAmount > 0 ? '#16a34a' : '#dc2626' }}>{formatVND(refundAmount)}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.refunRate ?? 0}% tổng tiền</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.refunRate ?? 0}% of total</div>
                                                     </div>
-                                                    {/* Giữ lại */}
-                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: '3px solid #e5e7eb' }}>
-                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Khách sạn giữ</div>
-                                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#374151' }}>{formatVND(normalizeMoney(finalBookingAmount - refundAmount))}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{100 - (policy.refunRate ?? 0)}% tổng tiền</div>
+                                                    {/* Total booking */}
+                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Total booking</div>
+                                                        <div style={{ fontSize: 15, fontWeight: 800, color: typeConfig.color }}>{formatVND(policyTotalAmount)}</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>with this policy</div>
                                                     </div>
                                                 </div>
 
@@ -1201,11 +1208,11 @@ const GuestInformation = () => {
                                                     )
                                                 )}
 
-                                                {/* Mùa áp dụng */}
+                                                {/* Active season */}
                                                 {policy.activeTimeStart && policy.activeTimeEnd && (
                                                     <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                                         <i className="bi bi-sun" />
-                                                        Áp dụng từ{' '}
+                                                        Applies:{' '}
                                                         <strong style={{ color: '#374151' }}>
                                                             {policy.activeTimeStart} – {policy.activeTimeEnd}
                                                         </strong>
@@ -1221,14 +1228,14 @@ const GuestInformation = () => {
                                             style={{ alignSelf: 'flex-start', fontSize: 12 }}
                                             onClick={() => setSelectedPolicyId(null)}
                                         >
-                                            <i className="bi bi-x-circle me-1" />Bỏ chọn chính sách
+                                            <i className="bi bi-x-circle me-1" />Deselect policy
                                         </button>
                                     )}
                                 </div>
                             ) : (
                                 <div className="text-muted">
                                     <i className="bi bi-info-circle me-1" />
-                                    Không tìm thấy chính sách nào cho ngày check-in này. Hệ thống sẽ dùng 100% tổng tiền làm số tiền đặt cọc.
+                                    No policies found for this check-in date. Full amount will be charged as deposit.
                                 </div>
                             )}
                         </div>
@@ -1302,6 +1309,7 @@ const GuestInformation = () => {
                                     depositAmount={depositAmount}
                                     bookingTotalAmount={finalBookingAmount}
                                     branchName={branchName}
+                                    hasPolicySelected={!!selectedPolicyId}
                                 />
                             </div>
                         </div>
@@ -1314,6 +1322,7 @@ const GuestInformation = () => {
                                 depositAmount={depositAmount}
                                 bookingTotalAmount={finalBookingAmount}
                                 branchName={branchName}
+                                hasPolicySelected={!!selectedPolicyId}
                             />
                         </div>
                     </div>
@@ -1324,19 +1333,25 @@ const GuestInformation = () => {
             <footer className="fixed-bottom bg-white border-top p-3 shadow-lg" style={{ zIndex: 1031 }}>
                 <div className="container d-flex justify-content-between align-items-center">
                     <div>
-                        <small className="text-muted fw-bold text-uppercase">Tổng tiền</small>
-                        <h4 className="mb-0 fw-bold" style={{ color: '#5C6F4E' }}>
-                            {formatVND(finalBookingAmount)}
-                        </h4>
-                        {selectedPolicy ? (
-                            <div style={{ fontSize: 12, marginTop: 2 }}>
-                                <span style={{ color: '#6b7280' }}>Trả trước:</span>{' '}
-                                <strong style={{ color: '#d97706' }}>{formatVND(depositAmount)}</strong>
-                                <span style={{ color: '#9ca3af', marginLeft: 4 }}>({safeNumber(selectedPolicy.prepaidRate, 100)}%)</span>
-                            </div>
+                        {selectedPolicyId ? (
+                            <>
+                                <small className="text-muted fw-bold text-uppercase">Total</small>
+                                <h4 className="mb-0 fw-bold" style={{ color: '#5C6F4E' }}>
+                                    {formatVND(finalBookingAmount)}
+                                </h4>
+                                <div style={{ fontSize: 12, marginTop: 2 }}>
+                                    <span style={{ color: '#6b7280' }}>Due now:</span>{' '}
+                                    <strong style={{ color: '#d97706' }}>{formatVND(depositAmount)}</strong>
+                                    <span style={{ color: '#9ca3af', marginLeft: 4 }}>({safeNumber(selectedPolicy?.prepaidRate, 100)}%)</span>
+                                </div>
+                            </>
                         ) : (
-                            <div className="text-muted small mt-1">
-                                Chưa chọn chính sách — đặt cọc 100%
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <small className="text-muted fw-bold text-uppercase">Total</small>
+                                <div style={{ fontSize: 13, color: '#d97706', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <i className="bi bi-exclamation-circle" />
+                                    Select a cancellation policy to see total
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1345,7 +1360,7 @@ const GuestInformation = () => {
                         onClick={handleContinue}
                         disabled={rooms.length === 0}
                     >
-                        Tiếp tục thanh toán <i className="bi bi-arrow-right ms-2" />
+                        Continue to payment <i className="bi bi-arrow-right ms-2" />
                     </button>
                 </div>
             </footer>
