@@ -523,6 +523,8 @@ const SearchRoom = () => {
         Boolean(searchParams?.checkIn) &&
         Boolean(searchParams?.checkOut) &&
         new Date(searchParams.checkOut) > new Date(searchParams.checkIn);
+        
+    const currentBranch = branches.find(b => b.branchId === filters.branchId);
 
     return (
         <div className="search-room-page">
@@ -565,7 +567,74 @@ const SearchRoom = () => {
                 )}
             </div>
 
-            <div className="container pb-5">
+            {currentBranch && (
+                <div className="container mb-4" id="overview">
+                    <div className="bg-white rounded-3 shadow-sm pt-4 pb-0 mb-3 border-0">
+                        <div className="px-4 border-bottom pb-4">
+                            <h2 className="fw-bold mb-2 d-flex align-items-center">
+                                {currentBranch.branchName}
+                                <span className="ms-2 text-warning fs-5">
+                                    <i className="bi bi-star-fill"></i>
+                                    <i className="bi bi-star-fill"></i>
+                                    <i className="bi bi-star-fill"></i>
+                                </span>
+                            </h2>
+                            <p className="text-muted mb-0">
+                                {currentBranch.address}{currentBranch.city ? `, ${currentBranch.city}` : ''} 
+                                {currentBranch.country && ` ${currentBranch.country}`}
+                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentBranch.address + ' ' + (currentBranch.city || ''))}`} 
+                                   target="_blank" rel="noreferrer" 
+                                   className="ms-2 text-decoration-none fw-bold" 
+                                   style={{ color: '#0071C2' }}>
+                                    - TRÊN BẢN ĐỒ
+                                </a>
+                            </p>
+                        </div>
+                        <div className="px-4 py-4">
+                            <h4 className="fw-bold mb-4">Điểm nổi bật nhất</h4>
+                            <div className="row g-4">
+                                <div className="col-md-6 col-lg-4 d-flex">
+                                    <div className="me-3 fs-3" style={{ color: '#5C6F4E' }}><i className="bi bi-house-door"></i></div>
+                                    <div>
+                                        <h6 className="fw-bold mb-1">Phòng nghỉ thoải mái, chất lượng cao</h6>
+                                        <p className="text-muted small mb-0">“Phòng rộng rãi sạch sẽ.”</p>
+                                    </div>
+                                </div>
+                                <div className="col-md-6 col-lg-4 d-flex">
+                                    <div className="me-3 fs-3" style={{ color: '#5C6F4E' }}><i className="bi bi-cup-hot"></i></div>
+                                    <div>
+                                        <h6 className="fw-bold mb-1">Ẩm thực nổi bật</h6>
+                                        <p className="text-muted small mb-0">Hương vị địa phương đặc sắc</p>
+                                    </div>
+                                </div>
+                                <div className="col-md-6 col-lg-4 d-flex">
+                                    <div className="me-3 fs-3" style={{ color: '#5C6F4E' }}><i className="bi bi-egg-fried"></i></div>
+                                    <div>
+                                        <h6 className="fw-bold mb-1">Bếp dễ tiếp cận</h6>
+                                        <p className="text-muted small mb-0">Tiện nghi nấu nướng đầy đủ</p>
+                                    </div>
+                                </div>
+                                <div className="col-md-6 col-lg-4 d-flex">
+                                    <div className="me-3 fs-3" style={{ color: '#5C6F4E' }}><i className="bi bi-clock-history"></i></div>
+                                    <div>
+                                        <h6 className="fw-bold mb-1">Nhận/trả phòng được đánh giá cao</h6>
+                                        <p className="text-muted small mb-0">Nhanh chóng, thuận tiện</p>
+                                    </div>
+                                </div>
+                                <div className="col-md-6 col-lg-4 d-flex">
+                                    <div className="me-3 fs-3" style={{ color: '#5C6F4E' }}><i className="bi bi-person-heart"></i></div>
+                                    <div>
+                                        <h6 className="fw-bold mb-1">Dịch vụ chăm sóc khách chuyên nghiệp</h6>
+                                        <p className="text-muted small mb-0">“Nhân viên thân thiện”</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="container pb-5" id="rooms">
                 <div className="row g-4">
                     <div className="col-lg-3 col-md-4">
                         <div className="cart-panel shadow-sm rounded-4 overflow-hidden border-0">
