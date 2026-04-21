@@ -1089,6 +1089,10 @@ const GuestInformation = () => {
                                 <i className="bi bi-person-badge text-success fs-5"></i>
                                 <span>24-hour front desk - Always here to help when you need!</span>
                             </div>
+                             <div className="mb-4 d-flex align-items-center gap-2 text-dark">
+                                <i className="bi bi-person-badge text-success fs-5"></i>
+                                <span>Please do not bring more people than the room can accommodate!</span>
+                            </div>
                             <div className="mb-2 fw-medium text-dark">Add your estimated arrival time (optional)</div>
                             <select
                                 id="estimatedArrivalTime"
