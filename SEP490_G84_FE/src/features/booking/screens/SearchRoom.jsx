@@ -411,6 +411,7 @@ const SearchRoom = () => {
             showUiMessage("success", `${roomForCart.name} pricing has been updated.`);
         } else {
             if (roomForCart.availableCount <= 0) {
+    const debounceCartRefresh = useRef(null);
                 showUiMessage("warning", `${roomForCart.name} is fully booked.`);
                 setIsPricing(false);
                 return;
@@ -519,19 +520,19 @@ const SearchRoom = () => {
     // Điều kiện trigger: filters, searchParams đổi (date/sort/branch) hoặc searchVersion tăng
     // (lượng phòng / email đổi). Tất cả hoạt động giống hệt nhau: gọi refetchRooms lập tức chữ không dùng setTimeout.
     // Liền sau refetch, gọi lại API refreshCartPricing để cập nhật chính xác giá MỌI room đang nằm trong giỏ hàng.
+    const debounceEffect = useRef(null);
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
         setIsPricing(true);
         let isActive = true;
-        
-        (async () => {
+        if (debounceEffect.current) clearTimeout(debounceEffect.current);
+        debounceEffect.current = setTimeout(async () => {
             await refetchRooms();
             if (isActive) {
                 refreshCartPricing();
             }
-        })();
-        
-        return () => { isActive = false; };
+        }, 300);
+        return () => { isActive = false; clearTimeout(debounceEffect.current); };
     }, [filters, searchParams, isInitialized, refetchRooms, refreshCartPricing, searchVersion]);
 
     // Email: áp dụng thay đổi và cập nhật hiển thị ngay lập tức (không chờ)
@@ -711,6 +712,7 @@ const SearchRoom = () => {
                                             value={customerHistoryEmail}
                                             onChange={(e) => {
                                                 setCustomerHistoryEmail(e.target.value);
+                                                setSearchVersion(v => v + 1);
                                             }}
                                             placeholder="name@example.com"
                                         />

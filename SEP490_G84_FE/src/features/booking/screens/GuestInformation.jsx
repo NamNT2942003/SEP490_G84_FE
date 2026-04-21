@@ -728,12 +728,18 @@ const GuestInformation = () => {
             }
         }
     }, [branchId, checkIn, checkOut, searchParams?.adults, searchParams?.children]);
+    const debounceRefreshTimeout = useRef(null);
+
 
     // Trigger re-price khi email thay đổi: báo isRepricing ngay lập tức
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
         setIsRepricing(true);
-        refreshRoomsByEmail();
+        if (debounceRefreshTimeout.current) clearTimeout(debounceRefreshTimeout.current);
+        debounceRefreshTimeout.current = setTimeout(() => {
+            refreshRoomsByEmail();
+        }, 500);
+        return () => clearTimeout(debounceRefreshTimeout.current);
     }, [formData.email, checkIn, checkOut, refreshRoomsByEmail]);
 
     // totalRoomsInCart: dependency để trigger re-price và cache rebuild khi số phòng thay đổi.
