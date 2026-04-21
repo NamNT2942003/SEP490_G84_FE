@@ -336,6 +336,13 @@ const SearchRoom = () => {
                 totalRooms: cartTotalRooms > 0 ? cartTotalRooms : 1,
             };
 
+            // Luôn gửi email khi có → đảm bảo room cards hiển đúng giá sau khi email modifier được apply.
+            // Đọc từ ref để tránh thêm customerHistoryEmail vào useCallback deps (sẽ tạo fn mới mỗi lần gõ).
+            const normalizedEmail = normalizeEmailForSearch(customerHistoryEmailRef.current);
+            if (normalizedEmail) {
+                apiParams.customerEmail = normalizedEmail;
+            }
+
             const res = await roomService.searchRooms(apiParams);
             if (requestId !== latestRequestIdRef.current) return;
 
@@ -524,22 +531,29 @@ const SearchRoom = () => {
         return () => clearTimeout(timer);
     }, [cartTotalRoomsForEffect, isInitialized, searchParams, refetchRooms, refreshCartPricingByEmail]);
 
-    // Khi email thay đổi → báo isPricing ngay, gọi API sau 600ms (đợi user gõ xong).
+    // Khi email thay đổi:
+    // 1. refetchRooms → cập nhật cả room card list và cart items trên trang hiện tại với email modifier.
+    // 2. refreshCartPricingByEmail → cập nhật cart items có thể nằm ở trang khác trong danh sách.
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
         if (!customerHistoryEmail.trim()) { setIsPricing(false); return; }
         setIsPricing(true);
-        const timer = setTimeout(() => {
+        const timer = setTimeout(async () => {
+            // refetchRooms luôn có email (từ ref) → room cards và cart items trên trang hiện tại update.
+            await refetchRooms();
+            // refreshCartPricingByEmail fetch theo roomTypeIds → đảm bảo cart items ở trang khác cũng update.
             refreshCartPricingByEmail();
         }, 600);
         return () => clearTimeout(timer);
-    }, [customerHistoryEmail, isInitialized, searchParams, refreshCartPricingByEmail]);
+    }, [customerHistoryEmail, isInitialized, searchParams, refetchRooms, refreshCartPricingByEmail]);
 
-    // Khi searchParams (dates) thay đổi + có email → reprice 500ms sau refetch (150ms).
+    // Khi searchParams (dates) thay đổi + có email → refetch rooms (có email) để room cards
+    // và cart đều được cập nhật. refetchRooms đã bao gồm email → không cần gọi riêng nữa.
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
         if (!normalizeEmailForSearch(customerHistoryEmailRef.current)) return;
         const timer = setTimeout(() => {
+            // refetchRooms sẽ tự bao gồm email → room cards có email modifier ngày mới.
             refreshCartPricingByEmail();
         }, 500);
         return () => clearTimeout(timer);
@@ -635,11 +649,13 @@ const SearchRoom = () => {
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                                                     <div style={{ flex: 1 }}>
                                                         <div className="cart-room-name">
-                                                            <i className="bi bi-door-open me-2" style={{ color: '#5C6F4E' }}></i>
+                                                            <i className="bi bi-door-open me-2" style={{ color: '#5C6F4E' }} />
                                                             {room.name}
                                                         </div>
-                                                        <div className="cart-room-price">
-                                                            <i className="bi bi-currency-dollar me-1"></i>{new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/stay
+                                                        <div className="cart-room-price" style={{ transition: 'opacity 0.2s', opacity: isPricing ? 0.45 : 1 }}>
+                                                            {isPricing
+                                                                ? <><span className="spinner-border spinner-border-sm me-1" style={{ width: '0.65rem', height: '0.65rem', borderWidth: '0.1em' }} />Updating…</>
+                                                                : <><i className="bi bi-currency-dollar me-1" />{new Intl.NumberFormat('vi-VN').format(roomUnitPrice)}₫/stay</>}
                                                         </div>
                                                     </div>
                                                     <button
@@ -821,6 +837,7 @@ const SearchRoom = () => {
                                             room={rt}
                                             onBooking={handleBooking}
                                             onViewDetail={handleViewDetail}
+                                            isPricing={isPricing}
                                         />
                                     ))}
                                     <SmartPagination

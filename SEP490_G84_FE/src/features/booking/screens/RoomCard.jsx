@@ -63,7 +63,7 @@ const getSearchRoomPrice = (room) =>
         0,
     );
 
-const RoomCard = ({ room, onBooking, onViewDetail }) => {
+const RoomCard = ({ room, onBooking, onViewDetail, isPricing = false }) => {
     const formatPrice = (price) =>
         new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", minimumFractionDigits: 0 }).format(price);
 
@@ -88,23 +88,23 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
         .rc-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
         .rc-tag { font-size: 0.75rem; font-weight: 600; color: var(--olive); background: #f0f4ec; padding: 4px 12px; border-radius: 8px; display: flex; align-items: center; gap: 4px; }
         .rc-desc { font-size: 0.9rem; color: #718096; line-height: 1.6; margin-bottom: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .rc-side-btn { margin-top: 20px; padding: 10px 0; border: 1.5px solid #e2e8f0; border-radius: 12px; background: transparent; color: #4a5568; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; width: max-content; padding: 8px 20px; }
+        .rc-side-btn { margin-top: 20px; border: 1.5px solid #e2e8f0; border-radius: 12px; background: transparent; color: #4a5568; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; padding: 8px 20px; }
         .rc-side-btn:hover { border-color: var(--olive); color: var(--olive); background: #f0f4ec; }
-        
+
         .rc-pricing { flex: 0 0 310px; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-light); border-left: 1px solid #f0f0f0; }
-        .rc-price-box { background: #fff; border: 1.5px solid #edf2f7; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
-        .rc-price-label { font-size: 0.75rem; font-weight: 800; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px; }
+        .rc-price-box { background: #fff; border: 1.5px solid #edf2f7; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; transition: opacity 0.25s; }
+        .rc-price-box.is-pricing { opacity: 0.45; }
+        .rc-price-label { font-size: 0.75rem; font-weight: 800; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 5px; }
         .rc-price-value { font-size: 1.35rem; font-weight: 800; color: #2d3748; line-height: 1; display:flex; gap: 4px; align-items:baseline; }
         .rc-price-note { font-size: 0.8rem; color: #718096; }
         .rc-book-btn { width: 100%; padding: 12px; border: none; border-radius: 12px; background: var(--olive); color: #fff; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: auto; }
         .rc-book-btn:hover:not(:disabled) { background: var(--olive-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(92,111,78,0.3); }
         .rc-book-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #cbd5e0; color: #fff; box-shadow: none; transform: none; }
-        
-        /* Thay vì 1100px cứng nhắc, tăng giới hạn chập khối lên 1399px vì màn hình chứa col-lg-9 hẹp hơn viewport thật */
-        @media(max-width:1399px) { 
-            .rc-row { flex-direction: column; } 
-            .rc-img { flex: auto; height: 300px; } 
-            .rc-pricing { flex: auto; border-left: none; border-top: 1px solid #f0f0f0; } 
+
+        @media(max-width:1399px) {
+            .rc-row { flex-direction: column; }
+            .rc-img { flex: auto; height: 300px; }
+            .rc-pricing { flex: auto; border-left: none; border-top: 1px solid #f0f0f0; }
             .rc-pricing-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
         }
         @media(max-width:768px) {
@@ -120,48 +120,65 @@ const RoomCard = ({ room, onBooking, onViewDetail }) => {
                             onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
                         />
                         {room.availableCount > 0 && room.availableCount <= 3 && (
-                            <div className="rc-badge urgent"><i className="bi bi-fire"></i> Only {room.availableCount} room(s) left!</div>
+                            <div className="rc-badge urgent"><i className="bi bi-fire" /> Only {room.availableCount} room(s) left!</div>
                         )}
                         {room.availableCount > 3 && (
-                            <div className="rc-badge"><i className="bi bi-check-circle-fill" style={{ color: '#9ae6b4' }}></i> Available: {room.availableCount} room(s)</div>
+                            <div className="rc-badge"><i className="bi bi-check-circle-fill" style={{ color: '#9ae6b4' }} /> Available: {room.availableCount} room(s)</div>
                         )}
                     </div>
 
                     <div className="rc-info">
                         <div className="rc-name">{room.name}</div>
                         <div className="rc-tags">
-                            <span className="rc-tag"><i className="bi bi-people-fill"></i> Max {room.maxAdult + (room.maxChildren || 0)} guests</span>
-                            <span className="rc-tag"><i className="bi bi-arrows-fullscreen"></i> {room.area} m²</span>
-                            <span className="rc-tag"><i className="bi bi-person-fill"></i> Adults: {room.maxAdult}</span>
-                            {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile"></i> Children: {room.maxChildren}</span>}
+                            <span className="rc-tag"><i className="bi bi-people-fill" /> Max {room.maxAdult + (room.maxChildren || 0)} guests</span>
+                            <span className="rc-tag"><i className="bi bi-arrows-fullscreen" /> {room.area} m²</span>
+                            <span className="rc-tag"><i className="bi bi-person-fill" /> Adults: {room.maxAdult}</span>
+                            {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile" /> Children: {room.maxChildren}</span>}
                         </div>
                         <div className="rc-desc">{room.description}</div>
 
                         <button className="rc-side-btn" onClick={() => onViewDetail(room)}>
-                            <i className="bi bi-info-circle me-1"></i> View details
+                            <i className="bi bi-info-circle me-1" /> View details
                         </button>
                     </div>
 
                     <div className="rc-pricing">
-                        <div className="rc-price-box">
-                            <div className="rc-price-label">Current price</div>
+                        {/* Hộp giá: mờ khi đang cập nhật modifier, hiện spinner + text thông báo */}
+                        <div className={`rc-price-box${isPricing ? ' is-pricing' : ''}`}>
+                            <div className="rc-price-label">
+                                {isPricing
+                                    ? <>
+                                        <span className="spinner-border spinner-border-sm"
+                                            style={{ width: '0.7rem', height: '0.7rem', borderWidth: '0.1em' }} />
+                                        Updating price…
+                                      </>
+                                    : 'Current price'}
+                            </div>
                             <div className="rc-price-value">
                                 {formatPrice(visiblePrice)}
                                 <span className="rc-opt-per">/ night</span>
                             </div>
                             <div className="rc-price-note">
-                                Includes base price and current available price modifiers.
+                                {isPricing
+                                    ? 'Recalculating with latest modifiers…'
+                                    : 'Includes base price and current available price modifiers.'}
                             </div>
                         </div>
 
                         <button
                             className="rc-book-btn"
                             onClick={() => onBooking({ ...room, selectedPrice: visiblePrice })}
-                            disabled={sold}
+                            disabled={sold || isPricing}
                         >
                             {sold
-                                ? <><i className="bi bi-x-octagon-fill"></i> Sold out</>
-                                : <><i className="bi bi-cart-plus-fill"></i> Add to my booking</>}
+                                ? <><i className="bi bi-x-octagon-fill" /> Sold out</>
+                                : isPricing
+                                    ? <>
+                                        <span className="spinner-border spinner-border-sm"
+                                            style={{ width: '0.8rem', height: '0.8rem', borderWidth: '0.12em' }} />
+                                        Updating…
+                                      </>
+                                    : <><i className="bi bi-cart-plus-fill" /> Add to my booking</>}
                         </button>
                     </div>
                 </div>
