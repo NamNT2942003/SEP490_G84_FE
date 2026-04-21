@@ -113,6 +113,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
     const [selectedPolicy, setSelectedPolicy] = useState(null);
     const [availablePolicies, setAvailablePolicies] = useState([]);
     const [loadingPolicies, setLoadingPolicies] = useState(false);
+    // manualPolicyId: staff chủ động chọn policy (override auto-resolve từ pricing option)
+    const [manualPolicyId, setManualPolicyId] = useState(null);
     const [form, setForm] = useState(initialFormState);
     const [error, setError] = useState("");
     // policyFetchKey tăng mỗi khi cần force-refetch policy (tránh race condition khi modal mở)
@@ -129,6 +131,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         setSelectedPolicy(null);
         setAvailablePolicies([]);
         setLoadingPolicies(false);
+        setManualPolicyId(null);
         setForm((prev) => ({
             ...initialFormState,
             branchId:
@@ -535,10 +538,14 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         return uniqueIds(policyIds.map((id) => Number(id)));
     }, [form.rooms, roomPricingMap]);
 
-    const selectedPolicyId = selectedPolicyIds.length === 1 ? selectedPolicyIds[0] : null;
+    // Auto-resolve policy từ pricing option (chỉ khi không có manual selection)
+    const autoPolicyId = selectedPolicyIds.length === 1 ? selectedPolicyIds[0] : null;
+
+    // effectivePolicyId: ưu tiên manual selection của staff, fallback về auto từ pricing
+    const effectivePolicyId = manualPolicyId ?? autoPolicyId;
 
     useEffect(() => {
-        if (!show || !selectedPolicyId) {
+        if (!show || !effectivePolicyId) {
             setSelectedPolicy(null);
             return;
         }
@@ -547,7 +554,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
 
         const fetchSelectedPolicy = async () => {
             try {
-                const data = await cancellationPolicyService.getById(selectedPolicyId);
+                const data = await cancellationPolicyService.getById(effectivePolicyId);
                 if (isMounted) {
                     setSelectedPolicy(normalizePolicy(data));
                 }
@@ -563,7 +570,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         return () => {
             isMounted = false;
         };
-    }, [show, selectedPolicyId]);
+    }, [show, effectivePolicyId]);
 
     const selectedPolicyType = String(selectedPolicy?.type || "").trim().toUpperCase();
     const selectedPaymentLabel = selectedPolicy?.name
@@ -631,7 +638,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                     };
                 }),
                 bookingPriceModifierIds: mergedBookingModifierIds,
-                appliedPolicyId: selectedPolicyId,
+                appliedPolicyId: effectivePolicyId,
                 specialRequests: form.specialRequests?.trim() || "",
                 staffNote: form.staffNote?.trim() || "",
                 isPaidInitially: selectedIsPaidInitially,
@@ -1038,7 +1045,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         )}
                     </div>
 
-                    {/* Cancellation Policy — auto-resolved from pricing */}
+                    {/* Cancellation Policy */}
                     <div className="cbsm-sidebar-section">
                         <div className="cbsm-sidebar-title">
                             <i className="bi bi-shield-check" />Cancellation policy
@@ -1049,7 +1056,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                             )}
                         </div>
 
-                        {/* Policy auto-linked from selected pricing package */}
+                        {/* Applied policy summary badge */}
                         {selectedPolicy ? (
                             <div className={`cbsm-policy-badge ${policyBadgeClass()}`} style={{ marginBottom: 10 }}>
                                 <div className="cbsm-policy-name">
@@ -1058,7 +1065,13 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     {selectedPolicyType === "PAY_AT_HOTEL" && <i className="bi bi-building-check me-1" />}
                                     {selectedPolicyType === "PARTIAL_REFUND" && <i className="bi bi-arrow-left-right me-1" />}
                                     {selectedPolicy.name}
-                                    <span style={{ fontSize: 10, fontWeight: 400, color: "#6b7280", marginLeft: 6 }}>(applied)</span>
+                                    {manualPolicyId ? (
+                                        <span style={{ fontSize: 10, fontWeight: 600, color: "#7c3aed", marginLeft: 6 }}>
+                                            <i className="bi bi-person-check me-1" />Staff selected
+                                        </span>
+                                    ) : (
+                                        <span style={{ fontSize: 10, fontWeight: 400, color: "#6b7280", marginLeft: 6 }}>(auto)</span>
+                                    )}
                                 </div>
                                 <div className="cbsm-policy-row">
                                     <span>Prepayment</span>
@@ -1068,14 +1081,27 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     <span>Refund on cancel</span>
                                     <strong>{selectedPolicy.refunRate}%</strong>
                                 </div>
+                                {manualPolicyId && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setManualPolicyId(null)}
+                                        style={{
+                                            marginTop: 8, fontSize: 11, color: "#6b7280", background: "none",
+                                            border: "1px solid #d1d5db", borderRadius: 6, padding: "3px 10px",
+                                            cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
+                                        }}
+                                    >
+                                        <i className="bi bi-arrow-counterclockwise" />Reset to auto
+                                    </button>
+                                )}
                             </div>
                         ) : cartItems.length > 0 ? (
                             <div className="cbsm-muted" style={{ fontSize: 12, marginBottom: 10 }}>
-                                <i className="bi bi-info-circle me-1" />No policy linked to selected pricing.
+                                <i className="bi bi-info-circle me-1" />No policy linked to selected pricing. Select one below.
                             </div>
                         ) : null}
 
-                        {/* All active policies for this date — for staff advisory */}
+                        {/* All active policies for this date — selectable */}
                         {loadingPolicies ? (
                             <div className="cbsm-muted" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
                                 <span className="spinner-border spinner-border-sm" />
@@ -1087,9 +1113,11 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     <i className="bi bi-calendar-check me-1" />Applicable policies
                                 </div>
                                 {availablePolicies.map(p => {
+                                    const pId = p.id ?? p.policyId;
                                     const pType = String(p.type || "").trim().toUpperCase();
+                                    const isSelected = Number(effectivePolicyId) === Number(pId);
+                                    const isManuallySelected = Number(manualPolicyId) === Number(pId);
 
-                                    // Tên type thân thiện
                                     const typeLabel = {
                                         FREE_CANCEL: { text: "Free cancellation", cls: "cbsm-rt-tag-green", icon: "bi-check-circle-fill text-success" },
                                         PARTIAL_REFUND: { text: "Partial refund", cls: "cbsm-rt-tag-amber", icon: "bi-arrow-left-right" },
@@ -1097,7 +1125,6 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                         PAY_AT_HOTEL: { text: "Pay at hotel", cls: "cbsm-rt-tag-blue", icon: "bi-building-check" },
                                     }[pType] || { text: pType, cls: "cbsm-rt-tag-gray", icon: "bi-shield" };
 
-                                    // Format mùa "08-01 → 05-01" → "Aug 1 – May 1"
                                     const formatMonthDay = (md) => {
                                         if (!md) return "";
                                         const [mm, dd] = md.split("-").map(Number);
@@ -1109,32 +1136,76 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                         : null;
 
                                     const freeCancelDays = p.dateRange ? parseInt(p.dateRange, 10) : null;
-                                    const isLinked = selectedPolicy?.id === p.id;
 
                                     return (
-                                        <div key={p.id ?? p.policyId} style={{
-                                            border: isLinked ? "2px solid #465c47" : "1px solid #e0e8e0",
-                                            borderRadius: 10,
-                                            padding: "10px 12px",
-                                            marginBottom: 8,
-                                            background: isLinked ? "#f0f6f0" : "#fff",
-                                        }}>
-                                            {/* Header: type badge + name */}
+                                        <div
+                                            key={pId}
+                                            style={{
+                                                border: isSelected ? "2px solid #465c47" : "1px solid #e0e8e0",
+                                                borderRadius: 10,
+                                                padding: "10px 12px",
+                                                marginBottom: 8,
+                                                background: isSelected ? "#f0f6f0" : "#fff",
+                                                cursor: "pointer",
+                                                transition: "border-color 0.15s, background 0.15s",
+                                            }}
+                                            onClick={() => {
+                                                if (isManuallySelected) {
+                                                    setManualPolicyId(null); // deselect nếu bấm lại
+                                                } else {
+                                                    setManualPolicyId(Number(pId));
+                                                }
+                                            }}
+                                        >
+                                            {/* Header: type badge + name + select button */}
                                             <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
                                                 <span className={`cbsm-rt-tag ${typeLabel.cls}`} style={{ fontSize: 10, whiteSpace: "nowrap", marginTop: 1 }}>
                                                     <i className={`bi ${typeLabel.icon} me-1`} />{typeLabel.text}
                                                 </span>
                                                 <div style={{ flex: 1 }}>
                                                     <div style={{ fontWeight: 700, fontSize: 12.5, color: "#1f2937", lineHeight: 1.3 }}>{p.name}</div>
-                                                    {isLinked && (
+                                                    {isSelected && (
                                                         <div style={{ fontSize: 10, color: "#16a34a", fontWeight: 600, marginTop: 1 }}>
-                                                            <i className="bi bi-check-circle-fill me-1" />Applied to booking
+                                                            <i className="bi bi-check-circle-fill me-1" />
+                                                            {isManuallySelected ? "Staff selected" : "Applied (auto)"}
                                                         </div>
                                                     )}
                                                 </div>
+                                                {/* Select / Selected toggle button */}
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (isManuallySelected) {
+                                                            setManualPolicyId(null);
+                                                        } else {
+                                                            setManualPolicyId(Number(pId));
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        flexShrink: 0,
+                                                        fontSize: 10.5,
+                                                        fontWeight: 600,
+                                                        padding: "3px 10px",
+                                                        borderRadius: 20,
+                                                        border: isManuallySelected ? "1.5px solid #465c47" : "1.5px solid #d1d5db",
+                                                        background: isManuallySelected ? "#465c47" : "#fff",
+                                                        color: isManuallySelected ? "#fff" : "#374151",
+                                                        cursor: "pointer",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 4,
+                                                        transition: "all 0.15s",
+                                                        whiteSpace: "nowrap",
+                                                    }}
+                                                >
+                                                    {isManuallySelected
+                                                        ? <><i className="bi bi-check-lg" />Selected</>  
+                                                        : <><i className="bi bi-circle" />Select</>}
+                                                </button>
                                             </div>
 
-                                            {/* Key figures: Prepaid + Refund side-by-side */}
+                                            {/* Key figures: Prepaid + Refund */}
                                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: freeCancelDays || seasonLabel ? 8 : 0 }}>
                                                 <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px" }}>
                                                     <div style={{ fontSize: 9.5, color: "#9aaa9b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>Prepayment</div>
