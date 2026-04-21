@@ -78,10 +78,10 @@ const BranchRulesPage = () => {
                                 <div key={idx} className="list-group-item d-flex flex-wrap p-4 align-items-start border-bottom">
                                     <div style={{ flex: '0 0 250px', fontWeight: 'bold' }} className="d-flex align-items-start text-dark">
                                         <i className="bi bi-arrow-return-right me-3 mt-1 text-secondary"></i>
-                                        {rule.ruleName}
+                                        {rule.name}
                                     </div>
                                     <div style={{ flex: '1', whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#444' }} className="mt-1 mt-md-0 fw-medium">
-                                        {rule.ruleDesc}
+                                        {rule.description}
                                     </div>
                                 </div>
                             ))}
