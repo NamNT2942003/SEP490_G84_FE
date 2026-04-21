@@ -90,6 +90,25 @@ const getVisiblePriceFromOption = (room, option) => {
 
 const normalizePolicyId = (policy) => policy?.id ?? policy?.policyId ?? null;
 
+/**
+ * Tính ngày hạn huỷ miễn phí: checkIn - dateRange (ngày).
+ * dateRange là chuỗi số ngày (ví dụ: "3") hoặc null.
+ */
+const computeFreeCancelDeadline = (checkIn, dateRange) => {
+    if (!checkIn || !dateRange) return null;
+    const days = parseInt(dateRange, 10);
+    if (!Number.isFinite(days) || days <= 0) return null;
+    const dt = new Date(checkIn);
+    if (isNaN(dt.getTime())) return null;
+    dt.setDate(dt.getDate() - days);
+    return dt;
+};
+
+const formatDeadlineDate = (dt) => {
+    if (!dt) return null;
+    return dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
 const normalizePolicy = (policy) => {
     if (!policy) return null;
 
@@ -1022,45 +1041,155 @@ const GuestInformation = () => {
                             <h5>
                                 <i className="bi bi-shield-check" />
                                 Cancellation Policy
+                                {checkIn && (
+                                    <span style={{ fontSize: 12, fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>
+                                        — cho ngày check-in {checkIn}
+                                    </span>
+                                )}
                             </h5>
+
                             {!hasLoadedPolicies && policyLoading ? (
-                                <div className="text-muted">Loading policies...</div>
+                                <div className="text-muted d-flex align-items-center gap-2">
+                                    <span className="spinner-border spinner-border-sm" />
+                                    Đang tải chính sách...
+                                </div>
                             ) : policies.length > 0 ? (
-                                <>
-                                    <label className="form-label fw-semibold">Select policy</label>
-                                    <select
-                                        className="form-select"
-                                        value={selectedPolicyId ?? ''}
-                                        onChange={(e) => setSelectedPolicyId(e.target.value ? Number(e.target.value) : null)}
-                                    >
-                                        <option value="">Choose a policy</option>
-                                        {policies.map((policy) => (
-                                            <option key={policy.id} value={policy.id}>
-                                                {policy.name} - {formatPolicyTypeLabel(policy.type)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {selectedPolicy && (
-                                        <div className="policy-detail-card mt-3">
-                                            <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                                                <div>
-                                                    <div className="fw-bold text-dark">{selectedPolicy.name}</div>
-                                                    <div className="text-muted small">{formatPolicyTypeLabel(selectedPolicy.type)}</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    {policies.map((policy) => {
+                                        const isSelected = Number(selectedPolicyId) === Number(policy.id);
+                                        const pType = String(policy.type || '').trim().toUpperCase();
+
+                                        // Số tiền cụ thể
+                                        const prepaidAmount = normalizeMoney(finalBookingAmount * (safeNumber(policy.prepaidRate, 100)) / 100);
+                                        const refundAmount = normalizeMoney(finalBookingAmount * (safeNumber(policy.refunRate, 0)) / 100);
+
+                                        // Hạn huỷ miễn phí
+                                        const deadline = computeFreeCancelDeadline(checkIn, policy.dateRange);
+                                        const deadlineStr = formatDeadlineDate(deadline);
+
+                                        // Màu theo loại
+                                        const typeConfig = {
+                                            FREE_CANCEL: { label: 'Miễn phí huỷ', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', badgeBg: '#dcfce7', badgeColor: '#15803d', icon: 'bi-check-circle-fill' },
+                                            PARTIAL_REFUND: { label: 'Hoàn một phần', color: '#d97706', bg: '#fffbeb', border: '#fcd34d', badgeBg: '#fef3c7', badgeColor: '#92400e', icon: 'bi-arrow-left-right' },
+                                            NON_REFUND: { label: 'Không hoàn tiền', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', badgeBg: '#fee2e2', badgeColor: '#991b1b', icon: 'bi-x-circle-fill' },
+                                            PAY_AT_HOTEL: { label: 'Thanh toán tại khách sạn', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', badgeBg: '#dbeafe', badgeColor: '#1e40af', icon: 'bi-building-check' },
+                                        }[pType] || { label: pType || 'Chính sách chuẩn', color: '#6b7280', bg: '#f9fafb', border: '#d1d5db', badgeBg: '#f3f4f6', badgeColor: '#374151', icon: 'bi-shield' };
+
+                                        return (
+                                            <div
+                                                key={policy.id}
+                                                onClick={() => setSelectedPolicyId(isSelected ? null : Number(policy.id))}
+                                                style={{
+                                                    border: isSelected ? `2px solid ${typeConfig.color}` : '1.5px solid #e5e7eb',
+                                                    borderRadius: 14,
+                                                    padding: '14px 16px',
+                                                    background: isSelected ? typeConfig.bg : '#fff',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.18s',
+                                                    boxShadow: isSelected ? `0 0 0 3px ${typeConfig.border}40` : '0 1px 3px rgba(0,0,0,0.06)',
+                                                }}
+                                            >
+                                                {/* Header */}
+                                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+                                                    <span style={{
+                                                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                                                        fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+                                                        background: typeConfig.badgeBg, color: typeConfig.badgeColor,
+                                                        whiteSpace: 'nowrap', flexShrink: 0,
+                                                    }}>
+                                                        <i className={`bi ${typeConfig.icon}`} />
+                                                        {typeConfig.label}
+                                                    </span>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', lineHeight: 1.3 }}>
+                                                            {policy.name}
+                                                        </div>
+                                                        {isSelected && (
+                                                            <div style={{ fontSize: 11, color: typeConfig.color, fontWeight: 600, marginTop: 2 }}>
+                                                                <i className="bi bi-check-circle-fill me-1" />Đang áp dụng
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {/* Radio indicator */}
+                                                    <div style={{
+                                                        width: 20, height: 20, borderRadius: '50%', flexShrink: 0, marginTop: 2,
+                                                        border: isSelected ? `2px solid ${typeConfig.color}` : '2px solid #d1d5db',
+                                                        background: isSelected ? typeConfig.color : '#fff',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    }}>
+                                                        {isSelected && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />}
+                                                    </div>
                                                 </div>
-                                                <div className="text-end">
-                                                    <div className="fw-bold text-olive">{selectedPolicy.prepaidRate ?? 0}% deposit</div>
-                                                    <div className="text-muted small">{selectedPolicy.refunRate ?? 0}% refund rate</div>
+
+                                                {/* 3 số cốt lõi */}
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: (deadlineStr || (policy.activeTimeStart && policy.activeTimeEnd)) ? 10 : 0 }}>
+                                                    {/* Trả trước */}
+                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Trả trước</div>
+                                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>{formatVND(prepaidAmount)}</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.prepaidRate ?? 0}% tổng tiền</div>
+                                                    </div>
+                                                    {/* Hoàn tiền */}
+                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${refundAmount > 0 ? '#16a34a' : '#e5e7eb'}` }}>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Hoàn nếu huỷ</div>
+                                                        <div style={{ fontSize: 15, fontWeight: 800, color: refundAmount > 0 ? '#16a34a' : '#dc2626' }}>{formatVND(refundAmount)}</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.refunRate ?? 0}% tổng tiền</div>
+                                                    </div>
+                                                    {/* Giữ lại */}
+                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: '3px solid #e5e7eb' }}>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Khách sạn giữ</div>
+                                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#374151' }}>{formatVND(normalizeMoney(finalBookingAmount - refundAmount))}</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{100 - (policy.refunRate ?? 0)}% tổng tiền</div>
+                                                    </div>
                                                 </div>
+
+                                                {/* Hạn huỷ miễn phí */}
+                                                {deadlineStr && (
+                                                    <div style={{
+                                                        fontSize: 12, display: 'flex', alignItems: 'center', gap: 6,
+                                                        background: '#f0fdf4', border: '1px solid #bbf7d0',
+                                                        borderRadius: 8, padding: '6px 10px',
+                                                        marginTop: 8, color: '#15803d',
+                                                    }}>
+                                                        <i className="bi bi-clock-history" />
+                                                        <span>
+                                                            <strong>Hoàn 100%</strong> nếu huỷ trước{' '}
+                                                            <strong>{deadlineStr}</strong>
+                                                            <span style={{ color: '#6b7280', fontWeight: 400 }}>
+                                                                {' '}({parseInt(policy.dateRange, 10)} ngày trước check-in)
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {/* Mùa áp dụng */}
+                                                {policy.activeTimeStart && policy.activeTimeEnd && (
+                                                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                        <i className="bi bi-sun" />
+                                                        Áp dụng từ{' '}
+                                                        <strong style={{ color: '#374151' }}>
+                                                            {policy.activeTimeStart} – {policy.activeTimeEnd}
+                                                        </strong>
+                                                    </div>
+                                                )}
                                             </div>
-                                            {selectedPolicy.description && (
-                                                <div className="mt-2 text-muted small">{selectedPolicy.description}</div>
-                                            )}
-                                        </div>
+                                        );
+                                    })}
+                                    {selectedPolicyId && (
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline-secondary btn-sm"
+                                            style={{ alignSelf: 'flex-start', fontSize: 12 }}
+                                            onClick={() => setSelectedPolicyId(null)}
+                                        >
+                                            <i className="bi bi-x-circle me-1" />Bỏ chọn chính sách
+                                        </button>
                                     )}
-                                </>
+                                </div>
                             ) : (
                                 <div className="text-muted">
-                                    No branch policy found. The system will use the full booking amount as deposit.
+                                    <i className="bi bi-info-circle me-1" />
+                                    Không tìm thấy chính sách nào cho ngày check-in này. Hệ thống sẽ dùng 100% tổng tiền làm số tiền đặt cọc.
                                 </div>
                             )}
                         </div>
@@ -1156,20 +1285,28 @@ const GuestInformation = () => {
             <footer className="fixed-bottom bg-white border-top p-3 shadow-lg" style={{ zIndex: 1031 }}>
                 <div className="container d-flex justify-content-between align-items-center">
                     <div>
-                        <small className="text-muted fw-bold text-uppercase">Final price</small>
+                        <small className="text-muted fw-bold text-uppercase">Tổng tiền</small>
                         <h4 className="mb-0 fw-bold" style={{ color: '#5C6F4E' }}>
                             {formatVND(finalBookingAmount)}
                         </h4>
-                        <div className="text-muted small mt-1">
-                            All pricing adjustments are already included.
-                        </div>
+                        {selectedPolicy ? (
+                            <div style={{ fontSize: 12, marginTop: 2 }}>
+                                <span style={{ color: '#6b7280' }}>Trả trước:</span>{' '}
+                                <strong style={{ color: '#d97706' }}>{formatVND(depositAmount)}</strong>
+                                <span style={{ color: '#9ca3af', marginLeft: 4 }}>({safeNumber(selectedPolicy.prepaidRate, 100)}%)</span>
+                            </div>
+                        ) : (
+                            <div className="text-muted small mt-1">
+                                Chưa chọn chính sách — đặt cọc 100%
+                            </div>
+                        )}
                     </div>
                     <button
                         className="btn btn-gold px-4 py-2 fw-bold rounded-3"
                         onClick={handleContinue}
                         disabled={rooms.length === 0}
                     >
-                        Continue to payment <i className="bi bi-arrow-right ms-2" />
+                        Tiếp tục thanh toán <i className="bi bi-arrow-right ms-2" />
                     </button>
                 </div>
             </footer>
