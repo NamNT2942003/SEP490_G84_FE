@@ -409,36 +409,56 @@ const SearchRoom = () => {
         const roomForCart = withPricingState(room, room.selectedPricingOption);
         const currentPrice = getSearchRoomPrice(roomForCart);
         const existingIndex = selectedCart.findIndex(r => r.roomTypeId === room.roomTypeId);
+        
+        setIsPricing(true);
         if (existingIndex >= 0) {
-            setSelectedCart(prev => prev.map((r, idx) =>
-                idx === existingIndex
-                    ? {
-                        ...r,
-                        ...roomForCart,
-                        selectedPrice: currentPrice,
-                        quantity: Math.min(r.quantity || 1, roomForCart.availableCount || (r.quantity || 1)),
-                    }
-                    : r
-            ));
+            setSelectedCart(prev => {
+                const updated = prev.map((r, idx) =>
+                    idx === existingIndex
+                        ? {
+                            ...r,
+                            ...roomForCart,
+                            selectedPrice: currentPrice,
+                            quantity: Math.min(r.quantity || 1, roomForCart.availableCount || (r.quantity || 1)),
+                        }
+                        : r
+                );
+                selectedCartRef.current = updated;
+                return updated;
+            });
             showUiMessage("success", `${roomForCart.name} pricing has been updated.`);
         } else {
             if (roomForCart.availableCount <= 0) {
                 showUiMessage("warning", `${roomForCart.name} is fully booked.`);
+                setIsPricing(false);
                 return;
             }
-            setSelectedCart(prev => [
-                ...prev,
-                {
-                    ...roomForCart,
-                    selectedPrice: currentPrice,
-                    quantity: 1,
-                },
-            ]);
+            setSelectedCart(prev => {
+                const updated = [
+                    ...prev,
+                    {
+                        ...roomForCart,
+                        selectedPrice: currentPrice,
+                        quantity: 1,
+                    },
+                ];
+                selectedCartRef.current = updated;
+                return updated;
+            });
             showUiMessage("success", `${roomForCart.name} has been added to your selection.`);
         }
+        setSearchVersion(v => v + 1);
     };
 
-    const handleRemoveFromCart = (roomTypeId) => setSelectedCart(prev => prev.filter(r => r.roomTypeId !== roomTypeId));
+    const handleRemoveFromCart = (roomTypeId) => {
+        setIsPricing(true);
+        setSelectedCart(prev => {
+            const updated = prev.filter(r => r.roomTypeId !== roomTypeId);
+            selectedCartRef.current = updated;
+            return updated;
+        });
+        setSearchVersion(v => v + 1);
+    };
 
     const handleUpdateCartQuantity = (roomTypeId, newQuantity) => {
         if (newQuantity <= 0) { handleRemoveFromCart(roomTypeId); return; }
@@ -534,8 +554,16 @@ const SearchRoom = () => {
     // Không gọi API trực tiếp — dùng searchVersion để trigger Primary Fetch Effect.
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
-        if (!customerHistoryEmail.trim()) { setIsPricing(false); return; }
+        
         setIsPricing(true);
+        if (!customerHistoryEmail.trim()) {
+            // Khi xoá rỗng email, cần trigger lại để backend gỡ bỏ USER_HISTORY_DISCOUNT
+            const timer = setTimeout(() => {
+                setSearchVersion(v => v + 1);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+        
         const timer = setTimeout(() => {
             setSearchVersion(v => v + 1);
         }, 500);
