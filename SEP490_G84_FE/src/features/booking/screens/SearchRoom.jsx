@@ -690,6 +690,34 @@ const SearchRoom = () => {
                                 </div>
                             )}
                         </div>
+
+                        {/* Hotel Rule Box */}
+                        {filters.branchId && (
+                            <div 
+                                className="shadow-sm rounded-4 overflow-hidden border-0 mt-3 bg-white p-3 d-flex flex-column"
+                                style={{
+                                    border: '1px solid #ebf2fe',
+                                    backgroundColor: '#f8fcff',
+                                    boxShadow: '0 4px 12px rgba(24, 119, 242, 0.08)',
+                                    transition: 'all 0.2s',
+                                    cursor: 'pointer'
+                                }}
+                                onClick={() => navigate(`/branch/${filters.branchId}/rules`)}
+                                onMouseEnter={(e) => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(24, 119, 242, 0.15)' })}
+                                onMouseLeave={(e) => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: '0 4px 12px rgba(24, 119, 242, 0.08)' })}
+                            >
+                                <div className="d-flex align-items-center mb-2" style={{ color: '#1877F2' }}>
+                                    <i className="bi bi-info-square-fill fs-5 me-2"></i>
+                                    <span className="fw-bold" style={{ fontSize: '1.05rem' }}>Quy tắc chung</span>
+                                </div>
+                                <p className="text-secondary mb-3" style={{ fontSize: '0.85rem', lineHeight: '1.4' }}>
+                                    Kiểm tra các chính sách nhận/trả phòng, vật nuôi và quy định khác của chỗ nghỉ.
+                                </p>
+                                <button className="btn btn-sm text-white fw-medium rounded-3" style={{ backgroundColor: '#1877F2' }}>
+                                    Xem quy định chi tiết
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="col-lg-9 col-md-8" style={{ position: 'relative', zIndex: 0 }}>
