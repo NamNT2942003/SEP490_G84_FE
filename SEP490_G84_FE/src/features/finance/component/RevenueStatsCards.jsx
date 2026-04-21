@@ -35,21 +35,12 @@ const CARDS = [
     format: fmt,
     sub: (d) => `${fmtCount(d.unpaidCount)} chưa thu`,
   },
-  {
-    key: 'collectionRate',
-    label: 'Tỷ Lệ Thu',
-    icon: 'bi-graph-up-arrow',
-    accent: '#0ea5e9',
-    gradient: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
-    format: (val) => `${((val ?? 0) * 100).toFixed(1)}%`,
-    sub: () => 'trên tổng phải thu',
-  },
 ];
 
 const RevenueStatsCards = ({ summary, loading }) => (
   <div className="row g-3 mb-4">
     {CARDS.map((card) => (
-      <div className="col-6 col-xl-3" key={card.key}>
+      <div className="col-12 col-md-4" key={card.key}>
         <div
           className="card border-0 h-100"
           style={{
