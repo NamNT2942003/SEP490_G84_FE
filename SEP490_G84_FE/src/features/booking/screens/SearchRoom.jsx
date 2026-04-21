@@ -368,12 +368,12 @@ const SearchRoom = () => {
         }
     }, [searchParams, filters, selectedPolicyId]);
 
-    const refreshCartPricingByEmail = useCallback(async () => {
+    const refreshCartPricing = useCallback(async () => {
         const currentCart = selectedCartRef.current;
-        if (!searchParams || currentCart.length === 0) return;
-
-        const normalizedEmail = normalizeEmailForSearch(customerHistoryEmailRef.current);
-        if (!normalizedEmail) { setIsPricing(false); return; }
+        if (!searchParams || currentCart.length === 0) {
+            setIsPricing(false);
+            return;
+        }
 
         const roomTypeIds = [...new Set(currentCart.map((room) => room?.roomTypeId).filter(Boolean))];
         if (roomTypeIds.length === 0) { setIsPricing(false); return; }
@@ -386,16 +386,20 @@ const SearchRoom = () => {
             page: 0,
             size: Math.max(roomTypeIds.length, 10),
             sortPrice: filters.sortPrice,
-            customerEmail: normalizedEmail,
             policy: selectedPolicyIdRef.current ?? null,
         };
+
+        const normalizedEmail = normalizeEmailForSearch(customerHistoryEmailRef.current);
+        if (normalizedEmail) {
+            apiParams.customerEmail = normalizedEmail;
+        }
 
         try {
             const res = await roomService.searchRooms(apiParams);
             const latestRooms = (res?.content || []).map((room) => withPricingState(room));
             setSelectedCart((prev) => syncCartWithLatestRooms(prev, latestRooms, { allowReprice: true }));
         } catch (err) {
-            console.error("Failed to refresh cart pricing by email:", err);
+            console.error("Failed to refresh cart pricing:", err);
         } finally {
             setIsPricing(false);
         }
@@ -534,39 +538,38 @@ const SearchRoom = () => {
     useEffect(() => { customerHistoryEmailRef.current = customerHistoryEmail; }, [customerHistoryEmail]);
 
     // ─── PRIMARY FETCH EFFECT ─────────────────────────────────────────────────
-    // Diễu kiện trigger: filters, searchParams đổi (date/sort/branch) hoặc searchVersion tăng
-    // (lượng phòng / email đổi). Tất cả hoạt động giống hệt nhau: setIsPricing → 150ms → refetchRooms.
-    // Liền sau refetch, nếu có email hợp lệ → refreshCartPricingByEmail (cho cart items ở trang khác).
+    // Điều kiện trigger: filters, searchParams đổi (date/sort/branch) hoặc searchVersion tăng
+    // (lượng phòng / email đổi). Tất cả hoạt động giống hệt nhau: gọi refetchRooms lập tức chữ không dùng setTimeout.
+    // Liền sau refetch, gọi lại API refreshCartPricing để cập nhật chính xác giá MỌI room đang nằm trong giỏ hàng.
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
         setIsPricing(true);
-        const timer = setTimeout(async () => {
+        let isActive = true;
+        
+        (async () => {
             await refetchRooms();
-            // Cart items có thể nằm ở trang khác: fetch riêng theo roomTypeIds nếu có email.
-            if (normalizeEmailForSearch(customerHistoryEmailRef.current)) {
-                refreshCartPricingByEmail();
+            if (isActive) {
+                refreshCartPricing();
             }
-        }, 150);
-        return () => clearTimeout(timer);
-    }, [filters, searchParams, isInitialized, refetchRooms, refreshCartPricingByEmail, searchVersion]);
+        })();
+        
+        return () => { isActive = false; };
+    }, [filters, searchParams, isInitialized, refetchRooms, refreshCartPricing, searchVersion]);
 
-    // Email: báo isPricing ngay khi user gõ, debounce 500ms rồi increment searchVersion.
+    // Email: báo isPricing ngay khi user gõ, dùng debounce nhỏ (300ms) để không gửi API dồn dập
     // Không gọi API trực tiếp — dùng searchVersion để trigger Primary Fetch Effect.
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
         
         setIsPricing(true);
         if (!customerHistoryEmail.trim()) {
-            // Khi xoá rỗng email, cần trigger lại để backend gỡ bỏ USER_HISTORY_DISCOUNT
-            const timer = setTimeout(() => {
-                setSearchVersion(v => v + 1);
-            }, 500);
-            return () => clearTimeout(timer);
+            setSearchVersion(v => v + 1);
+            return;
         }
         
         const timer = setTimeout(() => {
             setSearchVersion(v => v + 1);
-        }, 500);
+        }, 300);
         return () => clearTimeout(timer);
     }, [customerHistoryEmail, isInitialized, searchParams]);
 
