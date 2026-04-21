@@ -758,6 +758,15 @@ const GuestInformation = () => {
     const depositRate = selectedPolicy ? safeNumber(selectedPolicy.prepaidRate, 100) : 100;
     const depositAmount = normalizeMoney(finalBookingAmount * depositRate / 100);
 
+    // Tính tổng tiền cho 1 policy cụ thể, độc lập với policy đang chọn.
+    // Dùng applyPolicySelectionToRoom để lấy giá đúng theo policy đó cho từng phòng.
+    const computeTotalForPolicy = (policyId) => normalizeMoney(
+        rooms.reduce((sum, room) => {
+            const roomWithPolicy = applyPolicySelectionToRoom(room, policyId);
+            return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
+        }, 0)
+    );
+
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
             Swal.fire({ icon: 'warning', title: 'Missing Information', text: 'Please fill in all guest information.', confirmButtonColor: '#5C6F4E' });
@@ -1059,9 +1068,10 @@ const GuestInformation = () => {
                                         const isSelected = Number(selectedPolicyId) === Number(policy.id);
                                         const pType = String(policy.type || '').trim().toUpperCase();
 
-                                        // Số tiền cụ thể
-                                        const prepaidAmount = normalizeMoney(finalBookingAmount * (safeNumber(policy.prepaidRate, 100)) / 100);
-                                        const refundAmount = normalizeMoney(finalBookingAmount * (safeNumber(policy.refunRate, 0)) / 100);
+                                        // Tính giá độc lập cho policy này (không bị ảnh hưởng bởi policy đang chọn)
+                                        const policyTotal = computeTotalForPolicy(policy.id);
+                                        const prepaidAmount = normalizeMoney(policyTotal * (safeNumber(policy.prepaidRate, 100)) / 100);
+                                        const refundAmount = normalizeMoney(policyTotal * (safeNumber(policy.refunRate, 0)) / 100);
 
                                         // Hạn huỷ miễn phí
                                         const deadline = computeFreeCancelDeadline(checkIn, policy.dateRange);
@@ -1111,7 +1121,7 @@ const GuestInformation = () => {
                                                         </div>
                                                         {isSelected && (
                                                             <div style={{ fontSize: 11, color: typeConfig.color, fontWeight: 600, marginTop: 2 }}>
-                                                                <i className="bi bi-check-circle-fill me-1" />Đang áp dụng
+                                                                <i className="bi bi-check-circle-fill me-1" />Applied
                                                             </div>
                                                         )}
                                                     </div>
@@ -1126,25 +1136,25 @@ const GuestInformation = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* 3 số cốt lõi */}
+                                                {/* 3 key figures */}
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: (deadlineStr || (policy.activeTimeStart && policy.activeTimeEnd)) ? 10 : 0 }}>
-                                                    {/* Trả trước */}
+                                                    {/* Prepaid */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
-                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Trả trước</div>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Prepaid</div>
                                                         <div style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>{formatVND(prepaidAmount)}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.prepaidRate ?? 0}% tổng tiền</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.prepaidRate ?? 0}% of total</div>
                                                     </div>
-                                                    {/* Hoàn tiền */}
+                                                    {/* Refund */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${refundAmount > 0 ? '#16a34a' : '#e5e7eb'}` }}>
-                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Hoàn nếu huỷ</div>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Refund if cancelled</div>
                                                         <div style={{ fontSize: 15, fontWeight: 800, color: refundAmount > 0 ? '#16a34a' : '#dc2626' }}>{formatVND(refundAmount)}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.refunRate ?? 0}% tổng tiền</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.refunRate ?? 0}% of total</div>
                                                     </div>
-                                                    {/* Giữ lại */}
-                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: '3px solid #e5e7eb' }}>
-                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Khách sạn giữ</div>
-                                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#374151' }}>{formatVND(normalizeMoney(finalBookingAmount - refundAmount))}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{100 - (policy.refunRate ?? 0)}% tổng tiền</div>
+                                                    {/* Total booking */}
+                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Total booking</div>
+                                                        <div style={{ fontSize: 15, fontWeight: 800, color: typeConfig.color }}>{formatVND(policyTotal)}</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>incl. policy</div>
                                                     </div>
                                                 </div>
 
@@ -1302,6 +1312,7 @@ const GuestInformation = () => {
                                     depositAmount={depositAmount}
                                     bookingTotalAmount={finalBookingAmount}
                                     branchName={branchName}
+                                    policySelected={!!selectedPolicy}
                                 />
                             </div>
                         </div>
@@ -1314,6 +1325,7 @@ const GuestInformation = () => {
                                 depositAmount={depositAmount}
                                 bookingTotalAmount={finalBookingAmount}
                                 branchName={branchName}
+                                policySelected={!!selectedPolicy}
                             />
                         </div>
                     </div>
@@ -1324,19 +1336,25 @@ const GuestInformation = () => {
             <footer className="fixed-bottom bg-white border-top p-3 shadow-lg" style={{ zIndex: 1031 }}>
                 <div className="container d-flex justify-content-between align-items-center">
                     <div>
-                        <small className="text-muted fw-bold text-uppercase">Tổng tiền</small>
-                        <h4 className="mb-0 fw-bold" style={{ color: '#5C6F4E' }}>
-                            {formatVND(finalBookingAmount)}
-                        </h4>
                         {selectedPolicy ? (
-                            <div style={{ fontSize: 12, marginTop: 2 }}>
-                                <span style={{ color: '#6b7280' }}>Trả trước:</span>{' '}
-                                <strong style={{ color: '#d97706' }}>{formatVND(depositAmount)}</strong>
-                                <span style={{ color: '#9ca3af', marginLeft: 4 }}>({safeNumber(selectedPolicy.prepaidRate, 100)}%)</span>
-                            </div>
+                            <>
+                                <small className="text-muted fw-bold text-uppercase">Total</small>
+                                <h4 className="mb-0 fw-bold" style={{ color: '#5C6F4E' }}>
+                                    {formatVND(finalBookingAmount)}
+                                </h4>
+                                <div style={{ fontSize: 12, marginTop: 2 }}>
+                                    <span style={{ color: '#6b7280' }}>Prepaid:</span>{' '}
+                                    <strong style={{ color: '#d97706' }}>{formatVND(depositAmount)}</strong>
+                                    <span style={{ color: '#9ca3af', marginLeft: 4 }}>({safeNumber(selectedPolicy.prepaidRate, 100)}%)</span>
+                                </div>
+                            </>
                         ) : (
-                            <div className="text-muted small mt-1">
-                                Chưa chọn chính sách — đặt cọc 100%
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <i className="bi bi-shield-exclamation" style={{ fontSize: 20, color: '#d97706' }} />
+                                <div>
+                                    <div style={{ fontWeight: 700, fontSize: 13, color: '#374151' }}>Select a cancellation policy</div>
+                                    <div style={{ fontSize: 11, color: '#9ca3af' }}>to see your total price</div>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1345,7 +1363,7 @@ const GuestInformation = () => {
                         onClick={handleContinue}
                         disabled={rooms.length === 0}
                     >
-                        Tiếp tục thanh toán <i className="bi bi-arrow-right ms-2" />
+                        Continue to payment <i className="bi bi-arrow-right ms-2" />
                     </button>
                 </div>
             </footer>

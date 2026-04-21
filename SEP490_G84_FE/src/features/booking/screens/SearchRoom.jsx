@@ -150,9 +150,12 @@ const withPricingState = (room, preferredOption = null) => {
         selectedOption = neutralOptions[0] || options[0] || null;
     }
 
-    // Giá hiển thị ở trang tìm kiếm chỉ lấy basePrice + availablePriceModifiers của room.
+    // Giá hiển thị: ưu tiên finalPrice của neutral option (kết quả backend engine L1+L2)
+    // để đồng nhất với GuestInformation (dùng selectedPricingOption.finalPrice).
+    // Fallback về availablePriceModifiers / basePrice nếu chưa có pricingOptions.
     const selectedPrice = safeNumber(
-        getRoomPriceFromAvailableModifiers(room),
+        selectedOption?.finalPrice
+            ?? getRoomPriceFromAvailableModifiers(room),
         0,
     );
 
