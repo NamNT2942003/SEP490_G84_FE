@@ -347,6 +347,7 @@ const buildBookingPayload = (formData, selectedPolicyId, rooms, checkIn, checkOu
                 roomTypeId: room.roomTypeId,
                 price: calculateRoomUnitPrice(room),
                 quantity: room.quantity || 1,
+                priceModifierId: allIds[0] || null,
                 priceModifierIds: allIds,
             };
         }),
@@ -356,7 +357,10 @@ const buildBookingPayload = (formData, selectedPolicyId, rooms, checkIn, checkOu
             email: formData.email,
             phone: formData.phone,
         },
-        specialRequests: formData.specialRequests,
+        specialRequests: [
+            formData.estimatedArrivalTime ? `Estimated Arrival: ${formData.estimatedArrivalTime}` : '',
+            formData.specialRequests || ''
+        ].filter(Boolean).join(' | '),
     };
 
     return payload;
@@ -459,6 +463,7 @@ const GuestInformation = () => {
         email: prefillEmail || '',
         phone: '',
         specialRequests: '',
+        estimatedArrivalTime: '',
         appliedPolicyId: null,
     });
     const [policies, setPolicies] = useState([]);
@@ -1069,6 +1074,43 @@ const GuestInformation = () => {
                                 onChange={handleInputChange}
                                 placeholder="e.g. high floor, extra pillows, late checkout..."
                             />
+                        </div>
+
+                        <div className="guest-section">
+                            <h5>
+                                <i className="bi bi-clock-history" />
+                                Check-in Information
+                            </h5>
+                            <div className="mb-3 d-flex align-items-center gap-2 text-dark">
+                                <i className="bi bi-check-circle text-success fs-5"></i>
+                                <span>Your room will be ready for check-in at 14:00.</span>
+                            </div>
+                            <div className="mb-4 d-flex align-items-center gap-2 text-dark">
+                                <i className="bi bi-person-badge text-success fs-5"></i>
+                                <span>24-hour front desk - Always here to help when you need!</span>
+                            </div>
+                            <div className="mb-2 fw-medium text-dark">Add your estimated arrival time (optional)</div>
+                            <select
+                                id="estimatedArrivalTime"
+                                name="estimatedArrivalTime"
+                                className="form-select w-50"
+                                value={formData.estimatedArrivalTime}
+                                onChange={handleInputChange}
+                            >
+                                <option value="">Please choose</option>
+                                <option value="14:00 - 15:00">14:00 - 15:00</option>
+                                <option value="15:00 - 16:00">15:00 - 16:00</option>
+                                <option value="16:00 - 17:00">16:00 - 17:00</option>
+                                <option value="17:00 - 18:00">17:00 - 18:00</option>
+                                <option value="18:00 - 19:00">18:00 - 19:00</option>
+                                <option value="19:00 - 20:00">19:00 - 20:00</option>
+                                <option value="20:00 - 21:00">20:00 - 21:00</option>
+                                <option value="21:00 - 22:00">21:00 - 22:00</option>
+                                <option value="22:00 - 23:00">22:00 - 23:00</option>
+                                <option value="23:00 - 00:00">23:00 - 00:00</option>
+                                <option value="Late (After 00:00)">Late</option>
+                            </select>
+                            <div className="text-muted small mt-2">Time according to Hanoi time zone</div>
                         </div>
                     </div>
 
