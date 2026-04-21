@@ -111,10 +111,12 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
     const [roomPricingMap, setRoomPricingMap] = useState({});
     const [expandedOptionRows, setExpandedOptionRows] = useState({});
     const [selectedPolicy, setSelectedPolicy] = useState(null);
-    const [availablePolicies, setAvailablePolicies] = useState([]);  // policies active theo seasonal window
+    const [availablePolicies, setAvailablePolicies] = useState([]);
     const [loadingPolicies, setLoadingPolicies] = useState(false);
     const [form, setForm] = useState(initialFormState);
     const [error, setError] = useState("");
+    // policyFetchKey tăng mỗi khi cần force-refetch policy (tránh race condition khi modal mở)
+    const [policyFetchKey, setPolicyFetchKey] = useState(0);
 
     useEffect(() => {
         if (!show) return;
@@ -135,6 +137,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                     ? String(branches[0].branchId)
                     : ""),
         }));
+        // Tăng key để policy effect chạy lại sau khi form đã được reset
+        setPolicyFetchKey((k) => k + 1);
     }, [show, branches]);
 
     useEffect(() => {
@@ -210,26 +214,31 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         };
     }, [show, form.branchId, form.arrivalDate, form.departureDate]);
 
-    // Fetch danh sách policy khả dĩ theo seasonal window của ngày check-in
+    // Fetch danh sách policy khả dĩ theo seasonal window của ngày check-in.
+    // Dùng policyFetchKey để force re-run sau khi modal reset form (tránh race condition).
     useEffect(() => {
         const branchIdNum = Number(form.branchId);
-        if (!show || !form.branchId || !Number.isFinite(branchIdNum) || branchIdNum <= 0) {
+        const isValidBranch = Number.isFinite(branchIdNum) && branchIdNum > 0;
+
+        if (!show || !isValidBranch) {
             setAvailablePolicies([]);
             return;
         }
+
         let isMounted = true;
         const fetchActivePolicies = async () => {
             setLoadingPolicies(true);
             try {
-                console.log("[CBSM] Fetching active policies:", { branchId: branchIdNum, checkIn: form.arrivalDate });
+                const checkIn = form.arrivalDate || null;
+                console.log("[CBSM] Fetching policies:", { branchId: branchIdNum, checkIn });
                 const data = await cancellationPolicyService.getActivePoliciesForDate(
                     branchIdNum,
-                    form.arrivalDate || null,
+                    checkIn,
                 );
-                console.log("[CBSM] Active policies received:", data);
+                console.log("[CBSM] Policies received:", data);
                 if (isMounted) setAvailablePolicies(Array.isArray(data) ? data : []);
             } catch (err) {
-                console.error("[CBSM] Failed to fetch active policies:", err);
+                console.error("[CBSM] Failed to fetch policies:", err?.response?.status, err?.message);
                 if (isMounted) setAvailablePolicies([]);
             } finally {
                 if (isMounted) setLoadingPolicies(false);
@@ -237,7 +246,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         };
         fetchActivePolicies();
         return () => { isMounted = false; };
-    }, [show, form.branchId, form.arrivalDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [show, form.branchId, form.arrivalDate, policyFetchKey]);
 
 
     useEffect(() => {
