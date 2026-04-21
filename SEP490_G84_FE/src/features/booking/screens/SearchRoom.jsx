@@ -229,6 +229,7 @@ const SearchRoom = () => {
     const selectedCartRef = useRef([]);
     const selectedPolicyIdRef = useRef(null);
     const latestRequestIdRef = useRef(0);
+    const latestCartRequestIdRef = useRef(0);
     const loadingTimerRef = useRef(null);
 
     const showUiMessage = (type, text) => setUiMessage({ type, text });
@@ -366,14 +367,19 @@ const SearchRoom = () => {
             apiParams.customerEmail = normalizedEmail;
         }
 
+        const currentCartRequestId = ++latestCartRequestIdRef.current;
+
         try {
             const res = await roomService.searchRooms(apiParams);
+            if (currentCartRequestId !== latestCartRequestIdRef.current) return;
             const latestRooms = (res?.content || []).map((room) => withPricingState(room, selectedPolicyIdRef.current, customerHistoryEmailRef.current));
             setSelectedCart((prev) => syncCartWithLatestRooms(prev, latestRooms, selectedPolicyIdRef.current, customerHistoryEmailRef.current));
         } catch (err) {
             console.error("Failed to refresh cart pricing:", err);
         } finally {
-            setIsPricing(false);
+            if (currentCartRequestId === latestCartRequestIdRef.current) {
+                setIsPricing(false);
+            }
         }
     }, [searchParams, filters.branchId, filters.sortPrice]);
 

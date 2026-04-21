@@ -732,8 +732,6 @@ const GuestInformation = () => {
     // Trigger re-price khi email thay đổi: báo isRepricing ngay lập tức
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
-        const email = formData.email?.trim();
-        if (!email) { setIsRepricing(false); return; }
         setIsRepricing(true);
         refreshRoomsByEmail();
     }, [formData.email, checkIn, checkOut, refreshRoomsByEmail]);
