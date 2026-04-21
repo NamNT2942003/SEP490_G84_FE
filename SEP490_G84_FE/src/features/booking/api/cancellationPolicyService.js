@@ -24,8 +24,3 @@ export const cancellationPolicyService = {
         return response.data;
     }
 };
-
-return response.data;
-    }
-};
-
