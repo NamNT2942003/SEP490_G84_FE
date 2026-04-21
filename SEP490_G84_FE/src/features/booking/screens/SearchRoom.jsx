@@ -784,6 +784,17 @@ const SearchRoom = () => {
                                     <option value="priceAsc">Price: low to high</option>
                                     <option value="priceDesc">Price: high to low</option>
                                 </select>
+                                {filters.branchId && (
+                                    <button
+                                        className="btn btn-sm text-white fw-medium rounded-3 ms-2"
+                                        style={{ backgroundColor: '#1877F2', minWidth: 120 }}
+                                        onClick={() => navigate(`/branch/${filters.branchId}/rules`)}
+                                        onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(24, 119, 242, 0.15)' })}
+                                        onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: '0 4px 12px rgba(24, 119, 242, 0.08)' })}
+                                    >
+                                        <i className="bi bi-info-square-fill me-2"></i>Hotel Rule
+                                    </button>
+                                )}
                             </div>
                         </div>
 
