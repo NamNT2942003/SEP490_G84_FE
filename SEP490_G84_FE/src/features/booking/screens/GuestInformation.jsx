@@ -469,6 +469,7 @@ const GuestInformation = () => {
     // isRepricing = true ngay khi user thay đổi số phòng/email/policy → hiển spinner tức thì
     // trước khi API trả về (set false khi refreshRoomsByEmail xong).
     const [isRepricing, setIsRepricing] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     // pricingVersion tăng mỗi khi rooms được reprice → force re-render các computed values
     // dùng ref (policyPricingCacheRef) mà React không tự theo dõi.
     const [pricingVersion, setPricingVersion] = useState(0);
@@ -861,6 +862,9 @@ const GuestInformation = () => {
     const depositAmount = normalizeMoney(finalBookingAmount * depositRate / 100);
 
     const handleContinue = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        try {
         if (!formData.fullName || !formData.email || !formData.phone) {
             Swal.fire({ icon: 'warning', title: 'Missing Information', text: 'Please fill in all guest information.', confirmButtonColor: '#5C6F4E' });
             return;
@@ -911,7 +915,6 @@ const GuestInformation = () => {
             return;
         }
 
-        try {
             Swal.fire({
                 title: 'Sending Verification Code...',
                 text: `Wait a moment, we are sending an OTP to ${formData.email}`,
@@ -1028,6 +1031,8 @@ const GuestInformation = () => {
             console.error('OTP Flow Error:', error);
             const message = error?.response?.data?.message || typeof error?.response?.data === 'string' ? error.response.data : error?.friendlyMessage || error.message || 'OTP verification failed';
             Swal.fire({ icon: 'error', title: 'Verification Failed', text: message, confirmButtonColor: '#d33' });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -1522,7 +1527,7 @@ const GuestInformation = () => {
                     <button
                         className="btn btn-gold px-4 py-2 fw-bold rounded-3"
                         onClick={handleContinue}
-                        disabled={rooms.length === 0}
+                        disabled={rooms.length === 0 || isSubmitting}
                     >
                         Continue to payment <i className="bi bi-arrow-right ms-2" />
                     </button>
