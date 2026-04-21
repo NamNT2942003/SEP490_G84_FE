@@ -755,28 +755,22 @@ const GuestInformation = () => {
         }
     }, [branchId, checkIn, checkOut, searchParams?.adults, searchParams?.children]);
 
-    // Trigger re-price khi email thay đổi: báo isRepricing ngay, debounce 600ms.
+    // Trigger re-price khi email thay đổi: báo isRepricing ngay lập tức
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
         const email = formData.email?.trim();
         if (!email) { setIsRepricing(false); return; }
         setIsRepricing(true);
-        const timer = setTimeout(() => {
-            refreshRoomsByEmail();
-        }, 600);
-        return () => clearTimeout(timer);
+        refreshRoomsByEmail();
     }, [formData.email, checkIn, checkOut, refreshRoomsByEmail]);
 
     // totalRoomsInCart: dependency để trigger re-price và cache rebuild khi số phòng thay đổi.
     const totalRoomsInCart = rooms.reduce((sum, r) => sum + (Number(r?.quantity) || 1), 0);
 
-    // Trigger re-price khi số lượng phòng thay đổi: debounce 80ms (isRepricing đã set trong handler).
+    // Trigger re-price khi số lượng phòng thay đổi ngay lập tức
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
-        const timer = setTimeout(() => {
-            refreshRoomsByEmail();
-        }, 80);
-        return () => clearTimeout(timer);
+        refreshRoomsByEmail();
     }, [totalRoomsInCart, checkIn, checkOut, refreshRoomsByEmail]);
 
     // Sau khi policies load, fetch pricing cho tất cả policies song song để có đủ pricingOptions.
@@ -839,10 +833,7 @@ const GuestInformation = () => {
         // Báo repricing ngay khi policy thay đổi (applyPolicySelectionToRoom chạy sync,
         // nhưng refreshRoomsByEmail cần API sau đó).
         setIsRepricing(true);
-        const timer = setTimeout(() => {
-            refreshRoomsByEmail();
-        }, 80);
-        return () => clearTimeout(timer);
+        refreshRoomsByEmail();
     }, [selectedPolicyId, checkIn, checkOut, refreshRoomsByEmail]);
 
     const calculateTotalPrice = () => {

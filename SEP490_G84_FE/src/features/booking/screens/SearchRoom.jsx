@@ -740,9 +740,8 @@ const SearchRoom = () => {
                                             className="cart-loyalty-input"
                                             value={customerHistoryEmail}
                                             onChange={(e) => {
-                                            setSelectedPolicyId(e.target.value ? Number(e.target.value) : null);
-                                            setSearchVersion(v => v + 1);
-                                        }}
+                                                setCustomerHistoryEmail(e.target.value);
+                                            }}
                                             placeholder="name@example.com"
                                         />
                                         <div className={`cart-loyalty-note ${isEmailEntered && !isEmailValid ? 'warn' : ''}`}>
