@@ -27,6 +27,7 @@ import GuestBookingHistoryPage from "@/features/guest/screens/GuestBookingHistor
 // --- 4. BOOKING & PAYMENT PAGES ---
 // =====================================================================
 import SearchRoom from "@/features/booking/screens/SearchRoom.jsx";
+import BranchRulesPage from "@/features/booking/screens/BranchRulesPage.jsx";
 import BookingSummary from "@/features/booking/components/BookingSummary";
 import GuestInformation from "@/features/booking/screens/GuestInformation";
 import PaymentSelection from "@/features/payment/screens/PaymentSelection.jsx";
@@ -139,6 +140,7 @@ const AppRouter = () => {
 
             {/* --- NHÓM 3: BOOKING & PAYMENT (Client Layout) --- */}
             <Route path="/search" element={<ClientLayout><SearchRoom /></ClientLayout>} />
+            <Route path="/branch/:branchId/rules" element={<ClientLayout><BranchRulesPage /></ClientLayout>} />
             <Route path="/BookingSummary" element={<ClientLayout><BookingSummary /></ClientLayout>} />
             <Route path="/guest-information" element={<ClientLayout><GuestInformation /></ClientLayout>} />
             <Route path="/payment-selection" element={<ClientLayout><PaymentSelection /></ClientLayout>} />
