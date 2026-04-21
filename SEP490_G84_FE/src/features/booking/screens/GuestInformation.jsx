@@ -387,7 +387,7 @@ const buildBookingPayload = (formData, selectedPolicyId, rooms, checkIn, checkOu
 
 // ─── RoomItem ──────────────────────────────────────────────────────────────
 
-const RoomItem = ({ room, onQuantityChange, onRemove }) => {
+const RoomItem = ({ room, onQuantityChange, onRemove, isRepricing }) => {
     const unitPrice = calculateRoomUnitPrice(room);
     const qty = room.quantity || 1;
     const maxQty = room.availableCount || 999;
@@ -403,8 +403,10 @@ const RoomItem = ({ room, onQuantityChange, onRemove }) => {
                                 - Max Adult: {room.maxAdult || 0} , Max children: {room.maxChildren || 0}
                             </span>
                         </div>
-                        <div className="room-price fw-semibold text-secondary mb-1" style={{ fontSize: '0.95rem' }}>
-                            <i className="bi bi-currency-dollar me-1"></i>{new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ stay</span>
+                        <div className="room-price fw-semibold text-secondary mb-1" style={{ fontSize: '0.95rem', transition: 'opacity 0.2s', opacity: isRepricing ? 0.45 : 1 }}>
+                            {isRepricing
+                                ? <><span className="spinner-border spinner-border-sm me-1" style={{ width: '0.75rem', height: '0.75rem', borderWidth: '0.1em' }} />Updating price…</>
+                                : <><i className="bi bi-currency-dollar me-1" />{new Intl.NumberFormat('vi-VN').format(unitPrice)} ₫ <span className="fw-normal">/ stay</span></>}
                         </div>
                         <div className="d-flex gap-3" />
                     </div>
@@ -449,7 +451,7 @@ const RoomItem = ({ room, onQuantityChange, onRemove }) => {
                             <i className="bi bi-plus fw-bold" />
                         </button>
                     </div>
-                    <div className="room-total fs-4 fw-bold" style={{ color: '#5C6F4E' }}>
+                    <div className="room-total fs-4 fw-bold" style={{ color: '#5C6F4E', transition: 'opacity 0.2s', opacity: isRepricing ? 0.5 : 1 }}>
                         {formatVND(unitPrice * qty)}
                     </div>
                 </div>
@@ -490,12 +492,13 @@ const GuestInformation = () => {
     const [policyLoading, setPolicyLoading] = useState(false);
     const [hasLoadedPolicies, setHasLoadedPolicies] = useState(false);
     const [branchName, setBranchName] = useState("Loading...");
+    // isRepricing = true ngay khi user thay đổi số phòng/email/policy → hiển spinner tức thì
+    // trước khi API trả về (set false khi refreshRoomsByEmail xong).
+    const [isRepricing, setIsRepricing] = useState(false);
     const latestPricingRequestIdRef = useRef(0);
     const roomsRef = useRef(selectedRooms);
     const selectedPolicyIdRef = useRef(null);
     const policySnapshotRef = useRef('');
-    // Ref cho email để refreshRoomsByEmail luôn dùng email mới nhất
-    // mà không cần thêm formData.email vào deps (tránh tạo fn mới mỗi lần gõ).
     const guestEmailRef = useRef(prefillEmail || '');
     // Cache lưu pricing options đã fetch cho từng policy: Map<policyId, Map<roomTypeId, room>>
     const policyPricingCacheRef = useRef(new Map());
@@ -663,10 +666,10 @@ const GuestInformation = () => {
             });
             return;
         }
+        // Báo repricing ngay lập tức → spinner trên giá hiển thị tức thì.
+        setIsRepricing(true);
         setRooms((prev) => {
             const updated = prev.map((r) => (r.roomTypeId === roomTypeId ? { ...r, quantity: newQty } : r));
-            // Cập nhật ref ngay lập tức để refreshRoomsByEmail luôn đọc được số phòng mới nhất
-            // trước khi effect async chạy (tránh gửi totalRooms cũ lên backend).
             roomsRef.current = updated;
             return updated;
         });
@@ -685,7 +688,7 @@ const GuestInformation = () => {
 
         const requestId = ++latestPricingRequestIdRef.current;
         const roomTypeIds = [...new Set(roomsSnapshot.map((r) => r.roomTypeId).filter(Boolean))];
-        if (roomTypeIds.length === 0) return;
+        if (roomTypeIds.length === 0) { setIsRepricing(false); return; }
 
         const params = {
             branchId: branchId || 1,
@@ -705,7 +708,6 @@ const GuestInformation = () => {
             params.policy = currentPolicyId;
         }
 
-        // Đọc email từ ref — tránh đưa formData.email vào deps (sẽ tạo fn mới mỗi lần gõ → effect spam).
         const normalizedEmail = normalizeEmailForSearch(guestEmailRef.current);
         if (normalizedEmail) {
             params.customerEmail = normalizedEmail;
@@ -729,37 +731,37 @@ const GuestInformation = () => {
                     ...merged,
                     quantity: oldRoom.quantity || 1,
                 };
-            // Dùng selectedPolicyIdRef để không tạo closure cũ.
             }).map((room) => applyPolicySelectionToRoom(room, selectedPolicyIdRef.current)));
         } catch (error) {
-            // Ignore transient repricing failures to avoid interrupting typing flow.
             console.warn('Failed to refresh room pricing by email', error);
+        } finally {
+            if (requestId === latestPricingRequestIdRef.current) {
+                setIsRepricing(false);
+            }
         }
-    // formData.email bị bỏ khỏi deps — đọc qua guestEmailRef để fn ổn định, không spam re-create.
-    // selectedPolicyId bị bỏ — đọc qua selectedPolicyIdRef.
     }, [branchId, checkIn, checkOut, searchParams?.adults, searchParams?.children]);
 
-    // Trigger re-price khi email thay đổi (debounce 500ms để tránh spam API khi đang gõ).
+    // Trigger re-price khi email thay đổi: báo isRepricing ngay, debounce 600ms.
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
         const email = formData.email?.trim();
-        if (!email) return;
+        if (!email) { setIsRepricing(false); return; }
+        setIsRepricing(true);
         const timer = setTimeout(() => {
             refreshRoomsByEmail();
-        }, 500);
+        }, 600);
         return () => clearTimeout(timer);
     }, [formData.email, checkIn, checkOut, refreshRoomsByEmail]);
 
-    // totalRoomsInCart: dùng làm dependency để trigger re-price và cache rebuild khi số phòng thay đổi.
+    // totalRoomsInCart: dependency để trigger re-price và cache rebuild khi số phòng thay đổi.
     const totalRoomsInCart = rooms.reduce((sum, r) => sum + (Number(r?.quantity) || 1), 0);
 
-    // Trigger re-price khi số lượng phòng trong cart thay đổi.
-    // Cần thiết để OCCUPANCY modifier được backend re-evaluate với tổng phòng mới.
+    // Trigger re-price khi số lượng phòng thay đổi: debounce 80ms (isRepricing đã set trong handler).
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
         const timer = setTimeout(() => {
             refreshRoomsByEmail();
-        }, 350); // 350ms debounce — tránh gọi API liên tục khi nhấn +/- nhanh
+        }, 80);
         return () => clearTimeout(timer);
     }, [totalRoomsInCart, checkIn, checkOut, refreshRoomsByEmail]);
 
@@ -816,9 +818,12 @@ const GuestInformation = () => {
 
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
+        // Báo repricing ngay khi policy thay đổi (applyPolicySelectionToRoom chạy sync,
+        // nhưng refreshRoomsByEmail cần API sau đó).
+        setIsRepricing(true);
         const timer = setTimeout(() => {
             refreshRoomsByEmail();
-        }, 200);
+        }, 80);
         return () => clearTimeout(timer);
     }, [selectedPolicyId, checkIn, checkOut, refreshRoomsByEmail]);
 
@@ -1100,6 +1105,7 @@ const GuestInformation = () => {
                                         room={room}
                                         onQuantityChange={handleQuantityChange}
                                         onRemove={handleRemoveRoom}
+                                        isRepricing={isRepricing}
                                     />
                                 ))}
                             </div>

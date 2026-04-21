@@ -243,6 +243,10 @@ const SearchRoom = () => {
     const [isInitialized, setIsInitialized] = useState(false);
     const [hasRestoredSearch, setHasRestoredSearch] = useState(false);
     const [uiMessage, setUiMessage] = useState(null);
+    // isPricing = true ngay khi user thực hiện hành động → hiển thị spinner tức thì trên giá
+    // trước khi API trả về (sau đó set false khi API xong).
+    const [isPricing, setIsPricing] = useState(false);
+    const isPricingTimerRef = useRef(null);
     const [customerHistoryEmail, setCustomerHistoryEmail] = useState("");
     const customerHistoryEmailRef = useRef("");
     // Ref để refreshCartPricingByEmail đọc cart data và policy ổn định mà không cần đưa
@@ -322,8 +326,6 @@ const SearchRoom = () => {
                 setLoading(false); return;
             }
 
-            // Tính tổng số phòng trong cart để backend đánh giá OCCUPANCY modifier đúng.
-            // OCCUPANCY kiểm tra số phòng đặt, không phải số khách.
             const cartTotalRooms = selectedCartRef.current.reduce(
                 (sum, r) => sum + (Number(r?.quantity) || 1), 0
             );
@@ -339,8 +341,6 @@ const SearchRoom = () => {
 
             const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
             setRooms(fetchedRooms);
-            // allowReprice=true: luôn cập nhật giá cart theo kết quả API mới nhất.
-            // Giá không bị lock nữa — lockedUnitPrice đã được loại bỏ khỏi display chain.
             setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms, { allowReprice: true }));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
@@ -351,22 +351,22 @@ const SearchRoom = () => {
                 : (apiError || err.message || "Failed to search rooms");
             setError(message);
         } finally {
-            if (requestId === latestRequestIdRef.current) setLoading(false);
+            if (requestId === latestRequestIdRef.current) {
+                setLoading(false);
+                setIsPricing(false);
+            }
         }
     }, [searchParams, filters, selectedPolicyId]);
 
-    // Dùng selectedCartRef.current để đọc cart data ổn định mà không cần selectedCart trong deps.
-    // Điều này ngăn vòng lặp: cart thay đổi → fn mới → useEffect chạy → cart thay đổi...
     const refreshCartPricingByEmail = useCallback(async () => {
         const currentCart = selectedCartRef.current;
         if (!searchParams || currentCart.length === 0) return;
 
         const normalizedEmail = normalizeEmailForSearch(customerHistoryEmailRef.current);
-        // Chỉ gọi API khi có email hợp lệ — không reprice khi email trống.
-        if (!normalizedEmail) return;
+        if (!normalizedEmail) { setIsPricing(false); return; }
 
         const roomTypeIds = [...new Set(currentCart.map((room) => room?.roomTypeId).filter(Boolean))];
-        if (roomTypeIds.length === 0) return;
+        if (roomTypeIds.length === 0) { setIsPricing(false); return; }
 
         const apiParams = {
             ...searchParams,
@@ -377,19 +377,18 @@ const SearchRoom = () => {
             size: Math.max(roomTypeIds.length, 10),
             sortPrice: filters.sortPrice,
             customerEmail: normalizedEmail,
-            // Đọc policy từ ref để fn ổn định hơn (selectedPolicyId trong deps sẽ làm fn mới mỗi lần đổi policy).
             policy: selectedPolicyIdRef.current ?? null,
         };
 
         try {
             const res = await roomService.searchRooms(apiParams);
             const latestRooms = (res?.content || []).map((room) => withPricingState(room));
-            // allowReprice=true: cập nhật giá cart theo kết quả mới (có thể có discount hội viên).
             setSelectedCart((prev) => syncCartWithLatestRooms(prev, latestRooms, { allowReprice: true }));
         } catch (err) {
             console.error("Failed to refresh cart pricing by email:", err);
+        } finally {
+            setIsPricing(false);
         }
-    // selectedCart và selectedPolicyId KHÔNG có trong deps — đọc qua ref để fn ổn định.
     }, [searchParams, filters.branchId, filters.sortPrice]);
 
     const handleFilterChange = (nf) => setFilters(p => ({ ...p, ...nf, page: 0 }));
@@ -441,10 +440,10 @@ const SearchRoom = () => {
                 return;
             }
         }
+        // Báo hiệu repricing ngay lập tức → spinner hiển thị trước khi API bắt đầu.
+        setIsPricing(true);
         setSelectedCart(prev => {
             const updated = prev.map(r => r.roomTypeId === roomTypeId ? { ...r, quantity: newQuantity } : r);
-            // Cập nhật ref ngay lập tức để refetchRooms (chạy do cartTotalRoomsForEffect thay đổi)
-            // đọc được tổng số phòng mới khi tính totalRooms cho OCCUPANCY modifier.
             selectedCartRef.current = updated;
             return updated;
         });
@@ -501,50 +500,48 @@ const SearchRoom = () => {
 
     useEffect(() => { customerHistoryEmailRef.current = customerHistoryEmail; }, [customerHistoryEmail]);
 
+    // Khi filters/searchParams thay đổi → báo isPricing ngay, fetch sau 150ms.
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
+        setIsPricing(true);
         const timer = setTimeout(() => {
             refetchRooms();
-        }, 300);
+        }, 150);
         return () => clearTimeout(timer);
     }, [filters, searchParams, isInitialized, refetchRooms]);
 
-    // Trigger refetchRooms khi tổng số phòng trong cart thay đổi.
-    // Cần thiết để OCCUPANCY modifier được re-evaluate (backend so sánh totalRooms với threshold).
-    // Dùng derived state cartTotalRooms (từ selectedCart) để tray dependency an toàn.
+    // Khi số phòng cart thay đổi → refetch để OCCUPANCY modifier re-evaluate.
+    // isPricing đã được set true trong handleUpdateCartQuantity, debounce 80ms (cảm giác tức thì).
     const cartTotalRoomsForEffect = selectedCart.reduce((sum, r) => sum + (Number(r?.quantity) || 1), 0);
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
         const timer = setTimeout(async () => {
             await refetchRooms();
-            // Sau khi RE-fetch xong, nếu có email hợp lệ → reprice để OCCUPANCY+email modifier
-            // được tính lại đồng thời với tổng phòng mới.
             if (normalizeEmailForSearch(customerHistoryEmailRef.current)) {
                 refreshCartPricingByEmail();
             }
-        }, 350); // 350ms debounce — tránh gọi API liên tục khi thay đổi quantity nhanh
+        }, 80);
         return () => clearTimeout(timer);
     }, [cartTotalRoomsForEffect, isInitialized, searchParams, refetchRooms, refreshCartPricingByEmail]);
 
-    // Trigger repricing khi customerHistoryEmail thay đổi.
-    // refreshCartPricingByEmail ổn định (không đổi theo cart) → không cần trong deps.
+    // Khi email thay đổi → báo isPricing ngay, gọi API sau 600ms (đợi user gõ xong).
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
-        if (!customerHistoryEmail.trim()) return; // Bỏ qua khi email trống
+        if (!customerHistoryEmail.trim()) { setIsPricing(false); return; }
+        setIsPricing(true);
         const timer = setTimeout(() => {
             refreshCartPricingByEmail();
-        }, 500); // 500ms debounce để tránh gọi API liên tục khi đang gõ
+        }, 600);
         return () => clearTimeout(timer);
     }, [customerHistoryEmail, isInitialized, searchParams, refreshCartPricingByEmail]);
 
-    // Khi searchParams (dates) thay đổi và có email hợp lệ → reprice sau khi refetch hoàn tất.
-    // Đảm bảo PriceModifier liên quan đến ngày (SEASONAL, OCCUPANCY) được tính đúng cùng email discount.
+    // Khi searchParams (dates) thay đổi + có email → reprice 500ms sau refetch (150ms).
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
-        if (!normalizeEmailForSearch(customerHistoryEmailRef.current)) return; // Chỉ khi có email
+        if (!normalizeEmailForSearch(customerHistoryEmailRef.current)) return;
         const timer = setTimeout(() => {
             refreshCartPricingByEmail();
-        }, 700); // 700ms — chạy sau refetchRooms (300ms) để dùng dữ liệu phòng mới nhất
+        }, 500);
         return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams, isInitialized, refreshCartPricingByEmail]);
@@ -614,8 +611,18 @@ const SearchRoom = () => {
                     <div className="col-lg-3 col-md-4">
                         <div className="cart-panel shadow-sm rounded-4 overflow-hidden border-0">
                             <div className="cart-header p-3 pb-0">
-                                <h5 className="mb-0 fw-bold text-white"><i className="bi bi-bag-check me-2"></i>My Booking</h5>
-                                <div className="text-white-50 small mt-1">{nights} {nights > 1 ? "nights" : "night"} stay</div>
+                                <h5 className="mb-0 fw-bold text-white">
+                                    <i className="bi bi-bag-check me-2" />
+                                    My Booking
+                                    {isPricing && (
+                                        <span className="spinner-border spinner-border-sm ms-2" role="status"
+                                            style={{ width: '0.8rem', height: '0.8rem', borderWidth: '0.12em', opacity: 0.8 }} />
+                                    )}
+                                </h5>
+                                <div className="text-white-50 small mt-1">
+                                    {nights} {nights > 1 ? "nights" : "night"} stay
+                                    {isPricing && <span className="ms-1" style={{ fontSize: '0.7rem', opacity: 0.75 }}>• Updating prices…</span>}
+                                </div>
                             </div>
 
                             <div className="cart-room-list">
@@ -714,8 +721,8 @@ const SearchRoom = () => {
                                         </div>
                                     </div>
                                     <div className="cart-total-section">
-                                        <span className="cart-total-label"><i className="bi bi-wallet2 me-1"></i>Total:</span>
-                                        <span className="cart-total-amount">
+                                        <span className="cart-total-label"><i className="bi bi-wallet2 me-1" />Total:</span>
+                                        <span className="cart-total-amount" style={{ transition: 'opacity 0.2s', opacity: isPricing ? 0.5 : 1 }}>
                                             {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cartTotal)}
                                         </span>
                                     </div>
