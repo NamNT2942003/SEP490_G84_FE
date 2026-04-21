@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import apiClient from "@/services/apiClient";
-import "@/features/booking/styles/SearchRoom.css";
+import "@/features/booking/screens/SearchRoom.css";
 
 const BranchRulesPage = () => {
     const { branchId } = useParams();

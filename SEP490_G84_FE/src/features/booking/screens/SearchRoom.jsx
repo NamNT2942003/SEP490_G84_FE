@@ -373,6 +373,11 @@ const SearchRoom = () => {
             const res = await roomService.searchRooms(apiParams);
             if (currentCartRequestId !== latestCartRequestIdRef.current) return;
             const latestRooms = (res?.content || []).map((room) => withPricingState(room, selectedPolicyIdRef.current, customerHistoryEmailRef.current));
+            // Fix: cũng update rooms state để room cards đồng bộ giá với cart
+            setRooms((prev) => prev.map((r) => {
+                const updated = latestRooms.find((lr) => lr.roomTypeId === r.roomTypeId);
+                return updated ? updated : r;
+            }));
             setSelectedCart((prev) => syncCartWithLatestRooms(prev, latestRooms, selectedPolicyIdRef.current, customerHistoryEmailRef.current));
         } catch (err) {
             console.error("Failed to refresh cart pricing:", err);
@@ -411,7 +416,6 @@ const SearchRoom = () => {
             showUiMessage("success", `${roomForCart.name} pricing has been updated.`);
         } else {
             if (roomForCart.availableCount <= 0) {
-    const debounceCartRefresh = useRef(null);
                 showUiMessage("warning", `${roomForCart.name} is fully booked.`);
                 setIsPricing(false);
                 return;
@@ -713,7 +717,7 @@ const SearchRoom = () => {
                                             value={customerHistoryEmail}
                                             onChange={(e) => {
                                                 setCustomerHistoryEmail(e.target.value);
-                                                setSearchVersion(v => v + 1);
+                                                // Không setSearchVersion ở đây — effect #540 đã xử lý sau khi ref được update
                                             }}
                                             placeholder="name@example.com"
                                         />
@@ -749,22 +753,23 @@ const SearchRoom = () => {
                         </div>
                     </div>
 
-                  <div className="d-flex align-items-center gap-2">
-    <span className="text-muted" style={{ fontSize: '.82rem' }}><i className="bi bi-sort-down me-1"></i>Sort by:</span>
-    <select className="sort-sel" value={filters.sortPrice} onChange={handleSortChange}>
-        <option value="priceAsc">Price: low to high</option>
-        <option value="priceDesc">Price: high to low</option>
-    </select>
-    <button
-        className="btn btn-sm text-white fw-medium rounded-3 ms-2"
-        style={{ backgroundColor: '#1877F2', minWidth: 120 }}
-        onClick={() => navigate(`/branch/${filters.branchId}/rules`)}
-        onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(24, 119, 242, 0.15)' })}
-        onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: '0 4px 12px rgba(24, 119, 242, 0.08)' })}
-    >
-        <i className="bi bi-info-square-fill me-2"></i>Hotel Rule
-    </button>
-</div>
+                    <div className="col-lg-9 col-md-8">
+                        <div className="d-flex align-items-center gap-2 mb-3">
+                            <span className="text-muted" style={{ fontSize: '.82rem' }}><i className="bi bi-sort-down me-1"></i>Sort by:</span>
+                            <select className="sort-sel" value={filters.sortPrice} onChange={handleSortChange}>
+                                <option value="priceAsc">Price: low to high</option>
+                                <option value="priceDesc">Price: high to low</option>
+                            </select>
+                            <button
+                                className="btn btn-sm text-white fw-medium rounded-3 ms-2"
+                                style={{ backgroundColor: '#1877F2', minWidth: 120 }}
+                                onClick={() => navigate(`/branch/${filters.branchId}/rules`)}
+                                onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(24, 119, 242, 0.15)' })}
+                                onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: '0 4px 12px rgba(24, 119, 242, 0.08)' })}
+                            >
+                                <i className="bi bi-info-square-fill me-2"></i>Hotel Rule
+                            </button>
+                        </div>
 
                         <div className="results-wrap">
                             {loading && rooms.length === 0 && (
