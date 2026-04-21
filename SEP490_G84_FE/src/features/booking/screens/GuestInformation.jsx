@@ -1067,7 +1067,10 @@ const GuestInformation = () => {
                                         const deadline = computeFreeCancelDeadline(checkIn, policy.dateRange);
                                         const deadlineStr = formatDeadlineDate(deadline);
                                         const today = new Date(); today.setHours(0, 0, 0, 0);
-                                        const isDeadlinePast = deadline && deadline < today;
+                                        const deadlineDay = deadline ? new Date(deadline) : null;
+                                        if (deadlineDay) deadlineDay.setHours(0, 0, 0, 0);
+                                        const isDeadlineToday = deadlineDay && deadlineDay.getTime() === today.getTime();
+                                        const isDeadlinePast = deadline && !isDeadlineToday && deadline < today;
 
                                         // Màu theo loại
                                         const typeConfig = {
@@ -1147,7 +1150,23 @@ const GuestInformation = () => {
 
                                                 {/* Hạn huỷ miễn phí */}
                                                 {deadline && (
-                                                    isDeadlinePast ? (
+                                                    isDeadlineToday ? (
+                                                        <div style={{
+                                                            fontSize: 12, display: 'flex', alignItems: 'center', gap: 6,
+                                                            background: '#fffbeb', border: '1px solid #fcd34d',
+                                                            borderRadius: 8, padding: '6px 10px',
+                                                            marginTop: 8, color: '#92400e',
+                                                        }}>
+                                                            <i className="bi bi-clock-fill" />
+                                                            <span>
+                                                                <strong>Cancel before 6:00 PM today</strong>
+                                                                {' '}for a <strong>full refund</strong>
+                                                                <span style={{ color: '#b45309', fontWeight: 400 }}>
+                                                                    {' '}— free cancellation window ends tonight
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    ) : isDeadlinePast ? (
                                                         <div style={{
                                                             fontSize: 12, display: 'flex', alignItems: 'center', gap: 6,
                                                             background: '#fff7ed', border: '1px solid #fed7aa',
@@ -1156,10 +1175,10 @@ const GuestInformation = () => {
                                                         }}>
                                                             <i className="bi bi-exclamation-triangle-fill" />
                                                             <span>
-                                                                <strong>Đã hết hạn hủy miễn phí</strong> từ{' '}
+                                                                <strong>Free cancellation expired</strong> on{' '}
                                                                 <strong>{deadlineStr}</strong>
                                                                 <span style={{ color: '#9a3412', fontWeight: 400 }}>
-                                                                    {' '}— Phí huỷ sẽ áp dụng theo chính sách
+                                                                    {' '}— cancellation fees apply per policy
                                                                 </span>
                                                             </span>
                                                         </div>
@@ -1172,10 +1191,10 @@ const GuestInformation = () => {
                                                         }}>
                                                             <i className="bi bi-clock-history" />
                                                             <span>
-                                                                <strong>Hoàn 100%</strong> nếu huỷ trước{' '}
+                                                                <strong>Full refund</strong> if cancelled before{' '}
                                                                 <strong>{deadlineStr}</strong>
                                                                 <span style={{ color: '#6b7280', fontWeight: 400 }}>
-                                                                    {' '}({parseInt(policy.dateRange, 10)} ngày trước check-in)
+                                                                    {' '}({parseInt(policy.dateRange, 10)} days before check-in)
                                                                 </span>
                                                             </span>
                                                         </div>
@@ -1242,7 +1261,7 @@ const GuestInformation = () => {
                                 <i className="bi bi-person-badge text-success fs-5"></i>
                                 <span>24-hour front desk - Always here to help when you need!</span>
                             </div>
-                             <div className="mb-4 d-flex align-items-center gap-2 text-dark">
+                            <div className="mb-4 d-flex align-items-center gap-2 text-dark">
                                 <i className="bi bi-person-badge text-success fs-5"></i>
                                 <span>Please do not bring more people than the room can accommodate!</span>
                             </div>
