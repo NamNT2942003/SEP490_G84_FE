@@ -123,44 +123,42 @@ const normalizePolicy = (policy) => {
 const optionHasPolicyModifier = (option) =>
     Array.isArray(option?.modifiers) && option.modifiers.some((modifier) => modifier?.type === 'POLICY');
 
-const findOptionWithoutPolicyAdjustment = (room) => {
+const findOptionWithoutPolicyAdjustment = (room, customerEmail = "") => {
     const options = Array.isArray(room?.pricingOptions) ? room.pricingOptions : [];
     if (!options.length) return null;
 
+    const hasValidEmail = Boolean(normalizeEmailForSearch(customerEmail));
+
     const nonPolicyOptions = options.filter((option) => {
         const hasPolicyId = option?.cancellationPolicyId !== null && option?.cancellationPolicyId !== undefined && `${option.cancellationPolicyId}`.trim() !== '';
-        return !hasPolicyId && !optionHasPolicyModifier(option);
+        return !hasPolicyId && !optionHasPolicyModifier(option) && !(option.modifiers?.some(m => m.type === 'USER_HISTORY_DISCOUNT' && !hasValidEmail));
     });
 
-    if (!nonPolicyOptions.length) {
-        return room?.selectedPricingOption || options[0] || null;
-    }
-
-    return findPreferredPricingOption(nonPolicyOptions, room?.selectedPricingOption)
-        || nonPolicyOptions[0]
-        || null;
+    return nonPolicyOptions[0] || options[0] || null;
 };
 
-const findPricingOptionForPolicy = (room, policyId) => {
+const findPricingOptionForPolicy = (room, policyId, customerEmail = "") => {
     const options = Array.isArray(room?.pricingOptions) ? room.pricingOptions : [];
     if (!options.length) return room?.selectedPricingOption || null;
 
+    const hasValidEmail = Boolean(normalizeEmailForSearch(customerEmail));
+
     if (policyId === null || policyId === undefined || `${policyId}`.trim() === '') {
-        return findOptionWithoutPolicyAdjustment(room);
+        return findOptionWithoutPolicyAdjustment(room, customerEmail);
     }
 
     const normalizedPolicyId = Number(policyId);
-    const matched = options.find(
-        (option) => Number(option?.cancellationPolicyId) === normalizedPolicyId && optionHasPolicyModifier(option),
+    const matchedOptions = options.filter(
+        (option) => Number(option?.cancellationPolicyId) === normalizedPolicyId && optionHasPolicyModifier(option) && !(option.modifiers?.some(m => m.type === 'USER_HISTORY_DISCOUNT' && !hasValidEmail))
     );
-    if (matched) return matched;
+    if (matchedOptions.length > 0) return matchedOptions[0];
 
     // Policy not available for this room type => no policy adjustment for this room.
-    return findOptionWithoutPolicyAdjustment(room);
+    return findOptionWithoutPolicyAdjustment(room, customerEmail);
 };
 
-const applyPolicySelectionToRoom = (room, policyId) => {
-    const selectedOption = findPricingOptionForPolicy(room, policyId);
+const applyPolicySelectionToRoom = (room, policyId, customerEmail = "") => {
+    const selectedOption = findPricingOptionForPolicy(room, policyId, customerEmail);
     if (!selectedOption) return room;
 
     const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
@@ -297,43 +295,19 @@ const toPricingOption = (option = {}) => ({
     combinationKey: option?.combinationKey || option?.optionCode || option?.mode || 'UNKNOWN',
 });
 
-const pricingOptionSignature = (option) => {
-    if (!option) return '';
-    return `${option.mode || ''}-${option.finalPrice || 0}-${(option.modifierIds || []).join('_')}`;
-};
-
-const findPreferredPricingOption = (options, preferredOption) => {
-    if (!preferredOption || !Array.isArray(options) || options.length === 0) return null;
-
-    const preferredCode = preferredOption.optionCode || preferredOption.combinationKey || null;
-    if (preferredCode) {
-        const byCode = options.find(
-            (opt) => (opt.optionCode || opt.combinationKey || null) === preferredCode,
-        );
-        if (byCode) return byCode;
-    }
-
-    const preferredCombinationKey = preferredOption.combinationKey || null;
-    if (preferredCombinationKey) {
-        const byCombinationKey = options.find((opt) => opt.combinationKey === preferredCombinationKey);
-        if (byCombinationKey) return byCombinationKey;
-    }
-
-    const preferredSignature = pricingOptionSignature(preferredOption);
-    if (preferredSignature) {
-        const bySignature = options.find((opt) => pricingOptionSignature(opt) === preferredSignature);
-        if (bySignature) return bySignature;
-    }
-
-    return null;
-};
-
-const withPricingState = (room, preferredOption = null) => {
+const withPricingState = (room, customerEmail = "") => {
     const options = (Array.isArray(room?.pricingOptions) ? room.pricingOptions : [])
         .map(toPricingOption)
         .sort((a, b) => a.finalPrice - b.finalPrice);
 
-    const selectedOption = findPreferredPricingOption(options, preferredOption) || options[0] || null;
+    const hasValidEmail = Boolean(normalizeEmailForSearch(customerEmail));
+
+    const nonPolicyOptions = options.filter((option) => {
+         const hasPolicyId = option?.cancellationPolicyId !== null && option?.cancellationPolicyId !== undefined && `${option.cancellationPolicyId}`.trim() !== '';
+         return !hasPolicyId && !(option.modifiers?.some(m => m.type === 'USER_HISTORY_DISCOUNT' && !hasValidEmail));
+    });
+
+    const selectedOption = nonPolicyOptions[0] || options[0] || null;
 
     const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
 
@@ -551,7 +525,7 @@ const GuestInformation = () => {
     }, [selectedPolicyId]);
 
     useEffect(() => {
-        setRooms((prev) => prev.map((room) => applyPolicySelectionToRoom(room, selectedPolicyId)));
+        setRooms((prev) => prev.map((room) => applyPolicySelectionToRoom(room, selectedPolicyId, guestEmailRef.current)));
     }, [selectedPolicyId]);
 
     const refreshPolicies = useCallback(async (silent = true) => {
@@ -730,14 +704,14 @@ const GuestInformation = () => {
                 const latest = latestRoomMap.get(oldRoom.roomTypeId);
                 if (!latest) return oldRoom;
 
-                const merged = withPricingState(latest, oldRoom.selectedPricingOption);
+                const merged = withPricingState(latest, guestEmailRef.current);
 
                 return {
                     ...oldRoom,
                     ...merged,
                     quantity: oldRoom.quantity || 1,
                 };
-            }).map((room) => applyPolicySelectionToRoom(room, selectedPolicyIdRef.current)));
+            }).map((room) => applyPolicySelectionToRoom(room, selectedPolicyIdRef.current, guestEmailRef.current)));
         } catch (error) {
             console.warn('Failed to refresh room pricing by email', error);
         } finally {
