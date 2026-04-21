@@ -495,6 +495,12 @@ const GuestInformation = () => {
     // isRepricing = true ngay khi user thay đổi số phòng/email/policy → hiển spinner tức thì
     // trước khi API trả về (set false khi refreshRoomsByEmail xong).
     const [isRepricing, setIsRepricing] = useState(false);
+    // pricingVersion tăng mỗi khi rooms được reprice → force re-render các computed values
+    // dùng ref (policyPricingCacheRef) mà React không tự theo dõi.
+    const [pricingVersion, setPricingVersion] = useState(0);
+    // cacheRebuildSignal tăng khi cần rebuild cache policy (sau refreshRoomsByEmail).
+    // Tách khỏi pricingVersion để tránh vòng lặp: rebuild → pricingVersion++ → rebuild...
+    const [cacheRebuildSignal, setCacheRebuildSignal] = useState(0);
     const latestPricingRequestIdRef = useRef(0);
     const roomsRef = useRef(selectedRooms);
     const selectedPolicyIdRef = useRef(null);
@@ -736,7 +742,15 @@ const GuestInformation = () => {
             console.warn('Failed to refresh room pricing by email', error);
         } finally {
             if (requestId === latestPricingRequestIdRef.current) {
+                // Xóa cache cũ ngay lập tức để computeTotalForPolicy dùng fallback
+                // từ rooms state mới thay vì hiển thị giá policy cũ.
+                // fetchAllPolicies sẽ rebuild cache đầy đủ trong background một chút sau.
+                policyPricingCacheRef.current = new Map();
                 setIsRepricing(false);
+                // pricingVersion: force re-render policy cards (tính lại computeTotalForPolicy).
+                setPricingVersion((v) => v + 1);
+                // cacheRebuildSignal: yêu cầu fetchAllPolicies chạy lại với data mới.
+                setCacheRebuildSignal((v) => v + 1);
             }
         }
     }, [branchId, checkIn, checkOut, searchParams?.adults, searchParams?.children]);
@@ -767,6 +781,8 @@ const GuestInformation = () => {
 
     // Sau khi policies load, fetch pricing cho tất cả policies song song để có đủ pricingOptions.
     // Cache này giúp computeTotalForPolicy hiển thị đúng giá cuối cho mỗi card policy.
+    // cacheRebuildSignal trong deps đảm bảo cache rebuild sau mỗi lần refreshRoomsByEmail
+    // mà KHÔNG gây vòng lặp (vì fetchAllPolicies chỉ set policyPricingCacheRef, không set cacheRebuildSignal).
     useEffect(() => {
         if (!policies.length || !checkIn || !checkOut || roomsRef.current.length === 0) return;
         let cancelled = false;
@@ -788,10 +804,10 @@ const GuestInformation = () => {
                 page: 0,
                 sortPrice: 'priceAsc',
             };
-            const normalizedEmail = normalizeEmailForSearch(formData.email);
+            const normalizedEmail = normalizeEmailForSearch(guestEmailRef.current);
             if (normalizedEmail) baseParams.customerEmail = normalizedEmail;
 
-            const newCache = new Map(policyPricingCacheRef.current);
+            const newCache = new Map();
 
             await Promise.all(policies.map(async (policy) => {
                 if (cancelled) return;
@@ -809,12 +825,14 @@ const GuestInformation = () => {
 
             if (!cancelled) {
                 policyPricingCacheRef.current = newCache;
+                // Force re-render để policy cards đọc cache mới (không set cacheRebuildSignal).
+                setPricingVersion((v) => v + 1);
             }
         };
 
         fetchAllPolicies();
         return () => { cancelled = true; };
-    }, [policies, checkIn, checkOut, branchId, searchParams?.adults, searchParams?.children, formData.email, totalRoomsInCart]);
+    }, [policies, checkIn, checkOut, branchId, searchParams?.adults, searchParams?.children, cacheRebuildSignal, totalRoomsInCart]);
 
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
