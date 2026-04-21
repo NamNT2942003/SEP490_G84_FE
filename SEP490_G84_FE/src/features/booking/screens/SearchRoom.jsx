@@ -745,58 +745,26 @@ const SearchRoom = () => {
                             )}
                         </div>
 
-                        {/* Hotel Rule Box */}
-                        {filters.branchId && (
-                            <div 
-                                className="shadow-sm rounded-4 overflow-hidden border-0 mt-3 bg-white p-3 d-flex flex-column"
-                                style={{
-                                    border: '1px solid #ebf2fe',
-                                    backgroundColor: '#f8fcff',
-                                    boxShadow: '0 4px 12px rgba(24, 119, 242, 0.08)',
-                                    transition: 'all 0.2s',
-                                    cursor: 'pointer'
-                                }}
-                                onClick={() => navigate(`/branch/${filters.branchId}/rules`)}
-                                onMouseEnter={(e) => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(24, 119, 242, 0.15)' })}
-                                onMouseLeave={(e) => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: '0 4px 12px rgba(24, 119, 242, 0.08)' })}
-                            >
-                                <div className="d-flex align-items-center mb-2" style={{ color: '#1877F2' }}>
-                                    <i className="bi bi-info-square-fill fs-5 me-2"></i>
-                                    <span className="fw-bold" style={{ fontSize: '1.05rem' }}>Quy tắc chung</span>
-                                </div>
-                                <p className="text-secondary mb-3" style={{ fontSize: '0.85rem', lineHeight: '1.4' }}>
-                                    Kiểm tra các chính sách nhận/trả phòng, vật nuôi và quy định khác của chỗ nghỉ.
-                                </p>
-                                <button className="btn btn-sm text-white fw-medium rounded-3" style={{ backgroundColor: '#1877F2' }}>
-                                    Xem quy định chi tiết
-                                </button>
-                            </div>
-                        )}
+
                         </div>
                     </div>
 
-                    <div className="col-lg-9 col-md-8" style={{ position: 'relative', zIndex: 0 }}>
-                        <div className="res-hdr d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div className="res-cnt"><i className="bi bi-building me-2" style={{ color: '#5C6F4E' }}></i>Available rooms: <span>{totalElements}</span></div>
-                            <div className="d-flex align-items-center gap-2">
-                                <span className="text-muted" style={{ fontSize: '.82rem' }}><i className="bi bi-sort-down me-1"></i>Sort by:</span>
-                                <select className="sort-sel" value={filters.sortPrice} onChange={handleSortChange}>
-                                    <option value="priceAsc">Price: low to high</option>
-                                    <option value="priceDesc">Price: high to low</option>
-                                </select>
-                               
-                                    <button
-                                        className="btn btn-sm text-white fw-medium rounded-3 ms-2"
-                                        style={{ backgroundColor: '#1877F2', minWidth: 120 }}
-                                        onClick={() => navigate(`/branch/${filters.branchId}/rules`)}
-                                        onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(24, 119, 242, 0.15)' })}
-                                        onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: '0 4px 12px rgba(24, 119, 242, 0.08)' })}
-                                    >
-                                        <i className="bi bi-info-square-fill me-2"></i>Hotel Rule
-                                    </button>
-                           
-                            </div>
-                        </div>
+                  <div className="d-flex align-items-center gap-2">
+    <span className="text-muted" style={{ fontSize: '.82rem' }}><i className="bi bi-sort-down me-1"></i>Sort by:</span>
+    <select className="sort-sel" value={filters.sortPrice} onChange={handleSortChange}>
+        <option value="priceAsc">Price: low to high</option>
+        <option value="priceDesc">Price: high to low</option>
+    </select>
+    <button
+        className="btn btn-sm text-white fw-medium rounded-3 ms-2"
+        style={{ backgroundColor: '#1877F2', minWidth: 120 }}
+        onClick={() => navigate(`/branch/${filters.branchId}/rules`)}
+        onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(24, 119, 242, 0.15)' })}
+        onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: '0 4px 12px rgba(24, 119, 242, 0.08)' })}
+    >
+        <i className="bi bi-info-square-fill me-2"></i>Hotel Rule
+    </button>
+</div>
 
                         <div className="results-wrap">
                             {loading && rooms.length === 0 && (
