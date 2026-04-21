@@ -23,7 +23,7 @@ const RuleFormModal = ({ isOpen, onClose, onSave, initialData, saving }) => {
 
     const handleSubmit = () => {
         if (!name.trim()) {
-            Swal.fire("Lỗi", "Tên quy tắc không được để trống", "error");
+            Swal.fire("Error", "Rule name is required", "error");
             return;
         }
         onSave({ name: name.trim(), description: description.trim() });
@@ -43,29 +43,29 @@ const RuleFormModal = ({ isOpen, onClose, onSave, initialData, saving }) => {
                     <div className="hr-modal-header">
                         <h5 style={{ color: "#fff", margin: 0, fontWeight: 700 }}>
                             <i className="bi bi-journal-check me-2"></i>
-                            {initialData ? "Cập nhật quy tắc" : "Thêm quy tắc mới"}
+                            {initialData ? "Update Rule" : "Add New Rule"}
                         </h5>
                         <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: "1rem" }}>×</button>
                     </div>
                     <div className="hr-modal-body">
                         <div className="mb-3">
-                            <label className="form-label fw-semibold">Tên quy tắc <span className="text-danger">*</span></label>
+                            <label className="form-label fw-semibold">Rule name <span className="text-danger">*</span></label>
                             <input
                                 className="form-control"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder="VD: Nhận phòng, Trả phòng, Hủy phòng..."
+                                placeholder="e.g. Check-In, Check-Out, Cancellation..."
                                 required
                             />
                         </div>
                         <div className="mb-3">
-                            <label className="form-label fw-semibold">Mô tả chi tiết</label>
+                            <label className="form-label fw-semibold">Description</label>
                             <textarea
                                 className="form-control"
                                 rows="6"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Nhập mô tả chi tiết cho quy tắc này..."
+                                placeholder="Enter detailed description for this rule..."
                                 style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -76,7 +76,7 @@ const RuleFormModal = ({ isOpen, onClose, onSave, initialData, saving }) => {
                         </div>
                     </div>
                     <div className="hr-modal-footer">
-                        <Buttons variant="outline" className="btn-sm" onClick={onClose} disabled={saving}>Hủy</Buttons>
+                        <Buttons variant="outline" className="btn-sm" onClick={onClose} disabled={saving}>Cancel</Buttons>
                         <Buttons
                             variant="primary"
                             className="btn-sm"
@@ -85,7 +85,7 @@ const RuleFormModal = ({ isOpen, onClose, onSave, initialData, saving }) => {
                             isLoading={saving}
                             icon={!saving && <i className="bi bi-floppy" />}
                         >
-                            {initialData ? "Cập nhật" : "Thêm mới"}
+                            {initialData ? "Update" : "Create"}
                         </Buttons>
                     </div>
                 </div>
@@ -123,7 +123,7 @@ const HotelRuleManagement = () => {
                 setBranchInfo(b);
             } catch { /* ignore */ }
         } catch (err) {
-            showAlert("error", "Không thể tải dữ liệu: " + (err?.response?.data?.message || err.message));
+            showAlert("error", "Failed to load data: " + (err?.response?.data?.message || err.message));
         } finally {
             setLoading(false);
         }
@@ -140,19 +140,19 @@ const HotelRuleManagement = () => {
                     description: form.description,
                     branchId: parseInt(branchId, 10),
                 });
-                showAlert("success", "Cập nhật quy tắc thành công!");
+                showAlert("success", "Rule updated successfully!");
             } else {
                 await branchManagementApi.addHotelRule(branchId, {
                     name: form.name,
                     description: form.description,
                 });
-                showAlert("success", "Thêm quy tắc thành công!");
+                showAlert("success", "Rule created successfully!");
             }
             setModalOpen(false);
             setEditing(null);
             load();
         } catch (err) {
-            showAlert("error", "Lưu thất bại: " + (err?.response?.data?.message || err.message));
+            showAlert("error", "Save failed: " + (err?.response?.data?.message || err.message));
         } finally {
             setSaving(false);
         }
@@ -160,22 +160,22 @@ const HotelRuleManagement = () => {
 
     const handleDelete = async (rule) => {
         Swal.fire({
-            title: 'Xóa quy tắc?',
-            text: `Bạn có chắc muốn xóa quy tắc "${rule.name}"?`,
+            title: 'Delete Rule?',
+            text: `Are you sure you want to delete rule "${rule.name}"?`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc3545',
             cancelButtonColor: '#5C6F4E',
-            confirmButtonText: 'Xóa',
-            cancelButtonText: 'Hủy',
+            confirmButtonText: 'Yes, delete it',
+            cancelButtonText: 'Cancel',
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
                     await branchManagementApi.deleteHotelRule(rule.id);
-                    showAlert("success", "Đã xóa quy tắc.");
+                    showAlert("success", "Rule deleted.");
                     load();
                 } catch {
-                    showAlert("error", "Xóa thất bại.");
+                    showAlert("error", "Delete failed.");
                 }
             }
         });
@@ -215,18 +215,18 @@ const HotelRuleManagement = () => {
                     <div className="d-flex justify-content-between align-items-start">
                         <div>
                             <button onClick={() => navigate("/admin/branches")} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: "0.85rem", marginBottom: 12 }}>
-                                <i className="bi bi-arrow-left me-1"></i> Quay lại
+                                <i className="bi bi-arrow-left me-1"></i> Back
                             </button>
                             <div className="hr-hero-title">
-                                <i className="bi bi-journal-check me-2"></i>Quản lý quy tắc chung
+                                <i className="bi bi-journal-check me-2"></i>Hotel Rules Management
                             </div>
                             <div className="hr-hero-sub">
-                                Chi nhánh: <strong>{branchInfo?.branchName || `#${branchId}`}</strong>
+                                Branch: <strong>{branchInfo?.branchName || `#${branchId}`}</strong>
                                 {branchInfo?.address && <span className="ms-2 opacity-75">— {branchInfo.address}</span>}
                             </div>
                         </div>
                         <Buttons variant="primary" icon={<i className="bi bi-plus-lg" />} onClick={() => { setEditing(null); setModalOpen(true); }}>
-                            Thêm quy tắc
+                            Add Rule
                         </Buttons>
                     </div>
                 </div>
@@ -245,11 +245,11 @@ const HotelRuleManagement = () => {
                     <div className="hr-stats">
                         <div className="hr-stat-card">
                             <div className="hr-stat-num" style={{ color: "#5C6F4E" }}>{rules.length}</div>
-                            <div className="hr-stat-label"><i className="bi bi-list-check me-1"></i>Tổng quy tắc</div>
+                            <div className="hr-stat-label"><i className="bi bi-list-check me-1"></i>Total rules</div>
                         </div>
                         <div className="hr-stat-card">
                             <div className="hr-stat-num" style={{ color: "#2563eb" }}>{rules.filter(r => r.description && r.description.trim()).length}</div>
-                            <div className="hr-stat-label"><i className="bi bi-card-text me-1"></i>Có mô tả</div>
+                            <div className="hr-stat-label"><i className="bi bi-card-text me-1"></i>With description</div>
                         </div>
                     </div>
                 )}
@@ -258,23 +258,23 @@ const HotelRuleManagement = () => {
                 <div className="hr-card">
                     <div className="hr-card-header">
                         <span className="fw-bold" style={{ color: "#5C6F4E" }}>
-                            <i className="bi bi-collection me-2"></i>Danh sách quy tắc
+                            <i className="bi bi-collection me-2"></i>Rule list
                         </span>
-                        <span className="badge bg-secondary" style={{ fontSize: "0.7rem" }}>{rules.length} quy tắc</span>
+                        <span className="badge bg-secondary" style={{ fontSize: "0.7rem" }}>{rules.length} rules</span>
                     </div>
 
                     {loading && (
                         <div className="text-center py-5">
                             <div className="spinner-border text-secondary" role="status"></div>
-                            <div className="text-muted mt-2">Đang tải quy tắc...</div>
+                            <div className="text-muted mt-2">Loading rules...</div>
                         </div>
                     )}
 
                     {!loading && rules.length === 0 && (
                         <div className="text-center py-5 text-muted">
                             <i className="bi bi-journal-x fs-1 d-block mb-2 opacity-25"></i>
-                            Chưa có quy tắc nào.<br />
-                            <small>Nhấn <strong>+ Thêm quy tắc</strong> để bắt đầu tạo.</small>
+                            No rules defined yet.<br />
+                            <small>Click <strong>+ Add Rule</strong> to start creating.</small>
                         </div>
                     )}
 
@@ -287,20 +287,20 @@ const HotelRuleManagement = () => {
                                         {rule.name}
                                     </div>
                                     <div className="hr-rule-desc">
-                                        {rule.description || <span className="text-muted fst-italic">Chưa có mô tả</span>}
+                                        {rule.description || <span className="text-muted fst-italic">No description</span>}
                                     </div>
                                     <div className="d-flex gap-2 mt-3">
                                         <button
                                             className="btn btn-sm btn-outline-secondary flex-fill"
                                             onClick={() => { setEditing(rule); setModalOpen(true); }}
                                         >
-                                            <i className="bi bi-pencil me-1"></i>Sửa
+                                            <i className="bi bi-pencil me-1"></i>Edit
                                         </button>
                                         <button
                                             className="btn btn-sm btn-outline-danger flex-fill"
                                             onClick={() => handleDelete(rule)}
                                         >
-                                            <i className="bi bi-trash me-1"></i>Xóa
+                                            <i className="bi bi-trash me-1"></i>Delete
                                         </button>
                                     </div>
                                 </div>
