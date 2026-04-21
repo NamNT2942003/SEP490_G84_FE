@@ -566,6 +566,15 @@ export default function BranchManagement() {
                       type="button"
                       className="btn btn-sm btn-outline-secondary me-1"
                       style={{ fontSize: "0.78rem", padding: "3px 10px" }}
+                      onClick={() => navigate(`/admin/branches/${branch.branchId}/rules`)}
+                      title="Hotel Rules"
+                    >
+                      <i className="bi bi-journal-check me-1" />Rules
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary me-1"
+                      style={{ fontSize: "0.78rem", padding: "3px 10px" }}
                       onClick={() => openEditModal(branch)}
                     >
                       <i className="bi bi-pencil me-1" />Edit

@@ -52,6 +52,7 @@ import RoomTypeManagement from "@/features/room-type-management/screens/RoomType
 import RoomInventoryManagement from "@/features/room-inventory-management/screens/RoomInventoryManagement.jsx";
 import PriceModifierManagement from "@/features/price-modifiers/screens/PriceModifierManagement.jsx";
 import RefundPolicyManagement from "@/features/refund-policy/screens/RefundPolicyManagement.jsx";
+import HotelRuleManagement from "@/features/branch-management/screens/HotelRuleManagement.jsx";
 import ServiceList from '@/features/services/screens/ServiceList';
 
 // =====================================================================
@@ -195,6 +196,7 @@ const AppRouter = () => {
             <Route path="/admin/room-types/:roomTypeId/price-modifiers" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><PriceModifierManagement /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
             <Route path="/admin/room-inventories" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><RoomInventoryManagement /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
             <Route path="/admin/branches/:branchId/cancellation-policies" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><RefundPolicyManagement /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
+            <Route path="/admin/branches/:branchId/rules" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><HotelRuleManagement /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
 
             {/* 6.2 Services Management */}
             <Route path="/services" element={<ProtectedRoute><RequireManagerOrAdmin><MainLayout><ServiceList /></MainLayout></RequireManagerOrAdmin></ProtectedRoute>} />
