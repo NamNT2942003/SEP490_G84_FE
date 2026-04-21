@@ -1009,12 +1009,14 @@ const GuestInformation = () => {
                     } catch (verifyErr) {
                         console.error('OTP Verification Error:', verifyErr);
                         Swal.close();
-                        const msg = verifyErr?.response?.data?.message
-                            || (typeof verifyErr?.response?.data === 'string' ? verifyErr.response.data : null)
-                            || verifyErr?.friendlyMessage
-                            || verifyErr.message
-                            || 'Invalid OTP. Please try again.';
+                        // Parse error message — backend may return plain string or { message: "..." }
+                        const respData = verifyErr?.response?.data;
+                        const msg = (typeof respData === 'string' && respData.length > 0)
+                            ? respData
+                            : (respData?.message || verifyErr?.friendlyMessage || verifyErr.message || 'Invalid OTP. Please try again.');
                         lastError = msg;
+                        // Small delay to prevent SweetAlert race condition between close() and next fire()
+                        await new Promise(r => setTimeout(r, 150));
                     }
                 }
             }
