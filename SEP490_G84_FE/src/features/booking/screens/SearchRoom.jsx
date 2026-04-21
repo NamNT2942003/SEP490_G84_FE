@@ -313,7 +313,17 @@ const SearchRoom = () => {
                 setLoading(false); return;
             }
 
-            const apiParams = { ...searchParams, ...filters, policy: selectedPolicyId ?? null };
+            // Tính tổng số phòng trong cart để backend đánh giá OCCUPANCY modifier đúng.
+            // OCCUPANCY kiểm tra số phòng đặt, không phải số khách.
+            const cartTotalRooms = selectedCartRef.current.reduce(
+                (sum, r) => sum + (Number(r?.quantity) || 1), 0
+            );
+            const apiParams = {
+                ...searchParams,
+                ...filters,
+                policy: selectedPolicyId ?? null,
+                totalRooms: cartTotalRooms > 0 ? cartTotalRooms : 1,
+            };
 
             const res = await roomService.searchRooms(apiParams);
             if (requestId !== latestRequestIdRef.current) return;
