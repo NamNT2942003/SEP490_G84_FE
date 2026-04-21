@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import apiClient from "@/services/apiClient";
 import { Link, useNavigate } from "react-router-dom";
 import SearchForm from "./SearchForm.jsx";
 import RoomCard from "./RoomCard.jsx";
@@ -198,6 +199,9 @@ const SearchRoom = () => {
     const [totalElements, setTotalElements] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [showModal, setShowModal] = useState(false);
+    const [showRulesDrawer, setShowRulesDrawer] = useState(false);
+    const [hotelRules, setHotelRules] = useState([]);
+    const [rulesLoading, setRulesLoading] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [branches, setBranches] = useState([]);
     const [filters, setFilters] = useState({
@@ -501,6 +505,21 @@ const SearchRoom = () => {
     const handleViewDetail = (room) => { setSelectedRoom(room); setShowModal(true); };
     const handleCloseModal = () => { setShowModal(false); setSelectedRoom(null); };
 
+    const handleOpenRules = async () => {
+        setShowRulesDrawer(true);
+        if (!filters.branchId) return;
+        setRulesLoading(true);
+        try {
+            const res = await apiClient.get(`/branches/${filters.branchId}/rules`);
+            setHotelRules(Array.isArray(res.data) ? res.data : (res.data?.data || []));
+        } catch (err) {
+            console.error("Failed to load hotel rules", err);
+            setHotelRules([]);
+        } finally {
+            setRulesLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!isInitialized || !hasRestoredSearch || searchParams) return;
 
@@ -766,12 +785,12 @@ const SearchRoom = () => {
                             </select>
                             <button
                                 className="btn btn-sm text-white fw-medium rounded-3 ms-2"
-                                style={{ backgroundColor: '#1877F2', minWidth: 120 }}
-                                onClick={() => navigate(`/branch/${filters.branchId}/rules`)}
-                                onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(24, 119, 242, 0.15)' })}
-                                onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: '0 4px 12px rgba(24, 119, 242, 0.08)' })}
+                                style={{ backgroundColor: '#5C6F4E', minWidth: 120, transition: 'all 0.2s' }}
+                                onClick={handleOpenRules}
+                                onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(92,111,78,0.25)', backgroundColor: '#4a5b3f' })}
+                                onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: 'none', backgroundColor: '#5C6F4E' })}
                             >
-                                <i className="bi bi-info-square-fill me-2"></i>Hotel Rule
+                                <i className="bi bi-journal-check me-2"></i>Hotel Rules
                             </button>
                         </div>
 
@@ -838,6 +857,110 @@ const SearchRoom = () => {
             </div>
 
             <RoomDetailModal room={selectedRoom} show={showModal} onClose={handleCloseModal} />
+
+            {/* Hotel Rules Drawer */}
+            {showRulesDrawer && (
+                <>
+                    <div
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1060, transition: 'opacity 0.3s' }}
+                        onClick={() => setShowRulesDrawer(false)}
+                    />
+                    <div style={{
+                        position: 'fixed', top: 0, right: 0, bottom: 0, width: '460px', maxWidth: '90vw',
+                        background: '#fff', zIndex: 1061, boxShadow: '-8px 0 30px rgba(0,0,0,0.15)',
+                        display: 'flex', flexDirection: 'column',
+                        animation: 'slideInRight 0.3s ease-out',
+                    }}>
+                        <style>{`
+                            @keyframes slideInRight {
+                                from { transform: translateX(100%); opacity: 0; }
+                                to { transform: translateX(0); opacity: 1; }
+                            }
+                        `}</style>
+                        {/* Drawer Header */}
+                        <div style={{
+                            padding: '20px 24px', background: 'linear-gradient(135deg, #5C6F4E 0%, #4a5b3f 100%)',
+                            color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0,
+                        }}>
+                            <div>
+                                <h5 style={{ margin: 0, fontWeight: 700, fontSize: '1.15rem' }}>
+                                    <i className="bi bi-journal-check me-2"></i>Hotel Rules
+                                </h5>
+                                <div style={{ fontSize: '0.82rem', opacity: 0.8, marginTop: 2 }}>
+                                    General policies & regulations
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowRulesDrawer(false)}
+                                style={{
+                                    background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+                                    borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', fontSize: '1.1rem',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s',
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                            >
+                                <i className="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+
+                        {/* Drawer Body */}
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+                            {rulesLoading ? (
+                                <div style={{ textAlign: 'center', padding: '40px 0', color: '#718096' }}>
+                                    <div className="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+                                    Loading rules...
+                                </div>
+                            ) : hotelRules.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {hotelRules.map((rule, idx) => (
+                                        <div key={rule.id || idx} style={{
+                                            border: '1px solid #e8ede4', borderRadius: '14px', padding: '16px 18px',
+                                            background: '#fafbf8', transition: 'all 0.2s',
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#5C6F4E'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(92,111,78,0.1)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#e8ede4'; e.currentTarget.style.boxShadow = 'none'; }}
+                                        >
+                                            <div style={{ fontWeight: 700, color: '#2d3748', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <i className="bi bi-bookmark-fill" style={{ color: '#5C6F4E', fontSize: '0.85rem' }}></i>
+                                                {rule.name}
+                                            </div>
+                                            {rule.description && (
+                                                <div style={{
+                                                    fontSize: '0.88rem', color: '#4a5568', lineHeight: '1.6',
+                                                    whiteSpace: 'pre-wrap', paddingLeft: '22px',
+                                                }}>
+                                                    {rule.description}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '40px 0', color: '#a0aec0' }}>
+                                    <i className="bi bi-journal-x" style={{ fontSize: '2.5rem', display: 'block', marginBottom: 12, opacity: 0.4 }}></i>
+                                    <div style={{ fontWeight: 600 }}>No rules available</div>
+                                    <div style={{ fontSize: '0.85rem', marginTop: 4 }}>This property has not set up any rules yet.</div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Drawer Footer */}
+                        <div style={{
+                            padding: '14px 24px', borderTop: '1px solid #f0f0f0', background: '#fafbf8', flexShrink: 0,
+                            display: 'flex', justifyContent: 'flex-end',
+                        }}>
+                            <button
+                                className="btn btn-sm fw-medium rounded-3"
+                                style={{ backgroundColor: '#5C6F4E', color: '#fff', padding: '8px 24px' }}
+                                onClick={() => setShowRulesDrawer(false)}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 };
