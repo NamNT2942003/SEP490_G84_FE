@@ -442,6 +442,10 @@ const SearchRoom = () => {
         setSelectedCart(prev => {
             const updated = prev.filter(r => r.roomTypeId !== roomTypeId);
             selectedCartRef.current = updated;
+            // Khi cart trống, reset email khách hàng thân thiết để giá reset về gốc
+            if (updated.length === 0) {
+                setCustomerHistoryEmail("");
+            }
             return updated;
         });
         setSearchVersion(v => v + 1);
