@@ -65,6 +65,7 @@ import FurnitureInventory from "@/features/furniture/screens/FurnitureInventory"
 import ImportHistory from "@/features/furniture/screens/ImportHistory";
 // Finance & Reports
 import CashflowScreen from "@/features/finance/screens/CashflowScreen.jsx";
+import RevenueCollectionScreen from "@/features/finance/screens/RevenueCollectionScreen.jsx";
 import ServiceRevenueReportScreen from "@/features/report/screens/ServiceRevenueReportScreen.jsx";
 import RevenueReportScreen from "@/features/report/screens/RevenueReportScreen.jsx";
 import ExpenseReportScreen from "@/features/report/screens/ExpenseReportScreen.jsx";
@@ -168,6 +169,7 @@ const AppRouter = () => {
             <Route path="/furniture/furniture" element={<ProtectedRoute><MainLayout><FurnitureInventory /></MainLayout></ProtectedRoute>} />
 
             <Route path="/finance/cashflow" element={<ProtectedRoute><MainLayout><CashflowScreen /></MainLayout></ProtectedRoute>} />
+            <Route path="/finance/revenue" element={<ProtectedRoute><MainLayout><RevenueCollectionScreen /></MainLayout></ProtectedRoute>} />
 
             {/* 5.3 Profile */}
             <Route path="/profile" element={<ProtectedRoute><MainLayout><UserProfile /></MainLayout></ProtectedRoute>} />

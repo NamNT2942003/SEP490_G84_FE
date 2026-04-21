@@ -27,4 +27,31 @@ export const financeApi = {
     const { data } = await apiClient.get(`/finance/cashflow/${paymentId}/detail`);
     return data;
   },
+
+  /**
+   * Get revenue invoice list (paginated)
+   * @param {Object} filters - { startDate, endDate, status, invoiceType, branchId, page, size }
+   */
+  getRevenueInvoices: async (filters = {}) => {
+    const { data } = await apiClient.get('/finance/revenue', { params: filters });
+    return data;
+  },
+
+  /**
+   * Get revenue collection summary cards
+   * @param {Object} filters - { startDate, endDate, status, invoiceType, branchId }
+   */
+  getRevenueSummary: async (filters = {}) => {
+    const { data } = await apiClient.get('/finance/revenue/summary', { params: filters });
+    return data;
+  },
+
+  /**
+   * Get invoice detail lines (for Detail Drawer)
+   * @param {number} invoiceId
+   */
+  getRevenueInvoiceDetail: async (invoiceId) => {
+    const { data } = await apiClient.get(`/finance/revenue/${invoiceId}/detail`);
+    return data;
+  },
 };

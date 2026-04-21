@@ -97,6 +97,7 @@ const Sidebar = ({ collapsed }) => {
       groupLabel: "Finance",
       items: [
         { path: "/finance/cashflow", label: "Cash Flow Report", icon: "bi-arrow-down-circle", show: isAdmin || isManager },
+        { path: "/finance/revenue", label: "Quản Lý Thu", icon: "bi-wallet2", show: isAdmin || isManager },
       ],
     },
   ];
