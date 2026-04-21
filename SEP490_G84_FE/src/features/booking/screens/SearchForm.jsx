@@ -74,20 +74,16 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
             return;
         }
 
-        const timer = setTimeout(() => {
-            if (!sp.checkIn || !sp.checkOut) {
-                setValidationMessage("Please select both check-in and check-out dates.");
-                return;
-            }
-            if (sp.checkOut <= sp.checkIn) {
-                setValidationMessage("Check-out date must be after check-in date.");
-                return;
-            }
-            setValidationMessage("");
-            onSearch(sp);
-        }, 300); // optional debounce for rapid clicks
-
-        return () => clearTimeout(timer);
+        if (!sp.checkIn || !sp.checkOut) {
+            setValidationMessage("Please select both check-in and check-out dates.");
+            return;
+        }
+        if (sp.checkOut <= sp.checkIn) {
+            setValidationMessage("Check-out date must be after check-in date.");
+            return;
+        }
+        setValidationMessage("");
+        onSearch(sp);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sp]);
 

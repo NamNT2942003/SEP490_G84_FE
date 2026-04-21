@@ -564,21 +564,12 @@ const SearchRoom = () => {
         return () => { isActive = false; };
     }, [filters, searchParams, isInitialized, refetchRooms, refreshCartPricing, searchVersion]);
 
-    // Email: báo isPricing ngay khi user gõ, dùng debounce nhỏ (300ms) để không gửi API dồn dập
-    // Không gọi API trực tiếp — dùng searchVersion để trigger Primary Fetch Effect.
+    // Email: áp dụng thay đổi và cập nhật hiển thị ngay lập tức (không chờ)
+    // Dùng searchVersion để trigger Primary Fetch Effect.
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
-        
         setIsPricing(true);
-        if (!customerHistoryEmail.trim()) {
-            setSearchVersion(v => v + 1);
-            return;
-        }
-        
-        const timer = setTimeout(() => {
-            setSearchVersion(v => v + 1);
-        }, 300);
-        return () => clearTimeout(timer);
+        setSearchVersion(v => v + 1);
     }, [customerHistoryEmail, isInitialized, searchParams]);
 
     useEffect(() => {
