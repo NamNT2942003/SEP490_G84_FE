@@ -41,6 +41,136 @@ const FORM_FIELDS = [
   { key: "contactNumber", label: "Contact number" },
 ];
 
+const ModalHotelRule = ({ branch, onClose }) => {
+  const [rules, setRules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingRule, setEditingRule] = useState(null);
+  const [ruleName, setRuleName] = useState("");
+  const [ruleDesc, setRuleDesc] = useState("");
+
+  const loadRules = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await branchManagementApi.getHotelRules(branch.branchId);
+      setRules(data);
+    } catch (e) {
+      console.error(e);
+      Swal.fire("Error", "Failed to load hotel rules", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [branch.branchId]);
+
+  React.useEffect(() => {
+    loadRules();
+  }, [loadRules]);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!ruleName.trim()) {
+      Swal.fire("Error", "Name is required", "error");
+      return;
+    }
+    try {
+      if (editingRule) {
+        await branchManagementApi.updateHotelRule(editingRule.id, { name: ruleName, description: ruleDesc, branchId: branch.branchId });
+      } else {
+        await branchManagementApi.addHotelRule(branch.branchId, { name: ruleName, description: ruleDesc });
+      }
+      setEditingRule(null);
+      setRuleName("");
+      setRuleDesc("");
+      loadRules();
+    } catch (e) {
+      console.error(e);
+      Swal.fire("Error", "Failed to save rule", "error");
+    }
+  };
+
+  const handleEdit = (r) => {
+    setEditingRule(r);
+    setRuleName(r.name);
+    setRuleDesc(r.description);
+  };
+
+  const handleDelete = async (id) => {
+    const result = await Swal.fire({ title: "Delete?",text: "Are you sure you want to delete this rule?", icon: "warning", showCancelButton: true });
+    if(result.isConfirmed) {
+      try {
+        await branchManagementApi.deleteHotelRule(id);
+        loadRules();
+      } catch(e) {
+        console.error(e);
+        Swal.fire("Error", "Failed to delete rule", "error");
+      }
+    }
+  };
+
+  return (
+    <>
+      <div className="modal-backdrop fade show" style={{ zIndex: 1055 }}></div>
+      <div className="modal fade show d-block" tabIndex="-1" style={{ zIndex: 1056 }}>
+        <div className="modal-dialog modal-dialog-centered modal-lg">
+          <div className="modal-content border-0 shadow">
+            <div className="modal-header pb-2 border-bottom-0">
+              <h5 className="modal-title fw-bold">Hotel Rules - {branch.branchName}</h5>
+              <button type="button" className="btn-close" onClick={onClose}></button>
+            </div>
+            <div className="modal-body p-4 pt-1">
+              <form onSubmit={handleSave} className="mb-4">
+                <div className="row g-2 align-items-end">
+                  <div className="col-md-4">
+                    <label className="form-label mb-1">Rule Name *</label>
+                    <input type="text" className="form-control form-control-sm" value={ruleName} onChange={e=>setRuleName(e.target.value)} required />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label mb-1">Description</label>
+                    <input type="text" className="form-control form-control-sm" value={ruleDesc} onChange={e=>setRuleDesc(e.target.value)} />
+                  </div>
+                  <div className="col-md-2">
+                    <button type="submit" className="btn btn-sm btn-primary w-100">
+                      {editingRule ? "Update" : "Add"}
+                    </button>
+                    {editingRule && (
+                        <button type="button" className="btn btn-sm btn-outline-secondary w-100 mt-1" onClick={()=>{setEditingRule(null); setRuleName(""); setRuleDesc("");}}>Cancel Edit</button>
+                    )}
+                  </div>
+                </div>
+              </form>
+
+              <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                {loading ? <p>Loading rules...</p> : rules.length === 0 ? <p className="text-muted">No rules defined.</p> : (
+                  <table className="table table-sm table-bordered">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th style={{ width: "100px" }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rules.map(r => (
+                        <tr key={r.id}>
+                          <td>{r.name}</td>
+                          <td>{r.description}</td>
+                          <td>
+                            <button className="btn btn-sm btn-light p-1 me-1" onClick={() => handleEdit(r)}><i className="bi bi-pencil" /></button>
+                            <button className="btn btn-sm btn-light p-1 text-danger" onClick={() => handleDelete(r.id)}><i className="bi bi-trash" /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
 export default function BranchManagement() {
   const navigate = useNavigate();
   const [branches, setBranches] = useState([]);
@@ -55,6 +185,7 @@ export default function BranchManagement() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [formError, setFormError] = useState("");
+  const [showHotelRuleModal, setShowHotelRuleModal] = useState(false);
   const [propertyTypeOptions, setPropertyTypeOptions] = useState([]);
   const [loadingPropertyTypes, setLoadingPropertyTypes] = useState(false);
   const [propertyTypeError, setPropertyTypeError] = useState("");
@@ -565,20 +696,33 @@ export default function BranchManagement() {
                     </div>
                   </div>
 
-                  <div className="modal-footer border-top">
-                    <Buttons variant="outline" className="btn-sm" onClick={closeModal} disabled={submitLoading}>
-                      Cancel
-                    </Buttons>
-                    <Buttons variant="primary" type="submit" className="btn-sm" isLoading={submitLoading}>
-                      {editingBranch ? "Update" : "Create"}
-                    </Buttons>
+                  <div className="modal-footer border-top d-flex justify-content-between">
+                    <div>
+                      {editingBranch && (
+                        <button type="button" className="btn btn-sm btn-info text-white fw-bold me-2" onClick={() => setShowHotelRuleModal(true)}>
+                          <i className="bi bi-list-check me-1" /> Update Hotel Rule
+                        </button>
+                      )}
+                    </div>
+                    <div>
+                      <Buttons variant="outline" className="btn-sm d-inline-block me-2" onClick={closeModal} disabled={submitLoading}>
+                        Cancel
+                      </Buttons>
+                      <Buttons variant="primary" type="submit" className="btn-sm d-inline-block" isLoading={submitLoading}>
+                        {editingBranch ? "Update" : "Create"}
+                      </Buttons>
+                    </div>
                   </div>
                 </form>
               </div>
             </div>
           </div>
-          <div className="modal-backdrop fade show" />
+          <div className="modal-backdrop fade show" style={{ zIndex: 1050 }} />
         </>
+      )}
+
+      {showHotelRuleModal && editingBranch && (
+        <ModalHotelRule branch={editingBranch} onClose={() => setShowHotelRuleModal(false)} />
       )}
     </div>
   );
