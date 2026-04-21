@@ -72,6 +72,22 @@ const branchManagementApi = {
     });
     return Array.isArray(response.data) ? response.data.map(normalizeEnumOption) : [];
   },
+
+  getHotelRules: async (branchId) => {
+    const response = await apiClient.get(`${BRANCH_API_BASE}/${branchId}/rules`);
+    return Array.isArray(response.data) ? response.data : [];
+  },
+  addHotelRule: async (branchId, payload) => {
+    const response = await apiClient.post(`${BRANCH_API_BASE}/${branchId}/rules`, payload);
+    return response.data;
+  },
+  updateHotelRule: async (ruleId, payload) => {
+    const response = await apiClient.put(`/branches/rules/${ruleId}`, payload);
+    return response.data;
+  },
+  deleteHotelRule: async (ruleId) => {
+    await apiClient.delete(`/branches/rules/${ruleId}`);
+  },
 };
 
 export default branchManagementApi;
