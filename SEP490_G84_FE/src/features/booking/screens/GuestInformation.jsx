@@ -732,6 +732,10 @@ const GuestInformation = () => {
         return () => clearTimeout(timer);
     }, [formData.email, checkIn, checkOut, refreshRoomsByEmail]);
 
+    // totalRoomsInCart: dùng trong cache dep để trigger rebuild khi số phòng thay đổi.
+    // Phải khai báo trước cache useEffect để closure cấp đúng giá trị.
+    const totalRoomsInCart = rooms.reduce((sum, r) => sum + (Number(r?.quantity) || 1), 0);
+
     // Sau khi policies load, fetch pricing cho tất cả policies song song để có đủ pricingOptions.
     // Cache này giúp computeTotalForPolicy hiển thị đúng giá cuối cho mỗi card policy.
     useEffect(() => {
@@ -749,7 +753,7 @@ const GuestInformation = () => {
                 checkOut,
                 adults: Number(searchParams?.adults ?? 1),
                 children: Number(searchParams?.children ?? 0),
-                totalRooms: roomsSnapshot.reduce((sum, r) => sum + (Number(r?.quantity) || 1), 0),
+                totalRooms: totalRoomsInCart,
                 roomTypeIds,
                 size: Math.max(roomsSnapshot.length, 10),
                 page: 0,
@@ -781,7 +785,7 @@ const GuestInformation = () => {
 
         fetchAllPolicies();
         return () => { cancelled = true; };
-    }, [policies, checkIn, checkOut, branchId, searchParams?.adults, searchParams?.children, formData.email]);
+    }, [policies, checkIn, checkOut, branchId, searchParams?.adults, searchParams?.children, formData.email, totalRoomsInCart]);
 
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
