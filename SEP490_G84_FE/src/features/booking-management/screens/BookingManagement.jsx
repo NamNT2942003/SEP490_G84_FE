@@ -10,6 +10,7 @@ import { COLORS } from "@/constants";
 import Swal from "sweetalert2";
 import branchManagementApi from "@/features/branch-management/api/branchManagementApi";
 import { useRef } from "react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const PAGE_SIZE = 10;
 
@@ -91,6 +92,9 @@ const StatCard = ({ card, value, loading, isClickable, onClick }) => (
 // ─── Main Component ────────────────────────────────────────────────────────
 
 export default function BookingManagement() {
+    const currentUser = useCurrentUser();
+    const isAdmin = !!currentUser?.permissions?.isAdmin;
+
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -284,6 +288,98 @@ export default function BookingManagement() {
             showConfirmButton: false,
         });
         fetchBookings();
+    };
+
+    const handleDeleteBooking = async (booking) => {
+        // Bước 1: hiển thị cảnh báo
+        const { isConfirmed: step1 } = await Swal.fire({
+            title: "Xóa Booking?",
+            html: `
+                <div style="text-align:left;font-family:system-ui,sans-serif">
+                    <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
+                        <span style="font-size:22px;flex-shrink:0">🚨</span>
+                        <div>
+                            <div style="font-weight:800;color:#b91c1c;font-size:14px;margin-bottom:4px">Hành động này không thể hoàn tác!</div>
+                            <div style="color:#7f1d1d;font-size:12px;line-height:1.6">
+                                Xóa booking sẽ <strong>xóa vĩnh viễn</strong> toàn bộ dữ liệu liên quan, bao gồm:<br/>
+                                • Thông tin khách hàng<br/>
+                                • Chi tiết phòng và giá<br/>
+                                • Lịch sử thanh toán và hoàn tiền<br/>
+                                • Nhật ký chính sách hủy bỏ
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background:#f8fafc;border-radius:8px;padding:10px 14px">
+                        <div style="font-size:10px;color:#9ca3af;font-weight:700;text-transform:uppercase;margin-bottom:6px">📋 Booking cần xóa</div>
+                        <div style="font-weight:800;font-size:15px;color:#111827">${booking.bookingCode || booking.bookingId}</div>
+                        <div style="font-size:12px;color:#6b7280;margin-top:2px">${booking.customerName} &bull; ${booking.branchName}</div>
+                        <div style="font-size:12px;color:#6b7280">${formatVND(booking.totalAmount)} &bull; ${booking.status}</div>
+                    </div>
+                </div>
+            `,
+            icon: undefined,
+            showCancelButton: true,
+            confirmButtonText: "Tiếp tục xóa →",
+            cancelButtonText: "Hủy bỏ",
+            confirmButtonColor: "#dc2626",
+            cancelButtonColor: "#6b7280",
+            reverseButtons: true,
+            width: 500,
+        });
+
+        if (!step1) return;
+
+        // Bước 2: yêu cầu nhập mã booking để xác nhận
+        const bookingCode = (booking.bookingCode || String(booking.bookingId)).trim();
+        const { value: typedCode } = await Swal.fire({
+            title: "Xác nhận xóa",
+            html: `
+                <div style="font-family:system-ui,sans-serif">
+                    <p style="color:#374151;margin-bottom:12px">
+                        Nhập mã booking <strong style="color:#dc2626;font-family:monospace">${bookingCode}</strong> để xác nhận xóa:
+                    </p>
+                    <input
+                        id="delete-confirm-input"
+                        class="swal2-input"
+                        placeholder="${bookingCode}"
+                        style="font-family:monospace;font-weight:700;letter-spacing:1px"
+                    />
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: "🗑️ Xóa vĩnh viễn",
+            cancelButtonText: "Quay lại",
+            confirmButtonColor: "#dc2626",
+            cancelButtonColor: "#6b7280",
+            reverseButtons: true,
+            focusConfirm: false,
+            preConfirm: () => {
+                const val = document.getElementById("delete-confirm-input")?.value?.trim();
+                if (val !== bookingCode) {
+                    Swal.showValidationMessage(`Mã không khớp — nhập chính xác "${bookingCode}"`);
+                    return false;
+                }
+                return val;
+            },
+        });
+
+        if (!typedCode) return;
+
+        // Gọi API xóa
+        try {
+            await bookingManagementApi.deleteBooking(booking.bookingId);
+            await Swal.fire({
+                icon: "success",
+                title: "Booking đã được xóa",
+                text: `Booking ${bookingCode} và toàn bộ dữ liệu liên quan đã được xóa khỏi hệ thống.`,
+                timer: 2500,
+                showConfirmButton: false,
+            });
+            fetchBookings();
+        } catch (err) {
+            const msg = err?.response?.data?.message || "Xóa booking thất bại. Vui lòng thử lại.";
+            Swal.fire({ icon: "error", title: "Không thể xóa", text: msg, confirmButtonColor: "#dc2626" });
+        }
     };
 
     return (
@@ -511,13 +607,24 @@ export default function BookingManagement() {
                                             </button>
                                             {booking.status !== "CANCELLED" && isInternalFrontendBooking(booking.source) && (
                                                 <button
-                                                    className="btn btn-sm btn-outline-danger"
+                                                    className="btn btn-sm btn-outline-danger me-1"
                                                     style={{ fontSize: "0.78rem", padding: "3px 10px" }}
                                                     title="Cancel Booking"
                                                     onClick={() => openCancelModal(booking.bookingId)}
                                                 >
                                                     <i className="bi bi-x-circle me-1" />
                                                     Cancel
+                                                </button>
+                                            )}
+                                            {isAdmin && (
+                                                <button
+                                                    className="btn btn-sm btn-danger"
+                                                    style={{ fontSize: "0.78rem", padding: "3px 10px" }}
+                                                    title="Xóa toàn bộ dữ liệu booking"
+                                                    onClick={() => handleDeleteBooking(booking)}
+                                                >
+                                                    <i className="bi bi-trash3 me-1" />
+                                                    Delete
                                                 </button>
                                             )}
                                         </td>

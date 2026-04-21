@@ -1183,7 +1183,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         {selectedPolicy ? (() => {
                             const appliedPrepaid = Math.round(estimatedGrandTotal * (selectedPolicy.prepaidRate || 0) / 100);
                             const appliedRefund  = Math.round(estimatedGrandTotal * (selectedPolicy.refunRate  || 0) / 100);
-                            const appliedDeadline = formatDeadline(computeFreeCancelDeadline(form.arrivalDate, selectedPolicy.dateRange));
+                            const appliedDeadlineDate = computeFreeCancelDeadline(form.arrivalDate, selectedPolicy.dateRange);
+                            const appliedDeadline = formatDeadline(appliedDeadlineDate);
+                            const todayApplied = new Date(); todayApplied.setHours(0, 0, 0, 0);
+                            const isAppliedDeadlinePast = appliedDeadlineDate && appliedDeadlineDate < todayApplied;
                             return (
                                 <div className={`cbsm-policy-badge ${policyBadgeClass()}`} style={{ marginBottom: 10 }}>
                                     <div className="cbsm-policy-name">
@@ -1218,11 +1221,18 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                             <div style={{ fontSize: 9, color: "#9aaa9b" }}>{100 - (selectedPolicy.refunRate || 0)}%</div>
                                         </div>
                                     </div>
-                                    {appliedDeadline && (
-                                        <div style={{ fontSize: 10.5, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
-                                            <i className="bi bi-clock-history" />
-                                            Hoàn 100% nếu huỷ trước <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
-                                        </div>
+                                    {appliedDeadlineDate && (
+                                        isAppliedDeadlinePast ? (
+                                            <div style={{ fontSize: 10.5, color: "#c2410c", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 6, padding: "4px 8px", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                                                <i className="bi bi-exclamation-triangle-fill" />
+                                                Đã hết hạn hủy miễn phí từ <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
+                                            </div>
+                                        ) : (
+                                            <div style={{ fontSize: 10.5, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                                                <i className="bi bi-clock-history" />
+                                                Hoàn 100% nếu huỷ trước <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
+                                            </div>
+                                        )
                                     )}
                                     {manualPolicyId && (
                                         <button
@@ -1262,7 +1272,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     const cardPrepaid = Math.round(estimatedGrandTotal * (p.prepaidRate || 0) / 100);
                                     const cardRefund  = Math.round(estimatedGrandTotal * (p.refunRate  || 0) / 100);
                                     const cardRetain  = Math.max(0, estimatedGrandTotal - cardRefund);
-                                    const deadlineStr = formatDeadline(computeFreeCancelDeadline(form.arrivalDate, p.dateRange));
+                                    const deadlineDate = computeFreeCancelDeadline(form.arrivalDate, p.dateRange);
+                                    const deadlineStr = formatDeadline(deadlineDate);
+                                    const todayCard = new Date(); todayCard.setHours(0, 0, 0, 0);
+                                    const isDeadlinePast = deadlineDate && deadlineDate < todayCard;
 
                                     const typeLabel = {
                                         FREE_CANCEL: { text: "Free cancellation", cls: "cbsm-rt-tag-green", icon: "bi-check-circle-fill text-success" },
@@ -1370,12 +1383,19 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                 </div>
                                             </div>
 
-                                            {deadlineStr && (
-                                                <div style={{ fontSize: 11, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
-                                                    <i className="bi bi-clock-history me-1 text-success" />
-                                                    Hoàn 100% nếu huỷ trước <strong>{deadlineStr}</strong>
-                                                    {p.dateRange && <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({parseInt(p.dateRange, 10)} ngày)</span>}
-                                                </div>
+                                            {deadlineDate && (
+                                                isDeadlinePast ? (
+                                                    <div style={{ fontSize: 11, color: "#c2410c", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
+                                                        <i className="bi bi-exclamation-triangle-fill" />
+                                                        Đã hết hạn hủy miễn phí từ <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ fontSize: 11, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
+                                                        <i className="bi bi-clock-history me-1 text-success" />
+                                                        Hoàn 100% nếu huỷ trước <strong>{deadlineStr}</strong>
+                                                        {p.dateRange && <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({parseInt(p.dateRange, 10)} ngày)</span>}
+                                                    </div>
+                                                )
                                             )}
 
                                             {/* Season indicator */}

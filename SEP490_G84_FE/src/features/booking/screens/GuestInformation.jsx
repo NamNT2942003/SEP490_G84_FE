@@ -1066,6 +1066,8 @@ const GuestInformation = () => {
                                         // Hạn huỷ miễn phí
                                         const deadline = computeFreeCancelDeadline(checkIn, policy.dateRange);
                                         const deadlineStr = formatDeadlineDate(deadline);
+                                        const today = new Date(); today.setHours(0, 0, 0, 0);
+                                        const isDeadlinePast = deadline && deadline < today;
 
                                         // Màu theo loại
                                         const typeConfig = {
@@ -1144,22 +1146,40 @@ const GuestInformation = () => {
                                                 </div>
 
                                                 {/* Hạn huỷ miễn phí */}
-                                                {deadlineStr && (
-                                                    <div style={{
-                                                        fontSize: 12, display: 'flex', alignItems: 'center', gap: 6,
-                                                        background: '#f0fdf4', border: '1px solid #bbf7d0',
-                                                        borderRadius: 8, padding: '6px 10px',
-                                                        marginTop: 8, color: '#15803d',
-                                                    }}>
-                                                        <i className="bi bi-clock-history" />
-                                                        <span>
-                                                            <strong>Hoàn 100%</strong> nếu huỷ trước{' '}
-                                                            <strong>{deadlineStr}</strong>
-                                                            <span style={{ color: '#6b7280', fontWeight: 400 }}>
-                                                                {' '}({parseInt(policy.dateRange, 10)} ngày trước check-in)
+                                                {deadline && (
+                                                    isDeadlinePast ? (
+                                                        <div style={{
+                                                            fontSize: 12, display: 'flex', alignItems: 'center', gap: 6,
+                                                            background: '#fff7ed', border: '1px solid #fed7aa',
+                                                            borderRadius: 8, padding: '6px 10px',
+                                                            marginTop: 8, color: '#c2410c',
+                                                        }}>
+                                                            <i className="bi bi-exclamation-triangle-fill" />
+                                                            <span>
+                                                                <strong>Đã hết hạn hủy miễn phí</strong> từ{' '}
+                                                                <strong>{deadlineStr}</strong>
+                                                                <span style={{ color: '#9a3412', fontWeight: 400 }}>
+                                                                    {' '}— Phí huỷ sẽ áp dụng theo chính sách
+                                                                </span>
                                                             </span>
-                                                        </span>
-                                                    </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{
+                                                            fontSize: 12, display: 'flex', alignItems: 'center', gap: 6,
+                                                            background: '#f0fdf4', border: '1px solid #bbf7d0',
+                                                            borderRadius: 8, padding: '6px 10px',
+                                                            marginTop: 8, color: '#15803d',
+                                                        }}>
+                                                            <i className="bi bi-clock-history" />
+                                                            <span>
+                                                                <strong>Hoàn 100%</strong> nếu huỷ trước{' '}
+                                                                <strong>{deadlineStr}</strong>
+                                                                <span style={{ color: '#6b7280', fontWeight: 400 }}>
+                                                                    {' '}({parseInt(policy.dateRange, 10)} ngày trước check-in)
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    )
                                                 )}
 
                                                 {/* Mùa áp dụng */}

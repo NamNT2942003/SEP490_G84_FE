@@ -130,6 +130,11 @@ const bookingManagementApi = {
         return response.data;
     },
 
+    deleteBooking: async (bookingId) => {
+        const response = await apiClient.delete(`${ADMIN_BOOKING_BASE}/${bookingId}`);
+        return response.data;
+    },
+
     getCancelRequests: async () => {
         const response = await apiClient.get(`${ADMIN_BOOKING_BASE}/cancel-requests`);
         const data = response.data;
