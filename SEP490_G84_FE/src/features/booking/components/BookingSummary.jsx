@@ -21,19 +21,26 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
         return raw;
     };
 
-    const normalizeReasonText = (reason) => {
+    // type param: when OCCUPANCY, change "guests" → "rooms"
+    const normalizeReasonText = (reason, type) => {
         if (!reason) return '';
         let text = String(reason).replace(/\s*\[\s*-?\d+(?:\.\d+)?\s*\]$/, '').trim();
         text = text.replace(/Occupancy proxy/gi, 'Room quantity in booking');
         text = text.replace(/Customer history/gi, 'Returning guest');
-        text = text.replace(/\((\d+)\s+guests\)/gi, (_, n) => `(${n} ${Number(n) === 1 ? 'guest' : 'guests'})`);
-        text = text.replace(/\((\d+)\s+rooms\)/gi, (_, n) => `(${n} ${Number(n) === 1 ? 'room' : 'rooms'})`);
+        if (String(type || '').toUpperCase() === 'OCCUPANCY') {
+            // OCCUPANCY checks total rooms booked, not guest count
+            text = text.replace(/\((\d+)\s+guests?\)/gi, (_, n) => `(${n} ${Number(n) === 1 ? 'room' : 'rooms'})`);
+            text = text.replace(/\bguest(s)?\b/gi, (_, s) => s ? 'rooms' : 'room');
+        } else {
+            text = text.replace(/\((\d+)\s+guests?\)/gi, (_, n) => `(${n} ${Number(n) === 1 ? 'guest' : 'guests'})`);
+        }
+        text = text.replace(/\((\d+)\s+rooms?\)/gi, (_, n) => `(${n} ${Number(n) === 1 ? 'room' : 'rooms'})`);
         return text;
     };
 
     const normalizeModifierTypeText = (type) => {
         if (!type) return 'UNKNOWN';
-        if (type === 'OCCUPANCY') return 'ROOM_QUANTITY';
+        if (type === 'OCCUPANCY') return 'ROOM_COUNT';          // phản ánh đúng: theo số phòng
         if (type === 'USER_HISTORY_DISCOUNT') return 'RETURNING_GUEST';
         return type;
     };
@@ -114,11 +121,12 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 : (mod?.adjustmentType === 'PERCENT' || mod?.adjustmentType === 'PERCENTAGE')
                     ? (safeNumber(calculateRoomBaseUnitPrice(room), 0) * safeNumber(mod?.adjustmentValue, 0)) / 100
                     : safeNumber(mod?.adjustmentValue, 0);
+            const modType = mod?.type || 'UNKNOWN';
             breakdown.push({
                 source: 'option',
                 name: mod?.name || 'Modifier',
-                type: mod?.type || 'UNKNOWN',
-                reason: mod?.reason || 'Applied by pricing rules',
+                type: modType,
+                reason: normalizeReasonText(mod?.reason || 'Applied by pricing rules', modType),
                 delta,
             });
         }
@@ -251,7 +259,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                             <div className="d-flex justify-content-between mb-2" key={i} style={{ fontSize: '15px' }}>
                                 <div className="text-dark">
                                     <div>{mod.name}</div>
-                                    {mod.reason && <div className="text-muted" style={{ fontSize: '13px', marginTop: '2px' }}>{mod.reason}</div>}
+                                    {mod.reason && <div className="text-muted" style={{ fontSize: '13px', marginTop: '2px' }}>{normalizeReasonText(mod.reason, mod.type)}</div>}
                                 </div>
                                 <div className="text-dark">
                                     {mod.delta < 0 ? `- ${formatCurrency(Math.abs(mod.delta))}` : `+ ${formatCurrency(mod.delta)}`}
