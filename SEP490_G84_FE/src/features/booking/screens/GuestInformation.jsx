@@ -494,6 +494,8 @@ const GuestInformation = () => {
     const roomsRef = useRef(selectedRooms);
     const selectedPolicyIdRef = useRef(null);
     const policySnapshotRef = useRef('');
+    // Cache lưu pricing options đã fetch cho từng policy: Map<policyId, Map<roomTypeId, room>>
+    const policyPricingCacheRef = useRef(new Map());
 
     useEffect(() => {
         if (!location.state || selectedRooms.length === 0) {
@@ -730,6 +732,57 @@ const GuestInformation = () => {
         return () => clearTimeout(timer);
     }, [formData.email, checkIn, checkOut, refreshRoomsByEmail]);
 
+    // Sau khi policies load, fetch pricing cho tất cả policies song song để có đủ pricingOptions.
+    // Cache này giúp computeTotalForPolicy hiển thị đúng giá cuối cho mỗi card policy.
+    useEffect(() => {
+        if (!policies.length || !checkIn || !checkOut || roomsRef.current.length === 0) return;
+        let cancelled = false;
+
+        const fetchAllPolicies = async () => {
+            const roomsSnapshot = roomsRef.current;
+            const roomTypeIds = [...new Set(roomsSnapshot.map((r) => r.roomTypeId).filter(Boolean))];
+            if (roomTypeIds.length === 0) return;
+
+            const baseParams = {
+                branchId: branchId || 1,
+                checkIn,
+                checkOut,
+                adults: Number(searchParams?.adults ?? 1),
+                children: Number(searchParams?.children ?? 0),
+                totalRooms: roomsSnapshot.reduce((sum, r) => sum + (Number(r?.quantity) || 1), 0),
+                roomTypeIds,
+                size: Math.max(roomsSnapshot.length, 10),
+                page: 0,
+                sortPrice: 'priceAsc',
+            };
+            const normalizedEmail = normalizeEmailForSearch(formData.email);
+            if (normalizedEmail) baseParams.customerEmail = normalizedEmail;
+
+            const newCache = new Map(policyPricingCacheRef.current);
+
+            await Promise.all(policies.map(async (policy) => {
+                if (cancelled) return;
+                try {
+                    const res = await roomService.searchRooms({ ...baseParams, policy: policy.id });
+                    if (cancelled) return;
+                    const roomMap = new Map(
+                        (res?.content || []).map((r) => [r.roomTypeId, r])
+                    );
+                    newCache.set(Number(policy.id), roomMap);
+                } catch {
+                    // fallback: policy giá này sẽ dùng neutral option
+                }
+            }));
+
+            if (!cancelled) {
+                policyPricingCacheRef.current = newCache;
+            }
+        };
+
+        fetchAllPolicies();
+        return () => { cancelled = true; };
+    }, [policies, checkIn, checkOut, branchId, searchParams?.adults, searchParams?.children, formData.email]);
+
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
         const timer = setTimeout(() => {
@@ -752,20 +805,33 @@ const GuestInformation = () => {
     };
 
     const selectedPolicy = policies.find((policy) => Number(policy.id) === Number(selectedPolicyId)) || null;
-    const finalBookingAmount = normalizeMoney(calculateTotalPrice());
-    // Tính số tiền cần trả trước (deposit) theo prepaidRate của policy.
-    // Nếu chưa chọn policy → deposit = 100% (tức bằng finalBookingAmount).
-    const depositRate = selectedPolicy ? safeNumber(selectedPolicy.prepaidRate, 100) : 100;
-    const depositAmount = normalizeMoney(finalBookingAmount * depositRate / 100);
 
     // Tính tổng tiền cho 1 policy cụ thể, độc lập với policy đang chọn.
-    // Dùng applyPolicySelectionToRoom để lấy giá đúng theo policy đó cho từng phòng.
+    // Ưu tiên dùng policyPricingCache (đã fetch đầy đủ L1+L2+L3) nếu có.
+    // Fallback về applyPolicySelectionToRoom (dùng pricingOptions hiện tại của room).
     const computeTotalForPolicy = (policyId) => normalizeMoney(
         rooms.reduce((sum, room) => {
+            const cachedRoomMap = policyPricingCacheRef.current.get(Number(policyId));
+            const cachedRoom = cachedRoomMap?.get(room.roomTypeId);
+            if (cachedRoom) {
+                // Dùng cached room đã có đúng pricingOptions cho policy này
+                const roomWithPolicy = applyPolicySelectionToRoom(
+                    { ...cachedRoom, quantity: room.quantity },
+                    policyId
+                );
+                return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
+            }
+            // Fallback: dùng pricingOptions hiện tại (có thể không có option cho policy này)
             const roomWithPolicy = applyPolicySelectionToRoom(room, policyId);
             return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
         }, 0)
     );
+
+    // finalBookingAmount: nếu đã chọn policy → dùng computeTotalForPolicy (đồng bộ với card hiển thị)
+    // Nếu chưa chọn → dùng giá trung lập từ rooms state.
+    const finalBookingAmount = selectedPolicyId != null
+        ? computeTotalForPolicy(selectedPolicyId)
+        : normalizeMoney(calculateTotalPrice());
 
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
