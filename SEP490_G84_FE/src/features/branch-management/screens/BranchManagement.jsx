@@ -66,7 +66,7 @@ const ModalHotelRule = ({ branch, onClose }) => {
   }, [loadRules]);
 
   const handleSave = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!ruleName.trim()) {
       Swal.fire("Error", "Name is required", "error");
       return;
@@ -110,35 +110,43 @@ const ModalHotelRule = ({ branch, onClose }) => {
     <>
       <div className="modal-backdrop fade show" style={{ zIndex: 1055 }}></div>
       <div className="modal fade show d-block" tabIndex="-1" style={{ zIndex: 1056 }}>
-        <div className="modal-dialog modal-dialog-centered modal-lg">
+        <div className="modal-dialog modal-dialog-centered modal-lg" style={{ maxWidth: '750px' }}>
           <div className="modal-content border-0 shadow">
-            <div className="modal-header pb-2 border-bottom-0">
-              <h5 className="modal-title fw-bold">Hotel Rules - {branch.branchName}</h5>
+            <div className="modal-header border-bottom pb-3 px-4">
+              <h5 className="modal-title fw-bold fs-4">Hotel Rules - {branch.branchName}</h5>
               <button type="button" className="btn-close" onClick={onClose}></button>
             </div>
-            <div className="modal-body p-4 pt-1">
-              <form onSubmit={handleSave} className="mb-4">
-                <div className="row g-2">
-                  <div className="col-md-4">
-                    <label className="form-label mb-1">Rule Name *</label>
-                    <input type="text" className="form-control form-control-sm" value={ruleName} onChange={e=>setRuleName(e.target.value)} required />
+            <div className="modal-body p-4 bg-light">
+              <div className="bg-white p-4 rounded-3 shadow-sm border mb-4">
+                <div className="row g-3">
+                  <div className="col-12">
+                    <label className="form-label mb-1 text-muted fw-bold small text-uppercase">RULE NAME *</label>
+                    <input type="text" className="form-control" value={ruleName} onChange={e=>setRuleName(e.target.value)} placeholder="e.g. Check-In" required />
                   </div>
-                  <div className="col-md-6">
-                    <label className="form-label mb-1">Description</label>
-                    <textarea className="form-control form-control-sm" rows="3" value={ruleDesc} onChange={e=>setRuleDesc(e.target.value)} />
+                  <div className="col-12">
+                    <label className="form-label mb-1 text-muted fw-bold small text-uppercase">DESCRIPTION</label>
+                    <textarea className="form-control" rows="5" value={ruleDesc} onChange={e=>setRuleDesc(e.target.value)} 
+                    placeholder="Enter rule description..."
+                    style={{ whiteSpace: "pre-wrap" }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.stopPropagation();
+                      }
+                    }} 
+                    />
                   </div>
-                  <div className="col-md-2 d-flex flex-column justify-content-end">
-                    <button type="submit" className="btn btn-sm btn-primary w-100">
+                  <div className="col-12 d-flex justify-content-end gap-2 mt-2">
+                    {editingRule && (
+                        <button type="button" className="btn btn-outline-secondary px-4 fw-medium" onClick={()=>{setEditingRule(null); setRuleName(""); setRuleDesc("");}}>Cancel Edit</button>
+                    )}
+                    <button type="button" className="btn text-white px-4 fw-medium" style={{ backgroundColor: '#5C6F4E' }} onClick={handleSave}>
                       {editingRule ? "Update" : "Add"}
                     </button>
-                    {editingRule && (
-                        <button type="button" className="btn btn-sm btn-outline-secondary w-100 mt-1" onClick={()=>{setEditingRule(null); setRuleName(""); setRuleDesc("");}}>Cancel Edit</button>
-                    )}
                   </div>
                 </div>
-              </form>
+              </div>
 
-              <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+              <div className="bg-white rounded-3 shadow-sm border" style={{ maxHeight: "350px", overflowY: "auto" }}>
                 {loading ? <p>Loading rules...</p> : rules.length === 0 ? <p className="text-muted">No rules defined.</p> : (
                   <table className="table table-sm table-bordered">
                     <thead className="table-light">
