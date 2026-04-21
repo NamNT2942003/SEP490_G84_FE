@@ -939,6 +939,13 @@ const GuestInformation = () => {
                     `,
                     input: 'text',
                     inputPlaceholder: 'Enter 6-digit OTP',
+                    inputAttributes: {
+                        maxlength: '6',
+                        inputmode: 'numeric',
+                        pattern: '[0-9]*',
+                        autocomplete: 'one-time-code',
+                        style: 'text-align:center; font-size:1.4rem; letter-spacing:8px; font-weight:700;',
+                    },
                     showCancelButton: true,
                     showDenyButton: true,
                     confirmButtonColor: '#5C6F4E',
@@ -947,8 +954,16 @@ const GuestInformation = () => {
                     denyButtonColor: '#6b7280',
                     cancelButtonText: 'Cancel',
                     inputValidator: (value) => {
-                        if (!value || value.trim().length !== 6) {
-                            return 'Please enter a valid 6-digit OTP!';
+                        if (!value || !/^\d{6}$/.test(value.trim())) {
+                            return 'Please enter exactly 6 digits!';
+                        }
+                    },
+                    didOpen: () => {
+                        const input = Swal.getInput();
+                        if (input) {
+                            input.addEventListener('input', (e) => {
+                                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                            });
                         }
                     },
                     allowOutsideClick: false,
