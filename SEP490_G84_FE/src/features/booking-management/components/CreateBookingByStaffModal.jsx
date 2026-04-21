@@ -193,6 +193,14 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         };
     }, [show, form.branchId]);
 
+    // Tổng số phòng hiện tại trong form — dùng để:
+    // 1) Truyền đúng totalRooms vào API để OCCUPANCY modifier được đánh giá đúng.
+    // 2) Là dependency của useEffect pricing — fetch lại khi số phòng thay đổi.
+    const totalRoomsForPricing = Math.max(
+        1,
+        form.rooms.reduce((sum, r) => sum + Number(r.quantity || 0), 0),
+    );
+
     useEffect(() => {
         if (!show || !form.branchId || !form.arrivalDate || !form.departureDate) {
             setRoomPricingMap({});
@@ -202,16 +210,25 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         let isMounted = true;
         const fetchPricing = async () => {
             try {
-                const data = await roomService.searchRooms({
+                const params = {
                     branchId: Number(form.branchId),
                     checkIn: form.arrivalDate,
                     checkOut: form.departureDate,
                     adults: 1,
                     children: 0,
+                    // Truyền totalRooms đúng để backend đánh giá OCCUPANCY modifier.
+                    totalRooms: totalRoomsForPricing,
                     page: 0,
                     size: 200,
                     sortPrice: "priceAsc",
-                });
+                };
+
+                // Thêm policy nếu staff đã chọn — để có được pricingOptions với L3-POLICY modifier.
+                if (manualPolicyId) {
+                    params.policy = manualPolicyId;
+                }
+
+                const data = await roomService.searchRooms(params);
 
                 if (!isMounted) return;
                 const map = {};
@@ -236,7 +253,9 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         return () => {
             isMounted = false;
         };
-    }, [show, form.branchId, form.arrivalDate, form.departureDate]);
+    // totalRoomsForPricing: re-fetch khi số phòng thay đổi — OCCUPANCY cần được re-evaluate.
+    // manualPolicyId: re-fetch khi staff chọn policy — để có L3-POLICY modifier trong options.
+    }, [show, form.branchId, form.arrivalDate, form.departureDate, totalRoomsForPricing, manualPolicyId]);
 
     // Fetch danh sách policy khả dĩ theo seasonal window của ngày check-in.
     // Dùng policyFetchKey để force re-run sau khi modal reset form (tránh race condition).
