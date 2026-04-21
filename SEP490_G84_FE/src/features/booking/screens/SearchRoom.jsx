@@ -177,7 +177,11 @@ const syncCartWithLatestRooms = (prevCart, latestRooms, options = {}) => {
     return prevCart
         .map((cartItem) => {
             const latestRoom = roomMap.get(cartItem.roomTypeId);
-            if (!latestRoom) return null;
+            if (!latestRoom) {
+                // Room này không có trong kết quả trang hiện tại (pagination/filter).
+                // Giữ nguyên cart item — không xóa, không cập nhật giá.
+                return cartItem;
+            }
             const mergedRoom = withPricingState(latestRoom, cartItem.selectedPricingOption);
             return {
                 ...cartItem,
@@ -192,8 +196,7 @@ const syncCartWithLatestRooms = (prevCart, latestRooms, options = {}) => {
                     : (cartItem.selectedPricingOption ?? mergedRoom.selectedPricingOption),
                 quantity: Math.min(cartItem.quantity || 1, mergedRoom.availableCount || 999),
             };
-        })
-        .filter(Boolean);
+        });
 };
 
 const calculateNights = (checkIn, checkOut) => {
@@ -493,6 +496,18 @@ const SearchRoom = () => {
         }, 300);
         return () => clearTimeout(timer);
     }, [filters, searchParams, isInitialized, refetchRooms]);
+
+    // Trigger refetchRooms khi tổng số phòng trong cart thay đổi.
+    // Cần thiết để OCCUPANCY modifier được re-evaluate (backend so sánh totalRooms với threshold).
+    // Dùng derived state cartTotalRooms (từ selectedCart) để tray dependency an toàn.
+    const cartTotalRoomsForEffect = selectedCart.reduce((sum, r) => sum + (Number(r?.quantity) || 1), 0);
+    useEffect(() => {
+        if (!isInitialized || !searchParams) return;
+        const timer = setTimeout(() => {
+            refetchRooms();
+        }, 350); // 350ms debounce — tránh gọi API liên tục khi thay đổi quantity nhanh
+        return () => clearTimeout(timer);
+    }, [cartTotalRoomsForEffect, isInitialized, searchParams, refetchRooms]);
 
     // Chỉ trigger repricing khi customerHistoryEmail thay đổi.
     // refreshCartPricingByEmail ổn định (không đổi theo cart) → không cần trong deps.
