@@ -833,6 +833,10 @@ const GuestInformation = () => {
         ? computeTotalForPolicy(selectedPolicyId)
         : normalizeMoney(calculateTotalPrice());
 
+    // Tính deposit theo prepaidRate của policy đang chọn.
+    const depositRate = selectedPolicy ? safeNumber(selectedPolicy.prepaidRate, 100) : 100;
+    const depositAmount = normalizeMoney(finalBookingAmount * depositRate / 100);
+
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
             Swal.fire({ icon: 'warning', title: 'Missing Information', text: 'Please fill in all guest information.', confirmButtonColor: '#5C6F4E' });
