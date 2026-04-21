@@ -544,6 +544,17 @@ const SearchRoom = () => {
                 </div>
             </div>
 
+            <div className="container mt-3 mb-2" style={{ position: 'relative', zIndex: 1 }}>
+                <div className="bg-white rounded-3 shadow-sm px-2 d-flex align-items-center overflow-auto hide-scrollbar" style={{ whiteSpace: 'nowrap' }}>
+                    <a href="#overview" className="text-decoration-none text-dark fw-semibold px-4 py-3 fs-6">Overview</a>
+                    <a href="#rooms" className="text-decoration-none fw-bold px-4 py-3 fs-6" style={{ color: '#5C6F4E', borderBottom: '3px solid #5C6F4E' }}>Rooms</a>
+                    <a href="#facilities" className="text-decoration-none text-dark fw-semibold px-4 py-3 fs-6">Facilities</a>
+                    <a href="#reviews" className="text-decoration-none text-dark fw-semibold px-4 py-3 fs-6">Reviews</a>
+                    <a href="#location" className="text-decoration-none text-dark fw-semibold px-4 py-3 fs-6">Location</a>
+                    <a href="#policies" className="text-decoration-none text-dark fw-semibold px-4 py-3 fs-6">Policies</a>
+                </div>
+            </div>
+
             <div className="container bc-bar" style={{ position: 'relative', zIndex: 1 }}>
 
                 {uiMessage && (
