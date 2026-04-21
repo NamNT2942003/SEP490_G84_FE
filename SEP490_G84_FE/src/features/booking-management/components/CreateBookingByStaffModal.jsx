@@ -253,8 +253,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         return () => {
             isMounted = false;
         };
-    // totalRoomsForPricing: re-fetch khi số phòng thay đổi — OCCUPANCY cần được re-evaluate.
-    // manualPolicyId: re-fetch khi staff chọn policy — để có L3-POLICY modifier trong options.
+        // totalRoomsForPricing: re-fetch khi số phòng thay đổi — OCCUPANCY cần được re-evaluate.
+        // manualPolicyId: re-fetch khi staff chọn policy — để có L3-POLICY modifier trong options.
     }, [show, form.branchId, form.arrivalDate, form.departureDate, totalRoomsForPricing, manualPolicyId]);
 
     // Fetch danh sách policy khả dĩ theo seasonal window của ngày check-in.
@@ -289,7 +289,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         };
         fetchActivePolicies();
         return () => { isMounted = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [show, form.branchId, form.arrivalDate, policyFetchKey]);
 
 
@@ -1201,7 +1201,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         {/* Applied policy summary badge */}
                         {selectedPolicy ? (() => {
                             const appliedPrepaid = Math.round(estimatedGrandTotal * (selectedPolicy.prepaidRate || 0) / 100);
-                            const appliedRefund  = Math.round(estimatedGrandTotal * (selectedPolicy.refunRate  || 0) / 100);
+                            const appliedRefund = Math.round(estimatedGrandTotal * (selectedPolicy.refunRate || 0) / 100);
                             const appliedDeadlineDate = computeFreeCancelDeadline(form.arrivalDate, selectedPolicy.dateRange);
                             const appliedDeadline = formatDeadline(appliedDeadlineDate);
                             const todayApplied = new Date(); todayApplied.setHours(0, 0, 0, 0);
@@ -1299,8 +1299,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
 
                                     // Số tiền cụ thể
                                     const cardPrepaid = Math.round(estimatedGrandTotal * (p.prepaidRate || 0) / 100);
-                                    const cardRefund  = Math.round(estimatedGrandTotal * (p.refunRate  || 0) / 100);
-                                    const cardRetain  = Math.max(0, estimatedGrandTotal - cardRefund);
+                                    const cardRefund = Math.round(estimatedGrandTotal * (p.refunRate || 0) / 100);
+                                    const cardRetain = Math.max(0, estimatedGrandTotal - cardRefund);
                                     const deadlineDate = computeFreeCancelDeadline(form.arrivalDate, p.dateRange);
                                     const deadlineStr = formatDeadline(deadlineDate);
                                     const todayCard = new Date(); todayCard.setHours(0, 0, 0, 0);
@@ -1391,7 +1391,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                     }}
                                                 >
                                                     {isManuallySelected
-                                                        ? <><i className="bi bi-check-lg" />Selected</>  
+                                                        ? <><i className="bi bi-check-lg" />Selected</>
                                                         : <><i className="bi bi-circle" />Select</>}
                                                 </button>
                                             </div>
