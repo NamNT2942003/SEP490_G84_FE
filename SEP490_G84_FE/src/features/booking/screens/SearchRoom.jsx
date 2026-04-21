@@ -245,9 +245,10 @@ const SearchRoom = () => {
     const [uiMessage, setUiMessage] = useState(null);
     const [customerHistoryEmail, setCustomerHistoryEmail] = useState("");
     const customerHistoryEmailRef = useRef("");
-    // Ref để refreshCartPricingByEmail đọc cart data ổn định mà không cần đưa
-    // selectedCart vào dependency array (tránh vòng lặp: cart đổi → fn mới → effect chạy → cart đổi).
+    // Ref để refreshCartPricingByEmail đọc cart data và policy ổn định mà không cần đưa
+    // selectedCart/selectedPolicyId vào dependency array (tránh vòng lặp).
     const selectedCartRef = useRef([]);
+    const selectedPolicyIdRef = useRef(null);
     const latestRequestIdRef = useRef(0);
     const loadingTimerRef = useRef(null);
 
@@ -301,6 +302,10 @@ const SearchRoom = () => {
         selectedCartRef.current = selectedCart;
         if (isInitialized) saveCart(selectedCart);
     }, [selectedCart, isInitialized]);
+
+    useEffect(() => {
+        selectedPolicyIdRef.current = selectedPolicyId;
+    }, [selectedPolicyId]);
 
     const searchRooms = useCallback((sp) => {
         setSearchParams({ ...sp, policy: null });
@@ -372,7 +377,8 @@ const SearchRoom = () => {
             size: Math.max(roomTypeIds.length, 10),
             sortPrice: filters.sortPrice,
             customerEmail: normalizedEmail,
-            policy: selectedPolicyId ?? null,
+            // Đọc policy từ ref để fn ổn định hơn (selectedPolicyId trong deps sẽ làm fn mới mỗi lần đổi policy).
+            policy: selectedPolicyIdRef.current ?? null,
         };
 
         try {
@@ -383,8 +389,8 @@ const SearchRoom = () => {
         } catch (err) {
             console.error("Failed to refresh cart pricing by email:", err);
         }
-    // selectedCart KHÔNG có trong deps — đọc qua selectedCartRef.current để ổn định.
-    }, [searchParams, filters.branchId, filters.sortPrice, selectedPolicyId]);
+    // selectedCart và selectedPolicyId KHÔNG có trong deps — đọc qua ref để fn ổn định.
+    }, [searchParams, filters.branchId, filters.sortPrice]);
 
     const handleFilterChange = (nf) => setFilters(p => ({ ...p, ...nf, page: 0 }));
     const handleSortChange = (e) => setFilters(p => ({ ...p, sortPrice: e.target.value, page: 0 }));

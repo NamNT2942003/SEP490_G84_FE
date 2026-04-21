@@ -494,6 +494,9 @@ const GuestInformation = () => {
     const roomsRef = useRef(selectedRooms);
     const selectedPolicyIdRef = useRef(null);
     const policySnapshotRef = useRef('');
+    // Ref cho email để refreshRoomsByEmail luôn dùng email mới nhất
+    // mà không cần thêm formData.email vào deps (tránh tạo fn mới mỗi lần gõ).
+    const guestEmailRef = useRef(prefillEmail || '');
     // Cache lưu pricing options đã fetch cho từng policy: Map<policyId, Map<roomTypeId, room>>
     const policyPricingCacheRef = useRef(new Map());
 
@@ -660,14 +663,21 @@ const GuestInformation = () => {
             });
             return;
         }
-        setRooms((prev) =>
-            prev.map((r) => (r.roomTypeId === roomTypeId ? { ...r, quantity: newQty } : r))
-        );
+        setRooms((prev) => {
+            const updated = prev.map((r) => (r.roomTypeId === roomTypeId ? { ...r, quantity: newQty } : r));
+            // Cập nhật ref ngay lập tức để refreshRoomsByEmail luôn đọc được số phòng mới nhất
+            // trước khi effect async chạy (tránh gửi totalRooms cũ lên backend).
+            roomsRef.current = updated;
+            return updated;
+        });
     };
 
     const handleRemoveRoom = (roomTypeId) => {
         setRooms((prev) => prev.filter((r) => r.roomTypeId !== roomTypeId));
     };
+
+    // Sync email ref mỗi khi formData.email thay đổi để refreshRoomsByEmail luôn dùng email mới nhất.
+    useEffect(() => { guestEmailRef.current = formData.email; }, [formData.email]);
 
     const refreshRoomsByEmail = useCallback(async () => {
         const roomsSnapshot = roomsRef.current;
@@ -690,11 +700,13 @@ const GuestInformation = () => {
             sortPrice: 'priceAsc',
         };
 
-        if (selectedPolicyId !== null && selectedPolicyId !== undefined) {
-            params.policy = selectedPolicyId;
+        const currentPolicyId = selectedPolicyIdRef.current;
+        if (currentPolicyId !== null && currentPolicyId !== undefined) {
+            params.policy = currentPolicyId;
         }
 
-        const normalizedEmail = normalizeEmailForSearch(formData.email);
+        // Đọc email từ ref — tránh đưa formData.email vào deps (sẽ tạo fn mới mỗi lần gõ → effect spam).
+        const normalizedEmail = normalizeEmailForSearch(guestEmailRef.current);
         if (normalizedEmail) {
             params.customerEmail = normalizedEmail;
         }
@@ -717,24 +729,39 @@ const GuestInformation = () => {
                     ...merged,
                     quantity: oldRoom.quantity || 1,
                 };
-            }).map((room) => applyPolicySelectionToRoom(room, selectedPolicyId)));
+            // Dùng selectedPolicyIdRef để không tạo closure cũ.
+            }).map((room) => applyPolicySelectionToRoom(room, selectedPolicyIdRef.current)));
         } catch (error) {
             // Ignore transient repricing failures to avoid interrupting typing flow.
             console.warn('Failed to refresh room pricing by email', error);
         }
-    }, [branchId, checkIn, checkOut, formData.email, selectedPolicyId, searchParams?.adults, searchParams?.children]);
+    // formData.email bị bỏ khỏi deps — đọc qua guestEmailRef để fn ổn định, không spam re-create.
+    // selectedPolicyId bị bỏ — đọc qua selectedPolicyIdRef.
+    }, [branchId, checkIn, checkOut, searchParams?.adults, searchParams?.children]);
 
+    // Trigger re-price khi email thay đổi (debounce 500ms để tránh spam API khi đang gõ).
+    useEffect(() => {
+        if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
+        const email = formData.email?.trim();
+        if (!email) return;
+        const timer = setTimeout(() => {
+            refreshRoomsByEmail();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [formData.email, checkIn, checkOut, refreshRoomsByEmail]);
+
+    // totalRoomsInCart: dùng làm dependency để trigger re-price và cache rebuild khi số phòng thay đổi.
+    const totalRoomsInCart = rooms.reduce((sum, r) => sum + (Number(r?.quantity) || 1), 0);
+
+    // Trigger re-price khi số lượng phòng trong cart thay đổi.
+    // Cần thiết để OCCUPANCY modifier được backend re-evaluate với tổng phòng mới.
     useEffect(() => {
         if (!checkIn || !checkOut || roomsRef.current.length === 0) return;
         const timer = setTimeout(() => {
             refreshRoomsByEmail();
-        }, 350);
+        }, 350); // 350ms debounce — tránh gọi API liên tục khi nhấn +/- nhanh
         return () => clearTimeout(timer);
-    }, [formData.email, checkIn, checkOut, refreshRoomsByEmail]);
-
-    // totalRoomsInCart: dùng trong cache dep để trigger rebuild khi số phòng thay đổi.
-    // Phải khai báo trước cache useEffect để closure cấp đúng giá trị.
-    const totalRoomsInCart = rooms.reduce((sum, r) => sum + (Number(r?.quantity) || 1), 0);
+    }, [totalRoomsInCart, checkIn, checkOut, refreshRoomsByEmail]);
 
     // Sau khi policies load, fetch pricing cho tất cả policies song song để có đủ pricingOptions.
     // Cache này giúp computeTotalForPolicy hiển thị đúng giá cuối cho mỗi card policy.
