@@ -1186,7 +1186,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                             const appliedDeadlineDate = computeFreeCancelDeadline(form.arrivalDate, selectedPolicy.dateRange);
                             const appliedDeadline = formatDeadline(appliedDeadlineDate);
                             const todayApplied = new Date(); todayApplied.setHours(0, 0, 0, 0);
-                            const isAppliedDeadlinePast = appliedDeadlineDate && appliedDeadlineDate < todayApplied;
+                            const appliedDeadlineDay = appliedDeadlineDate ? new Date(appliedDeadlineDate) : null;
+                            if (appliedDeadlineDay) appliedDeadlineDay.setHours(0, 0, 0, 0);
+                            const isAppliedDeadlineToday = appliedDeadlineDay && appliedDeadlineDay.getTime() === todayApplied.getTime();
+                            const isAppliedDeadlinePast = appliedDeadlineDate && !isAppliedDeadlineToday && appliedDeadlineDate < todayApplied;
                             return (
                                 <div className={`cbsm-policy-badge ${policyBadgeClass()}`} style={{ marginBottom: 10 }}>
                                     <div className="cbsm-policy-name">
@@ -1206,31 +1209,38 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     {/* 3-column amounts */}
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, margin: "8px 0" }}>
                                         <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #465c47" }}>
-                                            <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Trả trước</div>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Prepaid</div>
                                             <div style={{ fontSize: 12, fontWeight: 800, color: "#2f3f30" }}>{formatVnd(appliedPrepaid)}</div>
                                             <div style={{ fontSize: 9, color: "#9aaa9b" }}>{selectedPolicy.prepaidRate}%</div>
                                         </div>
                                         <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: `3px solid ${appliedRefund > 0 ? "#16a34a" : "#e5e7eb"}` }}>
-                                            <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Hoàn nếu huỷ</div>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Refund if cancelled</div>
                                             <div style={{ fontSize: 12, fontWeight: 800, color: appliedRefund > 0 ? "#16a34a" : "#dc2626" }}>{formatVnd(appliedRefund)}</div>
                                             <div style={{ fontSize: 9, color: "#9aaa9b" }}>{selectedPolicy.refunRate}%</div>
                                         </div>
                                         <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #e5e7eb" }}>
-                                            <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>KS giữ</div>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Hotel keeps</div>
                                             <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>{formatVnd(estimatedGrandTotal - appliedRefund)}</div>
                                             <div style={{ fontSize: 9, color: "#9aaa9b" }}>{100 - (selectedPolicy.refunRate || 0)}%</div>
                                         </div>
                                     </div>
                                     {appliedDeadlineDate && (
-                                        isAppliedDeadlinePast ? (
+                                        isAppliedDeadlineToday ? (
+                                            <div style={{ fontSize: 10.5, color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 8px", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                                                <i className="bi bi-clock-fill" />
+                                                <strong>Cancel before 6:00 PM today</strong>&nbsp;for a <strong>full refund</strong>
+                                                <span style={{ color: "#b45309", fontWeight: 400 }}>— window ends tonight</span>
+                                            </div>
+                                        ) : isAppliedDeadlinePast ? (
                                             <div style={{ fontSize: 10.5, color: "#c2410c", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 6, padding: "4px 8px", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
                                                 <i className="bi bi-exclamation-triangle-fill" />
-                                                Đã hết hạn hủy miễn phí từ <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
+                                                <strong>Free cancellation expired</strong> on <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
+                                                <span style={{ color: "#9a3412", fontWeight: 400 }}>— fees apply per policy</span>
                                             </div>
                                         ) : (
                                             <div style={{ fontSize: 10.5, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
                                                 <i className="bi bi-clock-history" />
-                                                Hoàn 100% nếu huỷ trước <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
+                                                <strong>Full refund</strong> if cancelled before <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
                                             </div>
                                         )
                                     )}
@@ -1275,7 +1285,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     const deadlineDate = computeFreeCancelDeadline(form.arrivalDate, p.dateRange);
                                     const deadlineStr = formatDeadline(deadlineDate);
                                     const todayCard = new Date(); todayCard.setHours(0, 0, 0, 0);
-                                    const isDeadlinePast = deadlineDate && deadlineDate < todayCard;
+                                    const deadlineDay = deadlineDate ? new Date(deadlineDate) : null;
+                                    if (deadlineDay) deadlineDay.setHours(0, 0, 0, 0);
+                                    const isDeadlineToday = deadlineDay && deadlineDay.getTime() === todayCard.getTime();
+                                    const isDeadlinePast = deadlineDate && !isDeadlineToday && deadlineDate < todayCard;
 
                                     const typeLabel = {
                                         FREE_CANCEL: { text: "Free cancellation", cls: "cbsm-rt-tag-green", icon: "bi-check-circle-fill text-success" },
@@ -1364,36 +1377,43 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                 </button>
                                             </div>
 
-                                            {/* 3-column VNĐ amounts */}
+                                            {/* 3-column amounts */}
                                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: (deadlineStr || seasonLabel) ? 8 : 0 }}>
                                                 <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #465c47" }}>
-                                                    <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Trả trước</div>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Prepaid</div>
                                                     <div style={{ fontSize: 12, fontWeight: 800, color: "#2f3f30" }}>{formatVnd(cardPrepaid)}</div>
                                                     <div style={{ fontSize: 9, color: "#9aaa9b" }}>{p.prepaidRate}%</div>
                                                 </div>
                                                 <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: `3px solid ${cardRefund > 0 ? "#16a34a" : "#e5e7eb"}` }}>
-                                                    <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Hoàn nếu huỷ</div>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Refund if cancelled</div>
                                                     <div style={{ fontSize: 12, fontWeight: 800, color: cardRefund > 0 ? "#16a34a" : "#dc2626" }}>{formatVnd(cardRefund)}</div>
                                                     <div style={{ fontSize: 9, color: "#9aaa9b" }}>{p.refunRate}%</div>
                                                 </div>
                                                 <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #e5e7eb" }}>
-                                                    <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>KS giữ</div>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Hotel keeps</div>
                                                     <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>{formatVnd(cardRetain)}</div>
                                                     <div style={{ fontSize: 9, color: "#9aaa9b" }}>{100 - (p.refunRate || 0)}%</div>
                                                 </div>
                                             </div>
 
                                             {deadlineDate && (
-                                                isDeadlinePast ? (
+                                                isDeadlineToday ? (
+                                                    <div style={{ fontSize: 11, color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
+                                                        <i className="bi bi-clock-fill" />
+                                                        <strong>Cancel before 6:00 PM today</strong>&nbsp;for a <strong>full refund</strong>
+                                                        <span style={{ color: "#b45309", fontWeight: 400 }}>— window ends tonight</span>
+                                                    </div>
+                                                ) : isDeadlinePast ? (
                                                     <div style={{ fontSize: 11, color: "#c2410c", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
                                                         <i className="bi bi-exclamation-triangle-fill" />
-                                                        Đã hết hạn hủy miễn phí từ <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong>
+                                                        <strong>Free cancellation expired</strong> on <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong>
+                                                        <span style={{ color: "#9a3412", fontWeight: 400 }}>— fees apply per policy</span>
                                                     </div>
                                                 ) : (
                                                     <div style={{ fontSize: 11, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
                                                         <i className="bi bi-clock-history me-1 text-success" />
-                                                        Hoàn 100% nếu huỷ trước <strong>{deadlineStr}</strong>
-                                                        {p.dateRange && <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({parseInt(p.dateRange, 10)} ngày)</span>}
+                                                        <strong>Full refund</strong> if cancelled before <strong>{deadlineStr}</strong>
+                                                        {p.dateRange && <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({freeCancelDays} days before check-in)</span>}
                                                     </div>
                                                 )
                                             )}
