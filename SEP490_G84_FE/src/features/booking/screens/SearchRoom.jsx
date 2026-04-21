@@ -331,9 +331,9 @@ const SearchRoom = () => {
 
             const fetchedRooms = (res.content || []).map((room) => withPricingState(room));
             setRooms(fetchedRooms);
-            // allowReprice=false: giữ nguyên giá đã lock trong cart khi tải lại danh sách phòng.
-            // Giá cart chỉ được cập nhật khi user nhập email (refreshCartPricingByEmail).
-            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms, { allowReprice: false }));
+            // allowReprice=true: luôn cập nhật giá cart theo kết quả API mới nhất.
+            // Giá không bị lock nữa — lockedUnitPrice đã được loại bỏ khỏi display chain.
+            setSelectedCart((prev) => syncCartWithLatestRooms(prev, fetchedRooms, { allowReprice: true }));
             setTotalElements(res.totalElements || 0);
             setTotalPages(res.totalPages || 0);
         } catch (err) {

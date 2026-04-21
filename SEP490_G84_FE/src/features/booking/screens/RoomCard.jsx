@@ -52,10 +52,13 @@ const getRoomPriceFromAvailableModifiers = (room) => {
     return Math.max(0, basePrice + totalAdjustment);
 };
 
+// Giá hiển thị trên room card — dùng selectedPrice (đồng bộ với GuestInformation).
+// KHÔNG đọc lockedUnitPrice: lockedUnitPrice bị đóng băng khi add-to-cart,
+// gây chênh lệch giữa SearchRoom và GuestInformation.
 const getSearchRoomPrice = (room) =>
     safeNumber(
-        room?.lockedUnitPrice
-            ?? room?.selectedPrice
+        room?.selectedPrice
+            ?? room?.selectedPricingOption?.finalPrice
             ?? getRoomPriceFromAvailableModifiers(room),
         0,
     );
