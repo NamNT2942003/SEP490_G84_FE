@@ -620,51 +620,152 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             return;
         }
 
+        // ── Build payload ───────────────────────────────────────────────
+        const mergedBookingModifierIds = uniqueIds(
+            form.rooms.flatMap((room) => {
+                const option = (roomPricingMap[String(room.roomTypeId)]?.pricingOptions || [])
+                    .find((opt) => opt.optionCode === room.selectedOptionCode);
+                return (option?.modifiers || [])
+                    .filter((m) => BOOKING_LEVEL_TYPES.has(m?.type))
+                    .map((m) => m?.priceModifierId);
+            }),
+        );
+
+        const payload = {
+            branchId: Number(form.branchId),
+            arrivalDate: form.arrivalDate,
+            departureDate: form.departureDate,
+            customer: {
+                fullName: form.customer.fullName?.trim() || "",
+                email: form.customer.email?.trim() || "",
+                phone: form.customer.phone?.trim() || "",
+            },
+            rooms: form.rooms.map((room) => {
+                const option = (roomPricingMap[String(room.roomTypeId)]?.pricingOptions || [])
+                    .find((opt) => opt.optionCode === room.selectedOptionCode);
+                const modifierIds = uniqueIds(
+                    (option?.modifiers || [])
+                        .filter((m) => DETAIL_LEVEL_TYPES.has(m?.type))
+                        .map((m) => m?.priceModifierId),
+                );
+                return {
+                    roomTypeId: String(room.roomTypeId),
+                    quantity: Number(room.quantity),
+                    price: Number(room.price ?? option?.finalPrice ?? option?.basePrice ?? 0),
+                    priceModifierIds: modifierIds,
+                };
+            }),
+            bookingPriceModifierIds: mergedBookingModifierIds,
+            appliedPolicyId: effectivePolicyId,
+            specialRequests: form.specialRequests?.trim() || "",
+            staffNote: form.staffNote?.trim() || "",
+            isPaidInitially: selectedIsPaidInitially,
+            paymentMethod: selectedPaymentMethod,
+        };
+
+        // ── Confirmation dialog ─────────────────────────────────────────
+        const branchLabel = branches?.find((b) => String(b.id || b.branchId) === String(form.branchId))?.branchName || `Branch #${form.branchId}`;
+        const prepaidAmt = selectedPolicy ? Math.round(estimatedGrandTotal * (selectedPolicy.prepaidRate || 0) / 100) : estimatedGrandTotal;
+        const roomSummaryRows = form.rooms.map((room) => {
+            const rtName = roomTypes?.find((rt) => String(rt.id || rt.roomTypeId) === String(room.roomTypeId))?.name || `Room #${room.roomTypeId}`;
+            return `<tr>
+                <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">${rtName}</td>
+                <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;text-align:center">${room.quantity}</td>
+                <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600">${formatVnd(Number(room.price) * Number(room.quantity))}</td>
+            </tr>`;
+        }).join("");
+
+        const policyRow = selectedPolicy
+            ? `<tr>
+                <td colspan="3" style="padding:8px;background:#f0fdf4;border-radius:6px;text-align:center;color:#15803d;font-size:12px">
+                    🛡 <strong>${selectedPolicy.name}</strong> — Trả trước: <strong>${formatVnd(prepaidAmt)}</strong> (${selectedPolicy.prepaidRate}%) • Hoàn nếu huỷ: ${selectedPolicy.refunRate}%
+                </td>
+            </tr>`
+            : `<tr><td colspan="3" style="padding:6px 8px;color:#9ca3af;font-size:12px">Không có chính sách hủy áp dụng — đặt cọc 100%</td></tr>`;
+
+        const confirmHtml = `
+            <div style="text-align:left;font-family:system-ui,sans-serif">
+                <!-- Cảnh báo -->
+                <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
+                    <span style="font-size:20px;flex-shrink:0">⚠️</span>
+                    <div>
+                        <div style="font-weight:800;color:#b91c1c;font-size:13px;margin-bottom:2px">Thao tác không thể hoàn tác!</div>
+                        <div style="color:#7f1d1d;font-size:12px">Vui lòng kiểm tra kỹ thông tin booking bên dưới trước khi xác nhận. Sau khi tạo, dữ liệu sẽ được lưu vào hệ thống và không thể xóa tự động.</div>
+                    </div>
+                </div>
+
+                <!-- Thông tin khách -->
+                <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;margin-bottom:10px">
+                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">👤 Khách hàng</div>
+                    <div style="font-weight:700;font-size:14px;color:#111827">${form.customer.fullName || "—"}</div>
+                    <div style="font-size:12px;color:#6b7280">${form.customer.email || "—"} • ${form.customer.phone || "—"}</div>
+                </div>
+
+                <!-- Chi nhánh & ngày -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+                    <div style="background:#f8fafc;border-radius:8px;padding:10px 12px">
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:4px">🏨 Chi nhánh</div>
+                        <div style="font-weight:700;font-size:13px;color:#1f2937">${branchLabel}</div>
+                    </div>
+                    <div style="background:#f8fafc;border-radius:8px;padding:10px 12px">
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:4px">📅 Thời gian lưu trú</div>
+                        <div style="font-weight:700;font-size:13px;color:#1f2937">${form.arrivalDate} → ${form.departureDate}</div>
+                    </div>
+                </div>
+
+                <!-- Phòng -->
+                <div style="margin-bottom:10px">
+                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">🛏 Phòng đặt</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:12px">
+                        <thead>
+                            <tr style="background:#f0f0f0">
+                                <th style="padding:4px 8px;text-align:left;font-weight:700;color:#374151">Loại phòng</th>
+                                <th style="padding:4px 8px;text-align:center;font-weight:700;color:#374151">SL</th>
+                                <th style="padding:4px 8px;text-align:right;font-weight:700;color:#374151">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>${roomSummaryRows}</tbody>
+                        ${policyRow}
+                    </table>
+                </div>
+
+                <!-- Tổng tiền -->
+                <div style="background:#465c47;border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <div style="color:#c8d9c0;font-size:11px;font-weight:700;text-transform:uppercase">Tổng cộng</div>
+                        <div style="color:#fff;font-size:18px;font-weight:800">${formatVnd(estimatedGrandTotal)}</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="color:#c8d9c0;font-size:11px;font-weight:700;text-transform:uppercase">Trả ngay (${selectedPaymentMethod})</div>
+                        <div style="color:#f9d71c;font-size:16px;font-weight:800">${formatVnd(prepaidAmt)}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const { isConfirmed } = await Swal.fire({
+            title: "Xác nhận tạo Booking",
+            html: confirmHtml,
+            icon: undefined,
+            showCancelButton: true,
+            confirmButtonText: "✓ Xác nhận tạo Booking",
+            cancelButtonText: "Kiểm tra lại",
+            confirmButtonColor: "#465c47",
+            cancelButtonColor: "#6b7280",
+            reverseButtons: true,
+            width: 560,
+            customClass: {
+                confirmButton: "swal-confirm-booking",
+                cancelButton: "swal-cancel-booking",
+            },
+        });
+
+        if (!isConfirmed) return; // Nhân viên bấm "Kiểm tra lại"
+
+        // ── Thực hiện tạo booking ───────────────────────────────────────
         try {
             setSubmitting(true);
             setError("");
-
-            const mergedBookingModifierIds = uniqueIds(
-                form.rooms.flatMap((room) => {
-                    const option = (roomPricingMap[String(room.roomTypeId)]?.pricingOptions || [])
-                        .find((opt) => opt.optionCode === room.selectedOptionCode);
-                    return (option?.modifiers || [])
-                        .filter((m) => BOOKING_LEVEL_TYPES.has(m?.type))
-                        .map((m) => m?.priceModifierId);
-                }),
-            );
-
-            const payload = {
-                branchId: Number(form.branchId),
-                arrivalDate: form.arrivalDate,
-                departureDate: form.departureDate,
-                customer: {
-                    fullName: form.customer.fullName?.trim() || "",
-                    email: form.customer.email?.trim() || "",
-                    phone: form.customer.phone?.trim() || "",
-                },
-                rooms: form.rooms.map((room) => {
-                    const option = (roomPricingMap[String(room.roomTypeId)]?.pricingOptions || [])
-                        .find((opt) => opt.optionCode === room.selectedOptionCode);
-                    const modifierIds = uniqueIds(
-                        (option?.modifiers || [])
-                            .filter((m) => DETAIL_LEVEL_TYPES.has(m?.type))
-                            .map((m) => m?.priceModifierId),
-                    );
-                    return {
-                        roomTypeId: String(room.roomTypeId),
-                        quantity: Number(room.quantity),
-                        price: Number(room.price ?? option?.finalPrice ?? option?.basePrice ?? 0),
-                        priceModifierIds: modifierIds,
-                    };
-                }),
-                bookingPriceModifierIds: mergedBookingModifierIds,
-                appliedPolicyId: effectivePolicyId,
-                specialRequests: form.specialRequests?.trim() || "",
-                staffNote: form.staffNote?.trim() || "",
-                isPaidInitially: selectedIsPaidInitially,
-                paymentMethod: selectedPaymentMethod,
-            };
 
             const result = await onSubmit(payload);
 
@@ -686,6 +787,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             setSubmitting(false);
         }
     };
+
 
     const renderStep1 = () => (
         <div className="cbsm-step-content">
