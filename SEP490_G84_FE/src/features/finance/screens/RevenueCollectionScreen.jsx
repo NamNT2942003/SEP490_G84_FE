@@ -209,9 +209,10 @@ const RevenueCollectionScreen = () => {
                 onChange={(e) => setStatus(e.target.value)}
               >
                 <option value="">Tất cả</option>
-                <option value="UNPAID">Chưa Thu</option>
+                <option value="UNPAID">Chưa Thu (UNPAID)</option>
+                <option value="OPEN">Đang Mở - Dịch Vụ (OPEN)</option>
+                <option value="PENDING">Chờ Online (PENDING)</option>
                 <option value="PAID">Đã Thanh Toán</option>
-                <option value="OPEN">Đang Mở</option>
                 <option value="CANCELLED">Đã Hủy</option>
               </select>
             </div>
@@ -263,11 +264,17 @@ const RevenueCollectionScreen = () => {
               Danh Sách Hóa Đơn
             </span>
             {/* Quick filter pills */}
-            <div className="d-flex gap-2">
-              {['', 'UNPAID', 'PAID'].map((s) => (
+            <div className="d-flex gap-2 flex-wrap">
+              {[
+                { val: '',        label: 'Tất Cả' },
+                { val: 'UNPAID',  label: 'Chưa Thu' },
+                { val: 'OPEN',    label: 'Dịch Vụ (OPEN)' },
+                { val: 'PENDING', label: 'Chờ Online' },
+                { val: 'PAID',    label: 'Đã Thu' },
+              ].map(({ val, label }) => (
                 <button
-                  key={s}
-                  onClick={() => setStatus(s)}
+                  key={val}
+                  onClick={() => setStatus(val)}
                   style={{
                     fontSize: '0.75rem',
                     fontWeight: 600,
@@ -276,25 +283,25 @@ const RevenueCollectionScreen = () => {
                     border: 'none',
                     cursor: 'pointer',
                     background:
-                      status === s
-                        ? s === 'UNPAID'
-                          ? '#fee2e2'
-                          : s === 'PAID'
-                          ? '#d1fae5'
-                          : COLORS.PRIMARY + '20'
+                      status === val
+                        ? val === 'UNPAID'  ? '#fee2e2'
+                        : val === 'OPEN'    ? '#fef3c7'
+                        : val === 'PENDING' ? '#e0f2fe'
+                        : val === 'PAID'    ? '#d1fae5'
+                        : COLORS.PRIMARY + '20'
                         : '#f3f4f6',
                     color:
-                      status === s
-                        ? s === 'UNPAID'
-                          ? '#dc2626'
-                          : s === 'PAID'
-                          ? '#16a34a'
-                          : COLORS.PRIMARY
+                      status === val
+                        ? val === 'UNPAID'  ? '#dc2626'
+                        : val === 'OPEN'    ? '#d97706'
+                        : val === 'PENDING' ? '#0369a1'
+                        : val === 'PAID'    ? '#16a34a'
+                        : COLORS.PRIMARY
                         : '#6b7280',
                     transition: 'all 0.15s',
                   }}
                 >
-                  {s === '' ? 'Tất Cả' : s === 'UNPAID' ? 'Chưa Thu' : 'Đã Thu'}
+                  {label}
                 </button>
               ))}
             </div>

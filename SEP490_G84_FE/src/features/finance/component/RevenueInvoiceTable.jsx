@@ -28,10 +28,16 @@ const STATUS_MAP = {
     icon: 'bi-x-circle-fill',
   },
   OPEN: {
-    label: 'Đang Mở',
+    label: 'Đang Mở (DV)',
     color: '#d97706',
     bg: '#fef3c7',
     icon: 'bi-clock-fill',
+  },
+  PENDING: {
+    label: 'Chờ Online',
+    color: '#0369a1',
+    bg: '#e0f2fe',
+    icon: 'bi-hourglass-split',
   },
   PARTIAL: {
     label: 'Thu Một Phần',
