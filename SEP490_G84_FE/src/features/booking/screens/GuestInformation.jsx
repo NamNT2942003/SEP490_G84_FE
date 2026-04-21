@@ -758,6 +758,15 @@ const GuestInformation = () => {
     const depositRate = selectedPolicy ? safeNumber(selectedPolicy.prepaidRate, 100) : 100;
     const depositAmount = normalizeMoney(finalBookingAmount * depositRate / 100);
 
+    // Tính tổng tiền cho 1 policy cụ thể, độc lập với policy đang chọn.
+    // Dùng applyPolicySelectionToRoom để lấy giá đúng theo policy đó cho từng phòng.
+    const computeTotalForPolicy = (policyId) => normalizeMoney(
+        rooms.reduce((sum, room) => {
+            const roomWithPolicy = applyPolicySelectionToRoom(room, policyId);
+            return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
+        }, 0)
+    );
+
     const handleContinue = async () => {
         if (!formData.fullName || !formData.email || !formData.phone) {
             Swal.fire({ icon: 'warning', title: 'Missing Information', text: 'Please fill in all guest information.', confirmButtonColor: '#5C6F4E' });
@@ -1043,7 +1052,7 @@ const GuestInformation = () => {
                                 Cancellation Policy
                                 {checkIn && (
                                     <span style={{ fontSize: 12, fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>
-                                        — for check-in {checkIn}
+                                        — cho ngày check-in {checkIn}
                                     </span>
                                 )}
                             </h5>
@@ -1051,7 +1060,7 @@ const GuestInformation = () => {
                             {!hasLoadedPolicies && policyLoading ? (
                                 <div className="text-muted d-flex align-items-center gap-2">
                                     <span className="spinner-border spinner-border-sm" />
-                                    Loading policies...
+                                    Đang tải chính sách...
                                 </div>
                             ) : policies.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1059,18 +1068,12 @@ const GuestInformation = () => {
                                         const isSelected = Number(selectedPolicyId) === Number(policy.id);
                                         const pType = String(policy.type || '').trim().toUpperCase();
 
-                                        // Tính tổng tiền riêng cho policy này bằng cách áp dụng policy lên từng phòng
-                                        // — độc lập, không ảnh hưởng các card khác
-                                        const policyTotalAmount = normalizeMoney(
-                                            rooms.reduce((sum, room) => {
-                                                const roomWithPolicy = applyPolicySelectionToRoom(room, policy.id);
-                                                return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
-                                            }, 0)
-                                        );
-                                        const prepaidAmount = normalizeMoney(policyTotalAmount * (safeNumber(policy.prepaidRate, 100)) / 100);
-                                        const refundAmount  = normalizeMoney(policyTotalAmount * (safeNumber(policy.refunRate, 0)) / 100);
+                                        // Tính giá độc lập cho policy này (không bị ảnh hưởng bởi policy đang chọn)
+                                        const policyTotal = computeTotalForPolicy(policy.id);
+                                        const prepaidAmount = normalizeMoney(policyTotal * (safeNumber(policy.prepaidRate, 100)) / 100);
+                                        const refundAmount = normalizeMoney(policyTotal * (safeNumber(policy.refunRate, 0)) / 100);
 
-                                        // Free cancellation deadline
+                                        // Hạn huỷ miễn phí
                                         const deadline = computeFreeCancelDeadline(checkIn, policy.dateRange);
                                         const deadlineStr = formatDeadlineDate(deadline);
                                         const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -1079,13 +1082,13 @@ const GuestInformation = () => {
                                         const isDeadlineToday = deadlineDay && deadlineDay.getTime() === today.getTime();
                                         const isDeadlinePast = deadline && !isDeadlineToday && deadline < today;
 
-                                        // Color config by type
+                                        // Màu theo loại
                                         const typeConfig = {
-                                            FREE_CANCEL:    { label: 'Free cancellation',   color: '#16a34a', bg: '#f0fdf4', border: '#86efac', badgeBg: '#dcfce7', badgeColor: '#15803d', icon: 'bi-check-circle-fill' },
-                                            PARTIAL_REFUND: { label: 'Partial refund',      color: '#d97706', bg: '#fffbeb', border: '#fcd34d', badgeBg: '#fef3c7', badgeColor: '#92400e', icon: 'bi-arrow-left-right' },
-                                            NON_REFUND:     { label: 'Non-refundable',      color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', badgeBg: '#fee2e2', badgeColor: '#991b1b', icon: 'bi-x-circle-fill' },
-                                            PAY_AT_HOTEL:   { label: 'Pay at hotel',        color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', badgeBg: '#dbeafe', badgeColor: '#1e40af', icon: 'bi-building-check' },
-                                        }[pType] || { label: pType || 'Standard policy', color: '#6b7280', bg: '#f9fafb', border: '#d1d5db', badgeBg: '#f3f4f6', badgeColor: '#374151', icon: 'bi-shield' };
+                                            FREE_CANCEL: { label: 'Miễn phí huỷ', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', badgeBg: '#dcfce7', badgeColor: '#15803d', icon: 'bi-check-circle-fill' },
+                                            PARTIAL_REFUND: { label: 'Hoàn một phần', color: '#d97706', bg: '#fffbeb', border: '#fcd34d', badgeBg: '#fef3c7', badgeColor: '#92400e', icon: 'bi-arrow-left-right' },
+                                            NON_REFUND: { label: 'Không hoàn tiền', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', badgeBg: '#fee2e2', badgeColor: '#991b1b', icon: 'bi-x-circle-fill' },
+                                            PAY_AT_HOTEL: { label: 'Thanh toán tại khách sạn', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', badgeBg: '#dbeafe', badgeColor: '#1e40af', icon: 'bi-building-check' },
+                                        }[pType] || { label: pType || 'Chính sách chuẩn', color: '#6b7280', bg: '#f9fafb', border: '#d1d5db', badgeBg: '#f3f4f6', badgeColor: '#374151', icon: 'bi-shield' };
 
                                         return (
                                             <div
@@ -1133,7 +1136,7 @@ const GuestInformation = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* 3 key amounts */}
+                                                {/* 3 key figures */}
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: (deadlineStr || (policy.activeTimeStart && policy.activeTimeEnd)) ? 10 : 0 }}>
                                                     {/* Prepaid */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
@@ -1150,8 +1153,8 @@ const GuestInformation = () => {
                                                     {/* Total booking */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
                                                         <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Total booking</div>
-                                                        <div style={{ fontSize: 15, fontWeight: 800, color: typeConfig.color }}>{formatVND(policyTotalAmount)}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>with this policy</div>
+                                                        <div style={{ fontSize: 15, fontWeight: 800, color: typeConfig.color }}>{formatVND(policyTotal)}</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>incl. policy</div>
                                                     </div>
                                                 </div>
 
@@ -1208,11 +1211,11 @@ const GuestInformation = () => {
                                                     )
                                                 )}
 
-                                                {/* Active season */}
+                                                {/* Mùa áp dụng */}
                                                 {policy.activeTimeStart && policy.activeTimeEnd && (
                                                     <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                                         <i className="bi bi-sun" />
-                                                        Applies:{' '}
+                                                        Áp dụng từ{' '}
                                                         <strong style={{ color: '#374151' }}>
                                                             {policy.activeTimeStart} – {policy.activeTimeEnd}
                                                         </strong>
@@ -1228,14 +1231,14 @@ const GuestInformation = () => {
                                             style={{ alignSelf: 'flex-start', fontSize: 12 }}
                                             onClick={() => setSelectedPolicyId(null)}
                                         >
-                                            <i className="bi bi-x-circle me-1" />Deselect policy
+                                            <i className="bi bi-x-circle me-1" />Bỏ chọn chính sách
                                         </button>
                                     )}
                                 </div>
                             ) : (
                                 <div className="text-muted">
                                     <i className="bi bi-info-circle me-1" />
-                                    No policies found for this check-in date. Full amount will be charged as deposit.
+                                    Không tìm thấy chính sách nào cho ngày check-in này. Hệ thống sẽ dùng 100% tổng tiền làm số tiền đặt cọc.
                                 </div>
                             )}
                         </div>
@@ -1309,7 +1312,7 @@ const GuestInformation = () => {
                                     depositAmount={depositAmount}
                                     bookingTotalAmount={finalBookingAmount}
                                     branchName={branchName}
-                                    hasPolicySelected={!!selectedPolicyId}
+                                    policySelected={!!selectedPolicy}
                                 />
                             </div>
                         </div>
@@ -1322,7 +1325,7 @@ const GuestInformation = () => {
                                 depositAmount={depositAmount}
                                 bookingTotalAmount={finalBookingAmount}
                                 branchName={branchName}
-                                hasPolicySelected={!!selectedPolicyId}
+                                policySelected={!!selectedPolicy}
                             />
                         </div>
                     </div>
@@ -1333,24 +1336,24 @@ const GuestInformation = () => {
             <footer className="fixed-bottom bg-white border-top p-3 shadow-lg" style={{ zIndex: 1031 }}>
                 <div className="container d-flex justify-content-between align-items-center">
                     <div>
-                        {selectedPolicyId ? (
+                        {selectedPolicy ? (
                             <>
                                 <small className="text-muted fw-bold text-uppercase">Total</small>
                                 <h4 className="mb-0 fw-bold" style={{ color: '#5C6F4E' }}>
                                     {formatVND(finalBookingAmount)}
                                 </h4>
                                 <div style={{ fontSize: 12, marginTop: 2 }}>
-                                    <span style={{ color: '#6b7280' }}>Due now:</span>{' '}
+                                    <span style={{ color: '#6b7280' }}>Prepaid:</span>{' '}
                                     <strong style={{ color: '#d97706' }}>{formatVND(depositAmount)}</strong>
-                                    <span style={{ color: '#9ca3af', marginLeft: 4 }}>({safeNumber(selectedPolicy?.prepaidRate, 100)}%)</span>
+                                    <span style={{ color: '#9ca3af', marginLeft: 4 }}>({safeNumber(selectedPolicy.prepaidRate, 100)}%)</span>
                                 </div>
                             </>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <small className="text-muted fw-bold text-uppercase">Total</small>
-                                <div style={{ fontSize: 13, color: '#d97706', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <i className="bi bi-exclamation-circle" />
-                                    Select a cancellation policy to see total
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <i className="bi bi-shield-exclamation" style={{ fontSize: 20, color: '#d97706' }} />
+                                <div>
+                                    <div style={{ fontWeight: 700, fontSize: 13, color: '#374151' }}>Select a cancellation policy</div>
+                                    <div style={{ fontSize: 11, color: '#9ca3af' }}>to see your total price</div>
                                 </div>
                             </div>
                         )}

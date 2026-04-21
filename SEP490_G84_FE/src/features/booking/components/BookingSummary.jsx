@@ -11,7 +11,7 @@ const getAbsoluteImageUrl = (url) => {
     return url;
 };
 
-const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, branchName = '', bookingTotalAmount = 0, hasPolicySelected = false }) => {
+const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy = null, branchName = '', bookingTotalAmount = 0, policySelected = false }) => {
     const normalizeModeText = (mode) => {
         if (!mode) return 'Standard';
         const raw = String(mode).trim();
@@ -236,8 +236,8 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 </div>
             </div>
 
-            {/* Card 3: Your price summary — only when a policy is selected */}
-            {hasPolicySelected ? (
+            {/* Card 3: Your price summary */}
+            {policySelected ? (
                 <div className="bg-white rounded-3 border custom-shadow overflow-hidden">
                     <div className="p-4">
                         <h5 className="fw-bold mb-3" style={{ fontSize: '18px' }}>Your price summary</h5>
@@ -275,15 +275,10 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                     </div>
                 </div>
             ) : (
-                <div className="bg-white rounded-3 border custom-shadow p-4">
-                    <h5 className="fw-bold mb-2" style={{ fontSize: '18px' }}>Your price summary</h5>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#d97706', fontSize: 14, fontWeight: 600 }}>
-                        <i className="bi bi-exclamation-circle" />
-                        Select a cancellation policy to view your total.
-                    </div>
-                    <div className="text-muted mt-2" style={{ fontSize: 12 }}>
-                        Your final price depends on the policy you choose.
-                    </div>
+                <div className="bg-white rounded-3 border custom-shadow p-4 text-center" style={{ borderStyle: 'dashed' }}>
+                    <i className="bi bi-shield-lock" style={{ fontSize: 28, color: '#d97706', display: 'block', marginBottom: 8 }} />
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#374151', marginBottom: 4 }}>Price summary not available yet</div>
+                    <div style={{ fontSize: 12, color: '#9ca3af' }}>Select a cancellation policy below to see your final price breakdown</div>
                 </div>
             )}
         </div>
