@@ -247,6 +247,9 @@ const SearchRoom = () => {
     // trước khi API trả về (sau đó set false khi API xong).
     const [isPricing, setIsPricing] = useState(false);
     const isPricingTimerRef = useRef(null);
+    // searchVersion tăng mỗi khi cần trigger lại refetch (số phòng, email thay đổi).
+    // Giúp quantity/email hoạt động giống hệt như date change — cùng một effect, cùng timer.
+    const [searchVersion, setSearchVersion] = useState(0);
     const [customerHistoryEmail, setCustomerHistoryEmail] = useState("");
     const customerHistoryEmailRef = useRef("");
     // Ref để refreshCartPricingByEmail đọc cart data và policy ổn định mà không cần đưa
@@ -454,6 +457,9 @@ const SearchRoom = () => {
             selectedCartRef.current = updated;
             return updated;
         });
+        // Tăng searchVersion → trigger refetch effect (giống hệt như khi date thay đổi).
+        // Effect sẽ gọi refetchRooms() với totalRooms mới (từ selectedCartRef.current).
+        setSearchVersion(v => v + 1);
     };
 
     const nights = calculateNights(searchParams?.checkIn, searchParams?.checkOut);
@@ -507,58 +513,34 @@ const SearchRoom = () => {
 
     useEffect(() => { customerHistoryEmailRef.current = customerHistoryEmail; }, [customerHistoryEmail]);
 
-    // Khi filters/searchParams thay đổi → báo isPricing ngay, fetch sau 150ms.
+    // ─── PRIMARY FETCH EFFECT ─────────────────────────────────────────────────
+    // Diễu kiện trigger: filters, searchParams đổi (date/sort/branch) hoặc searchVersion tăng
+    // (lượng phòng / email đổi). Tất cả hoạt động giống hệt nhau: setIsPricing → 150ms → refetchRooms.
+    // Liền sau refetch, nếu có email hợp lệ → refreshCartPricingByEmail (cho cart items ở trang khác).
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
         setIsPricing(true);
-        const timer = setTimeout(() => {
-            refetchRooms();
-        }, 150);
-        return () => clearTimeout(timer);
-    }, [filters, searchParams, isInitialized, refetchRooms]);
-
-    // Khi số phòng cart thay đổi → refetch để OCCUPANCY modifier re-evaluate.
-    // isPricing đã được set true trong handleUpdateCartQuantity, debounce 80ms (cảm giác tức thì).
-    const cartTotalRoomsForEffect = selectedCart.reduce((sum, r) => sum + (Number(r?.quantity) || 1), 0);
-    useEffect(() => {
-        if (!isInitialized || !searchParams) return;
         const timer = setTimeout(async () => {
             await refetchRooms();
+            // Cart items có thể nằm ở trang khác: fetch riêng theo roomTypeIds nếu có email.
             if (normalizeEmailForSearch(customerHistoryEmailRef.current)) {
                 refreshCartPricingByEmail();
             }
-        }, 80);
+        }, 150);
         return () => clearTimeout(timer);
-    }, [cartTotalRoomsForEffect, isInitialized, searchParams, refetchRooms, refreshCartPricingByEmail]);
+    }, [filters, searchParams, isInitialized, refetchRooms, refreshCartPricingByEmail, searchVersion]);
 
-    // Khi email thay đổi:
-    // 1. refetchRooms → cập nhật cả room card list và cart items trên trang hiện tại với email modifier.
-    // 2. refreshCartPricingByEmail → cập nhật cart items có thể nằm ở trang khác trong danh sách.
+    // Email: báo isPricing ngay khi user gõ, debounce 500ms rồi increment searchVersion.
+    // Không gọi API trực tiếp — dùng searchVersion để trigger Primary Fetch Effect.
     useEffect(() => {
         if (!isInitialized || !searchParams) return;
         if (!customerHistoryEmail.trim()) { setIsPricing(false); return; }
         setIsPricing(true);
-        const timer = setTimeout(async () => {
-            // refetchRooms luôn có email (từ ref) → room cards và cart items trên trang hiện tại update.
-            await refetchRooms();
-            // refreshCartPricingByEmail fetch theo roomTypeIds → đảm bảo cart items ở trang khác cũng update.
-            refreshCartPricingByEmail();
-        }, 600);
-        return () => clearTimeout(timer);
-    }, [customerHistoryEmail, isInitialized, searchParams, refetchRooms, refreshCartPricingByEmail]);
-
-    // Khi searchParams (dates) thay đổi + có email → refetch rooms (có email) để room cards
-    // và cart đều được cập nhật. refetchRooms đã bao gồm email → không cần gọi riêng nữa.
-    useEffect(() => {
-        if (!isInitialized || !searchParams) return;
-        if (!normalizeEmailForSearch(customerHistoryEmailRef.current)) return;
         const timer = setTimeout(() => {
-            // refetchRooms sẽ tự bao gồm email → room cards có email modifier ngày mới.
-            refreshCartPricingByEmail();
+            setSearchVersion(v => v + 1);
         }, 500);
         return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams, isInitialized, refreshCartPricingByEmail]);
+    }, [customerHistoryEmail, isInitialized, searchParams]);
 
     useEffect(() => {
         if (!uiMessage) return;
