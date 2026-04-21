@@ -81,10 +81,12 @@ const getRoomPriceFromAvailableModifiers = (room) => {
     return Math.max(0, basePrice + totalAdjustment);
 };
 
+// Giá hiển thị trong SearchRoom cart/sidebar — dùng selectedPrice (đã sync với backend).
+// KHÔNG dùng lockedUnitPrice: lockedUnitPrice gây chênh lệch giữa cart và GuestInformation.
 const getSearchRoomPrice = (room) =>
     safeNumber(
-        room?.lockedUnitPrice
-            ?? room?.selectedPrice
+        room?.selectedPrice
+            ?? room?.selectedPricingOption?.finalPrice
             ?? getRoomPriceFromAvailableModifiers(room),
         0,
     );
@@ -180,15 +182,14 @@ const syncCartWithLatestRooms = (prevCart, latestRooms, options = {}) => {
             return {
                 ...cartItem,
                 ...mergedRoom,
-                // Keep the price/option chosen in cart to avoid re-applying frontend
-                // pricing transformations when room data refreshes.
-                lockedUnitPrice: allowReprice
-                    ? mergedRoom.selectedPrice
-                    : (cartItem.lockedUnitPrice ?? cartItem.selectedPrice ?? mergedRoom.selectedPrice),
-                selectedPrice: allowReprice
-                    ? mergedRoom.selectedPrice
-                    : (cartItem.selectedPrice ?? mergedRoom.selectedPrice),
-                selectedPricingOption: cartItem.selectedPricingOption ?? mergedRoom.selectedPricingOption,
+                // selectedPrice luôn được cập nhật từ kết quả mới để đồng bộ giữa cart và GuestInformation.
+                // allowReprice=true: dùng giá hoàn toàn mới từ mergedRoom (email repricing).
+                // allowReprice=false: giữ selectedPricingOption của cart item (user's chosen option),
+                //   nhưng selectedPrice vẫn được cập nhật theo option đó từ dữ liệu mới nhất.
+                selectedPrice: mergedRoom.selectedPrice,
+                selectedPricingOption: allowReprice
+                    ? mergedRoom.selectedPricingOption
+                    : (cartItem.selectedPricingOption ?? mergedRoom.selectedPricingOption),
                 quantity: Math.min(cartItem.quantity || 1, mergedRoom.availableCount || 999),
             };
         })
@@ -313,7 +314,17 @@ const SearchRoom = () => {
                 setLoading(false); return;
             }
 
-            const apiParams = { ...searchParams, ...filters, policy: selectedPolicyId ?? null };
+            // Tính tổng số phòng trong cart để backend đánh giá OCCUPANCY modifier đúng.
+            // OCCUPANCY kiểm tra số phòng đặt, không phải số khách.
+            const cartTotalRooms = selectedCartRef.current.reduce(
+                (sum, r) => sum + (Number(r?.quantity) || 1), 0
+            );
+            const apiParams = {
+                ...searchParams,
+                ...filters,
+                policy: selectedPolicyId ?? null,
+                totalRooms: cartTotalRooms > 0 ? cartTotalRooms : 1,
+            };
 
             const res = await roomService.searchRooms(apiParams);
             if (requestId !== latestRequestIdRef.current) return;
@@ -378,7 +389,7 @@ const SearchRoom = () => {
 
     const handleBooking = (room) => {
         const roomForCart = withPricingState(room, room.selectedPricingOption);
-        const lockedUnitPrice = getSearchRoomPrice(roomForCart);
+        const currentPrice = getSearchRoomPrice(roomForCart);
         const existingIndex = selectedCart.findIndex(r => r.roomTypeId === room.roomTypeId);
         if (existingIndex >= 0) {
             setSelectedCart(prev => prev.map((r, idx) =>
@@ -386,9 +397,7 @@ const SearchRoom = () => {
                     ? {
                         ...r,
                         ...roomForCart,
-                        // Cập nhật giá mới khi user chủ động bấm "Add to cart" lần nữa
-                        lockedUnitPrice,
-                        selectedPrice: lockedUnitPrice,
+                        selectedPrice: currentPrice,
                         quantity: Math.min(r.quantity || 1, roomForCart.availableCount || (r.quantity || 1)),
                     }
                     : r
@@ -403,8 +412,7 @@ const SearchRoom = () => {
                 ...prev,
                 {
                     ...roomForCart,
-                    lockedUnitPrice,
-                    selectedPrice: lockedUnitPrice,
+                    selectedPrice: currentPrice,
                     quantity: 1,
                 },
             ]);
