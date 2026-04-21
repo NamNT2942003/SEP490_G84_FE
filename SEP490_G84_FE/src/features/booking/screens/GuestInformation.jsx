@@ -924,41 +924,91 @@ const GuestInformation = () => {
             await guest.sendBookingOtp(formData.email, formData.fullName);
             Swal.close();
 
-            const { value: otpCode } = await Swal.fire({
-                title: 'Enter Verification Code',
-                text: `An OTP has been sent to ${formData.email}. It is valid for 15 minutes.`,
-                input: 'text',
-                inputPlaceholder: 'Enter 6-digit OTP',
-                showCancelButton: true,
-                confirmButtonColor: '#5C6F4E',
-                confirmButtonText: 'Verify & Continue',
-                inputValidator: (value) => {
-                    if (!value || value.trim().length !== 6) {
-                        return 'Please enter a valid 6-digit OTP!';
+            // OTP verification loop — allows retry and resend
+            let otpVerified = false;
+            let lastError = '';
+
+            while (!otpVerified) {
+                const { value: otpCode, dismiss } = await Swal.fire({
+                    title: 'Enter Verification Code',
+                    html: `
+                        <p style="margin:0 0 8px;color:#555;font-size:0.92rem;">
+                            An OTP has been sent to <strong>${formData.email}</strong>. It is valid for 15 minutes.
+                        </p>
+                        ${lastError ? `<p style="margin:0 0 8px;color:#dc2626;font-size:0.85rem;font-weight:600;"><i class="bi bi-exclamation-circle me-1"></i>${lastError}</p>` : ''}
+                    `,
+                    input: 'text',
+                    inputPlaceholder: 'Enter 6-digit OTP',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonColor: '#5C6F4E',
+                    confirmButtonText: 'Verify & Continue',
+                    denyButtonText: '<i class="bi bi-arrow-clockwise me-1"></i>Resend Code',
+                    denyButtonColor: '#6b7280',
+                    cancelButtonText: 'Cancel',
+                    inputValidator: (value) => {
+                        if (!value || value.trim().length !== 6) {
+                            return 'Please enter a valid 6-digit OTP!';
+                        }
+                    },
+                    allowOutsideClick: false,
+                });
+
+                // User clicked Cancel
+                if (dismiss === Swal.DismissReason.cancel) {
+                    return;
+                }
+
+                // User clicked Resend Code
+                if (dismiss === Swal.DismissReason.deny) {
+                    try {
+                        Swal.fire({
+                            title: 'Resending Code...',
+                            text: `Sending a new OTP to ${formData.email}`,
+                            allowOutsideClick: false,
+                            didOpen: () => Swal.showLoading(),
+                        });
+                        await guest.sendBookingOtp(formData.email, formData.fullName);
+                        Swal.close();
+                        lastError = '';
+                    } catch (resendErr) {
+                        console.error('Resend OTP error:', resendErr);
+                        Swal.close();
+                        lastError = 'Failed to resend code. Please try again.';
+                    }
+                    continue;
+                }
+
+                // User entered OTP and clicked Verify
+                if (otpCode) {
+                    Swal.fire({
+                        title: 'Verifying...',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading(),
+                    });
+
+                    try {
+                        await guest.verifyOtp(formData.email, otpCode.trim());
+                        Swal.close();
+                        otpVerified = true;
+                    } catch (verifyErr) {
+                        console.error('OTP Verification Error:', verifyErr);
+                        Swal.close();
+                        const msg = verifyErr?.response?.data?.message
+                            || (typeof verifyErr?.response?.data === 'string' ? verifyErr.response.data : null)
+                            || verifyErr?.friendlyMessage
+                            || verifyErr.message
+                            || 'Invalid OTP. Please try again.';
+                        lastError = msg;
                     }
                 }
-            });
-
-            if (!otpCode) {
-                return; // User cancelled
             }
-
-            Swal.fire({
-                title: 'Verifying...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            await guest.verifyOtp(formData.email, otpCode.trim());
-            Swal.close();
 
             // OTP verified successfully, proceed with booking creation
             await proceedToBookingCreation();
 
         } catch (error) {
-            console.error('OTP Verification Error:', error);
+            console.error('OTP Flow Error:', error);
             const message = error?.response?.data?.message || typeof error?.response?.data === 'string' ? error.response.data : error?.friendlyMessage || error.message || 'OTP verification failed';
             Swal.fire({ icon: 'error', title: 'Verification Failed', text: message, confirmButtonColor: '#d33' });
         }
