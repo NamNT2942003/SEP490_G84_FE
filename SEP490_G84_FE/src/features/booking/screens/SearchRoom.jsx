@@ -784,7 +784,7 @@ const SearchRoom = () => {
                                     <option value="priceAsc">Price: low to high</option>
                                     <option value="priceDesc">Price: high to low</option>
                                 </select>
-                                {filters.branchId && (
+                               
                                     <button
                                         className="btn btn-sm text-white fw-medium rounded-3 ms-2"
                                         style={{ backgroundColor: '#1877F2', minWidth: 120 }}
@@ -794,7 +794,7 @@ const SearchRoom = () => {
                                     >
                                         <i className="bi bi-info-square-fill me-2"></i>Hotel Rule
                                     </button>
-                                )}
+                           
                             </div>
                         </div>
 
