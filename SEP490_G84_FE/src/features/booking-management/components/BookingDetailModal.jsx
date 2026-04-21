@@ -274,6 +274,84 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                 )}
                             </InfoSection>
 
+                            {/* Cancellation Policy */}
+                            {(booking.cancellationPolicyName || booking.policyName || booking.appliedPolicyId) && (() => {
+                                const policyName = booking.cancellationPolicyName || booking.policyName || `Policy #${booking.appliedPolicyId}`;
+                                const policyType = String(booking.cancellationPolicyType || booking.policyType || "").trim().toUpperCase();
+                                const prepaidRate = Number(booking.prepaidRate ?? booking.cancellationPolicyPrepaidRate ?? 0);
+                                const refunRate   = Number(booking.refunRate ?? booking.cancellationPolicyRefunRate ?? 0);
+                                const dateRange   = booking.cancellationPolicyDateRange ?? booking.policyDateRange ?? null;
+                                const arrivalDate = booking.arrivalDate || booking.checkInDate;
+
+                                const total = Number(booking.totalAmount || 0);
+                                const prepaidAmt = Math.round(total * prepaidRate / 100);
+                                const refundAmt  = Math.round(total * refunRate  / 100);
+                                const retainAmt  = Math.max(0, total - refundAmt);
+
+                                // Tính deadline huỷ miễn phí
+                                let deadlineStr = null;
+                                if (arrivalDate && dateRange) {
+                                    const days = parseInt(dateRange, 10);
+                                    if (Number.isFinite(days) && days > 0) {
+                                        const dt = new Date(arrivalDate);
+                                        if (!isNaN(dt.getTime())) {
+                                            dt.setDate(dt.getDate() - days);
+                                            deadlineStr = dt.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+                                        }
+                                    }
+                                }
+
+                                const typeCfg = {
+                                    FREE_CANCEL:    { label: "Miễn phí huỷ",            dot: "#16a34a", bg: "#dcfce7", color: "#15803d" },
+                                    PARTIAL_REFUND: { label: "Hoàn một phần",            dot: "#d97706", bg: "#fef3c7", color: "#92400e" },
+                                    NON_REFUND:     { label: "Không hoàn tiền",          dot: "#dc2626", bg: "#fee2e2", color: "#991b1b" },
+                                    PAY_AT_HOTEL:   { label: "Thanh toán tại khách sạn", dot: "#2563eb", bg: "#dbeafe", color: "#1e40af" },
+                                }[policyType] || { label: policyType || "Chính sách chuẩn", dot: "#6b7280", bg: "#f3f4f6", color: "#374151" };
+
+                                return (
+                                    <InfoSection icon="bi-shield-check" title="Cancellation Policy">
+                                        {/* Badge + tên */}
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: typeCfg.bg, color: typeCfg.color }}>
+                                                <span style={{ width: 7, height: 7, borderRadius: "50%", background: typeCfg.dot, display: "inline-block" }} />
+                                                {typeCfg.label}
+                                            </span>
+                                            <span style={{ fontWeight: 700, fontSize: 13, color: "#1f2937" }}>{policyName}</span>
+                                        </div>
+
+                                        {/* 3 ô số tiền */}
+                                        {total > 0 && (
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: deadlineStr ? 10 : 0 }}>
+                                                <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #465c47" }}>
+                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Trả trước</div>
+                                                    <div style={{ fontSize: 14, fontWeight: 800, color: "#111827" }}>{formatVND(prepaidAmt)}</div>
+                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{prepaidRate}%</div>
+                                                </div>
+                                                <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: `3px solid ${refundAmt > 0 ? "#16a34a" : "#e5e7eb"}` }}>
+                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Hoàn nếu huỷ</div>
+                                                    <div style={{ fontSize: 14, fontWeight: 800, color: refundAmt > 0 ? "#16a34a" : "#dc2626" }}>{formatVND(refundAmt)}</div>
+                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{refunRate}%</div>
+                                                </div>
+                                                <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #e5e7eb" }}>
+                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>KS giữ</div>
+                                                    <div style={{ fontSize: 14, fontWeight: 800, color: "#374151" }}>{formatVND(retainAmt)}</div>
+                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{100 - refunRate}%</div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Deadline */}
+                                        {deadlineStr && (
+                                            <div style={{ fontSize: 12, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 7, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                                                <i className="bi bi-clock-history" />
+                                                Hoàn 100% nếu huỷ trước <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong>
+                                                <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({parseInt(dateRange, 10)} ngày trước check-in)</span>
+                                            </div>
+                                        )}
+                                    </InfoSection>
+                                );
+                            })()}
+
                             {/* Meta */}
                             <InfoSection icon="bi-info-circle" title="Metadata">
                                 <div className="info-row">

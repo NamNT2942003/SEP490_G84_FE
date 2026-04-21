@@ -75,6 +75,9 @@ const normalizePolicy = (policy = {}) => ({
     type: String(policy?.type || "").trim().toUpperCase(),
     prepaidRate: Number(policy?.prepaidRate ?? 0),
     refunRate: Number(policy?.refunRate ?? 0),
+    dateRange: policy?.dateRange ?? null,
+    activeTimeStart: policy?.activeTimeStart ?? null,
+    activeTimeEnd: policy?.activeTimeEnd ?? null,
 });
 
 const paymentTypeLabel = (value) => {
@@ -91,6 +94,24 @@ const paymentTypeLabel = (value) => {
 };
 
 const formatVnd = (amount) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount || 0);
+
+/**
+ * Tính ngày hạn huỷ miễn phí: arrivalDate - dateRange (ngày).
+ */
+const computeFreeCancelDeadline = (arrivalDate, dateRange) => {
+    if (!arrivalDate || !dateRange) return null;
+    const days = parseInt(dateRange, 10);
+    if (!Number.isFinite(days) || days <= 0) return null;
+    const dt = new Date(arrivalDate);
+    if (isNaN(dt.getTime())) return null;
+    dt.setDate(dt.getDate() - days);
+    return dt;
+};
+
+const formatDeadline = (dt) => {
+    if (!dt) return null;
+    return dt.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+};
 
 const resolvePayableRate = (option) => {
     if (!option) return 100;
@@ -1057,45 +1078,62 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         </div>
 
                         {/* Applied policy summary badge */}
-                        {selectedPolicy ? (
-                            <div className={`cbsm-policy-badge ${policyBadgeClass()}`} style={{ marginBottom: 10 }}>
-                                <div className="cbsm-policy-name">
-                                    {selectedPolicyType === "FREE_CANCEL" && <i className="bi bi-check-circle-fill me-1 text-success" />}
-                                    {selectedPolicyType === "NON_REFUND" && <i className="bi bi-x-circle-fill me-1 text-danger" />}
-                                    {selectedPolicyType === "PAY_AT_HOTEL" && <i className="bi bi-building-check me-1" />}
-                                    {selectedPolicyType === "PARTIAL_REFUND" && <i className="bi bi-arrow-left-right me-1" />}
-                                    {selectedPolicy.name}
-                                    {manualPolicyId ? (
-                                        <span style={{ fontSize: 10, fontWeight: 600, color: "#7c3aed", marginLeft: 6 }}>
-                                            <i className="bi bi-person-check me-1" />Staff selected
-                                        </span>
-                                    ) : (
-                                        <span style={{ fontSize: 10, fontWeight: 400, color: "#6b7280", marginLeft: 6 }}>(auto)</span>
+                        {selectedPolicy ? (() => {
+                            const appliedPrepaid = Math.round(estimatedGrandTotal * (selectedPolicy.prepaidRate || 0) / 100);
+                            const appliedRefund  = Math.round(estimatedGrandTotal * (selectedPolicy.refunRate  || 0) / 100);
+                            const appliedDeadline = formatDeadline(computeFreeCancelDeadline(form.arrivalDate, selectedPolicy.dateRange));
+                            return (
+                                <div className={`cbsm-policy-badge ${policyBadgeClass()}`} style={{ marginBottom: 10 }}>
+                                    <div className="cbsm-policy-name">
+                                        {selectedPolicyType === "FREE_CANCEL" && <i className="bi bi-check-circle-fill me-1 text-success" />}
+                                        {selectedPolicyType === "NON_REFUND" && <i className="bi bi-x-circle-fill me-1 text-danger" />}
+                                        {selectedPolicyType === "PAY_AT_HOTEL" && <i className="bi bi-building-check me-1" />}
+                                        {selectedPolicyType === "PARTIAL_REFUND" && <i className="bi bi-arrow-left-right me-1" />}
+                                        {selectedPolicy.name}
+                                        {manualPolicyId ? (
+                                            <span style={{ fontSize: 10, fontWeight: 600, color: "#7c3aed", marginLeft: 6 }}>
+                                                <i className="bi bi-person-check me-1" />Staff selected
+                                            </span>
+                                        ) : (
+                                            <span style={{ fontSize: 10, fontWeight: 400, color: "#6b7280", marginLeft: 6 }}>(auto)</span>
+                                        )}
+                                    </div>
+                                    {/* 3-column amounts */}
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, margin: "8px 0" }}>
+                                        <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #465c47" }}>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Trả trước</div>
+                                            <div style={{ fontSize: 12, fontWeight: 800, color: "#2f3f30" }}>{formatVnd(appliedPrepaid)}</div>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b" }}>{selectedPolicy.prepaidRate}%</div>
+                                        </div>
+                                        <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: `3px solid ${appliedRefund > 0 ? "#16a34a" : "#e5e7eb"}` }}>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Hoàn nếu huỷ</div>
+                                            <div style={{ fontSize: 12, fontWeight: 800, color: appliedRefund > 0 ? "#16a34a" : "#dc2626" }}>{formatVnd(appliedRefund)}</div>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b" }}>{selectedPolicy.refunRate}%</div>
+                                        </div>
+                                        <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #e5e7eb" }}>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>KS giữ</div>
+                                            <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>{formatVnd(estimatedGrandTotal - appliedRefund)}</div>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b" }}>{100 - (selectedPolicy.refunRate || 0)}%</div>
+                                        </div>
+                                    </div>
+                                    {appliedDeadline && (
+                                        <div style={{ fontSize: 10.5, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                                            <i className="bi bi-clock-history" />
+                                            Hoàn 100% nếu huỷ trước <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
+                                        </div>
+                                    )}
+                                    {manualPolicyId && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setManualPolicyId(null)}
+                                            style={{ marginTop: 4, fontSize: 11, color: "#6b7280", background: "none", border: "1px solid #d1d5db", borderRadius: 6, padding: "3px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                                        >
+                                            <i className="bi bi-arrow-counterclockwise" />Reset to auto
+                                        </button>
                                     )}
                                 </div>
-                                <div className="cbsm-policy-row">
-                                    <span>Prepayment</span>
-                                    <strong>{selectedPolicy.prepaidRate}%</strong>
-                                </div>
-                                <div className="cbsm-policy-row">
-                                    <span>Refund on cancel</span>
-                                    <strong>{selectedPolicy.refunRate}%</strong>
-                                </div>
-                                {manualPolicyId && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setManualPolicyId(null)}
-                                        style={{
-                                            marginTop: 8, fontSize: 11, color: "#6b7280", background: "none",
-                                            border: "1px solid #d1d5db", borderRadius: 6, padding: "3px 10px",
-                                            cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
-                                        }}
-                                    >
-                                        <i className="bi bi-arrow-counterclockwise" />Reset to auto
-                                    </button>
-                                )}
-                            </div>
-                        ) : cartItems.length > 0 ? (
+                            );
+                        })() : cartItems.length > 0 ? (
                             <div className="cbsm-muted" style={{ fontSize: 12, marginBottom: 10 }}>
                                 <i className="bi bi-info-circle me-1" />No policy linked to selected pricing. Select one below.
                             </div>
@@ -1117,6 +1155,12 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     const pType = String(p.type || "").trim().toUpperCase();
                                     const isSelected = Number(effectivePolicyId) === Number(pId);
                                     const isManuallySelected = Number(manualPolicyId) === Number(pId);
+
+                                    // Số tiền cụ thể
+                                    const cardPrepaid = Math.round(estimatedGrandTotal * (p.prepaidRate || 0) / 100);
+                                    const cardRefund  = Math.round(estimatedGrandTotal * (p.refunRate  || 0) / 100);
+                                    const cardRetain  = Math.max(0, estimatedGrandTotal - cardRefund);
+                                    const deadlineStr = formatDeadline(computeFreeCancelDeadline(form.arrivalDate, p.dateRange));
 
                                     const typeLabel = {
                                         FREE_CANCEL: { text: "Free cancellation", cls: "cbsm-rt-tag-green", icon: "bi-check-circle-fill text-success" },
@@ -1205,23 +1249,30 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                 </button>
                                             </div>
 
-                                            {/* Key figures: Prepaid + Refund */}
-                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: freeCancelDays || seasonLabel ? 8 : 0 }}>
-                                                <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px" }}>
-                                                    <div style={{ fontSize: 9.5, color: "#9aaa9b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>Prepayment</div>
-                                                    <div style={{ fontSize: 14, fontWeight: 800, color: "#2f3f30" }}>{p.prepaidRate}%</div>
+                                            {/* 3-column VNĐ amounts */}
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: (deadlineStr || seasonLabel) ? 8 : 0 }}>
+                                                <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #465c47" }}>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Trả trước</div>
+                                                    <div style={{ fontSize: 12, fontWeight: 800, color: "#2f3f30" }}>{formatVnd(cardPrepaid)}</div>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b" }}>{p.prepaidRate}%</div>
                                                 </div>
-                                                <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px" }}>
-                                                    <div style={{ fontSize: 9.5, color: "#9aaa9b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>Refund if cancelled</div>
-                                                    <div style={{ fontSize: 14, fontWeight: 800, color: p.refunRate > 0 ? "#16a34a" : "#dc2626" }}>{p.refunRate}%</div>
+                                                <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: `3px solid ${cardRefund > 0 ? "#16a34a" : "#e5e7eb"}` }}>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Hoàn nếu huỷ</div>
+                                                    <div style={{ fontSize: 12, fontWeight: 800, color: cardRefund > 0 ? "#16a34a" : "#dc2626" }}>{formatVnd(cardRefund)}</div>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b" }}>{p.refunRate}%</div>
+                                                </div>
+                                                <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #e5e7eb" }}>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>KS giữ</div>
+                                                    <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>{formatVnd(cardRetain)}</div>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b" }}>{100 - (p.refunRate || 0)}%</div>
                                                 </div>
                                             </div>
 
-                                            {/* Free cancellation window */}
-                                            {freeCancelDays > 0 && (
-                                                <div style={{ fontSize: 11, color: "#374151", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0 }}>
+                                            {deadlineStr && (
+                                                <div style={{ fontSize: 11, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
                                                     <i className="bi bi-clock-history me-1 text-success" />
-                                                    Full refund if cancelled <strong>{freeCancelDays} days</strong> before check-in
+                                                    Hoàn 100% nếu huỷ trước <strong>{deadlineStr}</strong>
+                                                    {p.dateRange && <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({parseInt(p.dateRange, 10)} ngày)</span>}
                                                 </div>
                                             )}
 
