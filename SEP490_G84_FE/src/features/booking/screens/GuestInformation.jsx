@@ -530,10 +530,14 @@ const GuestInformation = () => {
             setPolicyLoading(true);
         }
         try {
-            const data = await cancellationPolicyService.getPoliciesByBranch(branchId);
+            // Dùng getActivePoliciesForDate để lọc đúng:
+            //   1. Chỉ lấy policy có active = true
+            //   2. Lọc theo seasonal window của ngày check-in
+            // Nếu endpoint /active chưa deploy → tự fallback về client-side filter.
+            const data = await cancellationPolicyService.getActivePoliciesForDate(branchId, checkIn || null);
             const normalized = (Array.isArray(data) ? data : [])
                 .map(normalizePolicy)
-                .filter((policy) => policy && policy.active !== false)
+                .filter(Boolean)
                 .sort((a, b) => Number(a.id) - Number(b.id));
 
             const snapshot = normalized
@@ -575,7 +579,7 @@ const GuestInformation = () => {
                 setPolicyLoading(false);
             }
         }
-    }, [branchId, hasLoadedPolicies]);
+    }, [branchId, checkIn, hasLoadedPolicies]);
 
     useEffect(() => {
         refreshPolicies(false);
