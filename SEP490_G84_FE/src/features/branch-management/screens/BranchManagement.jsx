@@ -118,16 +118,16 @@ const ModalHotelRule = ({ branch, onClose }) => {
             </div>
             <div className="modal-body p-4 pt-1">
               <form onSubmit={handleSave} className="mb-4">
-                <div className="row g-2 align-items-end">
+                <div className="row g-2">
                   <div className="col-md-4">
                     <label className="form-label mb-1">Rule Name *</label>
                     <input type="text" className="form-control form-control-sm" value={ruleName} onChange={e=>setRuleName(e.target.value)} required />
                   </div>
                   <div className="col-md-6">
                     <label className="form-label mb-1">Description</label>
-                    <input type="text" className="form-control form-control-sm" value={ruleDesc} onChange={e=>setRuleDesc(e.target.value)} />
+                    <textarea className="form-control form-control-sm" rows="3" value={ruleDesc} onChange={e=>setRuleDesc(e.target.value)} />
                   </div>
-                  <div className="col-md-2">
+                  <div className="col-md-2 d-flex flex-column justify-content-end">
                     <button type="submit" className="btn btn-sm btn-primary w-100">
                       {editingRule ? "Update" : "Add"}
                     </button>
@@ -152,7 +152,7 @@ const ModalHotelRule = ({ branch, onClose }) => {
                       {rules.map(r => (
                         <tr key={r.id}>
                           <td>{r.name}</td>
-                          <td>{r.description}</td>
+                            <td style={{ whiteSpace: "pre-wrap" }}>{r.description}</td>
                           <td>
                             <button className="btn btn-sm btn-light p-1 me-1" onClick={() => handleEdit(r)}><i className="bi bi-pencil" /></button>
                             <button className="btn btn-sm btn-light p-1 text-danger" onClick={() => handleDelete(r.id)}><i className="bi bi-trash" /></button>
