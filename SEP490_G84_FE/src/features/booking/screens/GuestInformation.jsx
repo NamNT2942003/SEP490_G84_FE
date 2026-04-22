@@ -1006,10 +1006,10 @@ const GuestInformation = () => {
                         Swal.close();
                         otpVerified = true;
                     } catch (verifyErr) {
-                        console.error('OTP Verification Error:', verifyErr);
-                        console.error('OTP Verify Response Status:', verifyErr?.response?.status);
-                        console.error('OTP Verify Response Data:', verifyErr?.response?.data);
-                        console.error('OTP sent email:', formData.email, '| OTP entered:', otpCode.trim());
+                        console.log('OTP Verification Error:', verifyErr);
+                        console.log('OTP Verify Response Status:', verifyErr?.response?.status);
+                        console.log('OTP Verify Response Data:', verifyErr?.response?.data);
+                        console.log('OTP sent email:', formData.email, '| OTP entered:', otpCode?.trim());
                         Swal.close();
                         // Parse error message — backend may return plain string or { message: "..." }
                         const respData = verifyErr?.response?.data;
@@ -1018,6 +1018,7 @@ const GuestInformation = () => {
                             ? respData
                             : (respData?.message || verifyErr?.friendlyMessage || verifyErr.message || 'Invalid OTP. Please try again.');
                         lastError = `${msg} (HTTP ${status || 'N/A'})`;
+                        alert('Lỗi xác thực OTP: ' + lastError);
                         // Small delay to prevent SweetAlert race condition between close() and next fire()
                         await new Promise(r => setTimeout(r, 150));
                     }
@@ -1107,6 +1108,7 @@ const GuestInformation = () => {
                 || error?.friendlyMessage
                 || error?.message
                 || 'Unable to create booking';
+            alert('Lỗi Booking Creation: ' + message);
             Swal.fire({ icon: 'error', title: 'Booking Error', text: message, confirmButtonColor: '#d33' });
         }
     };
