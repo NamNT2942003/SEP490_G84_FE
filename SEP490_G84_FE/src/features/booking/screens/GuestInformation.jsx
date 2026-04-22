@@ -1011,7 +1011,6 @@ const GuestInformation = () => {
                         otpVerified = true;
                     } catch (verifyErr) {
                         console.error('OTP Verification Error:', verifyErr);
-                        Swal.close();
                         // Parse error message — backend may return plain string or { message: "..." }
                         const respData = verifyErr?.response?.data;
                         const msg = (typeof respData === 'string' && respData.length > 0)
@@ -1019,7 +1018,7 @@ const GuestInformation = () => {
                             : (respData?.message || verifyErr?.friendlyMessage || verifyErr.message || 'Invalid OTP. Please try again.');
                         lastError = msg;
                         // Small delay to prevent SweetAlert race condition between close() and next fire()
-                        await new Promise(r => setTimeout(r, 150));
+                        await new Promise(r => setTimeout(r, 300));
                     }
                 }
             }
@@ -1096,9 +1095,16 @@ const GuestInformation = () => {
                 },
             });
         } catch (error) {
-            Swal.close();
             console.error('Booking error:', error);
-            const message = error?.response?.data?.message || typeof error?.response?.data === 'string' ? error.response.data : error?.friendlyMessage || error.message || 'Unable to create booking';
+            const message = (typeof error?.response?.data === 'string' && error.response.data)
+                || error?.response?.data?.message
+                || error?.friendlyMessage
+                || error?.message
+                || 'Unable to create booking';
+            
+            // Wait for SweetAlert to be ready to transition
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
             Swal.fire({ icon: 'error', title: 'Booking Error', text: message, confirmButtonColor: '#d33' });
         }
     };
