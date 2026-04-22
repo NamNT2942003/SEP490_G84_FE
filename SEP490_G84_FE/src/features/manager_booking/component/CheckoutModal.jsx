@@ -277,9 +277,6 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                                 )}
                               </div>
                             </div>
-                            <div className="text-end" style={{ whiteSpace: 'nowrap' }}>
-                              <div className="text-muted" style={{ fontSize: '0.7rem' }}>Room Price</div>
-                              <div className="fw-bold">{fmtMoney(room.roomPrice)}</div>
                             </div>
                           </div>
                         </div>
@@ -353,21 +350,6 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                   {/* ═══ TỔNG KẾT ═══ */}
                   <div className="card border-0 shadow-sm">
                     <div className="card-body py-2 px-3">
-                      <div className="d-flex justify-content-between align-items-center py-1" style={{ fontSize: '0.88rem' }}>
-                        <span className="text-dark">
-                          Room Charge
-                          {roomChargePaid && <span className="badge bg-success ms-2" style={{ fontSize: '0.6rem' }}>Paid</span>}
-                        </span>
-                        <span className="fw-bold">{fmtMoney(totalRoomCharge)}</span>
-                      </div>
-                      <div className="d-flex justify-content-between align-items-center py-1 fw-bold" style={{ fontSize: '0.95rem', borderTop: '1px solid #eee' }}>
-                        <span>GRAND TOTAL</span>
-                        <span>{fmtMoney(grandTotal)}</span>
-                      </div>
-                      <div className="d-flex justify-content-between align-items-center py-1 text-success" style={{ fontSize: '0.85rem' }}>
-                        <span>Already Paid</span>
-                        <span>- {fmtMoney(alreadyPaid)}</span>
-                      </div>
                       <div className="d-flex justify-content-between align-items-center py-1 text-danger fw-bold" style={{ fontSize: '1.05rem', borderTop: '2px solid #dc3545' }}>
                         <span>SERVICE AMOUNT DUE</span>
                         <span>{amountDue > 0 ? fmtMoney(amountDue) : '0'}</span>
@@ -557,9 +539,6 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
               {room.roomHistory?.length > 1 && ` [${room.roomHistory.join('→')}]`}
             </div>
             <div style={{ fontSize: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Room Charge</span><span>{fmtMoney(room.roomPrice)}</span>
-              </div>
               {room.services?.map((svc, sIdx) => (
                 <div key={sIdx} style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: 8 }}>
                   <span>- {svc.name} x{svc.quantity}{svc.paid ? ' ✓' : ''}</span>
@@ -571,12 +550,6 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
         ))}
 
         <div style={{ borderTop: '1px dashed #000', paddingTop: '5px', fontSize: '14px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-            <strong>GRAND TOTAL:</strong><strong>{fmtMoney(grandTotal)}</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-            <span>Already Paid:</span><span>- {fmtMoney(alreadyPaid)}</span>
-          </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px', marginTop: '8px' }}>
             <span>SERVICE DUE:</span><span>{amountDue > 0 ? fmtMoney(amountDue) : '0'}</span>
           </div>
