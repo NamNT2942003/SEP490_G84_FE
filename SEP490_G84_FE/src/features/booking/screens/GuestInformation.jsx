@@ -1406,28 +1406,7 @@ const GuestInformation = () => {
                                 <i className="bi bi-person-badge text-success fs-5"></i>
                                 <span>Please do not bring more people than the room can accommodate!</span>
                             </div>
-                            <div className="mb-2 fw-medium text-dark">Add your estimated arrival time (optional)</div>
-                            <select
-                                id="estimatedArrivalTime"
-                                name="estimatedArrivalTime"
-                                className="form-select w-50"
-                                value={formData.estimatedArrivalTime}
-                                onChange={handleInputChange}
-                            >
-                                <option value="">Please choose</option>
-                                <option value="14:00 - 15:00">14:00 - 15:00</option>
-                                <option value="15:00 - 16:00">15:00 - 16:00</option>
-                                <option value="16:00 - 17:00">16:00 - 17:00</option>
-                                <option value="17:00 - 18:00">17:00 - 18:00</option>
-                                <option value="18:00 - 19:00">18:00 - 19:00</option>
-                                <option value="19:00 - 20:00">19:00 - 20:00</option>
-                                <option value="20:00 - 21:00">20:00 - 21:00</option>
-                                <option value="21:00 - 22:00">21:00 - 22:00</option>
-                                <option value="22:00 - 23:00">22:00 - 23:00</option>
-                                <option value="23:00 - 00:00">23:00 - 00:00</option>
-                                <option value="Late (After 00:00)">Late</option>
-                            </select>
-                            <div className="text-muted small mt-2">Time according to Hanoi time zone</div>
+                           
                         </div>
                     </div>
 
