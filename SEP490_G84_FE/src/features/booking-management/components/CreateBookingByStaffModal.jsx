@@ -1473,6 +1473,52 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         )}
                     </div>
 
+                    {/* Policy Overrides */}
+                    <div className="cbsm-sidebar-section">
+                        <div className="cbsm-sidebar-title">
+                            <i className="bi bi-sliders me-1" />Policy Overrides (Staff)
+                        </div>
+                        <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10, lineHeight: 1.4 }}>
+                            Leave blank to use default policy values.
+                        </div>
+                        
+                        <div className="cbsm-field" style={{ marginBottom: 8 }}>
+                            <label style={{ fontSize: 11, color: "#4b5563", marginBottom: 2 }}>Prepaid Amount (VND)</label>
+                            <input
+                                type="number"
+                                min={0}
+                                value={form.customPrepaidAmount}
+                                onChange={(e) => setForm((prev) => ({ ...prev, customPrepaidAmount: e.target.value }))}
+                                placeholder="e.g. 500000"
+                                style={{ padding: "4px 8px", fontSize: 12 }}
+                            />
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                            <div className="cbsm-field">
+                                <label style={{ fontSize: 11, color: "#4b5563", marginBottom: 2 }}>Refund Rate (%)</label>
+                                <input
+                                    type="number"
+                                    min={0} max={100}
+                                    value={form.customRefundRate}
+                                    onChange={(e) => setForm((prev) => ({ ...prev, customRefundRate: e.target.value }))}
+                                    placeholder="0 - 100"
+                                    style={{ padding: "4px 8px", fontSize: 12 }}
+                                />
+                            </div>
+                            <div className="cbsm-field">
+                                <label style={{ fontSize: 11, color: "#4b5563", marginBottom: 2 }}>Free Cancel Days</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    value={form.customFreeCancelDays}
+                                    onChange={(e) => setForm((prev) => ({ ...prev, customFreeCancelDays: e.target.value }))}
+                                    placeholder="e.g. 7"
+                                    style={{ padding: "4px 8px", fontSize: 12 }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Payment type */}
                     {cartItems.length > 0 && (
                         <div className="cbsm-sidebar-section">
@@ -1536,44 +1582,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                     </div>
                 </div>
 
-                <div className="cbsm-card">
-                    <div className="cbsm-card-title">Policy Overrides (Staff Only)</div>
-                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>
-                        Leave blank to use default calculated values from the policy. These overridden values will be permanently saved for this booking.
-                    </div>
-                    <div className="cbsm-grid cbsm-grid-3">
-                        <div className="cbsm-field">
-                            <label>Prepaid Amount (VND)</label>
-                            <input
-                                type="number"
-                                min={0}
-                                value={form.customPrepaidAmount}
-                                onChange={(e) => setForm((prev) => ({ ...prev, customPrepaidAmount: e.target.value }))}
-                                placeholder="e.g. 500000"
-                            />
-                        </div>
-                        <div className="cbsm-field">
-                            <label>Refund Rate (%)</label>
-                            <input
-                                type="number"
-                                min={0} max={100}
-                                value={form.customRefundRate}
-                                onChange={(e) => setForm((prev) => ({ ...prev, customRefundRate: e.target.value }))}
-                                placeholder="e.g. 100"
-                            />
-                        </div>
-                        <div className="cbsm-field">
-                            <label>Free Cancel Days</label>
-                            <input
-                                type="number"
-                                min={0}
-                                value={form.customFreeCancelDays}
-                                onChange={(e) => setForm((prev) => ({ ...prev, customFreeCancelDays: e.target.value }))}
-                                placeholder="e.g. 7"
-                            />
-                        </div>
-                    </div>
-                </div>
+
 
                 <div className="cbsm-card">
                     <div className="cbsm-card-title">Estimated Price (with modifiers)</div>
