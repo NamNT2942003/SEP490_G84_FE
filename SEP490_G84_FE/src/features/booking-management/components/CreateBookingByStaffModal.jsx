@@ -446,6 +446,25 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             if (selectedPolicyIds.length > 1) {
                 return "Selected pricing packages are using different cancellation policies. Please use one consistent policy for all room lines.";
             }
+
+            if (form.customPrepaidAmount !== "" && form.customPrepaidAmount != null) {
+                const amt = Number(form.customPrepaidAmount);
+                if (!Number.isFinite(amt) || amt < 0) {
+                    return "Prepaid Amount override must be a valid number >= 0.";
+                }
+            }
+            if (form.customRefundRate !== "" && form.customRefundRate != null) {
+                const rate = Number(form.customRefundRate);
+                if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+                    return "Refund Rate override must be a number between 0 and 100.";
+                }
+            }
+            if (form.customFreeCancelDays !== "" && form.customFreeCancelDays != null) {
+                const days = Number(form.customFreeCancelDays);
+                if (!Number.isInteger(days) || days < 0) {
+                    return "Free Cancel Days override must be an integer >= 0.";
+                }
+            }
         }
 
         return "";
