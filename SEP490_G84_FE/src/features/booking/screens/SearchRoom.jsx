@@ -777,7 +777,7 @@ const SearchRoom = () => {
                     </div>
 
                     <div className="col-lg-9 col-md-8">
-                        <div className="d-flex align-items-center gap-2 mb-3">
+                        <div className="d-flex align-items-center gap-2 mb-3" style={{ marginTop: '8px', paddingTop: '4px' }}>
                             <span className="text-muted" style={{ fontSize: '.82rem' }}><i className="bi bi-sort-down me-1"></i>Sort by:</span>
                             <select className="sort-sel" value={filters.sortPrice} onChange={handleSortChange}>
                                 <option value="priceAsc">Price: low to high</option>
@@ -790,7 +790,7 @@ const SearchRoom = () => {
                                 </span>
                                 <button
                                     className="btn btn-sm text-white fw-medium"
-                                    style={{ backgroundColor: '#5C6F4E', minWidth: 120, borderRadius: '8px', border: 'none', padding: '6px 16px', transition: 'all 0.2s' }}
+                                    style={{ backgroundColor: '#5C6F4E', minWidth: 120, borderRadius: '8px', border: 'none', padding: '6px 16px', transition: 'all 0.2s', position: 'relative', top: '2px' }}
                                     onClick={handleOpenRules}
                                     onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(92,111,78,0.25)', backgroundColor: '#4a5b3f' })}
                                     onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: 'none', backgroundColor: '#5C6F4E' })}
