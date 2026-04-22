@@ -1011,13 +1011,17 @@ const GuestInformation = () => {
                         otpVerified = true;
                     } catch (verifyErr) {
                         console.error('OTP Verification Error:', verifyErr);
+                        console.error('OTP Verify Response Status:', verifyErr?.response?.status);
+                        console.error('OTP Verify Response Data:', verifyErr?.response?.data);
+                        console.error('OTP sent email:', formData.email, '| OTP entered:', otpCode.trim());
                         Swal.close();
                         // Parse error message — backend may return plain string or { message: "..." }
                         const respData = verifyErr?.response?.data;
+                        const status = verifyErr?.response?.status;
                         const msg = (typeof respData === 'string' && respData.length > 0)
                             ? respData
                             : (respData?.message || verifyErr?.friendlyMessage || verifyErr.message || 'Invalid OTP. Please try again.');
-                        lastError = msg;
+                        lastError = `${msg} (HTTP ${status || 'N/A'})`;
                         // Small delay to prevent SweetAlert race condition between close() and next fire()
                         await new Promise(r => setTimeout(r, 150));
                     }
