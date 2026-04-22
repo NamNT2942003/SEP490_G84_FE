@@ -478,8 +478,16 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         const err = validateStep(currentStep);
         if (err) {
             setError(err);
+            Swal.fire({
+                icon: "warning",
+                title: "Vui lòng hoàn thiện thông tin",
+                text: err,
+                confirmButtonColor: "#465c47",
+                confirmButtonText: "Đã hiểu",
+            });
             return;
         }
+        setError("");
         setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
     };
 
