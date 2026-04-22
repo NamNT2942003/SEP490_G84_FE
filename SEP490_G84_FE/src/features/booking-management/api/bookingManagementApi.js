@@ -202,6 +202,17 @@ const bookingManagementApi = {
         );
         return response.data;
     },
+
+    /**
+     * Lấy lịch sử sửa đổi (amendments)
+     * @param {number} bookingId 
+     */
+    getAmendmentHistory: async (bookingId) => {
+        const response = await apiClient.get(
+            `${ADMIN_BOOKING_BASE}/${bookingId}/amendments`
+        );
+        return response.data;
+    },
 };
 
 export default bookingManagementApi;

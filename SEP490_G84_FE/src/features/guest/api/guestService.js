@@ -51,4 +51,22 @@ export const guest = {
         const response = await apiClient.post(`${endpoint}?token=${encodeURIComponent(token)}`);
         return response.data;
     },
+
+    /**
+     * Preview chi tiết hủy/hoàn cho guest amendment.
+     */
+    previewAmendment: async (token, bookingCode, payload) => {
+        const endpoint = API_ENDPOINTS.GUEST.AMENDMENT_PREVIEW.replace(":bookingCode", encodeURIComponent(bookingCode));
+        const response = await apiClient.post(`${endpoint}?token=${encodeURIComponent(token)}`, payload);
+        return response.data;
+    },
+
+    /**
+     * Xác nhận và áp dụng amendment.
+     */
+    applyAmendment: async (token, bookingCode, payload) => {
+        const endpoint = API_ENDPOINTS.GUEST.AMENDMENT_APPLY.replace(":bookingCode", encodeURIComponent(bookingCode));
+        const response = await apiClient.post(`${endpoint}?token=${encodeURIComponent(token)}`, payload);
+        return response.data;
+    },
 };

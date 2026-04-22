@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import bookingManagementApi from "../api/bookingManagementApi";
 import BookingAmendmentModal from "./BookingAmendmentModal";
+import BookingAmendmentHistory from "./BookingAmendmentHistory";
 import "./BookingDetailModal.css";
 import Buttons from "@/components/ui/Buttons";
 
@@ -362,6 +363,11 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                 </div>
                             </InfoSection>
                         </>
+                    )}
+
+                    {/* Amendment History */}
+                    {booking && (
+                        <BookingAmendmentHistory bookingId={booking.bookingId} />
                     )}
                 </div>
 

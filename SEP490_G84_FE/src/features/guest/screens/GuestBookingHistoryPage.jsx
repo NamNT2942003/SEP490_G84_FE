@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { guest } from "../api/guestService.js";
 import BookingCard from "../components/BookingCard.jsx";
+import GuestAmendmentModal from "../components/GuestAmendmentModal.jsx";
 import { Link } from "react-router-dom";
 import { COLORS } from "../../../constants";
 import Swal from "sweetalert2";
@@ -100,22 +101,26 @@ export default function GuestBookingHistoryPage() {
     const [activeTab, setActiveTab]   = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const [requestingBookingCode, setRequestingBookingCode] = useState("");
+    const [amendingBooking, setAmendingBooking] = useState(null);
+
+    const fetchBookings = async () => {
+        try {
+            const data = await guest.getBookingsByToken(token);
+            setBookings(data);
+            setPageStatus(data.length === 0 ? "empty" : "success");
+        } catch (err) {
+            const code = err.response?.status;
+            if (code === 410) setPageStatus("expired");
+            else {
+                setErrorMsg(err.response?.data || "Invalid link.");
+                setPageStatus("invalid");
+            }
+        }
+    };
 
     useEffect(() => {
         if (!token) { setPageStatus("invalid"); return; }
-        guest.getBookingsByToken(token)
-            .then(data => {
-                setBookings(data);
-                setPageStatus(data.length === 0 ? "empty" : "success");
-            })
-            .catch(err => {
-                const code = err.response?.status;
-                if (code === 410) setPageStatus("expired");
-                else {
-                    setErrorMsg(err.response?.data || "Invalid link.");
-                    setPageStatus("invalid");
-                }
-            });
+        fetchBookings();
     }, [token]);
 
     const filtered = activeTab === "all" ? bookings : bookings.filter(b => b.status === activeTab);
@@ -282,6 +287,15 @@ export default function GuestBookingHistoryPage() {
                                                     )}
                                                     {!b.cancelRequested && b.status !== "CANCELLED" && (
                                                         <div style={S.bookingActions}>
+                                                            {b.source !== "OTA" && !["CHECKED_IN", "CHECKED_OUT"].includes(b.status) && (
+                                                                <button
+                                                                    type="button"
+                                                                    style={{ ...S.requestBtn, borderColor: C.primary, color: C.primary, marginRight: 8 }}
+                                                                    onClick={() => setAmendingBooking(b)}
+                                                                >
+                                                                    Edit booking
+                                                                </button>
+                                                            )}
                                                             <button
                                                                 type="button"
                                                                 style={S.requestBtn}
@@ -323,6 +337,20 @@ export default function GuestBookingHistoryPage() {
                     )}
                 </div>
             </div>
+
+            {/* Guest Amendment Modal */}
+            {amendingBooking && (
+                <GuestAmendmentModal
+                    show={true}
+                    booking={amendingBooking}
+                    token={token}
+                    onHide={() => setAmendingBooking(null)}
+                    onSuccess={() => {
+                        setAmendingBooking(null);
+                        fetchBookings();
+                    }}
+                />
+            )}
         </>
     );
 }
