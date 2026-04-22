@@ -97,25 +97,25 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
     const isLastRoom = pendingCount === 1;
     const hasRoomDebt = isLastRoom && !roomChargePaid;
 
-    if (hasRoomDebt) {
-      const roomDebt = Number(totalRoomCharge || 0) - Number(booking?.prepaidAmount || 0);
+    if (Number(roomBilling?.roomBalance || 0) > 0 && isLastRoom) {
+      const roomDebt = Number(roomBilling.roomBalance);
       const debtConfirm = await Swal.fire({
         icon: 'warning',
-        title: '⚠️ Room Balance Not Collected',
+        title: '⚠️ Checkout with Debt?',
         html: `
           <div style="text-align:left; font-size:0.9rem;">
             <div style="margin-bottom:8px;">
-              <b>Room Charge:</b> ${fmtMoney(totalRoomCharge)} VND<br/>
-              <b>Outstanding Debt:</b> <span style="color:#dc3545; font-weight:700;">${fmtMoney(Math.max(0, roomDebt))} VND</span>
+              <b>Outstanding Room Debt:</b> <span style="color:#dc3545; font-weight:700;">${fmtMoney(roomDebt)} VND</span>
             </div>
             <div style="padding:10px; background:#fff3cd; border-radius:6px; color:#856404;">
-              This is the <b>last room</b>. Guest will check out with an <b>unpaid room balance</b>.<br/>
-              This debt will be recorded in the system.
+              This is the <b>last room</b>. Are you sure you want to proceed?<br/>
+              This checkout will <b>only collect service charges</b>.<br/>
+              The room debt will be recorded in the system.
             </div>
           </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Confirm Checkout with Debt',
+        confirmButtonText: 'Confirm Checkout',
         confirmButtonColor: '#dc3545',
         cancelButtonText: 'Cancel',
       });
@@ -158,25 +158,25 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
     if (!method) method = 'CASH'; // fallback if 0 due
 
     // Check if room balance is unpaid
-    if (!roomChargePaid) {
-      const roomDebt = Number(totalRoomCharge || 0) - Number(booking?.prepaidAmount || 0);
+    if (Number(roomBilling?.roomBalance || 0) > 0) {
+      const roomDebt = Number(roomBilling.roomBalance);
       const debtConfirm = await Swal.fire({
         icon: 'warning',
-        title: '⚠️ Room Balance Not Collected',
+        title: '⚠️ Checkout with Debt?',
         html: `
           <div style="text-align:left; font-size:0.9rem;">
             <div style="margin-bottom:8px;">
-              <b>Room Charge:</b> ${fmtMoney(totalRoomCharge)} VND<br/>
-              <b>Outstanding Debt:</b> <span style="color:#dc3545; font-weight:700;">${fmtMoney(Math.max(0, roomDebt))} VND</span>
+              <b>Outstanding Room Debt:</b> <span style="color:#dc3545; font-weight:700;">${fmtMoney(roomDebt)} VND</span>
             </div>
             <div style="padding:10px; background:#fff3cd; border-radius:6px; color:#856404;">
-              Guest will check out with an <b>unpaid room balance</b>.<br/>
-              This debt will be recorded in the system.
+              Are you sure you want to proceed?<br/>
+              This checkout will <b>only collect service charges</b>.<br/>
+              The room debt will be recorded in the system.
             </div>
           </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Confirm Checkout with Debt',
+        confirmButtonText: 'Confirm Checkout',
         confirmButtonColor: '#dc3545',
         cancelButtonText: 'Cancel',
       });
@@ -368,10 +368,16 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                         <span>Already Paid</span>
                         <span>- {fmtMoney(alreadyPaid)}</span>
                       </div>
-                      <div className="d-flex justify-content-between align-items-center py-1 text-danger fw-bold" style={{ fontSize: '1.1rem', borderTop: '2px solid #dc3545' }}>
-                        <span>AMOUNT DUE</span>
+                      <div className="d-flex justify-content-between align-items-center py-1 text-danger fw-bold" style={{ fontSize: '1.05rem', borderTop: '2px solid #dc3545' }}>
+                        <span>SERVICE AMOUNT DUE</span>
                         <span>{amountDue > 0 ? fmtMoney(amountDue) : '0'}</span>
                       </div>
+                      {Number(roomBilling.roomBalance || 0) > 0 && (
+                        <div className="d-flex justify-content-between align-items-center py-1 text-warning-emphasis fw-bold" style={{ fontSize: '0.95rem', borderTop: '1px dashed #ffc107', marginTop: 4 }}>
+                          <span>UNPAID ROOM DEBT</span>
+                          <span>{fmtMoney(roomBilling.roomBalance)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -384,12 +390,12 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                   </h6>
 
                   {/* WARNING: Room balance chưa thu */}
-                  {!roomChargePaid && (
+                  {Number(roomBilling.roomBalance || 0) > 0 && (
                     <div className="mb-2 p-2 rounded border border-warning" style={{ background: '#fff8e1', fontSize: '0.78rem' }}>
                       <i className="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-                      <strong>Room balance not fully collected!</strong>
+                      <strong>Outstanding Room Debt: {fmtMoney(roomBilling.roomBalance)} VND</strong>
                       <div className="text-muted mt-1">
-                        You will be asked to confirm before checking out with an unpaid room balance.
+                        This checkout only collects service charges. Room debt will be recorded and collected later.
                       </div>
                     </div>
                   )}
@@ -569,11 +575,16 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
             <strong>GRAND TOTAL:</strong><strong>{fmtMoney(grandTotal)}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-            <span>Paid:</span><span>- {fmtMoney(alreadyPaid)}</span>
+            <span>Already Paid:</span><span>- {fmtMoney(alreadyPaid)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px' }}>
-            <span>DUE:</span><span>{amountDue > 0 ? fmtMoney(amountDue) : '0'}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px', marginTop: '8px' }}>
+            <span>SERVICE DUE:</span><span>{amountDue > 0 ? fmtMoney(amountDue) : '0'}</span>
           </div>
+          {Number(roomBilling.roomBalance || 0) > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px', color: '#dc3545', marginTop: '4px' }}>
+              <span>UNPAID ROOM DEBT:</span><span>{fmtMoney(roomBilling.roomBalance)}</span>
+            </div>
+          )}
         </div>
 
         {amountDue > 0 && paymentMethod === 'TRANSFER' && (
