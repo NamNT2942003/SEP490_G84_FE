@@ -17,13 +17,7 @@ const C = {
 const radius = { sm: '8px', md: '12px', lg: '16px' };
 const font = "'DM Sans', sans-serif";
 
-function copyToClipboard(text) {
-  navigator.clipboard.writeText(text).then(() => {
-    Swal.fire({ icon: 'success', title: 'Copied!', text: text, timer: 1200, showConfirmButton: false });
-  }).catch(() => {
-    Swal.fire({ icon: 'error', title: 'Failed', text: 'Could not copy to clipboard', timer: 1500, showConfirmButton: false });
-  });
-}
+
 
 function ContactRow({ label, name, phone, email, roomName }) {
   return (
@@ -42,22 +36,6 @@ function ContactRow({ label, name, phone, email, roomName }) {
       {phone && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
           <span style={{ fontSize: '13px', color: C.TEXT_DARK }}>📱 {phone}</span>
-          <button
-            onClick={() => copyToClipboard(phone)}
-            style={{
-              padding: '2px 8px', borderRadius: '4px', border: `1px solid ${C.BORDER}`,
-              background: C.SURFACE, cursor: 'pointer', fontSize: '11px', fontWeight: 600,
-              color: C.MUTED, fontFamily: font,
-            }}
-          >📋 Copy</button>
-          <a
-            href={`tel:${phone.replace(/\s/g, '')}`}
-            style={{
-              padding: '2px 8px', borderRadius: '4px', border: '1px solid #2e7d32',
-              background: '#e8f5e9', textDecoration: 'none', fontSize: '11px', fontWeight: 600,
-              color: '#2e7d32', fontFamily: font,
-            }}
-          >📞 Call</a>
         </div>
       )}
 
