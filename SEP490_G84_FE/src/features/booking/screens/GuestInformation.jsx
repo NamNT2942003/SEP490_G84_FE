@@ -1029,7 +1029,11 @@ const GuestInformation = () => {
 
         } catch (error) {
             console.error('OTP Flow Error:', error);
-            const message = error?.response?.data?.message || typeof error?.response?.data === 'string' ? error.response.data : error?.friendlyMessage || error.message || 'OTP verification failed';
+            const message = (typeof error?.response?.data === 'string' && error.response.data)
+                || error?.response?.data?.message
+                || error?.friendlyMessage
+                || error?.message
+                || 'OTP verification failed';
             Swal.fire({ icon: 'error', title: 'Verification Failed', text: message, confirmButtonColor: '#d33' });
         } finally {
             setIsSubmitting(false);
@@ -1098,7 +1102,11 @@ const GuestInformation = () => {
         } catch (error) {
             Swal.close();
             console.error('Booking error:', error);
-            const message = error?.response?.data?.message || typeof error?.response?.data === 'string' ? error.response.data : error?.friendlyMessage || error.message || 'Unable to create booking';
+            const message = (typeof error?.response?.data === 'string' && error.response.data)
+                || error?.response?.data?.message
+                || error?.friendlyMessage
+                || error?.message
+                || 'Unable to create booking';
             Swal.fire({ icon: 'error', title: 'Booking Error', text: message, confirmButtonColor: '#d33' });
         }
     };
