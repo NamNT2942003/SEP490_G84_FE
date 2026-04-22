@@ -783,15 +783,21 @@ const SearchRoom = () => {
                                 <option value="priceAsc">Price: low to high</option>
                                 <option value="priceDesc">Price: high to low</option>
                             </select>
-                            <button
-                                className="btn btn-sm text-white fw-medium rounded-3 ms-2"
-                                style={{ backgroundColor: '#5C6F4E', minWidth: 120, transition: 'all 0.2s' }}
-                                onClick={handleOpenRules}
-                                onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(92,111,78,0.25)', backgroundColor: '#4a5b3f' })}
-                                onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: 'none', backgroundColor: '#5C6F4E' })}
-                            >
-                                <i className="bi bi-journal-check me-2"></i>Hotel Rules
-                            </button>
+                            
+                            <div className="ms-auto d-flex align-items-center gap-2">
+                                <span className="text-muted fst-italic d-none d-md-inline" style={{ fontSize: '0.82rem' }}>
+                                    (Please read the hotel rules before booking)
+                                </span>
+                                <button
+                                    className="btn btn-sm text-white fw-medium"
+                                    style={{ backgroundColor: '#5C6F4E', minWidth: 120, borderRadius: '8px', border: 'none', padding: '6px 16px', transition: 'all 0.2s' }}
+                                    onClick={handleOpenRules}
+                                    onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(92,111,78,0.25)', backgroundColor: '#4a5b3f' })}
+                                    onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: 'none', backgroundColor: '#5C6F4E' })}
+                                >
+                                    <i className="bi bi-journal-check me-2"></i>Hotel Rules
+                                </button>
+                            </div>
                         </div>
 
                         <div className="results-wrap">
