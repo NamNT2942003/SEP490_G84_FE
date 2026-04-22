@@ -29,6 +29,9 @@ const initialFormState = {
     staffNote: "",
     isPaidInitially: false,
     paymentMethod: "CASH",
+    customPrepaidAmount: "",
+    customRefundRate: "",
+    customFreeCancelDays: "",
     rooms: [makeEmptyRoom()],
 };
 
@@ -623,9 +626,12 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         return Math.max(0, roomTotalAfterRoomModifiers + bookingModifierDeltaTotal);
     }, [roomTotalAfterRoomModifiers, bookingModifierDeltaTotal]);
 
+    const prepaidAmtBase = selectedPolicy ? Math.round(estimatedGrandTotal * (selectedPolicy.prepaidRate || 0) / 100) : estimatedGrandTotal;
+
     const payableNowAmount = useMemo(() => {
-        return estimatedGrandTotal;
-    }, [estimatedGrandTotal]);
+        if (form.customPrepaidAmount !== "") return Number(form.customPrepaidAmount);
+        return prepaidAmtBase;
+    }, [form.customPrepaidAmount, prepaidAmtBase]);
 
     const selectedIsPaidInitially = payableNowAmount > 0;
     const selectedPaymentMethod = form.paymentMethod || "CASH";
@@ -678,13 +684,17 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             appliedPolicyId: effectivePolicyId,
             specialRequests: form.specialRequests?.trim() || "",
             staffNote: form.staffNote?.trim() || "",
+            prepaidAmount: form.customPrepaidAmount !== "" ? Number(form.customPrepaidAmount) : null,
+            snapshotRefundRate: form.customRefundRate !== "" ? Number(form.customRefundRate) : null,
+            snapshotFreeCancelDays: form.customFreeCancelDays !== "" ? Number(form.customFreeCancelDays) : null,
             isPaidInitially: selectedIsPaidInitially,
             paymentMethod: selectedPaymentMethod,
         };
 
         // ── Confirmation dialog ─────────────────────────────────────────
         const branchLabel = branches?.find((b) => String(b.id || b.branchId) === String(form.branchId))?.branchName || `Branch #${form.branchId}`;
-        const prepaidAmt = selectedPolicy ? Math.round(estimatedGrandTotal * (selectedPolicy.prepaidRate || 0) / 100) : estimatedGrandTotal;
+        const prepaidAmt = form.customPrepaidAmount !== "" ? Number(form.customPrepaidAmount) : prepaidAmtBase;
+        const refundRateToDisplay = form.customRefundRate !== "" ? form.customRefundRate : (selectedPolicy?.refunRate || 0);
         const roomSummaryRows = form.rooms.map((room) => {
             const rtName = roomTypes?.find((rt) => String(rt.id || rt.roomTypeId) === String(room.roomTypeId))?.name || `Room #${room.roomTypeId}`;
             return `<tr>
@@ -697,7 +707,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         const policyRow = selectedPolicy
             ? `<tr>
                 <td colspan="3" style="padding:8px;background:#f0fdf4;border-radius:6px;text-align:center;color:#15803d;font-size:12px">
-                    🛡 <strong>${selectedPolicy.name}</strong> — Trả trước: <strong>${formatVnd(prepaidAmt)}</strong> (${selectedPolicy.prepaidRate}%) • Hoàn nếu huỷ: ${selectedPolicy.refunRate}%
+                    🛡 <strong>${selectedPolicy.name}</strong> — Trả trước: <strong>${formatVnd(prepaidAmt)}</strong> ${form.customPrepaidAmount !== "" ? "(Điều chỉnh)" : `(${selectedPolicy.prepaidRate}%)`} • Hoàn nếu huỷ: ${refundRateToDisplay}% ${form.customRefundRate !== "" ? "(Điều chỉnh)" : ""}
                 </td>
             </tr>`
             : `<tr><td colspan="3" style="padding:6px 8px;color:#9ca3af;font-size:12px">Không có chính sách hủy áp dụng — đặt cọc 100%</td></tr>`;
@@ -1522,6 +1532,45 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                             <div className="cbsm-summary-value">
                                 {formatVnd(roomSubtotal)}
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="cbsm-card">
+                    <div className="cbsm-card-title">Policy Overrides (Staff Only)</div>
+                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>
+                        Leave blank to use default calculated values from the policy. These overridden values will be permanently saved for this booking.
+                    </div>
+                    <div className="cbsm-grid cbsm-grid-3">
+                        <div className="cbsm-field">
+                            <label>Prepaid Amount (VND)</label>
+                            <input
+                                type="number"
+                                min={0}
+                                value={form.customPrepaidAmount}
+                                onChange={(e) => setForm((prev) => ({ ...prev, customPrepaidAmount: e.target.value }))}
+                                placeholder="e.g. 500000"
+                            />
+                        </div>
+                        <div className="cbsm-field">
+                            <label>Refund Rate (%)</label>
+                            <input
+                                type="number"
+                                min={0} max={100}
+                                value={form.customRefundRate}
+                                onChange={(e) => setForm((prev) => ({ ...prev, customRefundRate: e.target.value }))}
+                                placeholder="e.g. 100"
+                            />
+                        </div>
+                        <div className="cbsm-field">
+                            <label>Free Cancel Days</label>
+                            <input
+                                type="number"
+                                min={0}
+                                value={form.customFreeCancelDays}
+                                onChange={(e) => setForm((prev) => ({ ...prev, customFreeCancelDays: e.target.value }))}
+                                placeholder="e.g. 7"
+                            />
                         </div>
                     </div>
                 </div>
