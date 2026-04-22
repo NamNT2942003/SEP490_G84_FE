@@ -1382,6 +1382,12 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                     setManualPolicyId(null); // deselect nếu bấm lại
                                                 } else {
                                                     setManualPolicyId(Number(pId));
+                                                    setForm(prev => ({
+                                                        ...prev,
+                                                        customPrepaidAmount: "",
+                                                        customRefundRate: "",
+                                                        customFreeCancelDays: ""
+                                                    }));
                                                 }
                                             }}
                                         >
@@ -1408,6 +1414,12 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                             setManualPolicyId(null);
                                                         } else {
                                                             setManualPolicyId(Number(pId));
+                                                            setForm(prev => ({
+                                                                ...prev,
+                                                                customPrepaidAmount: "",
+                                                                customRefundRate: "",
+                                                                customFreeCancelDays: ""
+                                                            }));
                                                         }
                                                     }}
                                                     style={{
