@@ -470,6 +470,12 @@ const GuestInformation = () => {
     // trước khi API trả về (set false khi refreshRoomsByEmail xong).
     const [isRepricing, setIsRepricing] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // OTP Modal state
+    const [showOtpModal, setShowOtpModal] = useState(false);
+    const [otpValue, setOtpValue] = useState('');
+    const [otpError, setOtpError] = useState('');
+    const [otpLoading, setOtpLoading] = useState(false); // verifying or resending
+    const [otpStep, setOtpStep] = useState('input'); // 'input' | 'verifying' | 'resending' | 'creating'
     // pricingVersion tăng mỗi khi rooms được reprice → force re-render các computed values
     // dùng ref (policyPricingCacheRef) mà React không tự theo dõi.
     const [pricingVersion, setPricingVersion] = useState(0);
@@ -865,195 +871,149 @@ const GuestInformation = () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
-        if (!formData.fullName || !formData.email || !formData.phone) {
-            Swal.fire({ icon: 'warning', title: 'Missing Information', text: 'Please fill in all guest information.', confirmButtonColor: '#5C6F4E' });
-            return;
-        }
+            if (!formData.fullName || !formData.email || !formData.phone) {
+                Swal.fire({ icon: 'warning', title: 'Missing Information', text: 'Please fill in all guest information.', confirmButtonColor: '#5C6F4E' });
+                return;
+            }
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(formData.email)) {
-            Swal.fire({ icon: 'warning', title: 'Invalid Email', text: 'Please provide a valid email address to receive the verification code.', confirmButtonColor: '#5C6F4E' });
-            return;
-        }
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(formData.email)) {
+                Swal.fire({ icon: 'warning', title: 'Invalid Email', text: 'Please provide a valid email address to receive the verification code.', confirmButtonColor: '#5C6F4E' });
+                return;
+            }
 
-        if (rooms.length === 0) {
-            Swal.fire({ icon: 'warning', title: 'No Rooms Selected', text: 'Please select at least one room.', confirmButtonColor: '#5C6F4E' });
-            return;
-        }
+            if (rooms.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'No Rooms Selected', text: 'Please select at least one room.', confirmButtonColor: '#5C6F4E' });
+                return;
+            }
 
-        if (!checkIn || !checkOut || new Date(checkOut) <= new Date(checkIn)) {
-            Swal.fire({ icon: 'warning', title: 'Invalid Date', text: 'Please select a check-out date after check-in (yyyy-MM-dd).', confirmButtonColor: '#5C6F4E' });
-            return;
-        }
+            if (!checkIn || !checkOut || new Date(checkOut) <= new Date(checkIn)) {
+                Swal.fire({ icon: 'warning', title: 'Invalid Date', text: 'Please select a check-out date after check-in (yyyy-MM-dd).', confirmButtonColor: '#5C6F4E' });
+                return;
+            }
 
-        // Re-check latest policies before booking confirmation to avoid stale/deleted selection.
-        const refreshedPolicies = await refreshPolicies(true);
-        const currentPolicyId = selectedPolicyIdRef.current;
-        const activeSelectedPolicy = refreshedPolicies.find((policy) => Number(policy.id) === Number(currentPolicyId));
-        if (currentPolicyId && !activeSelectedPolicy) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Policy No Longer Available',
-                text: 'Selected policy was changed or removed. Please review policy selection before continuing.',
-                confirmButtonColor: '#5C6F4E',
+            // Re-check latest policies before booking confirmation to avoid stale/deleted selection.
+            const refreshedPolicies = await refreshPolicies(true);
+            const currentPolicyId = selectedPolicyIdRef.current;
+            const activeSelectedPolicy = refreshedPolicies.find((policy) => Number(policy.id) === Number(currentPolicyId));
+            if (currentPolicyId && !activeSelectedPolicy) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Policy No Longer Available',
+                    text: 'Selected policy was changed or removed. Please review policy selection before continuing.',
+                    confirmButtonColor: '#5C6F4E',
+                });
+                return;
+            }
+
+            const roomMissingModifier = rooms.find((room) => {
+                const ids = uniqueIds([...getRoomDetailModifierIds(room), ...getRoomBookingLevelModifierIds(room), getAppliedModifierId(room)]);
+                return ids.length === 0;
             });
-            return;
-        }
 
-        const roomMissingModifier = rooms.find((room) => {
-            const ids = uniqueIds([...getRoomDetailModifierIds(room), ...getRoomBookingLevelModifierIds(room), getAppliedModifierId(room)]);
-            return ids.length === 0;
-        });
+            if (roomMissingModifier) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Missing Pricing Selection',
+                    text: `Room ${roomMissingModifier.name || roomMissingModifier.roomTypeId} does not have a valid price modifier. Please re-select a pricing option.`,
+                    confirmButtonColor: '#5C6F4E',
+                });
+                return;
+            }
 
-        if (roomMissingModifier) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Missing Pricing Selection',
-                text: `Room ${roomMissingModifier.name || roomMissingModifier.roomTypeId} does not have a valid price modifier. Please re-select a pricing option.`,
-                confirmButtonColor: '#5C6F4E',
-            });
-            return;
-        }
-
+            // Send OTP then open the React modal
             Swal.fire({
                 title: 'Sending Verification Code...',
                 text: `Wait a moment, we are sending an OTP to ${formData.email}`,
                 allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+                didOpen: () => Swal.showLoading(),
             });
 
             await guest.sendBookingOtp(formData.email, formData.fullName);
             Swal.close();
 
-            // OTP verification loop — allows retry and resend
-            let otpVerified = false;
-            let lastError = '';
-
-            while (!otpVerified) {
-                const { value: otpCode, dismiss } = await Swal.fire({
-                    title: 'Enter Verification Code',
-                    html: `
-                        <p style="margin:0 0 8px;color:#555;font-size:0.92rem;">
-                            An OTP has been sent to <strong>${formData.email}</strong>. It is valid for 15 minutes.
-                        </p>
-                        ${lastError ? `<p style="margin:0 0 8px;color:#dc2626;font-size:0.85rem;font-weight:600;"><i class="bi bi-exclamation-circle me-1"></i>${lastError}</p>` : ''}
-                    `,
-                    input: 'text',
-                    inputPlaceholder: 'Enter 6-digit OTP',
-                    inputAttributes: {
-                        maxlength: '6',
-                        inputmode: 'numeric',
-                        pattern: '[0-9]*',
-                        autocomplete: 'one-time-code',
-                        style: 'text-align:center; font-size:1.4rem; letter-spacing:8px; font-weight:700;',
-                    },
-                    showCancelButton: true,
-                    showDenyButton: true,
-                    confirmButtonColor: '#5C6F4E',
-                    confirmButtonText: 'Verify & Continue',
-                    denyButtonText: '<i class="bi bi-arrow-clockwise me-1"></i>Resend Code',
-                    denyButtonColor: '#6b7280',
-                    cancelButtonText: 'Cancel',
-                    inputValidator: (value) => {
-                        if (!value || !/^\d{6}$/.test(value.trim())) {
-                            return 'Please enter exactly 6 digits!';
-                        }
-                    },
-                    didOpen: () => {
-                        const input = Swal.getInput();
-                        if (input) {
-                            input.addEventListener('input', (e) => {
-                                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                            });
-                        }
-                    },
-                    allowOutsideClick: false,
-                });
-
-                // User clicked Cancel
-                if (dismiss === Swal.DismissReason.cancel) {
-                    return;
-                }
-
-                // User clicked Resend Code
-                if (dismiss === Swal.DismissReason.deny) {
-                    try {
-                        Swal.fire({
-                            title: 'Resending Code...',
-                            text: `Sending a new OTP to ${formData.email}`,
-                            allowOutsideClick: false,
-                            didOpen: () => Swal.showLoading(),
-                        });
-                        await guest.sendBookingOtp(formData.email, formData.fullName);
-                        Swal.close();
-                        lastError = '';
-                    } catch (resendErr) {
-                        console.error('Resend OTP error:', resendErr);
-                        Swal.close();
-                        lastError = 'Failed to resend code. Please try again.';
-                    }
-                    continue;
-                }
-
-                // User entered OTP and clicked Verify
-                if (otpCode) {
-                    Swal.fire({
-                        title: 'Verifying...',
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading(),
-                    });
-
-                    try {
-                        await guest.verifyOtp(formData.email, otpCode.trim());
-                        Swal.close();
-                        otpVerified = true;
-                    } catch (verifyErr) {
-                        console.error('OTP Verification Error:', verifyErr);
-                        // Parse error message — backend may return plain string or { message: "..." }
-                        const respData = verifyErr?.response?.data;
-                        const msg = (typeof respData === 'string' && respData.length > 0)
-                            ? respData
-                            : (respData?.message || verifyErr?.friendlyMessage || verifyErr.message || 'Invalid OTP. Please try again.');
-                        lastError = msg;
-                        // Small delay to prevent SweetAlert race condition between close() and next fire()
-                        await new Promise(r => setTimeout(r, 300));
-                    }
-                }
-            }
-
-            // OTP verified successfully, proceed with booking creation
-            await proceedToBookingCreation();
+            // Open OTP modal
+            setOtpValue('');
+            setOtpError('');
+            setOtpStep('input');
+            setOtpLoading(false);
+            setShowOtpModal(true);
 
         } catch (error) {
-            console.error('OTP Flow Error:', error);
-            const message = error?.response?.data?.message || typeof error?.response?.data === 'string' ? error.response.data : error?.friendlyMessage || error.message || 'OTP verification failed';
+            console.error('OTP Send Error:', error);
+            const respData = error?.response?.data;
+            const message = (typeof respData === 'string' && respData) || respData?.message || error?.friendlyMessage || error?.message || 'Failed to send verification code.';
             Swal.fire({ icon: 'error', title: 'Verification Failed', text: message, confirmButtonColor: '#d33' });
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    const handleOtpVerify = async () => {
+        const code = otpValue.trim();
+        if (!/^\d{6}$/.test(code)) {
+            setOtpError('Please enter exactly 6 digits.');
+            return;
+        }
+        setOtpError('');
+        setOtpStep('verifying');
+        setOtpLoading(true);
+        try {
+            await guest.verifyOtp(formData.email, code);
+            // OTP verified — proceed to create booking
+            setOtpStep('creating');
+            await proceedToBookingCreation();
+            // If we reach here, navigate already happened inside proceedToBookingCreation
+            setShowOtpModal(false);
+        } catch (verifyErr) {
+            console.error('OTP Verification Error:', verifyErr);
+            const respData = verifyErr?.response?.data;
+            const msg = (typeof respData === 'string' && respData.length > 0)
+                ? respData
+                : (respData?.message || verifyErr?.friendlyMessage || verifyErr.message || 'Invalid OTP. Please try again.');
+            setOtpError(msg);
+            setOtpStep('input');
+        } finally {
+            setOtpLoading(false);
+        }
+    };
+
+    const handleOtpResend = async () => {
+        setOtpStep('resending');
+        setOtpLoading(true);
+        setOtpError('');
+        try {
+            await guest.sendBookingOtp(formData.email, formData.fullName);
+            setOtpError('');
+            setOtpValue('');
+            setOtpStep('input');
+        } catch (resendErr) {
+            console.error('Resend OTP error:', resendErr);
+            setOtpError('Failed to resend code. Please try again.');
+            setOtpStep('input');
+        } finally {
+            setOtpLoading(false);
+        }
+    };
+
+    const handleOtpCancel = () => {
+        setShowOtpModal(false);
+        setOtpValue('');
+        setOtpError('');
+        setOtpStep('input');
+        setOtpLoading(false);
+    };
+
     const proceedToBookingCreation = async () => {
         try {
-            Swal.fire({
-                title: 'Creating Booking...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
             const payload = buildBookingPayload(formData, selectedPolicyId, rooms, checkIn, checkOut, finalBookingAmount);
             const currentBranchId = branchId || 1;
             const data = await bookingService.createFromFrontend(currentBranchId, payload);
             const createdBookingId = data?.bookingId ?? data?.id;
             const backendTotalAmount = normalizeMoney(data?.totalAmount);
 
-            Swal.close();
-
             if (Math.abs(backendTotalAmount - finalBookingAmount) > 0.01) {
+                setShowOtpModal(false);
                 Swal.fire({
                     icon: 'warning',
                     title: 'Price changed',
@@ -1068,10 +1028,12 @@ const GuestInformation = () => {
             const prepaidAmountValue = normalizeMoney(data?.prepaidAmount ?? bookingTotalAmount);
 
             if (!createdBookingId) {
+                setShowOtpModal(false);
                 Swal.fire({ icon: 'error', title: 'Booking Error', text: 'Did not receive a booking ID from the server.', confirmButtonColor: '#d33' });
                 return;
             }
 
+            setShowOtpModal(false);
             navigate('/payment-selection', {
                 state: {
                     bookingId: createdBookingId,
@@ -1101,11 +1063,8 @@ const GuestInformation = () => {
                 || error?.friendlyMessage
                 || error?.message
                 || 'Unable to create booking';
-            
-            // Wait for SweetAlert to be ready to transition
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            Swal.fire({ icon: 'error', title: 'Booking Error', text: message, confirmButtonColor: '#d33' });
+            setOtpError(message);
+            setOtpStep('input');
         }
     };
 
@@ -1539,6 +1498,173 @@ const GuestInformation = () => {
                     </button>
                 </div>
             </footer>
+
+            {/* OTP Verification Modal */}
+            {showOtpModal && (
+                <div
+                    className="modal-backdrop-custom"
+                    style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        animation: 'fadeIn 0.2s ease',
+                    }}
+                    onClick={(e) => { if (e.target === e.currentTarget && otpStep === 'input') handleOtpCancel(); }}
+                >
+                    <div
+                        style={{
+                            background: '#fff', borderRadius: 16, padding: '32px 28px',
+                            width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                            animation: 'slideUp 0.25s ease',
+                            position: 'relative',
+                        }}
+                    >
+                        {/* Close button */}
+                        {otpStep === 'input' && (
+                            <button
+                                onClick={handleOtpCancel}
+                                style={{
+                                    position: 'absolute', top: 12, right: 16,
+                                    background: 'none', border: 'none', fontSize: 22, color: '#9ca3af',
+                                    cursor: 'pointer', padding: 4, lineHeight: 1,
+                                }}
+                                aria-label="Close"
+                            >
+                                <i className="bi bi-x-lg" />
+                            </button>
+                        )}
+
+                        {/* Icon */}
+                        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                            <div style={{
+                                width: 56, height: 56, borderRadius: '50%',
+                                background: otpStep === 'creating' ? '#dcfce7' : '#f0f4e8',
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <i
+                                    className={`bi ${otpStep === 'creating' ? 'bi-hourglass-split' : 'bi-shield-lock-fill'}`}
+                                    style={{
+                                        fontSize: 24,
+                                        color: otpStep === 'creating' ? '#16a34a' : '#5C6F4E',
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Title */}
+                        <h5 style={{ textAlign: 'center', fontWeight: 700, marginBottom: 8, color: '#111827' }}>
+                            {otpStep === 'creating' ? 'Creating Booking...' :
+                             otpStep === 'verifying' ? 'Verifying...' :
+                             otpStep === 'resending' ? 'Resending Code...' :
+                             'Enter Verification Code'}
+                        </h5>
+
+                        {/* Subtitle */}
+                        <p style={{ textAlign: 'center', color: '#6b7280', fontSize: 14, marginBottom: 20 }}>
+                            {otpStep === 'creating' ? 'Please wait while we finalize your reservation.' :
+                             otpStep === 'verifying' ? 'Checking your verification code...' :
+                             otpStep === 'resending' ? `Sending a new OTP to ${formData.email}...` :
+                             <>An OTP has been sent to <strong>{formData.email}</strong>. It is valid for 15 minutes.</>}
+                        </p>
+
+                        {/* Error message */}
+                        {otpError && otpStep === 'input' && (
+                            <div style={{
+                                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
+                                padding: '10px 14px', marginBottom: 16,
+                                display: 'flex', alignItems: 'flex-start', gap: 8,
+                            }}>
+                                <i className="bi bi-exclamation-circle-fill" style={{ color: '#dc2626', fontSize: 16, flexShrink: 0, marginTop: 1 }} />
+                                <span style={{ color: '#991b1b', fontSize: 13, fontWeight: 600 }}>{otpError}</span>
+                            </div>
+                        )}
+
+                        {/* OTP Input */}
+                        {(otpStep === 'input' || otpStep === 'verifying') && (
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                maxLength={6}
+                                placeholder="000000"
+                                value={otpValue}
+                                onChange={(e) => {
+                                    const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                    setOtpValue(v);
+                                    if (otpError) setOtpError('');
+                                }}
+                                onKeyDown={(e) => { if (e.key === 'Enter' && !otpLoading) handleOtpVerify(); }}
+                                disabled={otpLoading}
+                                autoFocus
+                                style={{
+                                    width: '100%', textAlign: 'center', fontSize: '1.6rem',
+                                    letterSpacing: 12, fontWeight: 700, padding: '12px 16px',
+                                    border: otpError ? '2px solid #fca5a5' : '2px solid #d1d5db',
+                                    borderRadius: 12, outline: 'none', transition: 'border-color 0.2s',
+                                    marginBottom: 20, fontFamily: "'Roboto Mono', monospace",
+                                }}
+                                onFocus={(e) => { e.target.style.borderColor = '#5C6F4E'; }}
+                                onBlur={(e) => { e.target.style.borderColor = otpError ? '#fca5a5' : '#d1d5db'; }}
+                            />
+                        )}
+
+                        {/* Loading spinner for verifying/creating/resending */}
+                        {(otpStep === 'verifying' || otpStep === 'creating' || otpStep === 'resending') && (
+                            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                                <div
+                                    className="spinner-border"
+                                    role="status"
+                                    style={{ width: '2rem', height: '2rem', color: '#5C6F4E' }}
+                                >
+                                    <span className="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Action buttons */}
+                        {otpStep === 'input' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <button
+                                    onClick={handleOtpVerify}
+                                    disabled={otpLoading || otpValue.length < 6}
+                                    style={{
+                                        width: '100%', padding: '12px 0', border: 'none', borderRadius: 10,
+                                        background: otpValue.length === 6 ? '#5C6F4E' : '#d1d5db',
+                                        color: '#fff', fontWeight: 700, fontSize: 15, cursor: otpValue.length === 6 ? 'pointer' : 'not-allowed',
+                                        transition: 'background 0.2s',
+                                    }}
+                                >
+                                    <i className="bi bi-check-circle me-2" />Verify & Continue
+                                </button>
+                                <div style={{ display: 'flex', gap: 10 }}>
+                                    <button
+                                        onClick={handleOtpResend}
+                                        disabled={otpLoading}
+                                        style={{
+                                            flex: 1, padding: '10px 0', border: '1.5px solid #d1d5db', borderRadius: 10,
+                                            background: '#fff', color: '#374151', fontWeight: 600, fontSize: 13,
+                                            cursor: 'pointer', transition: 'all 0.2s',
+                                        }}
+                                    >
+                                        <i className="bi bi-arrow-clockwise me-1" />Resend Code
+                                    </button>
+                                    <button
+                                        onClick={handleOtpCancel}
+                                        disabled={otpLoading}
+                                        style={{
+                                            flex: 1, padding: '10px 0', border: '1.5px solid #d1d5db', borderRadius: 10,
+                                            background: '#fff', color: '#6b7280', fontWeight: 600, fontSize: 13,
+                                            cursor: 'pointer', transition: 'all 0.2s',
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
