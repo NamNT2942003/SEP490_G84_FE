@@ -1235,8 +1235,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                             <span style={{ fontSize: 10, fontWeight: 400, color: "#6b7280", marginLeft: 6 }}>(auto)</span>
                                         )}
                                     </div>
-                                    {/* 3-column amounts */}
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, margin: "8px 0" }}>
+                                    {/* 2-column amounts */}
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, margin: "8px 0" }}>
                                         <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #465c47" }}>
                                             <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Prepaid</div>
                                             <div style={{ fontSize: 12, fontWeight: 800, color: "#2f3f30" }}>{formatVnd(appliedPrepaid)}</div>
@@ -1246,11 +1246,6 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                             <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Refund if cancelled</div>
                                             <div style={{ fontSize: 12, fontWeight: 800, color: appliedRefund > 0 ? "#16a34a" : "#dc2626" }}>{formatVnd(appliedRefund)}</div>
                                             <div style={{ fontSize: 9, color: "#9aaa9b" }}>{selectedPolicy.prepaidRate}%</div>
-                                        </div>
-                                        <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #e5e7eb" }}>
-                                            <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Hotel keeps</div>
-                                            <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>{formatVnd(estimatedGrandTotal - appliedRefund)}</div>
-                                            <div style={{ fontSize: 9, color: "#9aaa9b" }}>{100 - (selectedPolicy.prepaidRate || 0)}%</div>
                                         </div>
                                     </div>
                                     {appliedDeadlineDate && (
@@ -1407,8 +1402,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                 </button>
                                             </div>
 
-                                            {/* 3-column amounts */}
-                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: (deadlineStr || seasonLabel) ? 8 : 0 }}>
+                                            {/* 2-column amounts */}
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: (deadlineStr || seasonLabel) ? 8 : 0 }}>
                                                 <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #465c47" }}>
                                                     <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Prepaid</div>
                                                     <div style={{ fontSize: 12, fontWeight: 800, color: "#2f3f30" }}>{formatVnd(cardPrepaid)}</div>
@@ -1418,11 +1413,6 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                     <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Refund if cancelled</div>
                                                     <div style={{ fontSize: 12, fontWeight: 800, color: cardRefund > 0 ? "#16a34a" : "#dc2626" }}>{formatVnd(cardRefund)}</div>
                                                     <div style={{ fontSize: 9, color: "#9aaa9b" }}>{p.prepaidRate}%</div>
-                                                </div>
-                                                <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #e5e7eb" }}>
-                                                    <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Hotel keeps</div>
-                                                    <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>{formatVnd(cardRetain)}</div>
-                                                    <div style={{ fontSize: 9, color: "#9aaa9b" }}>{100 - (p.prepaidRate || 0)}%</div>
                                                 </div>
                                             </div>
 
