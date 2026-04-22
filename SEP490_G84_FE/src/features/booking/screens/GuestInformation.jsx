@@ -956,11 +956,6 @@ const GuestInformation = () => {
                     denyButtonText: '<i class="bi bi-arrow-clockwise me-1"></i>Resend Code',
                     denyButtonColor: '#6b7280',
                     cancelButtonText: 'Cancel',
-                    inputValidator: (value) => {
-                        if (!value || !/^\d{6}$/.test(value.trim())) {
-                            return 'Please enter exactly 6 digits!';
-                        }
-                    },
                     didOpen: () => {
                         const input = Swal.getInput();
                         if (input) {
