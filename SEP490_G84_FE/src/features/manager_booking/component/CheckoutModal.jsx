@@ -277,7 +277,6 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                                 )}
                               </div>
                             </div>
-                            </div>
                           </div>
                         </div>
 
