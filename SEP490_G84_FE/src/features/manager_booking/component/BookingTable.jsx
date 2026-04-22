@@ -64,6 +64,7 @@ export default function BookingTable({
   onCheckoutClick,
   onLateCheckoutClick,
   onCollectRemainingClick,
+  onDebtDetailClick,
   onRefresh,
   mode = 'checkin',
   accent = '#2e7d32',
@@ -185,7 +186,107 @@ export default function BookingTable({
           </tr>
         </thead>
         <tbody>
-          {bookings.map((booking) => {
+          {bookings.map((booking, idx) => {
+            // ── Debt row divider ──
+            const isFirstDebt = booking._isDebt && (idx === 0 || !bookings[idx - 1]._isDebt);
+
+            // ── Debt row shortcut ──
+            if (booking._isDebt) {
+              const src = sourceTag(booking.source);
+              return (
+                <React.Fragment key={`debt-${booking.id}`}>
+                  {isFirstDebt && (
+                    <tr>
+                      <td colSpan={7} style={{
+                        background: '#fff8e1', padding: '8px 14px', fontSize: '0.76rem',
+                        color: '#e65100', fontWeight: 700, borderTop: '2px solid #ffe082',
+                      }}>
+                        💰 Outstanding Debts — Checked Out with Unpaid Room Balance
+                      </td>
+                    </tr>
+                  )}
+                  <tr style={{ background: '#fffbeb', borderBottom: '1px solid #f0f0f0' }}>
+                    {/* Guest & Code */}
+                    <td className="px-3 py-3">
+                      <div className="fw-bold text-dark" style={{ fontSize: '0.92rem' }}>{booking.guestName}</div>
+                      <div className="text-muted" style={{ fontSize: '0.76rem', fontFamily: 'monospace' }}>{booking.bookingCode}</div>
+                    </td>
+                    {/* Source */}
+                    <td>
+                      <span className="px-2 py-1 rounded-2 fw-bold"
+                        style={{ background: src.bg, color: src.color, fontSize: '0.74rem' }}>
+                        {src.label}
+                      </span>
+                    </td>
+                    {/* Room(s) */}
+                    <td>
+                      <div className="d-flex flex-wrap gap-1">
+                        {booking.assignedRooms?.map((r, i) => (
+                          <span key={i} className="badge"
+                            style={{ background: '#e3f2fd', color: '#1565c0', fontSize: '0.77rem' }}>
+                            Room {r}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    {/* Stay period */}
+                    <td>
+                      <div className="fw-medium small">{booking.checkIn} → {booking.checkOut}</div>
+                      <div className="small text-muted">({booking.nights} night{booking.nights !== 1 ? 's' : ''})</div>
+                      {booking.actualCheckOutDate && (
+                        <div className="mt-1">
+                          <span className="px-2 py-1 rounded-2 fw-bold"
+                            style={{ background: '#f5f5f5', color: '#666', fontSize: '0.71rem' }}>
+                            <i className="bi bi-box-arrow-right me-1"></i>Out: {booking.actualCheckOutDate}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+                    {/* Amount — show debt */}
+                    <td>
+                      <div className="fw-bold small text-muted">{booking.totalAmount?.toLocaleString('en-US')} VND</div>
+                      <span className="px-2 py-1 rounded-2 fw-bold mt-1 d-inline-block"
+                        style={{ fontSize: '0.71rem', background: '#ffebee', color: '#c62828' }}>
+                        ⚠ Debt: {Number(booking.roomDebtAmount || 0).toLocaleString('en-US')} VND
+                      </span>
+                    </td>
+                    {/* Status */}
+                    <td>
+                      <span className="px-2 py-1 rounded-2 fw-bold d-inline-block"
+                        style={{ background: '#fff3e0', color: '#e65100', fontSize: '0.77rem' }}>
+                        💰 Checked Out · Debt
+                      </span>
+                    </td>
+                    {/* Actions */}
+                    <td className="text-end pe-3">
+                      <div className="d-flex justify-content-end align-items-center gap-1">
+                        <button className="btn btn-sm fw-semibold"
+                          style={{ background: '#fff3e0', color: '#e65100', border: '1px solid #ffcc80', fontSize: '0.79rem' }}
+                          onClick={() => onDebtDetailClick && onDebtDetailClick(booking)}>
+                          <i className="bi bi-telephone-fill me-1"></i>Contact
+                        </button>
+                        <div className="dropdown">
+                          <button className="btn btn-sm btn-light border-0 text-secondary"
+                            type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i className="bi bi-three-dots-vertical"></i>
+                          </button>
+                          <ul className="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-1" style={{ fontSize: '0.88rem' }}>
+                            <li>
+                              <button className="dropdown-item py-2 d-flex align-items-center"
+                                onClick={() => onDetailsClick(booking)}>
+                                <i className="bi bi-info-circle text-primary me-3 fs-6"></i>View Details
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </React.Fragment>
+              );
+            }
+
+            // ── Normal row (CHECKED_IN / CONFIRMED / ARRIVED) ──
             const t = today();
             let isNoShow = false, isCheckoutOverdue = false, isCheckoutToday = false;
 

@@ -87,4 +87,12 @@ export const checkInApi = {
     });
     return data; // { available: true/false }
   },
+
+  // 13. Get checked-out bookings with unpaid room balance (debt tracking)
+  getCheckedOutWithDebt: async (branchId) => {
+    const { data } = await apiClient.get('/front-desk/bookings/checked-out-debt', {
+      params: { branchId }
+    });
+    return data;
+  },
 };

@@ -92,17 +92,47 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
     }
     if (!method) method = 'CASH'; // fallback if 0 due
 
-    const confirm = await Swal.fire({
-      icon: 'question',
-      title: `Checkout ${roomName}?`,
-      html: due > 0
-        ? `Collect <b>${Number(due).toLocaleString()} VND</b> via <b>${method}</b> and check out ${roomName}.`
-        : `No outstanding charges. Check out ${roomName}.`,
-      showCancelButton: true,
-      confirmButtonText: 'Confirm',
-      confirmButtonColor: '#dc3545',
-    });
-    if (!confirm.isConfirmed) return;
+    // Check if this is the last pending room and room balance is unpaid
+    const pendingCount = rooms.filter(r => !r.checkedOut).length;
+    const isLastRoom = pendingCount === 1;
+    const hasRoomDebt = isLastRoom && !roomChargePaid;
+
+    if (hasRoomDebt) {
+      const roomDebt = Number(totalRoomCharge || 0) - Number(booking?.prepaidAmount || 0);
+      const debtConfirm = await Swal.fire({
+        icon: 'warning',
+        title: '⚠️ Room Balance Not Collected',
+        html: `
+          <div style="text-align:left; font-size:0.9rem;">
+            <div style="margin-bottom:8px;">
+              <b>Room Charge:</b> ${fmtMoney(totalRoomCharge)} VND<br/>
+              <b>Outstanding Debt:</b> <span style="color:#dc3545; font-weight:700;">${fmtMoney(Math.max(0, roomDebt))} VND</span>
+            </div>
+            <div style="padding:10px; background:#fff3cd; border-radius:6px; color:#856404;">
+              This is the <b>last room</b>. Guest will check out with an <b>unpaid room balance</b>.<br/>
+              This debt will be recorded in the system.
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Confirm Checkout with Debt',
+        confirmButtonColor: '#dc3545',
+        cancelButtonText: 'Cancel',
+      });
+      if (!debtConfirm.isConfirmed) return;
+    } else {
+      const confirm = await Swal.fire({
+        icon: 'question',
+        title: `Checkout ${roomName}?`,
+        html: due > 0
+          ? `Collect <b>${Number(due).toLocaleString()} VND</b> via <b>${method}</b> and check out ${roomName}.`
+          : `No outstanding charges. Check out ${roomName}.`,
+        showCancelButton: true,
+        confirmButtonText: 'Confirm',
+        confirmButtonColor: '#dc3545',
+      });
+      if (!confirm.isConfirmed) return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -126,6 +156,32 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
       return;
     }
     if (!method) method = 'CASH'; // fallback if 0 due
+
+    // Check if room balance is unpaid
+    if (!roomChargePaid) {
+      const roomDebt = Number(totalRoomCharge || 0) - Number(booking?.prepaidAmount || 0);
+      const debtConfirm = await Swal.fire({
+        icon: 'warning',
+        title: '⚠️ Room Balance Not Collected',
+        html: `
+          <div style="text-align:left; font-size:0.9rem;">
+            <div style="margin-bottom:8px;">
+              <b>Room Charge:</b> ${fmtMoney(totalRoomCharge)} VND<br/>
+              <b>Outstanding Debt:</b> <span style="color:#dc3545; font-weight:700;">${fmtMoney(Math.max(0, roomDebt))} VND</span>
+            </div>
+            <div style="padding:10px; background:#fff3cd; border-radius:6px; color:#856404;">
+              Guest will check out with an <b>unpaid room balance</b>.<br/>
+              This debt will be recorded in the system.
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Confirm Checkout with Debt',
+        confirmButtonColor: '#dc3545',
+        cancelButtonText: 'Cancel',
+      });
+      if (!debtConfirm.isConfirmed) return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -326,6 +382,17 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                   <h6 className="fw-bold text-dark mb-2 text-center" style={{ fontSize: '0.85rem' }}>
                     <i className="bi bi-wallet2 me-1"></i>PAYMENT
                   </h6>
+
+                  {/* WARNING: Room balance chưa thu */}
+                  {!roomChargePaid && (
+                    <div className="mb-2 p-2 rounded border border-warning" style={{ background: '#fff8e1', fontSize: '0.78rem' }}>
+                      <i className="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                      <strong>Room balance not fully collected!</strong>
+                      <div className="text-muted mt-1">
+                        You will be asked to confirm before checking out with an unpaid room balance.
+                      </div>
+                    </div>
+                  )}
 
                   {rooms.length > 1 ? (
                     /* ── MULTI-ROOM: mỗi phòng có payment selector + nút Checkout riêng ── */

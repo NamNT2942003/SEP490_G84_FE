@@ -5,6 +5,7 @@ import BookingDetailModal from '../component/BookingDetailModal';
 import CheckoutModal from '../component/CheckoutModal';
 import LateCheckoutModal from '../component/LateCheckoutModal';
 import CollectRemainingModal from '../component/CollectRemainingModal';
+import DebtContactModal from '../component/DebtContactModal';
 import { checkInApi } from '../api/checkInApi';
 import { useSelector } from 'react-redux';
 
@@ -39,7 +40,9 @@ function endOfMonth(d) {
 }
 
 // Pivot date: arrival for check-in mode, departure for checkout/inhouse
+// Debt rows use actualCheckOutDate as pivot
 function pivotDate(booking, mode) {
+  if (booking._isDebt) return parseDate(booking.actualCheckOutDate);
   return parseDate(mode === 'checkin' ? booking.checkIn : booking.checkOut);
 }
 
@@ -63,6 +66,7 @@ export default function FrontDeskDashboard() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showLateCheckoutModal, setShowLateCheckoutModal] = useState(false);
   const [showCollectRemainingModal, setShowCollectRemainingModal] = useState(false);
+  const [showDebtModal, setShowDebtModal] = useState(false);
 
   const authUser = useSelector((state) => state.auth.user);
   const currentBranchId = authUser?.branchId || Number(localStorage.getItem('branchId')) || 1;
@@ -83,17 +87,23 @@ export default function FrontDeskDashboard() {
     if (!selectedBranch) return;
     setLoading(true);
     try {
-      // checkin  → fetch all active, filter CONFIRMED + ARRIVED client-side
-      // checkout → fetch CHECKED_IN only
-      // inhouse  → fetch CHECKED_IN only (same data as checkout, different UI/context)
-      const statusParam = (mode === 'checkout' || mode === 'inhouse') ? 'CHECKED_IN' : '';
-      const raw = await checkInApi.getDashboardBookings(selectedBranch, statusParam);
-
-      const data = mode === 'checkin'
-        ? raw.filter(b => b.status === 'CONFIRMED' || b.status === 'ARRIVED')
-        : raw; // checkout + inhouse: all CHECKED_IN
-
-      setBookings(data);
+      if (mode === 'checkout') {
+        // Checkout mode: fetch CHECKED_IN + CHECKED_OUT with debt
+        const [activeData, debtData] = await Promise.all([
+          checkInApi.getDashboardBookings(selectedBranch, 'CHECKED_IN'),
+          checkInApi.getCheckedOutWithDebt(selectedBranch),
+        ]);
+        const active = (activeData || []).map(b => ({ ...b, _isDebt: false }));
+        const debt   = (debtData   || []).map(b => ({ ...b, _isDebt: true  }));
+        setBookings([...active, ...debt]); // active first, debt after
+      } else if (mode === 'inhouse') {
+        const raw = await checkInApi.getDashboardBookings(selectedBranch, 'CHECKED_IN');
+        setBookings(raw);
+      } else {
+        // checkin: fetch all active, filter CONFIRMED + ARRIVED client-side
+        const raw = await checkInApi.getDashboardBookings(selectedBranch, '');
+        setBookings(raw.filter(b => b.status === 'CONFIRMED' || b.status === 'ARRIVED'));
+      }
     } catch (err) {
       console.error('Fetch bookings error:', err);
     } finally {
@@ -184,6 +194,7 @@ export default function FrontDeskDashboard() {
   const handleOpenCheckout = (b) => { setSelectedBooking(b); setShowCheckoutModal(true); };
   const handleOpenLateCheckout = (b) => { setSelectedBooking(b); setShowLateCheckoutModal(true); };
   const handleOpenCollectRemaining = (b) => { setSelectedBooking(b); setShowCollectRemainingModal(true); };
+  const handleOpenDebtDetail = (b) => { setSelectedBooking(b); setShowDebtModal(true); };
 
   // ── Theme ─────────────────────────────────────────────────────────────────
   const isCheckin = mode === 'checkin';
@@ -206,7 +217,7 @@ export default function FrontDeskDashboard() {
       { key: null, label: 'Checkout Today', value: s.todayCheckout ?? '–', sub: 'due for check-out today' },
       { key: null, label: 'Currently In-House', value: s.totalCheckout ?? '–', sub: 'guests staying now' },
       { key: 'upcoming', label: isCheckin ? 'Upcoming Arrivals' : 'Upcoming Departures', value: isCheckin ? (s.upcomingCheckin ?? '–') : (s.upcomingCheckout ?? '–'), sub: 'future bookings' },
-      { key: null, label: isCheckin ? 'Total sold room today' : 'Total Check-outs', value: isCheckin ? (s.todaySoldRoom ?? '–') : (s.totalCheckout ?? '–'), sub: 'all statuses' },
+      { key: null, label: isCheckin ? 'Total sold room today' : 'Outstanding Debts', value: isCheckin ? (s.todaySoldRoom ?? '–') : (bookings.filter(b => b._isDebt).length || '0'), sub: isCheckin ? 'all statuses' : 'checked-out, unpaid' },
     ];
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -395,6 +406,7 @@ export default function FrontDeskDashboard() {
             onCheckoutClick={handleOpenCheckout}
             onLateCheckoutClick={handleOpenLateCheckout}
             onCollectRemainingClick={handleOpenCollectRemaining}
+            onDebtDetailClick={handleOpenDebtDetail}
             onRefresh={refreshAll}
             accent={accent}
           />
@@ -427,6 +439,11 @@ export default function FrontDeskDashboard() {
         <CollectRemainingModal key={`collect-${selectedBooking?.id}`} show={showCollectRemainingModal}
           onClose={() => setShowCollectRemainingModal(false)}
           booking={selectedBooking} onSuccess={refreshAll} />
+      )}
+      {showDebtModal && (
+        <DebtContactModal key={`debt-${selectedBooking?.id}`} show={showDebtModal}
+          onClose={() => setShowDebtModal(false)}
+          booking={selectedBooking} />
       )}
     </div>
   );
