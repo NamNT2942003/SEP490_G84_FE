@@ -862,6 +862,7 @@ const GuestInformation = () => {
     const depositAmount = normalizeMoney(finalBookingAmount * depositRate / 100);
 
     const handleContinue = async () => {
+        alert('Code version: V5 - If you see this, cache is cleared!');
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
