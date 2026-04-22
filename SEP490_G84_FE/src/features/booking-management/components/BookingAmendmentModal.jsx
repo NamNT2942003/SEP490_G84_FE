@@ -399,16 +399,37 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
         || newArrival !== ""
         || newDeparture !== "";
 
-    // Xây dựng payload
     const buildPayload = () => {
+        const linesPayload = [];
+        const details = booking?.bookingDetails ?? booking?.details ?? [];
+        
+        Object.entries(lines).forEach(([roomTypeId, v]) => {
+            linesPayload.push({
+                roomTypeId: parseInt(roomTypeId),
+                deltaQuantity: v.delta,
+                priceAtAmendment: v.priceAtBooking,
+            });
+        });
+
+        if (newArrival || newDeparture) {
+            details.forEach(item => {
+                const rId = item.roomTypeId || item.roomType?.roomTypeId || item.roomType?.id;
+                if (!linesPayload.find(l => l.roomTypeId === rId)) {
+                    linesPayload.push({
+                        roomTypeId: rId,
+                        deltaQuantity: 0,
+                        priceAtAmendment: item.priceAtBooking || item.price,
+                    });
+                }
+            });
+        }
+
+        const finalLines = (newArrival || newDeparture) 
+            ? linesPayload 
+            : linesPayload.filter(l => l.deltaQuantity !== 0);
+
         const payload = {
-            lines: Object.entries(lines)
-                .filter(([, v]) => v.delta !== 0)
-                .map(([roomTypeId, v]) => ({
-                    roomTypeId: parseInt(roomTypeId),
-                    deltaQuantity: v.delta,
-                    priceAtAmendment: v.priceAtBooking,
-                })),
+            lines: finalLines,
             amendedBy: "STAFF",
             note: note.trim() || null,
         };

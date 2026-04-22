@@ -353,14 +353,37 @@ export default function GuestAmendmentModal({ show, booking, token, onHide, onSu
         || newDeparture !== "";
 
     const buildPayload = () => {
+        const linesPayload = [];
+        const details = booking?.bookingDetails ?? booking?.details ?? [];
+        
+        Object.entries(lines).forEach(([roomTypeId, v]) => {
+            linesPayload.push({
+                roomTypeId: parseInt(roomTypeId),
+                deltaQuantity: v.delta,
+                priceAtAmendment: v.priceAtBooking,
+            });
+        });
+
+        if (newArrival || newDeparture) {
+            details.forEach(item => {
+                const rType = item.roomType || item;
+                const rId = rType.roomTypeId || rType.id || item.roomTypeId;
+                if (!linesPayload.find(l => l.roomTypeId === rId)) {
+                    linesPayload.push({
+                        roomTypeId: rId,
+                        deltaQuantity: 0,
+                        priceAtAmendment: item.priceAtBooking || item.price,
+                    });
+                }
+            });
+        }
+
+        const finalLines = (newArrival || newDeparture) 
+            ? linesPayload 
+            : linesPayload.filter(l => l.deltaQuantity !== 0);
+
         const payload = {
-            lines: Object.entries(lines)
-                .filter(([, v]) => v.delta !== 0)
-                .map(([roomTypeId, v]) => ({
-                    roomTypeId: parseInt(roomTypeId),
-                    deltaQuantity: v.delta,
-                    priceAtAmendment: v.priceAtBooking,
-                })),
+            lines: finalLines,
         };
         if (newArrival)   payload.newArrivalDate   = newArrival;
         if (newDeparture) payload.newDepartureDate = newDeparture;
