@@ -89,12 +89,18 @@ export default function FrontDeskDashboard() {
     try {
       if (mode === 'checkout') {
         // Checkout mode: fetch CHECKED_IN + CHECKED_OUT with debt
-        const [activeData, debtData] = await Promise.all([
-          checkInApi.getDashboardBookings(selectedBranch, 'CHECKED_IN'),
-          checkInApi.getCheckedOutWithDebt(selectedBranch),
-        ]);
+        const activeData = await checkInApi.getDashboardBookings(selectedBranch, 'CHECKED_IN');
         const active = (activeData || []).map(b => ({ ...b, _isDebt: false }));
-        const debt   = (debtData   || []).map(b => ({ ...b, _isDebt: true  }));
+
+        // Debt API may fail if backend not updated yet — fail gracefully
+        let debt = [];
+        try {
+          const debtData = await checkInApi.getCheckedOutWithDebt(selectedBranch);
+          debt = (debtData || []).map(b => ({ ...b, _isDebt: true }));
+        } catch (debtErr) {
+          console.warn('Debt API not available:', debtErr.message);
+        }
+
         setBookings([...active, ...debt]); // active first, debt after
       } else if (mode === 'inhouse') {
         const raw = await checkInApi.getDashboardBookings(selectedBranch, 'CHECKED_IN');
@@ -143,6 +149,8 @@ export default function FrontDeskDashboard() {
   const filteredByTime = useMemo(() => {
     const t = today();
     return bookings.filter(b => {
+      // Debt bookings always show regardless of time filter
+      if (b._isDebt) return true;
       const d = pivotDate(b, mode);
       if (!d) return timeFilter === 'all';
       if (timeFilter === 'today') return d <= t;
@@ -157,7 +165,9 @@ export default function FrontDeskDashboard() {
 
   const countForTab = useMemo(() => {
     const t = today();
+    const debtCount = bookings.filter(b => b._isDebt).length;
     const count = (filter) => bookings.filter(b => {
+      if (b._isDebt) return true; // debt always counted
       const d = pivotDate(b, mode);
       if (!d) return filter === 'all';
       if (filter === 'today') return d <= t;
