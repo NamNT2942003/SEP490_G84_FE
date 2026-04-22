@@ -261,6 +261,11 @@ export default function BookingTable({
                     <td className="text-end pe-3">
                       <div className="d-flex justify-content-end align-items-center gap-1">
                         <button className="btn btn-sm fw-semibold"
+                          style={{ background: '#fffbeb', color: '#92400e', border: '1px solid #f59e0b', fontSize: '0.79rem' }}
+                          onClick={() => onCollectRemainingClick && onCollectRemainingClick(booking)}>
+                          <i className="bi bi-cash-coin me-1"></i>Collect
+                        </button>
+                        <button className="btn btn-sm fw-semibold"
                           style={{ background: '#fff3e0', color: '#e65100', border: '1px solid #ffcc80', fontSize: '0.79rem' }}
                           onClick={() => onDebtDetailClick && onDebtDetailClick(booking)}>
                           <i className="bi bi-telephone-fill me-1"></i>Contact

@@ -29,7 +29,10 @@ export default function CollectRemainingModal({ show, onClose, booking, onSucces
 
   const totalAmount  = Number(booking.totalAmount || 0);
   const prepaidAmount = Number(booking.prepaidAmount || 0);
-  const amountDue    = Math.max(0, totalAmount - prepaidAmount);
+  // If it's a debt row, use roomDebtAmount directly; otherwise calculate from prepaidAmount
+  const amountDue    = booking.roomDebtAmount !== undefined 
+    ? Number(booking.roomDebtAmount) 
+    : Math.max(0, totalAmount - prepaidAmount);
 
   const methodLabel = (m) => m === 'CARD' ? 'Card' : m === 'TRANSFER' ? 'Bank Transfer' : 'Cash';
 
