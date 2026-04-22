@@ -862,7 +862,6 @@ const GuestInformation = () => {
     const depositAmount = normalizeMoney(finalBookingAmount * depositRate / 100);
 
     const handleContinue = async () => {
-        alert('Code version: V5 - If you see this, cache is cleared!');
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
@@ -957,6 +956,11 @@ const GuestInformation = () => {
                     denyButtonText: '<i class="bi bi-arrow-clockwise me-1"></i>Resend Code',
                     denyButtonColor: '#6b7280',
                     cancelButtonText: 'Cancel',
+                    inputValidator: (value) => {
+                        if (!value || !/^\d{6}$/.test(value.trim())) {
+                            return 'Please enter exactly 6 digits!';
+                        }
+                    },
                     didOpen: () => {
                         const input = Swal.getInput();
                         if (input) {
@@ -1006,19 +1010,14 @@ const GuestInformation = () => {
                         Swal.close();
                         otpVerified = true;
                     } catch (verifyErr) {
-                        console.log('OTP Verification Error:', verifyErr);
-                        console.log('OTP Verify Response Status:', verifyErr?.response?.status);
-                        console.log('OTP Verify Response Data:', verifyErr?.response?.data);
-                        console.log('OTP sent email:', formData.email, '| OTP entered:', otpCode?.trim());
+                        console.error('OTP Verification Error:', verifyErr);
                         Swal.close();
                         // Parse error message — backend may return plain string or { message: "..." }
                         const respData = verifyErr?.response?.data;
-                        const status = verifyErr?.response?.status;
                         const msg = (typeof respData === 'string' && respData.length > 0)
                             ? respData
                             : (respData?.message || verifyErr?.friendlyMessage || verifyErr.message || 'Invalid OTP. Please try again.');
-                        lastError = `${msg} (HTTP ${status || 'N/A'})`;
-                        alert('Lỗi xác thực OTP: ' + lastError);
+                        lastError = msg;
                         // Small delay to prevent SweetAlert race condition between close() and next fire()
                         await new Promise(r => setTimeout(r, 150));
                     }
@@ -1030,11 +1029,7 @@ const GuestInformation = () => {
 
         } catch (error) {
             console.error('OTP Flow Error:', error);
-            const message = (typeof error?.response?.data === 'string' && error.response.data)
-                || error?.response?.data?.message
-                || error?.friendlyMessage
-                || error?.message
-                || 'OTP verification failed';
+            const message = error?.response?.data?.message || typeof error?.response?.data === 'string' ? error.response.data : error?.friendlyMessage || error.message || 'OTP verification failed';
             Swal.fire({ icon: 'error', title: 'Verification Failed', text: message, confirmButtonColor: '#d33' });
         } finally {
             setIsSubmitting(false);
@@ -1103,12 +1098,7 @@ const GuestInformation = () => {
         } catch (error) {
             Swal.close();
             console.error('Booking error:', error);
-            const message = (typeof error?.response?.data === 'string' && error.response.data)
-                || error?.response?.data?.message
-                || error?.friendlyMessage
-                || error?.message
-                || 'Unable to create booking';
-            alert('Lỗi Booking Creation: ' + message);
+            const message = error?.response?.data?.message || typeof error?.response?.data === 'string' ? error.response.data : error?.friendlyMessage || error.message || 'Unable to create booking';
             Swal.fire({ icon: 'error', title: 'Booking Error', text: message, confirmButtonColor: '#d33' });
         }
     };
