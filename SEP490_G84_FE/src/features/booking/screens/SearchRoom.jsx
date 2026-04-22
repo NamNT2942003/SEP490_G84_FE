@@ -951,19 +951,7 @@ const SearchRoom = () => {
                             )}
                         </div>
 
-                        {/* Drawer Footer */}
-                        <div style={{
-                            padding: '14px 24px', borderTop: '1px solid #f0f0f0', background: '#fafbf8', flexShrink: 0,
-                            display: 'flex', justifyContent: 'flex-end',
-                        }}>
-                            <button
-                                className="btn btn-sm fw-medium rounded-3"
-                                style={{ backgroundColor: '#5C6F4E', color: '#fff', padding: '8px 24px' }}
-                                onClick={() => setShowRulesDrawer(false)}
-                            >
-                                Close
-                            </button>
-                        </div>
+
                     </div>
                 </>
             )}
