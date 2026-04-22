@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import bookingManagementApi from "../api/bookingManagementApi";
+import BookingAmendmentModal from "./BookingAmendmentModal";
 import "./BookingDetailModal.css";
 import Buttons from "@/components/ui/Buttons";
 
@@ -60,6 +61,7 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
     const [error, setError] = useState("");
     const [newStatus, setNewStatus] = useState("");
     const [showStatusPanel, setShowStatusPanel] = useState(false);
+    const [showAmendment, setShowAmendment] = useState(false);
 
     const fetchDetail = useCallback(async () => {
         try {
@@ -365,11 +367,40 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
 
                 {/* Footer */}
                 <div className="bm-modal-footer">
+                    {/* Nút Sửa Booking — chỉ hiển thị cho booking nội bộ chưa check-in */}
+                    {booking &&
+                        ["FRONT_END", "STAFF"].includes((booking.source || "").toUpperCase()) &&
+                        !["CHECKED_IN", "CHECKED_OUT", "CANCELLED"].includes((booking.status || "").toUpperCase()) && (
+                        <Buttons
+                            variant="outline"
+                            className="btn-sm me-auto"
+                            style={{ borderColor: "#3d6b3d", color: "#3d6b3d" }}
+                            onClick={() => setShowAmendment(true)}
+                            disabled={actionLoading}
+                        >
+                            <i className="bi bi-pencil-square me-1" />
+                            Sửa Booking
+                        </Buttons>
+                    )}
                     <Buttons variant="outline" className="btn-sm" onClick={onHide} disabled={actionLoading}>
                         Close
                     </Buttons>
                 </div>
             </div>
+
+            {/* Amendment Modal */}
+            {booking && (
+                <BookingAmendmentModal
+                    show={showAmendment}
+                    booking={booking}
+                    onHide={() => setShowAmendment(false)}
+                    onSuccess={() => {
+                        setShowAmendment(false);
+                        fetchDetail();
+                        onStatusChanged?.();
+                    }}
+                />
+            )}
         </div>
     );
-}
+}

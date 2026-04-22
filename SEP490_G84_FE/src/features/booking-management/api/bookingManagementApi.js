@@ -176,6 +176,32 @@ const bookingManagementApi = {
 
         throw lastError;
     },
+
+    /**
+     * Preview amendment — KHÔNG ghi DB.
+     * @param {number} bookingId
+     * @param {Object} payload - { lines, newArrivalDate?, newDepartureDate?, amendedBy, note? }
+     */
+    previewAmendment: async (bookingId, payload) => {
+        const response = await apiClient.post(
+            `${ADMIN_BOOKING_BASE}/${bookingId}/amendments/preview`,
+            payload
+        );
+        return response.data;
+    },
+
+    /**
+     * Áp dụng amendment — ghi DB.
+     * @param {number} bookingId
+     * @param {Object} payload
+     */
+    createAmendment: async (bookingId, payload) => {
+        const response = await apiClient.post(
+            `${ADMIN_BOOKING_BASE}/${bookingId}/amendments`,
+            payload
+        );
+        return response.data;
+    },
 };
 
-export default bookingManagementApi;
+export default bookingManagementApi;
