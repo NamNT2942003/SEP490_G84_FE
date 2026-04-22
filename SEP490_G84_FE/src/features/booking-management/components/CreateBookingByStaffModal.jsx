@@ -452,6 +452,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 if (!Number.isFinite(amt) || amt < 0) {
                     return "Prepaid Amount override must be a valid number >= 0.";
                 }
+                if (amt > estimatedGrandTotal) {
+                    const formattedMax = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(estimatedGrandTotal);
+                    return `Prepaid Amount override cannot exceed the total booking price (${formattedMax}).`;
+                }
             }
             if (form.customRefundRate !== "" && form.customRefundRate != null) {
                 const rate = Number(form.customRefundRate);
@@ -1555,6 +1559,15 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
 
         return (
             <div className="cbsm-step-content">
+                {/* Warning block added at the top of the final step */}
+                <div style={{ background: "#fef2f2", border: "1.5px solid #fca5a5", borderRadius: 10, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
+                    <div>
+                        <div style={{ fontWeight: 800, color: "#b91c1c", fontSize: 13, marginBottom: 2 }}>Thao tác không thể hoàn tác!</div>
+                        <div style={{ color: "#7f1d1d", fontSize: 12 }}>Vui lòng kiểm tra kỹ thông tin bên dưới trước khi tạo booking. Sau khi tạo, dữ liệu sẽ được lưu vào hệ thống và không thể xóa tự động.</div>
+                    </div>
+                </div>
+
                 <div className="cbsm-card">
                     <div className="cbsm-card-title">Booking Summary</div>
                     <div className="cbsm-summary-grid">
