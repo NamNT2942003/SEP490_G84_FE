@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import bookingManagementApi from "../api/bookingManagementApi";
+import { API_ENDPOINTS } from "../../../constants/apiConfig";
+import apiClient from "../../../services/apiClient";
 import "./BookingAmendmentModal.css";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -58,8 +60,23 @@ function StepIndicator({ step }) {
 // ─── Step 1: Edit form ──────────────────────────────────────────────────────
 
 function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
-                    newDeparture, setNewDeparture, note, setNote }) {
+                    newDeparture, setNewDeparture, note, setNote, availableRoomTypes }) {
     const details = booking?.details ?? [];
+    const [addingRoomTypeId, setAddingRoomTypeId] = useState("");
+
+    // Combine original details and newly mapped lines
+    const combinedDetails = [...details];
+    Object.keys(lines).forEach(rId => {
+        if (!combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == rId)) {
+            const addedLine = lines[rId];
+            combinedDetails.push({
+                 roomTypeId: rId,
+                 roomTypeName: addedLine.roomTypeName,
+                 quantity: 0,
+                 priceAtBooking: addedLine.priceAtBooking
+            });
+        }
+    });
 
     // lines = { [roomTypeId]: { roomTypeName, priceAtBooking, currentQty, delta } }
     const getDelta = (roomTypeId) => lines[roomTypeId]?.delta ?? 0;
@@ -68,13 +85,30 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
         setLines(prev => {
             const current = prev[roomTypeId]?.delta ?? 0;
             const next = current + change;
-            // Không được bớt quá số hiện có
             if (next < -currentQty) return prev;
             return {
                 ...prev,
                 [roomTypeId]: { roomTypeName, priceAtBooking, currentQty, delta: next }
             };
         });
+    };
+
+    const handleAddNewRoomType = () => {
+        if (!addingRoomTypeId) return;
+        const targetType = availableRoomTypes?.find(rt => rt.id == addingRoomTypeId || rt.roomTypeId == addingRoomTypeId);
+        if (!targetType) return;
+        
+        const rId = targetType.id || targetType.roomTypeId;
+        if (lines[rId] || combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == rId)) return; // already in panel
+
+        const roomTypeName = targetType.name || targetType.roomTypeName;
+        const basePrice = targetType.basePrice || targetType.price || 0;
+
+        setLines(prev => ({
+             ...prev,
+             [rId]: { roomTypeName, priceAtBooking: basePrice, currentQty: 0, delta: 1 }
+        }));
+        setAddingRoomTypeId("");
     };
 
     return (
@@ -95,13 +129,13 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                     </tr>
                 </thead>
                 <tbody>
-                    {details.length === 0 ? (
+                    {combinedDetails.length === 0 ? (
                         <tr>
                             <td colSpan={5} className="text-center text-muted py-3">
                                 Không có dữ liệu phòng
                             </td>
                         </tr>
-                    ) : details.map((item) => {
+                    ) : combinedDetails.map((item) => {
                         const delta = getDelta(item.roomTypeId);
                         const afterQty = item.quantity + delta;
                         return (
@@ -151,6 +185,29 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                     })}
                 </tbody>
             </table>
+
+            <div className="ba-add-room-row d-flex align-items-center gap-2 mt-2">
+                <select 
+                    className="form-select form-select-sm" 
+                    style={{ width: "auto", minWidth: "200px" }}
+                    value={addingRoomTypeId} 
+                    onChange={(e) => setAddingRoomTypeId(e.target.value)}
+                >
+                    <option value="">-- Thêm loại phòng khác --</option>
+                    {availableRoomTypes?.map(rt => {
+                         const id = rt.id || rt.roomTypeId;
+                         if (combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == id)) return null;
+                         return <option key={id} value={id}>{rt.name}</option>;
+                    })}
+                </select>
+                <button 
+                    className="ba-btn ba-btn-outline ba-btn-sm m-0" 
+                    onClick={handleAddNewRoomType}
+                    disabled={!addingRoomTypeId}
+                >
+                    Thêm phòng mới
+                </button>
+            </div>
 
             {/* Ngày check-in/out */}
             <div className="ba-section-label" style={{ marginTop: 16 }}>
@@ -371,6 +428,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
     const [newArrival, setNewArrival]     = useState("");
     const [newDeparture, setNewDeparture] = useState("");
     const [note, setNote]             = useState("");
+    const [availableRoomTypes, setAvailableRoomTypes] = useState([]);
 
     const [previewing, setPreviewing] = useState(false);
     const [preview, setPreview]       = useState(null);
@@ -391,6 +449,14 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
             setSuccess(false);
         }
     }, [show]);
+
+    useEffect(() => {
+        if (show && booking?.branchId) {
+            apiClient.get(API_ENDPOINTS.ROOM_TYPES.BY_BRANCH, { params: { branchId: booking.branchId } })
+                .then(res => setAvailableRoomTypes(res.data?.data || res.data || []))
+                .catch(err => console.error("Could not fetch room types", err));
+        }
+    }, [show, booking?.branchId]);
 
     if (!show) return null;
 
@@ -540,6 +606,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
                             setNewDeparture={setNewDeparture}
                             note={note}
                             setNote={setNote}
+                            availableRoomTypes={availableRoomTypes}
                         />
                     ) : (
                         <PreviewStep preview={preview} />
