@@ -1202,7 +1202,7 @@ const GuestInformation = () => {
                                         // Tính giá độc lập cho policy này (không bị ảnh hưởng bởi policy đang chọn)
                                         const policyTotal = computeTotalForPolicy(policy.id);
                                         const prepaidAmount = normalizeMoney(policyTotal * (safeNumber(policy.prepaidRate, 100)) / 100);
-                                        const refundAmount = normalizeMoney(policyTotal * (safeNumber(policy.refunRate, 0)) / 100);
+                                        const refundAmount = normalizeMoney(policyTotal * (safeNumber(policy.prepaidRate, 0)) / 100);
 
                                         // Hạn huỷ miễn phí
                                         const deadline = computeFreeCancelDeadline(checkIn, policy.dateRange);
@@ -1279,7 +1279,7 @@ const GuestInformation = () => {
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${refundAmount > 0 ? '#16a34a' : '#e5e7eb'}` }}>
                                                         <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Refund if cancelled</div>
                                                         <div style={{ fontSize: 15, fontWeight: 800, color: refundAmount > 0 ? '#16a34a' : '#dc2626' }}>{formatVND(refundAmount)}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.refunRate ?? 0}% of total</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.prepaidRate ?? 0}% of total</div>
                                                     </div>
                                                     {/* Total booking */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
@@ -1300,10 +1300,10 @@ const GuestInformation = () => {
                                                         }}>
                                                             <i className="bi bi-clock-fill" />
                                                             <span>
-                                                                <strong>Cancel before 6:00 PM today</strong>
-                                                                {' '}for a <strong>full refund</strong>
+                                                                <strong>Refund of {formatVND(refundAmount)}</strong> applies per policy until{' '}
+                                                                <strong>today</strong>
                                                                 <span style={{ color: '#b45309', fontWeight: 400 }}>
-                                                                    {' '}— free cancellation window ends tonight
+                                                                    {' '}— no refund after today
                                                                 </span>
                                                             </span>
                                                         </div>
@@ -1316,10 +1316,10 @@ const GuestInformation = () => {
                                                         }}>
                                                             <i className="bi bi-exclamation-triangle-fill" />
                                                             <span>
-                                                                <strong>Free cancellation expired</strong> on{' '}
+                                                                <strong>Refund period expired</strong> on{' '}
                                                                 <strong>{deadlineStr}</strong>
                                                                 <span style={{ color: '#9a3412', fontWeight: 400 }}>
-                                                                    {' '}— cancellation fees apply per policy
+                                                                    {' '}— no refund will be given
                                                                 </span>
                                                             </span>
                                                         </div>
@@ -1332,10 +1332,10 @@ const GuestInformation = () => {
                                                         }}>
                                                             <i className="bi bi-clock-history" />
                                                             <span>
-                                                                <strong>Full refund</strong> if cancelled before{' '}
+                                                                <strong>Refund of {formatVND(refundAmount)}</strong> applies per policy until{' '}
                                                                 <strong>{deadlineStr}</strong>
                                                                 <span style={{ color: '#6b7280', fontWeight: 400 }}>
-                                                                    {' '}({parseInt(policy.dateRange, 10)} days before check-in)
+                                                                    {' '}— no refund after this date
                                                                 </span>
                                                             </span>
                                                         </div>

@@ -1201,7 +1201,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         {/* Applied policy summary badge */}
                         {selectedPolicy ? (() => {
                             const appliedPrepaid = Math.round(estimatedGrandTotal * (selectedPolicy.prepaidRate || 0) / 100);
-                            const appliedRefund = Math.round(estimatedGrandTotal * (selectedPolicy.refunRate || 0) / 100);
+                            const appliedRefund = Math.round(estimatedGrandTotal * (selectedPolicy.prepaidRate || 0) / 100);
                             const appliedDeadlineDate = computeFreeCancelDeadline(form.arrivalDate, selectedPolicy.dateRange);
                             const appliedDeadline = formatDeadline(appliedDeadlineDate);
                             const todayApplied = new Date(); todayApplied.setHours(0, 0, 0, 0);
@@ -1235,31 +1235,32 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                         <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: `3px solid ${appliedRefund > 0 ? "#16a34a" : "#e5e7eb"}` }}>
                                             <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Refund if cancelled</div>
                                             <div style={{ fontSize: 12, fontWeight: 800, color: appliedRefund > 0 ? "#16a34a" : "#dc2626" }}>{formatVnd(appliedRefund)}</div>
-                                            <div style={{ fontSize: 9, color: "#9aaa9b" }}>{selectedPolicy.refunRate}%</div>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b" }}>{selectedPolicy.prepaidRate}%</div>
                                         </div>
                                         <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #e5e7eb" }}>
                                             <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Hotel keeps</div>
                                             <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>{formatVnd(estimatedGrandTotal - appliedRefund)}</div>
-                                            <div style={{ fontSize: 9, color: "#9aaa9b" }}>{100 - (selectedPolicy.refunRate || 0)}%</div>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b" }}>{100 - (selectedPolicy.prepaidRate || 0)}%</div>
                                         </div>
                                     </div>
                                     {appliedDeadlineDate && (
                                         isAppliedDeadlineToday ? (
                                             <div style={{ fontSize: 10.5, color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 8px", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
                                                 <i className="bi bi-clock-fill" />
-                                                <strong>Cancel before 6:00 PM today</strong>&nbsp;for a <strong>full refund</strong>
-                                                <span style={{ color: "#b45309", fontWeight: 400 }}>— window ends tonight</span>
+                                                <strong>Refund of {formatVnd(appliedRefund)}</strong> applies per policy until <strong>today</strong>
+                                                <span style={{ color: "#b45309", fontWeight: 400 }}>— no refund after today</span>
                                             </div>
                                         ) : isAppliedDeadlinePast ? (
                                             <div style={{ fontSize: 10.5, color: "#c2410c", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 6, padding: "4px 8px", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
                                                 <i className="bi bi-exclamation-triangle-fill" />
-                                                <strong>Free cancellation expired</strong> on <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
-                                                <span style={{ color: "#9a3412", fontWeight: 400 }}>— fees apply per policy</span>
+                                                <strong>Refund period expired</strong> on <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
+                                                <span style={{ color: "#9a3412", fontWeight: 400 }}>— no refund will be given</span>
                                             </div>
                                         ) : (
                                             <div style={{ fontSize: 10.5, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
                                                 <i className="bi bi-clock-history" />
-                                                <strong>Full refund</strong> if cancelled before <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
+                                                <strong>Refund of {formatVnd(appliedRefund)}</strong> applies per policy until <strong style={{ marginLeft: 3 }}>{appliedDeadline}</strong>
+                                                <span style={{ color: "#15803d", fontWeight: 400 }}>— no refund after this date</span>
                                             </div>
                                         )
                                     )}
@@ -1299,7 +1300,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
 
                                     // Số tiền cụ thể
                                     const cardPrepaid = Math.round(estimatedGrandTotal * (p.prepaidRate || 0) / 100);
-                                    const cardRefund = Math.round(estimatedGrandTotal * (p.refunRate || 0) / 100);
+                                    const cardRefund = Math.round(estimatedGrandTotal * (p.prepaidRate || 0) / 100);
                                     const cardRetain = Math.max(0, estimatedGrandTotal - cardRefund);
                                     const deadlineDate = computeFreeCancelDeadline(form.arrivalDate, p.dateRange);
                                     const deadlineStr = formatDeadline(deadlineDate);
@@ -1406,12 +1407,12 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                 <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: `3px solid ${cardRefund > 0 ? "#16a34a" : "#e5e7eb"}` }}>
                                                     <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Refund if cancelled</div>
                                                     <div style={{ fontSize: 12, fontWeight: 800, color: cardRefund > 0 ? "#16a34a" : "#dc2626" }}>{formatVnd(cardRefund)}</div>
-                                                    <div style={{ fontSize: 9, color: "#9aaa9b" }}>{p.refunRate}%</div>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b" }}>{p.prepaidRate}%</div>
                                                 </div>
                                                 <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: "3px solid #e5e7eb" }}>
                                                     <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Hotel keeps</div>
                                                     <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>{formatVnd(cardRetain)}</div>
-                                                    <div style={{ fontSize: 9, color: "#9aaa9b" }}>{100 - (p.refunRate || 0)}%</div>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b" }}>{100 - (p.prepaidRate || 0)}%</div>
                                                 </div>
                                             </div>
 
@@ -1419,20 +1420,20 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                 isDeadlineToday ? (
                                                     <div style={{ fontSize: 11, color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
                                                         <i className="bi bi-clock-fill" />
-                                                        <strong>Cancel before 6:00 PM today</strong>&nbsp;for a <strong>full refund</strong>
-                                                        <span style={{ color: "#b45309", fontWeight: 400 }}>— window ends tonight</span>
+                                                        <strong>Refund of {formatVnd(cardRefund)}</strong> applies per policy until <strong>today</strong>
+                                                        <span style={{ color: "#b45309", fontWeight: 400 }}>— no refund after today</span>
                                                     </div>
                                                 ) : isDeadlinePast ? (
                                                     <div style={{ fontSize: 11, color: "#c2410c", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
                                                         <i className="bi bi-exclamation-triangle-fill" />
-                                                        <strong>Free cancellation expired</strong> on <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong>
-                                                        <span style={{ color: "#9a3412", fontWeight: 400 }}>— fees apply per policy</span>
+                                                        <strong>Refund period expired</strong> on <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong>
+                                                        <span style={{ color: "#9a3412", fontWeight: 400 }}>— no refund will be given</span>
                                                     </div>
                                                 ) : (
                                                     <div style={{ fontSize: 11, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
                                                         <i className="bi bi-clock-history me-1 text-success" />
-                                                        <strong>Full refund</strong> if cancelled before <strong>{deadlineStr}</strong>
-                                                        {p.dateRange && <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({freeCancelDays} days before check-in)</span>}
+                                                        <strong>Refund of {formatVnd(cardRefund)}</strong> applies per policy until <strong>{deadlineStr}</strong>
+                                                        <span style={{ color: "#15803d", fontWeight: 400 }}>— no refund after this date</span>
                                                     </div>
                                                 )
                                             )}

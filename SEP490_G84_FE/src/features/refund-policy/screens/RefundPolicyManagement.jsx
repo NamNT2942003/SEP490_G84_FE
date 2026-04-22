@@ -306,7 +306,7 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                         <div className="mb-3">
                             <label className="form-label fw-semibold">
                                 <i className="bi bi-calendar-check me-1 text-success"></i>
-                                Free cancellation window (days before check-in)
+                                Refund deadline window (days before check-in)
                             </label>
                             <input
                                 type="number"
@@ -318,7 +318,7 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                                 placeholder="Example: 7"
                             />
                             <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>
-                                If cancelled <strong>≥ N days</strong> before check-in → <span style={{ color: "#16a34a", fontWeight: 600 }}>full refund (100%)</span>. After that window → refund follows the rate above.
+                                If cancelled <strong>≥ N days</strong> before check-in → <span style={{ color: "#16a34a", fontWeight: 600 }}>refund of Prepaid rate</span>. After that window → <span style={{ color: "#dc2626", fontWeight: 600 }}>no refund</span>.
                             </div>
                         </div>
 
@@ -661,10 +661,11 @@ const RefundPolicyManagement = () => {
                                                         padding: "2px 10px", fontWeight: 700, fontSize: "0.75rem",
                                                     }}>
                                                         <i className="bi bi-calendar-check-fill" />
-                                                        Free cancel: {p.daysBeforeCheckIn ?? p.dateRange} days before
+                                                        Refund deadline: {p.daysBeforeCheckIn ?? p.dateRange} days before
                                                     </span>
                                                     <div className="mt-1 text-muted" style={{ fontSize: "0.75rem" }}>
-                                                        Cancel &lt; {p.daysBeforeCheckIn ?? p.dateRange} days before → {p.refunRate}% refund
+                                                        Cancel ≥ {p.daysBeforeCheckIn ?? p.dateRange} days before → refund {p.prepaidRate}%<br/>
+                                                        Cancel &lt; {p.daysBeforeCheckIn ?? p.dateRange} days before → no refund
                                                     </div>
                                                 </div>
                                             ) : null}
