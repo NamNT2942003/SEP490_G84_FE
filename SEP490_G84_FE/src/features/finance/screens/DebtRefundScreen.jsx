@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { financeApi } from '../api/financeApi';
+import { reportApi } from '../../report/api/reportApi';
 import CollectDebtModal from '../component/CollectDebtModal';
 import DebtRefundDetailDrawer from '../component/DebtRefundDetailDrawer';
 import { useSelector } from 'react-redux';
@@ -18,16 +19,35 @@ const DebtRefundScreen = () => {
     const [drawer, setDrawer] = useState({ show: false, type: null, id: null });
     const [search, setSearch] = useState('');
 
+    // Branch filter
+    const [branches, setBranches] = useState([]);
+    const [branchId, setBranchId] = useState('');
+
     const authUser = useSelector((state) => state.auth.user);
     const userRole = authUser?.role || '';
-    const userBranchId = authUser?.branchId || null;
+
+    // Load branches user has access to
+    useEffect(() => {
+        const loadBranches = async () => {
+            try {
+                const data = await reportApi.getReportBranches();
+                setBranches(data || []);
+                // If user only has 1 branch, auto-select it
+                if (data && data.length === 1) setBranchId(data[0].branchId);
+            } catch {
+                // silent
+            }
+        };
+        loadBranches();
+    }, []);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
+            const bid = branchId || undefined;
             const [r, d] = await Promise.all([
-                financeApi.getPendingRefunds(),
-                financeApi.getOutstandingDebts(),
+                financeApi.getPendingRefunds(bid),
+                financeApi.getOutstandingDebts(bid),
             ]);
             setRefunds(r || []);
             setDebts(d || []);
@@ -36,7 +56,7 @@ const DebtRefundScreen = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [branchId]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -109,26 +129,47 @@ const DebtRefundScreen = () => {
                 </button>
             </div>
 
-            {/* Search Bar */}
-            <div className="mb-4" style={{ maxWidth: 400 }}>
-                <div style={{ position: 'relative' }}>
-                    <i className="bi bi-search" style={{
-                        position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                        color: '#aaa', fontSize: '0.9rem'
-                    }} />
-                    <input
-                        type="text"
-                        placeholder="Search by booking code, guest name, or phone..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        style={{
-                            width: '100%', padding: '10px 14px 10px 38px', borderRadius: 10,
-                            border: '1.5px solid #dde3dd', fontSize: '0.88rem', outline: 'none',
-                            fontFamily: "'DM Sans', sans-serif", transition: 'border-color .2s',
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#465c47'}
-                        onBlur={(e) => e.target.style.borderColor = '#dde3dd'}
-                    />
+            {/* Search + Branch Filter */}
+            <div className="row g-3 mb-4 align-items-end">
+                <div className="col-md-5">
+                    <label className="form-label fw-semibold" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#888' }}>
+                        Search
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                        <i className="bi bi-search" style={{
+                            position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                            color: '#aaa', fontSize: '0.9rem'
+                        }} />
+                        <input
+                            type="text"
+                            placeholder="Booking code, guest name, or phone..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="form-control"
+                            style={{
+                                paddingLeft: 38, borderRadius: 10,
+                                border: '1.5px solid #dde3dd', fontSize: '0.88rem',
+                            }}
+                        />
+                    </div>
+                </div>
+                <div className="col-md-3">
+                    <label className="form-label fw-semibold" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#888' }}>
+                        Branch
+                    </label>
+                    <select
+                        className="form-select"
+                        value={branchId}
+                        onChange={e => setBranchId(e.target.value)}
+                        disabled={branches.length <= 1}
+                        style={{ borderRadius: 10, border: '1.5px solid #dde3dd', fontSize: '0.88rem' }}
+                    >
+                        {branches.length > 1 && <option value="">All branches</option>}
+                        {branches.length === 0 && <option value="">Loading...</option>}
+                        {branches.map(b => (
+                            <option key={b.branchId} value={b.branchId}>{b.branchName}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 

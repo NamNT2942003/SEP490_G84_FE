@@ -57,9 +57,10 @@ export const financeApi = {
 
   // ==================== Debt & Refund ====================
 
-  /** Danh sách khoản hoàn tiền đang chờ xác nhận */
-  getPendingRefunds: async () => {
-    const { data } = await apiClient.get('/finance/pending-refunds');
+  /** Pending refunds list (optional branchId filter) */
+  getPendingRefunds: async (branchId) => {
+    const params = branchId ? { branchId } : {};
+    const { data } = await apiClient.get('/finance/pending-refunds', { params });
     return data;
   },
 
@@ -69,9 +70,10 @@ export const financeApi = {
     return data;
   },
 
-  /** Danh sách khách còn nợ tiền phòng */
-  getOutstandingDebts: async () => {
-    const { data } = await apiClient.get('/finance/outstanding-debts');
+  /** Outstanding debts list (optional branchId filter) */
+  getOutstandingDebts: async (branchId) => {
+    const params = branchId ? { branchId } : {};
+    const { data } = await apiClient.get('/finance/outstanding-debts', { params });
     return data;
   },
 
