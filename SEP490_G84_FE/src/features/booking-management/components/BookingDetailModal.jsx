@@ -318,24 +318,31 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                             <span style={{ fontWeight: 700, fontSize: 13, color: "#1f2937" }}>{policyName}</span>
                                         </div>
 
-                                        {/* 3 amount cards */}
+                                        {/* 2 amount cards */}
                                         {total > 0 && (
-                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: (deadlineStr || booking.isFreeCancel != null) ? 10 : 0 }}>
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
                                                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #465c47" }}>
                                                     <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Deposit</div>
                                                     <div style={{ fontSize: 14, fontWeight: 800, color: "#111827" }}>{formatVND(prepaidAmt)}</div>
                                                     <div style={{ fontSize: 10, color: "#9ca3af" }}>{prepaidRate}% of total</div>
-                                                </div>
-                                                <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: `3px solid ${refundAmt > 0 ? "#16a34a" : "#e5e7eb"}` }}>
-                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Refund if cancelled</div>
-                                                    <div style={{ fontSize: 14, fontWeight: 800, color: refundAmt > 0 ? "#16a34a" : "#dc2626" }}>{formatVND(refundAmt)}</div>
-                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{refundRate}% of deposit</div>
                                                 </div>
                                                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #e5e7eb" }}>
                                                     <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Hotel retains</div>
                                                     <div style={{ fontSize: 14, fontWeight: 800, color: "#374151" }}>{formatVND(retainAmt)}</div>
                                                     <div style={{ fontSize: 10, color: "#9ca3af" }}>{100 - refundRate}% of deposit</div>
                                                 </div>
+                                            </div>
+                                        )}
+
+                                        {/* Cancelled at timestamp */}
+                                        {booking.cancelledAt && (
+                                            <div style={{
+                                                fontSize: 12, display: "flex", alignItems: "center", gap: 8,
+                                                background: "#fef2f2", border: "1px solid #fecaca",
+                                                borderRadius: 7, padding: "8px 12px", color: "#991b1b", marginBottom: 8,
+                                            }}>
+                                                <i className="bi bi-calendar-x-fill" style={{ flexShrink: 0 }} />
+                                                <span>Cancelled at: <strong>{new Date(booking.cancelledAt).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</strong></span>
                                             </div>
                                         )}
 

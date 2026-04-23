@@ -1272,19 +1272,13 @@ const GuestInformation = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* 3 key figures */}
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
+                                                {/* 2 key figures */}
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
                                                     {/* Deposit */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
                                                         <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Deposit</div>
                                                         <div style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>{formatVND(prepaidAmount)}</div>
                                                         <div style={{ fontSize: 10, color: '#9ca3af' }}>{pPrepaidRate}% of total</div>
-                                                    </div>
-                                                    {/* Refund if cancelled */}
-                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${refundAmount > 0 ? '#16a34a' : '#e5e7eb'}` }}>
-                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Refund if cancelled</div>
-                                                        <div style={{ fontSize: 15, fontWeight: 800, color: refundAmount > 0 ? '#16a34a' : '#dc2626' }}>{formatVND(refundAmount)}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{pRefundRate}% of deposit</div>
                                                     </div>
                                                     {/* Total booking */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>

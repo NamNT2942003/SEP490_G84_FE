@@ -136,15 +136,23 @@ export default function CancelBookingModal({ show, bookingId, onHide, onCancelle
                                     <label>Deposit</label>
                                     <strong>{formatVND(booking.totalPaidAmount)}</strong>
                                 </div>
-                                <div className="cancel-stat-card refund">
-                                    <label>Refund</label>
-                                    <strong>{formatVND(booking.refundAmount)}</strong>
-                                </div>
                                 <div className="cancel-stat-card retain">
                                     <label>Hotel retains</label>
                                     <strong>{formatVND(booking.retainedAmount)}</strong>
                                 </div>
                             </div>
+
+                            {/* Cancelled at timestamp */}
+                            {booking.cancelledAt && (
+                                <div style={{
+                                    fontSize: 12, display: "flex", alignItems: "center", gap: 8,
+                                    background: "#fef2f2", border: "1px solid #fecaca",
+                                    borderRadius: 7, padding: "8px 12px", color: "#991b1b", marginTop: 8,
+                                }}>
+                                    <i className="bi bi-calendar-x-fill" style={{ flexShrink: 0 }} />
+                                    <span>Cancelled at: <strong>{new Date(booking.cancelledAt).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</strong></span>
+                                </div>
+                            )}
 
                             {/* Policy rules - structured description */}
                             {(() => {
