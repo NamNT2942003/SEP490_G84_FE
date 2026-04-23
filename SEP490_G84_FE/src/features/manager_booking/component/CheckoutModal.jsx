@@ -74,6 +74,11 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   const amountDue = roomBilling.amountDue || 0;
   const totalRoomCharge = roomBilling.totalRoomCharge || 0;
   const roomChargePaid = roomBilling.roomChargePaid || false;
+  const pendingRooms = rooms.filter(r => !r.checkedOut);
+  const allPaymentsSelected = pendingRooms.every(r => {
+    const due = Number(r.amountDue || 0);
+    return due <= 0 || stayPaymentMethods[r.stayId];
+  });
 
   const methodLabel = (m) => m === 'CARD' ? 'Card' : m === 'TRANSFER' ? 'Transfer' : 'Cash';
   const fmtMoney = (v) => Number(v || 0).toLocaleString();
@@ -141,6 +146,69 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
       // Reload billing để cập nhật trạng thái các phòng còn lại
       await fetchBilling();
       if (onSuccess) onSuccess();
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: 'Checkout Failed', text: error.response?.data?.error || 'An error occurred.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Multi-room checkout all at once (dùng API split checkout)
+  const handleCheckoutAll = async () => {
+    if (!allPaymentsSelected) {
+      Swal.fire({ icon: 'warning', title: 'Required', text: 'Please select a payment method for all rooms with outstanding charges.' });
+      return;
+    }
+
+    const totalDue = pendingRooms.reduce((sum, r) => sum + Number(r.amountDue || 0), 0);
+
+    if (Number(roomBilling?.roomBalance || 0) > 0) {
+      const roomDebt = Number(roomBilling.roomBalance);
+      const debtConfirm = await Swal.fire({
+        icon: 'warning',
+        title: '⚠️ Checkout All with Debt?',
+        html: `
+          <div style="text-align:left; font-size:0.9rem;">
+            <div style="margin-bottom:8px;">
+              <b>Outstanding Room Debt:</b> <span style="color:#dc3545; font-weight:700;">${fmtMoney(roomDebt)} VND</span>
+            </div>
+            <div style="padding:10px; background:#fff3cd; border-radius:6px; color:#856404;">
+              You are checking out <b>all ${pendingRooms.length} rooms</b>.<br/>
+              ${totalDue > 0 ? `Service charges of <b>${fmtMoney(totalDue)} VND</b> will be collected.<br/>` : ''}
+              The room debt will be recorded in the system.
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Confirm Checkout All',
+        confirmButtonColor: '#dc3545',
+        cancelButtonText: 'Cancel',
+      });
+      if (!debtConfirm.isConfirmed) return;
+    } else {
+      const confirm = await Swal.fire({
+        icon: 'question',
+        title: `Checkout All ${pendingRooms.length} Rooms?`,
+        html: totalDue > 0
+          ? `Collect <b>${fmtMoney(totalDue)} VND</b> total service charges and check out all rooms.`
+          : `No outstanding charges. Check out all rooms.`,
+        showCancelButton: true,
+        confirmButtonText: 'Confirm Checkout All',
+        confirmButtonColor: '#dc3545',
+      });
+      if (!confirm.isConfirmed) return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const roomPayments = pendingRooms.map(room => ({
+        stayId: room.stayId,
+        paymentMethod: stayPaymentMethods[room.stayId] || 'CASH',
+      }));
+      await checkoutApi.processSplitCheckout(booking.id, { roomPayments });
+      Swal.fire({ icon: 'success', title: 'Done!', text: 'All rooms checked out successfully!', timer: 2000, showConfirmButton: false });
+      if (onSuccess) onSuccess();
+      onClose();
     } catch (error) {
       Swal.fire({ icon: 'error', title: 'Checkout Failed', text: error.response?.data?.error || 'An error occurred.' });
     } finally {
@@ -513,6 +581,24 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                         {amountDue > 0 && !paymentMethod && (
                           <p className="text-muted text-center mb-0" style={{ fontSize: '0.72rem' }}>
                             ⚠️ Please select a payment method to continue
+                          </p>
+                        )}
+                      </>
+                    )}
+                    {rooms.length > 1 && pendingRooms.length > 0 && (
+                      <>
+                        <button className="btn btn-danger fw-bold shadow-sm py-2"
+                          onClick={handleCheckoutAll}
+                          disabled={isSubmitting || !allPaymentsSelected}
+                          style={{ fontSize: '0.85rem' }}>
+                          {isSubmitting
+                            ? <><span className="spinner-border spinner-border-sm me-2"></span>Processing...</>
+                            : <><i className="bi bi-check2-all me-2"></i>Checkout All ({pendingRooms.length} rooms)</>
+                          }
+                        </button>
+                        {!allPaymentsSelected && (
+                          <p className="text-muted text-center mb-0" style={{ fontSize: '0.72rem' }}>
+                            ⚠️ Please select payment methods for all rooms
                           </p>
                         )}
                       </>
