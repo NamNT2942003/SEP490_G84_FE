@@ -43,9 +43,10 @@ function isInternalFrontendBooking(source) {
   return (source || '').trim().toUpperCase() === 'FRONT_END';
 }
 
-function statusBadge(booking, isNoShow, isCheckoutOverdue, isCheckoutToday) {
+function statusBadge(booking, isNoShow, isCheckinDay, isCheckoutOverdue, isCheckoutToday) {
   if (booking.status === 'NO_SHOW') return { text: 'No-Show', bg: '#212121', color: '#fff' };
   if (isNoShow) return { text: '⚠ Overdue / No-Show', bg: '#ffcdd2', color: '#b71c1c' };
+  if (isCheckinDay) return { text: '📋 Check-in Today', bg: '#fff3e0', color: '#e65100' };
   if (isCheckoutOverdue) return { text: '⚠ Overstayed', bg: '#ffcdd2', color: '#b71c1c' };
   if (isCheckoutToday) return { text: '⏰ Checkout Due Today', bg: '#fff3e0', color: '#e65100' };
   if (booking.status === 'ARRIVED') return { text: '🧳 Arrived · Luggage Stored', bg: '#e1f5fe', color: '#01579b' };
@@ -293,13 +294,14 @@ export default function BookingTable({
 
             // ── Normal row (CHECKED_IN / CONFIRMED / ARRIVED) ──
             const t = today();
-            let isNoShow = false, isCheckoutOverdue = false, isCheckoutToday = false;
+            let isNoShow = false, isCheckinDay = false, isCheckoutOverdue = false, isCheckoutToday = false;
 
             const checkInDate = parseDate(booking.checkIn);
             const checkOutDate = parseDate(booking.checkOut);
 
             if (booking.status === 'CONFIRMED' || booking.status === 'ARRIVED') {
-              if (checkInDate && checkInDate < t) isNoShow = true;
+              if (checkInDate && checkInDate < t) isNoShow = true;           // past check-in day → No-Show eligible
+              if (checkInDate && checkInDate.getTime() === t.getTime()) isCheckinDay = true; // check-in day → Notify only
             } else if (booking.status === 'CHECKED_IN') {
               if (checkOutDate) {
                 if (checkOutDate.getTime() === t.getTime()) isCheckoutToday = true;
@@ -309,11 +311,12 @@ export default function BookingTable({
 
             let rowBg = 'transparent';
             if (isNoShow || isCheckoutOverdue) rowBg = '#fff8f8';
+            else if (isCheckinDay) rowBg = '#fffde7';
             else if (isCheckoutToday) rowBg = '#fffde7';
 
             const src = sourceTag(booking.source);
             const badge = dateBadge(pivotStr(booking));
-            const sbadge = statusBadge(booking, isNoShow, isCheckoutOverdue, isCheckoutToday);
+            const sbadge = statusBadge(booking, isNoShow, isCheckinDay, isCheckoutOverdue, isCheckoutToday);
 
             return (
               <tr key={booking.id} style={{ background: rowBg, borderBottom: '1px solid #f0f0f0' }}>
@@ -415,7 +418,16 @@ export default function BookingTable({
                 <td className="text-end pe-3">
                   <div className="d-flex justify-content-end align-items-center gap-1">
 
-                    {/* Overdue no-show */}
+                    {/* Check-in day: Notify only (guest expected today) */}
+                    {isCheckinDay && booking.status !== 'NO_SHOW' && (
+                      <button className="btn btn-sm fw-semibold"
+                        style={{ background: '#e3f2fd', color: '#1565c0', border: 'none', fontSize: '0.79rem' }}
+                        onClick={() => handleNotifyNoShow(booking)}>
+                        <i className="bi bi-envelope-fill me-1"></i>Notify
+                      </button>
+                    )}
+
+                    {/* Overdue no-show: past check-in day → Notify + No-Show */}
                     {isNoShow && booking.status !== 'NO_SHOW' && (
                       <>
                         <button className="btn btn-sm fw-semibold"
@@ -431,7 +443,7 @@ export default function BookingTable({
                       </>
                     )}
 
-                    {/* Check-in button */}
+                    {/* Check-in button: available on check-in day and before */}
                     {!isNoShow && booking.status !== 'NO_SHOW'
                       && (booking.status === 'CONFIRMED' || booking.status === 'ARRIVED') && (
                         <button className="btn btn-sm fw-semibold"
