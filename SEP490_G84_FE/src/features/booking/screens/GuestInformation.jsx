@@ -91,13 +91,14 @@ const getVisiblePriceFromOption = (room, option) => {
 const normalizePolicyId = (policy) => policy?.id ?? policy?.policyId ?? null;
 
 /**
- * Tính ngày hạn huỷ miễn phí: checkIn - dateRange (ngày).
- * dateRange là chuỗi số ngày (ví dụ: "3") hoặc null.
+ * Compute free cancellation deadline: checkIn - dateRange (days).
+ * dateRange is a string number of days (e.g. "3") or null.
+ * dateRange=0 means free cancel on check-in day itself.
  */
 const computeFreeCancelDeadline = (checkIn, dateRange) => {
-    if (!checkIn || !dateRange) return null;
+    if (!checkIn || dateRange == null) return null;
     const days = parseInt(dateRange, 10);
-    if (!Number.isFinite(days) || days <= 0) return null;
+    if (!Number.isFinite(days) || days < 0) return null;
     const dt = new Date(checkIn);
     if (isNaN(dt.getTime())) return null;
     dt.setDate(dt.getDate() - days);
@@ -106,7 +107,7 @@ const computeFreeCancelDeadline = (checkIn, dateRange) => {
 
 const formatDeadlineDate = (dt) => {
     if (!dt) return null;
-    return dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return dt.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
 const normalizePolicy = (policy) => {
@@ -1183,7 +1184,7 @@ const GuestInformation = () => {
                                 Cancellation Policy
                                 {checkIn && (
                                     <span style={{ fontSize: 12, fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>
-                                        — cho ngày check-in {checkIn}
+                                        — for check-in {checkIn}
                                     </span>
                                 )}
                             </h5>
@@ -1191,7 +1192,7 @@ const GuestInformation = () => {
                             {!hasLoadedPolicies && policyLoading ? (
                                 <div className="text-muted d-flex align-items-center gap-2">
                                     <span className="spinner-border spinner-border-sm" />
-                                    Đang tải chính sách...
+                                    Loading policies...
                                 </div>
                             ) : policies.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1199,12 +1200,17 @@ const GuestInformation = () => {
                                         const isSelected = Number(selectedPolicyId) === Number(policy.id);
                                         const pType = String(policy.type || '').trim().toUpperCase();
 
-                                        // Tính giá độc lập cho policy này (không bị ảnh hưởng bởi policy đang chọn)
+                                        // Calculate amounts for this policy
                                         const policyTotal = computeTotalForPolicy(policy.id);
-                                        const prepaidAmount = normalizeMoney(policyTotal * (safeNumber(policy.prepaidRate, 100)) / 100);
-                                        const refundAmount = normalizeMoney(policyTotal * (safeNumber(policy.prepaidRate, 0)) / 100);
+                                        const pPrepaidRate = safeNumber(policy.prepaidRate, 100);
+                                        const pRefundRate = safeNumber(policy.refunRate, 0);
+                                        const prepaidAmount = normalizeMoney(policyTotal * pPrepaidRate / 100);
+                                        // Refund is calculated on prepaid (deposit), not total
+                                        const refundAmount = normalizeMoney(prepaidAmount * pRefundRate / 100);
+                                        const retainedAmount = normalizeMoney(prepaidAmount - refundAmount);
+                                        const isSameDayCancel = policy.dateRange != null && parseInt(policy.dateRange, 10) === 0;
 
-                                        // Hạn huỷ miễn phí
+                                        // Free cancel deadline
                                         const deadline = computeFreeCancelDeadline(checkIn, policy.dateRange);
                                         const deadlineStr = formatDeadlineDate(deadline);
                                         const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -1213,13 +1219,12 @@ const GuestInformation = () => {
                                         const isDeadlineToday = deadlineDay && deadlineDay.getTime() === today.getTime();
                                         const isDeadlinePast = deadline && !isDeadlineToday && deadline < today;
 
-                                        // Màu theo loại
                                         const typeConfig = {
-                                            FREE_CANCEL: { label: 'Miễn phí huỷ', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', badgeBg: '#dcfce7', badgeColor: '#15803d', icon: 'bi-check-circle-fill' },
-                                            PARTIAL_REFUND: { label: 'Hoàn một phần', color: '#d97706', bg: '#fffbeb', border: '#fcd34d', badgeBg: '#fef3c7', badgeColor: '#92400e', icon: 'bi-arrow-left-right' },
-                                            NON_REFUND: { label: 'Không hoàn tiền', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', badgeBg: '#fee2e2', badgeColor: '#991b1b', icon: 'bi-x-circle-fill' },
-                                            PAY_AT_HOTEL: { label: 'Thanh toán tại khách sạn', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', badgeBg: '#dbeafe', badgeColor: '#1e40af', icon: 'bi-building-check' },
-                                        }[pType] || { label: pType || 'Chính sách chuẩn', color: '#6b7280', bg: '#f9fafb', border: '#d1d5db', badgeBg: '#f3f4f6', badgeColor: '#374151', icon: 'bi-shield' };
+                                            FREE_CANCEL: { label: 'Free cancellation', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', badgeBg: '#dcfce7', badgeColor: '#15803d', icon: 'bi-check-circle-fill' },
+                                            PARTIAL_REFUND: { label: 'Partial refund', color: '#d97706', bg: '#fffbeb', border: '#fcd34d', badgeBg: '#fef3c7', badgeColor: '#92400e', icon: 'bi-arrow-left-right' },
+                                            NON_REFUND: { label: 'Non-refundable', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', badgeBg: '#fee2e2', badgeColor: '#991b1b', icon: 'bi-x-circle-fill' },
+                                            PAY_AT_HOTEL: { label: 'Pay at hotel', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', badgeBg: '#dbeafe', badgeColor: '#1e40af', icon: 'bi-building-check' },
+                                        }[pType] || { label: pType || 'Standard policy', color: '#6b7280', bg: '#f9fafb', border: '#d1d5db', badgeBg: '#f3f4f6', badgeColor: '#374151', icon: 'bi-shield' };
 
                                         return (
                                             <div
@@ -1269,27 +1274,27 @@ const GuestInformation = () => {
 
                                                 {/* 3 key figures */}
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: (deadlineStr || (policy.activeTimeStart && policy.activeTimeEnd)) ? 10 : 0 }}>
-                                                    {/* Prepaid */}
+                                                    {/* Deposit */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
-                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Prepaid</div>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Deposit</div>
                                                         <div style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>{formatVND(prepaidAmount)}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.prepaidRate ?? 0}% of total</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{pPrepaidRate}% of total</div>
                                                     </div>
-                                                    {/* Refund */}
+                                                    {/* Refund if cancelled */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${refundAmount > 0 ? '#16a34a' : '#e5e7eb'}` }}>
                                                         <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Refund if cancelled</div>
                                                         <div style={{ fontSize: 15, fontWeight: 800, color: refundAmount > 0 ? '#16a34a' : '#dc2626' }}>{formatVND(refundAmount)}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{policy.prepaidRate ?? 0}% of total</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{pRefundRate}% of deposit</div>
                                                     </div>
-                                                    {/* Total booking */}
-                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
-                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Total booking</div>
-                                                        <div style={{ fontSize: 15, fontWeight: 800, color: typeConfig.color }}>{formatVND(policyTotal)}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>incl. policy</div>
+                                                    {/* Hotel retains */}
+                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: '3px solid #e5e7eb' }}>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Hotel retains</div>
+                                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#374151' }}>{formatVND(retainedAmount)}</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{100 - pRefundRate}% of deposit</div>
                                                     </div>
                                                 </div>
 
-                                                {/* Hạn huỷ miễn phí */}
+                                                {/* Free cancellation deadline */}
                                                 {deadline && (
                                                     isDeadlineToday ? (
                                                         <div style={{
@@ -1300,11 +1305,12 @@ const GuestInformation = () => {
                                                         }}>
                                                             <i className="bi bi-clock-fill" />
                                                             <span>
-                                                                <strong>Refund of {formatVND(refundAmount)}</strong> applies per policy until{' '}
+                                                                <strong>Free cancellation</strong> until{' '}
                                                                 <strong>today</strong>
-                                                                <span style={{ color: '#b45309', fontWeight: 400 }}>
-                                                                    {' '}— no refund after today
-                                                                </span>
+                                                                {isSameDayCancel
+                                                                    ? <span style={{ color: '#b45309', fontWeight: 400 }}> — cancel on check-in day for full refund</span>
+                                                                    : <span style={{ color: '#b45309', fontWeight: 400 }}> — partial refund after today</span>
+                                                                }
                                                             </span>
                                                         </div>
                                                     ) : isDeadlinePast ? (
@@ -1316,10 +1322,10 @@ const GuestInformation = () => {
                                                         }}>
                                                             <i className="bi bi-exclamation-triangle-fill" />
                                                             <span>
-                                                                <strong>Refund period expired</strong> on{' '}
+                                                                <strong>Free cancellation expired</strong> on{' '}
                                                                 <strong>{deadlineStr}</strong>
                                                                 <span style={{ color: '#9a3412', fontWeight: 400 }}>
-                                                                    {' '}— no refund will be given
+                                                                    {' '}— only {pRefundRate}% of deposit will be refunded
                                                                 </span>
                                                             </span>
                                                         </div>
@@ -1330,23 +1336,24 @@ const GuestInformation = () => {
                                                             borderRadius: 8, padding: '6px 10px',
                                                             marginTop: 8, color: '#15803d',
                                                         }}>
-                                                            <i className="bi bi-clock-history" />
+                                                            <i className="bi bi-check-circle-fill" />
                                                             <span>
-                                                                <strong>Refund of {formatVND(refundAmount)}</strong> applies per policy until{' '}
+                                                                <strong>Free cancellation</strong> until{' '}
                                                                 <strong>{deadlineStr}</strong>
-                                                                <span style={{ color: '#6b7280', fontWeight: 400 }}>
-                                                                    {' '}— no refund after this date
-                                                                </span>
+                                                                {isSameDayCancel
+                                                                    ? <span style={{ color: '#6b7280', fontWeight: 400 }}> — cancel on check-in day for full refund</span>
+                                                                    : <span style={{ color: '#6b7280', fontWeight: 400 }}> — {policy.dateRange} days before check-in</span>
+                                                                }
                                                             </span>
                                                         </div>
                                                     )
                                                 )}
 
-                                                {/* Mùa áp dụng */}
+                                                {/* Seasonal range */}
                                                 {policy.activeTimeStart && policy.activeTimeEnd && (
                                                     <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                                         <i className="bi bi-sun" />
-                                                        Áp dụng từ{' '}
+                                                        Active from{' '}
                                                         <strong style={{ color: '#374151' }}>
                                                             {policy.activeTimeStart} – {policy.activeTimeEnd}
                                                         </strong>
@@ -1362,14 +1369,14 @@ const GuestInformation = () => {
                                             style={{ alignSelf: 'flex-start', fontSize: 12 }}
                                             onClick={() => setSelectedPolicyId(null)}
                                         >
-                                            <i className="bi bi-x-circle me-1" />Bỏ chọn chính sách
+                                            <i className="bi bi-x-circle me-1" />Clear policy selection
                                         </button>
                                     )}
                                 </div>
                             ) : (
                                 <div className="text-muted">
                                     <i className="bi bi-info-circle me-1" />
-                                    Không tìm thấy chính sách nào cho ngày check-in này. Hệ thống sẽ dùng 100% tổng tiền làm số tiền đặt cọc.
+                                    No cancellation policy found for this check-in date. The system will use 100% of the total amount as the deposit.
                                 </div>
                             )}
                         </div>

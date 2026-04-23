@@ -322,19 +322,19 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                         {total > 0 && (
                                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: (deadlineStr || booking.isFreeCancel != null) ? 10 : 0 }}>
                                                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #465c47" }}>
-                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Prepaid</div>
+                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Deposit</div>
                                                     <div style={{ fontSize: 14, fontWeight: 800, color: "#111827" }}>{formatVND(prepaidAmt)}</div>
-                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{prepaidRate}%</div>
+                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{prepaidRate}% of total</div>
                                                 </div>
                                                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: `3px solid ${refundAmt > 0 ? "#16a34a" : "#e5e7eb"}` }}>
                                                     <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Refund if cancelled</div>
                                                     <div style={{ fontSize: 14, fontWeight: 800, color: refundAmt > 0 ? "#16a34a" : "#dc2626" }}>{formatVND(refundAmt)}</div>
-                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{refundRate}%</div>
+                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{refundRate}% of deposit</div>
                                                 </div>
                                                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #e5e7eb" }}>
                                                     <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Hotel retains</div>
                                                     <div style={{ fontSize: 14, fontWeight: 800, color: "#374151" }}>{formatVND(retainAmt)}</div>
-                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{100 - refundRate}%</div>
+                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{100 - refundRate}% of deposit</div>
                                                 </div>
                                             </div>
                                         )}
@@ -344,8 +344,8 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                             <div style={{ fontSize: 12, color: booking.isFreeCancel ? "#15803d" : "#b91c1c", background: booking.isFreeCancel ? "#f0fdf4" : "#fef2f2", border: `1px solid ${booking.isFreeCancel ? "#bbf7d0" : "#fecaca"}`, borderRadius: 7, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6 }}>
                                                 <i className={`bi ${booking.isFreeCancel ? "bi-check-circle-fill" : "bi-exclamation-circle-fill"}`} />
                                                 {isSameDayCancel
-                                                    ? <>100% refund if cancelled on or before <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong> <span style={{ color: "#9aaa9b", marginLeft: 4 }}>(check-in day)</span></>
-                                                    : <>100% refund if cancelled before <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong> <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({freeCancelDays} days before check-in)</span></>
+                                                    ? <><strong>Free cancellation</strong> on or before <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong> <span style={{ color: "#9aaa9b", marginLeft: 4 }}>(check-in day)</span></>
+                                                    : <><strong>Free cancellation</strong> before <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong> <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({freeCancelDays} days before check-in)</span></>
                                                 }
                                                 {booking.isFreeCancel === true && <span style={{ marginLeft: "auto", fontWeight: 700, color: "#15803d" }}>✓ Eligible</span>}
                                                 {booking.isFreeCancel === false && <span style={{ marginLeft: "auto", fontWeight: 700, color: "#b91c1c" }}>✗ Expired</span>}
