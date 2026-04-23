@@ -162,8 +162,8 @@ const CashflowDetailDrawer = ({ payment, onClose }) => {
                 {payment?.paymentStatus}
               </span>
             } />
-            <InfoRow label="Collected at" value={fmtTime(payment?.paidAt)} />
-            <InfoRow label="Collected by" value={`${payment?.staffName ?? 'N/A'}${payment?.staffId ? ` (ID: ${payment.staffId})` : ''}`} />
+            <InfoRow label="Processed at" value={fmtTime(payment?.paidAt)} />
+            <InfoRow label="Processed by" value={`${payment?.staffName ?? 'N/A'}${payment?.staffId ? ` (ID: ${payment.staffId})` : ''}`} />
           </Section>
 
           <Section title="Reference Info">

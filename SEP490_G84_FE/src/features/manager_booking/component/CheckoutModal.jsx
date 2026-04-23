@@ -93,7 +93,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
     const due = Number(room?.amountDue || 0);
     
     let method = stayPaymentMethods[stayId];
-    if (due > 0 && !method) {
+    if (due > 0 && !allowServiceDebt && !method) {
       Swal.fire({ icon: 'warning', title: 'Required', text: 'Please select a payment method for this room.' });
       return;
     }
@@ -158,7 +158,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   // Multi-room checkout all at once — 1 payment method chung cho toàn bộ booking
   const handleCheckoutAll = async () => {
     let method = paymentMethod;
-    if (amountDue > 0 && !method) {
+    if (amountDue > 0 && !allowServiceDebt && !method) {
       Swal.fire({ icon: 'warning', title: 'Required', text: 'Please select a payment method to continue.' });
       return;
     }
@@ -223,7 +223,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   // Single-room checkout (booking 1 phòng, dùng API cũ)
   const handleConfirmCheckout = async () => {
     let method = paymentMethod;
-    if (amountDue > 0 && !method) {
+    if (amountDue > 0 && !allowServiceDebt && !method) {
       Swal.fire({ icon: 'warning', title: 'Required', text: 'Please select a payment method to continue.' });
       return;
     }

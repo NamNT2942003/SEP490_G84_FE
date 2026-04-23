@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { COLORS } from '@/constants';
 import { financeApi } from '../api/financeApi';
+import { reportApi } from '../../report/api/reportApi';
 import CollectDebtModal from '../component/CollectDebtModal';
 import DebtRefundDetailDrawer from '../component/DebtRefundDetailDrawer';
+import { useSelector } from 'react-redux';
+import Swal from 'sweetalert2';
 
-const fmt = (v) => v ? new Intl.NumberFormat('vi-VN').format(Math.abs(v)) : '0';
+const fmt = (v) => v ? new Intl.NumberFormat('en-US').format(Math.abs(v)) : '0';
+const fmtDate = (v) => v ? new Date(v).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
 const DebtRefundScreen = () => {
     const [refunds, setRefunds] = useState([]);
@@ -13,13 +18,36 @@ const DebtRefundScreen = () => {
     const [collectModal, setCollectModal] = useState({ show: false, debt: null });
     const [confirmingId, setConfirmingId] = useState(null);
     const [drawer, setDrawer] = useState({ show: false, type: null, id: null });
+    const [search, setSearch] = useState('');
+
+    // Branch filter
+    const [branches, setBranches] = useState([]);
+    const [branchId, setBranchId] = useState('');
+
+    const authUser = useSelector((state) => state.auth.user);
+    const userRole = authUser?.role || '';
+
+    // Load branches user has access to
+    useEffect(() => {
+        const loadBranches = async () => {
+            try {
+                const data = await reportApi.getReportBranches();
+                setBranches(data || []);
+                if (data && data.length === 1) setBranchId(data[0].branchId);
+            } catch {
+                // silent
+            }
+        };
+        loadBranches();
+    }, []);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
+            const bid = branchId || undefined;
             const [r, d] = await Promise.all([
-                financeApi.getPendingRefunds(),
-                financeApi.getOutstandingDebts(),
+                financeApi.getPendingRefunds(bid),
+                financeApi.getOutstandingDebts(bid),
             ]);
             setRefunds(r || []);
             setDebts(d || []);
@@ -28,17 +56,29 @@ const DebtRefundScreen = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [branchId]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    const handleConfirmRefund = async (paymentId) => {
+    const handleConfirmRefund = async (paymentId, customerName, amount) => {
+        const result = await Swal.fire({
+            icon: 'question',
+            title: 'Confirm Refund',
+            html: `Are you sure you have refunded <strong>${fmt(amount)} VND</strong> to <strong>${customerName || 'guest'}</strong>?`,
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Confirmed',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: COLORS.PRIMARY,
+        });
+        if (!result.isConfirmed) return;
+
         setConfirmingId(paymentId);
         try {
             await financeApi.confirmRefund(paymentId);
+            Swal.fire({ icon: 'success', title: 'Refund Confirmed', timer: 1500, showConfirmButton: false });
             fetchData();
         } catch {
-            // silent
+            Swal.fire({ icon: 'error', title: 'Failed', text: 'Could not confirm refund.' });
         } finally {
             setConfirmingId(null);
         }
@@ -49,93 +89,143 @@ const DebtRefundScreen = () => {
         fetchData();
     };
 
+    // Filter by search
+    const matchSearch = (item) => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
+        return (
+            (item.bookingCode || '').toLowerCase().includes(q) ||
+            (item.customerName || '').toLowerCase().includes(q) ||
+            (item.customerPhone || '').toLowerCase().includes(q)
+        );
+    };
+
+    const filteredRefunds = refunds.filter(matchSearch);
+    const filteredDebts = debts.filter(matchSearch);
+
     const totalRefund = refunds.reduce((s, r) => s + Math.abs(r.amount || 0), 0);
     const totalDebt = debts.reduce((s, d) => s + (d.remainingAmount || 0), 0);
 
+    // Role check
+    const canConfirmRefund = ['ADMIN', 'MANAGER', 'ACCOUNTANT'].includes(userRole);
+    const canCollectDebt = ['ADMIN', 'MANAGER', 'ACCOUNTANT', 'RECEPTIONIST'].includes(userRole);
+
     return (
-        <div style={{ padding: '24px 28px', maxWidth: 1280, margin: '0 auto' }}>
+        <div style={{ backgroundColor: '#f5f6fa', minHeight: '100vh', padding: '24px' }}>
+
             {/* Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.5rem', color: '#1a1a2e' }}>
-                        <i className="bi bi-cash-coin me-2" />Debt & Refund
-                    </h2>
-                    <p style={{ margin: '4px 0 0', color: '#888', fontSize: '0.85rem' }}>
-                        Quản lý các khoản cần hoàn cho khách và thu nợ từ khách
-                    </p>
+                    <h4 className="page-title">Debt & Refund</h4>
+                    <small className="text-muted">
+                        Manage pending refunds and collect outstanding debts
+                    </small>
                 </div>
-                <button className="btn btn-outline-secondary" onClick={fetchData} disabled={loading}
+                <button className="btn btn-sm btn-outline-secondary" onClick={fetchData} disabled={loading}
                     style={{ borderRadius: 8 }}>
-                    <i className={`bi bi-arrow-clockwise ${loading ? 'spinner-border spinner-border-sm' : ''}`} />
+                    <i className={`bi bi-arrow-clockwise ${loading ? 'spin' : ''}`} />
+                    {' '}Refresh
                 </button>
             </div>
 
-            {/* Stats Cards */}
+            {/* Filter Bar */}
+            <div className="card shadow-sm border-0 mb-4" style={{ borderRadius: 12 }}>
+                <div className="card-body py-3">
+                    <div className="row g-3 align-items-end">
+                        <div className="col-md-5">
+                            <label className="form-label fw-semibold text-secondary" style={labelStyle}>
+                                Search
+                            </label>
+                            <div style={{ position: 'relative' }}>
+                                <i className="bi bi-search" style={{
+                                    position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                                    color: '#aaa', fontSize: '0.85rem'
+                                }} />
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Booking code, guest name, or phone..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    style={{ paddingLeft: 36 }}
+                                />
+                            </div>
+                        </div>
+                        <div className="col-md-3">
+                            <label className="form-label fw-semibold text-secondary" style={labelStyle}>
+                                Branch
+                            </label>
+                            <select
+                                className="form-select"
+                                value={branchId}
+                                onChange={e => setBranchId(e.target.value)}
+                                disabled={branches.length <= 1}
+                            >
+                                {branches.length > 1 && <option value="">All branches</option>}
+                                {branches.length === 0 && <option value="">Loading...</option>}
+                                {branches.map(b => (
+                                    <option key={b.branchId} value={b.branchId}>{b.branchName}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Summary Cards */}
             <div className="row g-3 mb-4">
+                {/* Refunds */}
                 <div className="col-md-4">
-                    <div className="card border-0" style={{
-                        borderRadius: 12,
-                        background: 'linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%)',
-                        boxShadow: '0 2px 8px rgba(220,53,69,0.1)'
-                    }}>
-                        <div className="card-body">
-                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#888', marginBottom: 4 }}>
-                                <i className="bi bi-arrow-up-circle me-1" style={{ color: '#dc3545' }} />
-                                Cần hoàn cho khách
+                    <div className="card shadow-sm border-0" style={{ borderRadius: 12 }}>
+                        <div className="card-body" style={{ padding: '18px 20px' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                                Pending Refunds
                             </div>
-                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#dc3545' }}>
-                                {fmt(totalRefund)} ₫
+                            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#dc2626' }}>
+                                {fmt(totalRefund)} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#9ca3af' }}>VND</span>
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: '#999', marginTop: 2 }}>
-                                {refunds.length} khoản đang chờ
+                            <div style={{ fontSize: '0.73rem', color: '#9ca3af', marginTop: 2 }}>
+                                {refunds.length} {refunds.length === 1 ? 'item' : 'items'} pending
                             </div>
                         </div>
                     </div>
                 </div>
+                {/* Debts */}
                 <div className="col-md-4">
-                    <div className="card border-0" style={{
-                        borderRadius: 12,
-                        background: 'linear-gradient(135deg, #f0fff4 0%, #d4edda 100%)',
-                        boxShadow: '0 2px 8px rgba(25,135,84,0.1)'
-                    }}>
-                        <div className="card-body">
-                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#888', marginBottom: 4 }}>
-                                <i className="bi bi-arrow-down-circle me-1" style={{ color: '#198754' }} />
-                                Cần thu từ khách
+                    <div className="card shadow-sm border-0" style={{ borderRadius: 12 }}>
+                        <div className="card-body" style={{ padding: '18px 20px' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                                Outstanding Debts
                             </div>
-                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#198754' }}>
-                                {fmt(totalDebt)} ₫
+                            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: COLORS.PRIMARY }}>
+                                {fmt(totalDebt)} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#9ca3af' }}>VND</span>
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: '#999', marginTop: 2 }}>
-                                {debts.length} khách đang nợ
+                            <div style={{ fontSize: '0.73rem', color: '#9ca3af', marginTop: 2 }}>
+                                {debts.length} {debts.length === 1 ? 'guest' : 'guests'} with debt
                             </div>
                         </div>
                     </div>
                 </div>
+                {/* Total */}
                 <div className="col-md-4">
-                    <div className="card border-0" style={{
-                        borderRadius: 12,
-                        background: 'linear-gradient(135deg, #f8f9ff 0%, #e8e9f7 100%)',
-                        boxShadow: '0 2px 8px rgba(91,95,199,0.1)'
-                    }}>
-                        <div className="card-body">
-                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#888', marginBottom: 4 }}>
-                                <i className="bi bi-list-check me-1" style={{ color: '#5b5fc7' }} />
-                                Tổng cộng
+                    <div className="card shadow-sm border-0" style={{ borderRadius: 12 }}>
+                        <div className="card-body" style={{ padding: '18px 20px' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                                Total Items
                             </div>
-                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#5b5fc7' }}>
-                                {refunds.length + debts.length} <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>khoản</span>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#374151' }}>
+                                {refunds.length + debts.length} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#9ca3af' }}>items</span>
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: '#999', marginTop: 2 }}>
-                                Cần xử lý
+                            <div style={{ fontSize: '0.73rem', color: '#9ca3af', marginTop: 2 }}>
+                                Require action
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="card border-0" style={{ borderRadius: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            {/* Tabs + Table */}
+            <div className="card shadow-sm border-0" style={{ borderRadius: 12 }}>
                 <div className="card-header bg-white" style={{ borderBottom: '2px solid #f0f0f0', borderRadius: '12px 12px 0 0', padding: 0 }}>
                     <ul className="nav nav-tabs border-0" style={{ padding: '0 20px' }}>
                         <li className="nav-item">
@@ -143,13 +233,13 @@ const DebtRefundScreen = () => {
                                 className={`nav-link ${activeTab === 'refunds' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('refunds')}
                                 style={{
-                                    fontWeight: 700, border: 'none', fontSize: '0.9rem',
-                                    borderBottom: activeTab === 'refunds' ? '3px solid #dc3545' : '3px solid transparent',
-                                    color: activeTab === 'refunds' ? '#dc3545' : '#888',
-                                    padding: '12px 20px', background: 'transparent'
+                                    fontWeight: 700, border: 'none', fontSize: '0.88rem',
+                                    borderBottom: activeTab === 'refunds' ? `3px solid ${COLORS.PRIMARY}` : '3px solid transparent',
+                                    color: activeTab === 'refunds' ? COLORS.PRIMARY : '#9ca3af',
+                                    padding: '14px 20px', background: 'transparent', transition: 'all .2s',
                                 }}
                             >
-                                💸 Cần Hoàn ({refunds.length})
+                                Pending Refunds ({refunds.length})
                             </button>
                         </li>
                         <li className="nav-item">
@@ -157,97 +247,100 @@ const DebtRefundScreen = () => {
                                 className={`nav-link ${activeTab === 'debts' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('debts')}
                                 style={{
-                                    fontWeight: 700, border: 'none', fontSize: '0.9rem',
-                                    borderBottom: activeTab === 'debts' ? '3px solid #198754' : '3px solid transparent',
-                                    color: activeTab === 'debts' ? '#198754' : '#888',
-                                    padding: '12px 20px', background: 'transparent'
+                                    fontWeight: 700, border: 'none', fontSize: '0.88rem',
+                                    borderBottom: activeTab === 'debts' ? `3px solid ${COLORS.PRIMARY}` : '3px solid transparent',
+                                    color: activeTab === 'debts' ? COLORS.PRIMARY : '#9ca3af',
+                                    padding: '14px 20px', background: 'transparent', transition: 'all .2s',
                                 }}
                             >
-                                📥 Cần Thu ({debts.length})
+                                Outstanding Debts ({debts.length})
                             </button>
                         </li>
                     </ul>
                 </div>
                 <div className="card-body p-0">
                     {loading && (
-                        <div className="text-center p-4">
-                            <div className="spinner-border text-primary" role="status" />
+                        <div className="text-center p-5">
+                            <div className="spinner-border" style={{ color: COLORS.PRIMARY }} role="status" />
                         </div>
                     )}
 
                     {/* Tab: Pending Refunds */}
                     {activeTab === 'refunds' && !loading && (
                         <div className="table-responsive">
-                            <table className="table table-hover mb-0" style={{ fontSize: '0.88rem' }}>
+                            <table className="table table-hover mb-0" style={{ fontSize: '0.87rem' }}>
                                 <thead>
-                                    <tr style={{ backgroundColor: '#fafafa' }}>
-                                        <th style={{ fontWeight: 700, color: '#555', padding: '12px 16px' }}>Booking</th>
-                                        <th style={{ fontWeight: 700, color: '#555' }}>Khách hàng</th>
-                                        <th style={{ fontWeight: 700, color: '#555' }}>Loại</th>
-                                        <th style={{ fontWeight: 700, color: '#555', textAlign: 'right' }}>Số tiền hoàn</th>
-                                        <th style={{ fontWeight: 700, color: '#555' }}>Ngày tạo</th>
-                                        <th style={{ fontWeight: 700, color: '#555' }}>Người tạo</th>
-                                        <th style={{ fontWeight: 700, color: '#555', textAlign: 'center' }}></th>
+                                    <tr style={{ backgroundColor: '#fafbfc' }}>
+                                        <th style={thStyle}>Booking</th>
+                                        <th style={thStyle}>Guest</th>
+                                        <th style={thStyle}>Type</th>
+                                        <th style={{ ...thStyle, textAlign: 'right' }}>Refund Amount</th>
+                                        <th style={thStyle}>Created</th>
+                                        <th style={thStyle}>Staff</th>
+                                        <th style={{ ...thStyle, textAlign: 'center', width: 100 }}>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {refunds.length === 0 ? (
+                                    {filteredRefunds.length === 0 ? (
                                         <tr>
                                             <td colSpan="7" className="text-center p-4 text-muted">
-                                                🎉 Không có khoản hoàn tiền nào đang chờ!
+                                                {search ? 'No matching refunds found.' : 'No pending refunds. All clear!'}
                                             </td>
                                         </tr>
-                                    ) : refunds.map((r) => (
-                                        <tr key={r.paymentId} style={{ cursor: 'pointer' }} onClick={() => setDrawer({ show: true, type: 'REFUND', id: r.paymentId })}>
-                                            <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0d6efd', textDecoration: 'underline' }}>
+                                    ) : filteredRefunds.map((r) => (
+                                        <tr key={r.paymentId} style={{ cursor: 'pointer' }}
+                                            onClick={() => setDrawer({ show: true, type: 'REFUND', id: r.paymentId })}>
+                                            <td style={{ padding: '12px 16px', fontWeight: 700, color: COLORS.PRIMARY }}>
                                                 {r.bookingCode}
                                             </td>
                                             <td>
-                                                <div style={{ fontWeight: 600 }}>{r.customerName || '—'}</div>
+                                                <div style={{ fontWeight: 600, color: '#374151' }}>{r.customerName || '—'}</div>
                                                 {r.customerPhone && (
-                                                    <div style={{ fontSize: '0.78rem', color: '#888' }}>
-                                                        <i className="bi bi-telephone me-1" />{r.customerPhone}
+                                                    <div style={{ fontSize: '0.76rem', color: '#9ca3af' }}>
+                                                        {r.customerPhone}
                                                     </div>
                                                 )}
                                             </td>
                                             <td>
-                                                <span className={`badge ${r.reason === 'CANCEL' ? 'bg-danger' : 'bg-warning text-dark'}`}
-                                                    style={{ fontWeight: 600, fontSize: '0.75rem' }}>
-                                                    {r.reason === 'CANCEL' ? 'Hủy booking' : 'Sửa booking'}
+                                                <span style={{
+                                                    fontSize: '0.75rem', fontWeight: 600,
+                                                    padding: '3px 10px', borderRadius: 20,
+                                                    background: r.reason === 'CANCEL' ? '#fee2e2' : '#fef3c7',
+                                                    color: r.reason === 'CANCEL' ? '#991b1b' : '#92400e',
+                                                }}>
+                                                    {r.reason === 'CANCEL' ? 'Cancellation' : 'Amendment'}
                                                 </span>
                                             </td>
-                                            <td style={{ textAlign: 'right', fontWeight: 700, color: '#dc3545', fontSize: '0.95rem' }}>
-                                                -{fmt(r.amount)} ₫
+                                            <td style={{ textAlign: 'right', fontWeight: 700, color: '#dc2626', fontSize: '0.93rem' }}>
+                                                -{fmt(r.amount)} VND
                                             </td>
-                                            <td style={{ color: '#666' }}>
-                                                {r.createdAt ? new Date(r.createdAt).toLocaleDateString('vi-VN', {
-                                                    day: '2-digit', month: '2-digit', year: 'numeric'
-                                                }) : '—'}
-                                            </td>
-                                            <td style={{ color: '#555', fontSize: '0.85rem' }}>
-                                                {r.staffName ? (
-                                                    <span><i className="bi bi-person-badge me-1" />{r.staffName}</span>
-                                                ) : <span className="text-muted">—</span>}
+                                            <td style={{ color: '#6b7280' }}>{fmtDate(r.createdAt)}</td>
+                                            <td style={{ color: '#374151', fontSize: '0.84rem' }}>
+                                                {r.staffName || <span className="text-muted">—</span>}
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
-                                                <button
-                                                    className="btn btn-primary btn-sm"
-                                                    disabled={confirmingId === r.paymentId}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (window.confirm(`Xác nhận đã chuyển khoản ${fmt(r.amount)} ₫ cho ${r.customerName || 'khách'}?`)) {
-                                                            handleConfirmRefund(r.paymentId);
-                                                        }
-                                                    }}
-                                                    style={{ borderRadius: 6, fontWeight: 600, fontSize: '0.8rem' }}
-                                                >
-                                                    {confirmingId === r.paymentId ? (
-                                                        <span className="spinner-border spinner-border-sm me-1" />
-                                                    ) : (
-                                                        <i className="bi bi-check-circle me-1" />
-                                                    )}
-                                                    Confirm
-                                                </button>
+                                                {canConfirmRefund && (
+                                                    <button
+                                                        className="btn btn-sm"
+                                                        disabled={confirmingId === r.paymentId}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleConfirmRefund(r.paymentId, r.customerName, r.amount);
+                                                        }}
+                                                        style={{
+                                                            borderRadius: 8, fontWeight: 600, fontSize: '0.78rem',
+                                                            background: COLORS.PRIMARY, color: '#fff', border: 'none',
+                                                            padding: '6px 14px',
+                                                        }}
+                                                    >
+                                                        {confirmingId === r.paymentId ? (
+                                                            <span className="spinner-border spinner-border-sm me-1" />
+                                                        ) : (
+                                                            <i className="bi bi-check-circle me-1" />
+                                                        )}
+                                                        Confirm
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -259,65 +352,74 @@ const DebtRefundScreen = () => {
                     {/* Tab: Outstanding Debts */}
                     {activeTab === 'debts' && !loading && (
                         <div className="table-responsive">
-                            <table className="table table-hover mb-0" style={{ fontSize: '0.88rem' }}>
+                            <table className="table table-hover mb-0" style={{ fontSize: '0.87rem' }}>
                                 <thead>
-                                    <tr style={{ backgroundColor: '#fafafa' }}>
-                                        <th style={{ fontWeight: 700, color: '#555', padding: '12px 16px' }}>Booking</th>
-                                        <th style={{ fontWeight: 700, color: '#555' }}>Khách hàng</th>
-                                        <th style={{ fontWeight: 700, color: '#555', textAlign: 'right' }}>Tổng HĐ</th>
-                                        <th style={{ fontWeight: 700, color: '#555', textAlign: 'right' }}>Đã thu</th>
-                                        <th style={{ fontWeight: 700, color: '#555', textAlign: 'right' }}>Còn nợ</th>
-                                        <th style={{ fontWeight: 700, color: '#555' }}>Ngày checkout</th>
-                                        <th style={{ fontWeight: 700, color: '#555' }}>Người tạo</th>
-                                        <th style={{ fontWeight: 700, color: '#555', textAlign: 'center' }}></th>
+                                    <tr style={{ backgroundColor: '#fafbfc' }}>
+                                        <th style={thStyle}>Booking</th>
+                                        <th style={thStyle}>Guest</th>
+                                        <th style={{ ...thStyle, textAlign: 'right' }}>Invoice Total</th>
+                                        <th style={{ ...thStyle, textAlign: 'right' }}>Paid</th>
+                                        <th style={{ ...thStyle, textAlign: 'right' }}>Remaining</th>
+                                        <th style={thStyle}>Checkout</th>
+                                        <th style={thStyle}>Staff</th>
+                                        <th style={{ ...thStyle, textAlign: 'center', width: 100 }}>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {debts.length === 0 ? (
+                                    {filteredDebts.length === 0 ? (
                                         <tr>
                                             <td colSpan="8" className="text-center p-4 text-muted">
-                                                🎉 Không có khách nào đang nợ!
+                                                {search ? 'No matching debts found.' : 'No outstanding debts. All clear!'}
                                             </td>
                                         </tr>
-                                    ) : debts.map((d) => (
-                                        <tr key={d.invoiceId} style={{ cursor: 'pointer' }} onClick={() => setDrawer({ show: true, type: 'DEBT', id: d.invoiceId })}>
+                                    ) : filteredDebts.map((d) => (
+                                        <tr key={d.invoiceId} style={{ cursor: 'pointer' }}
+                                            onClick={() => setDrawer({ show: true, type: 'DEBT', id: d.invoiceId })}>
                                             <td style={{ padding: '12px 16px' }}>
-                                                <span style={{ fontWeight: 700, color: '#0d6efd', textDecoration: 'underline' }}>{d.bookingCode}</span>
+                                                <span style={{ fontWeight: 700, color: COLORS.PRIMARY }}>{d.bookingCode}</span>
                                                 <br />
-                                                <span className={`badge ${d.invoiceType === 'SERVICE' ? 'bg-info' : 'bg-secondary'}`}
-                                                    style={{ fontSize: '0.65rem', fontWeight: 600 }}>
-                                                    {d.invoiceType === 'SERVICE' ? '🛎 Dịch vụ' : '🏠 Tiền phòng'}
+                                                <span style={{
+                                                    fontSize: '0.68rem', fontWeight: 600,
+                                                    padding: '2px 8px', borderRadius: 20,
+                                                    background: d.invoiceType === 'SERVICE' ? '#eff6ff' : '#f3f4f6',
+                                                    color: d.invoiceType === 'SERVICE' ? '#1d4ed8' : '#374151',
+                                                }}>
+                                                    {d.invoiceType === 'SERVICE' ? 'Service' : 'Room'}
                                                 </span>
                                             </td>
                                             <td>
-                                                <div style={{ fontWeight: 600 }}>{d.customerName || '—'}</div>
+                                                <div style={{ fontWeight: 600, color: '#374151' }}>{d.customerName || '—'}</div>
                                                 {d.customerPhone && (
-                                                    <div style={{ fontSize: '0.78rem', color: '#888' }}>
-                                                        <i className="bi bi-telephone me-1" />{d.customerPhone}
+                                                    <div style={{ fontSize: '0.76rem', color: '#9ca3af' }}>
+                                                        {d.customerPhone}
                                                     </div>
                                                 )}
                                             </td>
-                                            <td style={{ textAlign: 'right', color: '#555' }}>{fmt(d.totalAmount)} ₫</td>
-                                            <td style={{ textAlign: 'right', color: '#198754', fontWeight: 600 }}>{fmt(d.paidAmount)} ₫</td>
-                                            <td style={{ textAlign: 'right', fontWeight: 700, color: '#dc3545', fontSize: '0.95rem' }}>
-                                                {fmt(d.remainingAmount)} ₫
+                                            <td style={{ textAlign: 'right', color: '#374151' }}>{fmt(d.totalAmount)} VND</td>
+                                            <td style={{ textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>{fmt(d.paidAmount)} VND</td>
+                                            <td style={{ textAlign: 'right', fontWeight: 700, color: '#dc2626', fontSize: '0.93rem' }}>
+                                                {fmt(d.remainingAmount)} VND
                                             </td>
-                                            <td style={{ color: '#666' }}>
-                                                {d.checkoutDate ? new Date(d.checkoutDate).toLocaleDateString('vi-VN') : '—'}
+                                            <td style={{ color: '#6b7280' }}>
+                                                {d.checkoutDate ? fmtDate(d.checkoutDate) : '—'}
                                             </td>
-                                            <td style={{ color: '#555', fontSize: '0.85rem' }}>
-                                                {d.staffName ? (
-                                                    <span><i className="bi bi-person-badge me-1" />{d.staffName}</span>
-                                                ) : <span className="text-muted">—</span>}
+                                            <td style={{ color: '#374151', fontSize: '0.84rem' }}>
+                                                {d.staffName || <span className="text-muted">—</span>}
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
-                                                <button
-                                                    className="btn btn-success btn-sm"
-                                                    onClick={(e) => { e.stopPropagation(); setCollectModal({ show: true, debt: d }); }}
-                                                    style={{ borderRadius: 6, fontWeight: 600, fontSize: '0.8rem' }}
-                                                >
-                                                    💰 Collect
-                                                </button>
+                                                {canCollectDebt && (
+                                                    <button
+                                                        className="btn btn-sm"
+                                                        onClick={(e) => { e.stopPropagation(); setCollectModal({ show: true, debt: d }); }}
+                                                        style={{
+                                                            borderRadius: 8, fontWeight: 600, fontSize: '0.78rem',
+                                                            background: COLORS.PRIMARY, color: '#fff', border: 'none',
+                                                            padding: '6px 14px',
+                                                        }}
+                                                    >
+                                                        <i className="bi bi-cash-coin me-1" />Collect
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -346,5 +448,8 @@ const DebtRefundScreen = () => {
         </div>
     );
 };
+
+const labelStyle = { fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' };
+const thStyle = { fontWeight: 700, color: '#6b7280', padding: '12px 16px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' };
 
 export default DebtRefundScreen;
