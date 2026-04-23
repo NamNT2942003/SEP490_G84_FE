@@ -114,20 +114,6 @@ const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalEl
                       {ts.label}
                     </span>
                   </div>
-                  {visibleLabels.length > 0 && (
-                    <div style={{ marginTop: 4 }}>
-                      {visibleLabels.map((label, i) => (
-                        <div key={i} style={{ fontSize: '0.72rem', color: '#6b7280', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 240 }} title={label}>
-                          {label}
-                        </div>
-                      ))}
-                      {hasMore && (
-                        <div style={{ fontSize: '0.68rem', color: '#9ca3af', fontStyle: 'italic' }}>
-                          +{breakdownLabels.filter(l => !l.startsWith('(Legacy')).length - 2} more…
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </td>
                 <td className="py-3 px-3 fw-semibold" style={{ color: isRefund ? '#dc2626' : '#111827', whiteSpace: 'nowrap' }}>
                   {isRefund ? '−' : ''}{fmt(Math.abs(item.amount ?? 0))}
