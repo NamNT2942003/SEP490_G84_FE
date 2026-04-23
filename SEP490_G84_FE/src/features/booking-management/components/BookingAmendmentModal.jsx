@@ -431,6 +431,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
     const [newDeparture, setNewDeparture] = useState("");
     const [note, setNote]             = useState("");
     const [availableRoomTypes, setAvailableRoomTypes] = useState([]);
+    const [showCancelInterface, setShowCancelInterface] = useState(false);
 
     const [previewing, setPreviewing] = useState(false);
     const [preview, setPreview]       = useState(null);
@@ -449,6 +450,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
             setPreview(null);
             setError("");
             setSuccess(false);
+            setShowCancelInterface(false);
         }
     }, [show]);
 
@@ -466,6 +468,31 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
     const hasChanges = Object.values(lines).some(l => l.delta !== 0)
         || newArrival !== ""
         || newDeparture !== "";
+
+    // Helper to determine if all rooms would be zero after amendment
+    const allRoomsZero = () => {
+        // Combine original details and added lines similar to EditStep
+        const details = booking?.bookingDetails ?? booking?.details ?? [];
+        const combined = [...details];
+        Object.keys(lines).forEach(rId => {
+            if (!combined.some(d => (d.roomTypeId || d.roomType?.id) == rId)) {
+                const added = lines[rId];
+                combined.push({
+                    roomTypeId: rId,
+                    roomTypeName: added.roomTypeName,
+                    quantity: 0,
+                    priceAtBooking: added.priceAtBooking,
+                });
+            }
+        });
+        // Check each combined item after applying delta
+        return combined.every(item => {
+            const rId = item.roomTypeId || item.roomType?.roomTypeId || item.roomType?.id;
+            const delta = lines[rId]?.delta ?? 0;
+            const afterQty = (item.quantity ?? 0) + delta;
+            return afterQty === 0;
+        });
+    };
 
     const buildPayload = () => {
         const linesPayload = [];
