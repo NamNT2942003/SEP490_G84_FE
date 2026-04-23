@@ -68,6 +68,7 @@ import ImportHistory from "@/features/furniture/screens/ImportHistory";
 // Finance & Reports
 import CashflowScreen from "@/features/finance/screens/CashflowScreen.jsx";
 import RevenueCollectionScreen from "@/features/finance/screens/RevenueCollectionScreen.jsx";
+import DebtRefundScreen from "@/features/finance/screens/DebtRefundScreen.jsx";
 import ServiceRevenueReportScreen from "@/features/report/screens/ServiceRevenueReportScreen.jsx";
 import RevenueReportScreen from "@/features/report/screens/RevenueReportScreen.jsx";
 import ExpenseReportScreen from "@/features/report/screens/ExpenseReportScreen.jsx";
@@ -173,6 +174,7 @@ const AppRouter = () => {
 
             <Route path="/finance/cashflow" element={<ProtectedRoute><MainLayout><CashflowScreen /></MainLayout></ProtectedRoute>} />
             <Route path="/finance/revenue" element={<ProtectedRoute><MainLayout><RevenueCollectionScreen /></MainLayout></ProtectedRoute>} />
+            <Route path="/finance/debt-refund" element={<ProtectedRoute><MainLayout><DebtRefundScreen /></MainLayout></ProtectedRoute>} />
 
             {/* 5.3 Profile */}
             <Route path="/profile" element={<ProtectedRoute><MainLayout><UserProfile /></MainLayout></ProtectedRoute>} />

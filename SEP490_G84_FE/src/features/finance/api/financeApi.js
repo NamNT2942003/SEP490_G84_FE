@@ -54,4 +54,30 @@ export const financeApi = {
     const { data } = await apiClient.get(`/finance/revenue/${invoiceId}/detail`);
     return data;
   },
+
+  // ==================== Debt & Refund ====================
+
+  /** Danh sách khoản hoàn tiền đang chờ xác nhận */
+  getPendingRefunds: async () => {
+    const { data } = await apiClient.get('/finance/pending-refunds');
+    return data;
+  },
+
+  /** Xác nhận đã chuyển khoản hoàn tiền */
+  confirmRefund: async (paymentId) => {
+    const { data } = await apiClient.post(`/finance/refunds/${paymentId}/confirm`);
+    return data;
+  },
+
+  /** Danh sách khách còn nợ tiền phòng */
+  getOutstandingDebts: async () => {
+    const { data } = await apiClient.get('/finance/outstanding-debts');
+    return data;
+  },
+
+  /** Thu tiền nợ */
+  collectDebt: async (invoiceId, body) => {
+    const { data } = await apiClient.post(`/finance/debts/${invoiceId}/collect`, body);
+    return data;
+  },
 };
