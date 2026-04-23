@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { financeApi } from '../api/financeApi';
 import CollectDebtModal from '../component/CollectDebtModal';
+import DebtRefundDetailDrawer from '../component/DebtRefundDetailDrawer';
 
 const fmt = (v) => v ? new Intl.NumberFormat('vi-VN').format(Math.abs(v)) : '0';
 
@@ -11,6 +12,7 @@ const DebtRefundScreen = () => {
     const [activeTab, setActiveTab] = useState('refunds');
     const [collectModal, setCollectModal] = useState({ show: false, debt: null });
     const [confirmingId, setConfirmingId] = useState(null);
+    const [drawer, setDrawer] = useState({ show: false, type: null, id: null });
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -196,8 +198,8 @@ const DebtRefundScreen = () => {
                                             </td>
                                         </tr>
                                     ) : refunds.map((r) => (
-                                        <tr key={r.paymentId}>
-                                            <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2c3e50' }}>
+                                        <tr key={r.paymentId} style={{ cursor: 'pointer' }} onClick={() => setDrawer({ show: true, type: 'REFUND', id: r.paymentId })}>
+                                            <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0d6efd', textDecoration: 'underline' }}>
                                                 {r.bookingCode}
                                             </td>
                                             <td>
@@ -231,7 +233,8 @@ const DebtRefundScreen = () => {
                                                 <button
                                                     className="btn btn-primary btn-sm"
                                                     disabled={confirmingId === r.paymentId}
-                                                    onClick={() => {
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         if (window.confirm(`Xác nhận đã chuyển khoản ${fmt(r.amount)} ₫ cho ${r.customerName || 'khách'}?`)) {
                                                             handleConfirmRefund(r.paymentId);
                                                         }
@@ -277,8 +280,8 @@ const DebtRefundScreen = () => {
                                             </td>
                                         </tr>
                                     ) : debts.map((d) => (
-                                        <tr key={d.invoiceId}>
-                                            <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2c3e50' }}>
+                                        <tr key={d.invoiceId} style={{ cursor: 'pointer' }} onClick={() => setDrawer({ show: true, type: 'DEBT', id: d.invoiceId })}>
+                                            <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0d6efd', textDecoration: 'underline' }}>
                                                 {d.bookingCode}
                                             </td>
                                             <td>
@@ -305,7 +308,7 @@ const DebtRefundScreen = () => {
                                             <td style={{ textAlign: 'center' }}>
                                                 <button
                                                     className="btn btn-success btn-sm"
-                                                    onClick={() => setCollectModal({ show: true, debt: d })}
+                                                    onClick={(e) => { e.stopPropagation(); setCollectModal({ show: true, debt: d }); }}
                                                     style={{ borderRadius: 6, fontWeight: 600, fontSize: '0.8rem' }}
                                                 >
                                                     💰 Collect
@@ -326,6 +329,14 @@ const DebtRefundScreen = () => {
                 debt={collectModal.debt}
                 onClose={() => setCollectModal({ show: false, debt: null })}
                 onCollect={handleCollectDebt}
+            />
+
+            {/* Detail Drawer */}
+            <DebtRefundDetailDrawer
+                show={drawer.show}
+                type={drawer.type}
+                id={drawer.id}
+                onClose={() => setDrawer({ show: false, type: null, id: null })}
             />
         </div>
     );
