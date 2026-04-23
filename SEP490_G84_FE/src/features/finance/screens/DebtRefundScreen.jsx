@@ -184,13 +184,14 @@ const DebtRefundScreen = () => {
                                         <th style={{ fontWeight: 700, color: '#555' }}>Loại</th>
                                         <th style={{ fontWeight: 700, color: '#555', textAlign: 'right' }}>Số tiền hoàn</th>
                                         <th style={{ fontWeight: 700, color: '#555' }}>Ngày tạo</th>
+                                        <th style={{ fontWeight: 700, color: '#555' }}>Người tạo</th>
                                         <th style={{ fontWeight: 700, color: '#555', textAlign: 'center' }}></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {refunds.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" className="text-center p-4 text-muted">
+                                            <td colSpan="7" className="text-center p-4 text-muted">
                                                 🎉 Không có khoản hoàn tiền nào đang chờ!
                                             </td>
                                         </tr>
@@ -220,6 +221,11 @@ const DebtRefundScreen = () => {
                                                 {r.createdAt ? new Date(r.createdAt).toLocaleDateString('vi-VN', {
                                                     day: '2-digit', month: '2-digit', year: 'numeric'
                                                 }) : '—'}
+                                            </td>
+                                            <td style={{ color: '#555', fontSize: '0.85rem' }}>
+                                                {r.staffName ? (
+                                                    <span><i className="bi bi-person-badge me-1" />{r.staffName}</span>
+                                                ) : <span className="text-muted">—</span>}
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <button
@@ -259,13 +265,14 @@ const DebtRefundScreen = () => {
                                         <th style={{ fontWeight: 700, color: '#555', textAlign: 'right' }}>Đã thu</th>
                                         <th style={{ fontWeight: 700, color: '#555', textAlign: 'right' }}>Còn nợ</th>
                                         <th style={{ fontWeight: 700, color: '#555' }}>Ngày checkout</th>
+                                        <th style={{ fontWeight: 700, color: '#555' }}>Người tạo</th>
                                         <th style={{ fontWeight: 700, color: '#555', textAlign: 'center' }}></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {debts.length === 0 ? (
                                         <tr>
-                                            <td colSpan="7" className="text-center p-4 text-muted">
+                                            <td colSpan="8" className="text-center p-4 text-muted">
                                                 🎉 Không có khách nào đang nợ!
                                             </td>
                                         </tr>
@@ -289,6 +296,11 @@ const DebtRefundScreen = () => {
                                             </td>
                                             <td style={{ color: '#666' }}>
                                                 {d.checkoutDate ? new Date(d.checkoutDate).toLocaleDateString('vi-VN') : '—'}
+                                            </td>
+                                            <td style={{ color: '#555', fontSize: '0.85rem' }}>
+                                                {d.staffName ? (
+                                                    <span><i className="bi bi-person-badge me-1" />{d.staffName}</span>
+                                                ) : <span className="text-muted">—</span>}
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <button
