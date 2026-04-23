@@ -55,7 +55,7 @@ const InfoItem = ({ label, value, wide }) => (
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
-export default function BookingDetailModal({ show, bookingId, onHide, onStatusChanged }) {
+export default function BookingDetailModal({ show, bookingId, onHide, onStatusChanged, onRequestCancel }) {
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
@@ -404,6 +404,11 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                         setShowAmendment(false);
                         fetchDetail();
                         onStatusChanged?.();
+                    }}
+                    onRequestCancel={(bookingId) => {
+                        setShowAmendment(false);
+                        onHide();
+                        onRequestCancel?.(bookingId);
                     }}
                 />
             )}

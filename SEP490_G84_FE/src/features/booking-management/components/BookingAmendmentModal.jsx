@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import bookingManagementApi from "../api/bookingManagementApi";
 import { API_ENDPOINTS } from "../../../constants/apiConfig";
 import apiClient from "../../../services/apiClient";
+import Swal from "sweetalert2";
 import "./BookingAmendmentModal.css";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -22,10 +23,10 @@ const toISODate = (localDateTime) => {
 };
 
 const REFUND_BADGE = {
-    FREE_CANCEL:    { cls: "free",    icon: "bi-check-circle-fill", label: "Miễn phí hủy (hoàn 100%)" },
-    PARTIAL_REFUND: { cls: "partial", icon: "bi-clock-history",    label: "Hoàn một phần"              },
-    NO_REFUND:      { cls: "none",    icon: "bi-x-circle-fill",    label: "Không hoàn tiền"             },
-    NOT_APPLICABLE: { cls: "free",    icon: "bi-dash-circle",      label: "Không áp dụng"              },
+    FREE_CANCEL: { cls: "free", icon: "bi-check-circle-fill", label: "Miễn phí hủy (hoàn 100%)" },
+    PARTIAL_REFUND: { cls: "partial", icon: "bi-clock-history", label: "Hoàn một phần" },
+    NO_REFUND: { cls: "none", icon: "bi-x-circle-fill", label: "Không hoàn tiền" },
+    NOT_APPLICABLE: { cls: "free", icon: "bi-dash-circle", label: "Không áp dụng" },
 };
 
 // ─── Step indicator ────────────────────────────────────────────────────────
@@ -33,7 +34,7 @@ const REFUND_BADGE = {
 function StepIndicator({ step }) {
     const steps = [
         { num: 1, label: "Chọn thay đổi" },
-        { num: 2, label: "Xác nhận"       },
+        { num: 2, label: "Xác nhận" },
     ];
     return (
         <div className="ba-steps">
@@ -60,7 +61,7 @@ function StepIndicator({ step }) {
 // ─── Step 1: Edit form ──────────────────────────────────────────────────────
 
 function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
-                    newDeparture, setNewDeparture, note, setNote, availableRoomTypes }) {
+    newDeparture, setNewDeparture, note, setNote, availableRoomTypes }) {
     const details = booking?.details ?? [];
     const [addingRoomTypeId, setAddingRoomTypeId] = useState("");
 
@@ -70,10 +71,10 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
         if (!combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == rId)) {
             const addedLine = lines[rId];
             combinedDetails.push({
-                 roomTypeId: rId,
-                 roomTypeName: addedLine.roomTypeName,
-                 quantity: 0,
-                 priceAtBooking: addedLine.priceAtBooking
+                roomTypeId: rId,
+                roomTypeName: addedLine.roomTypeName,
+                quantity: 0,
+                priceAtBooking: addedLine.priceAtBooking
             });
         }
     });
@@ -97,7 +98,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
         if (!addingRoomTypeId) return;
         const targetType = availableRoomTypes?.find(rt => rt.id == addingRoomTypeId || rt.roomTypeId == addingRoomTypeId);
         if (!targetType) return;
-        
+
         const rId = targetType.id || targetType.roomTypeId;
         if (lines[rId] || combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == rId)) return; // already in panel
 
@@ -105,8 +106,8 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
         const basePrice = targetType.basePrice || targetType.price || 0;
 
         setLines(prev => ({
-             ...prev,
-             [rId]: { roomTypeName, priceAtBooking: basePrice, currentQty: 0, delta: 1 }
+            ...prev,
+            [rId]: { roomTypeName, priceAtBooking: basePrice, currentQty: 0, delta: 1 }
         }));
         setAddingRoomTypeId("");
     };
@@ -187,21 +188,21 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
             </table>
 
             <div className="ba-add-room-row d-flex align-items-center gap-2 mt-2">
-                <select 
-                    className="form-select form-select-sm" 
+                <select
+                    className="form-select form-select-sm"
                     style={{ width: "auto", minWidth: "200px" }}
-                    value={addingRoomTypeId} 
+                    value={addingRoomTypeId}
                     onChange={(e) => setAddingRoomTypeId(e.target.value)}
                 >
                     <option value="">-- Thêm loại phòng khác --</option>
                     {availableRoomTypes?.map(rt => {
-                         const id = rt.id || rt.roomTypeId;
-                         if (combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == id)) return null;
-                         return <option key={id} value={id}>{rt.name}</option>;
+                        const id = rt.id || rt.roomTypeId;
+                        if (combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == id)) return null;
+                        return <option key={id} value={id}>{rt.name}</option>;
                     })}
                 </select>
-                <button 
-                    className="ba-btn ba-btn-outline ba-btn-sm m-0" 
+                <button
+                    className="ba-btn ba-btn-outline ba-btn-sm m-0"
                     onClick={handleAddNewRoomType}
                     disabled={!addingRoomTypeId}
                 >
@@ -276,7 +277,7 @@ function PreviewStep({ preview }) {
     const badgeCfg = REFUND_BADGE[refundWindow] || REFUND_BADGE.NOT_APPLICABLE;
     const allSufficient = !inventoryStatus?.some(s => !s.sufficient);
     const hasReduction = grossReductionAmount > 0;
-    const hasAddition  = totalAdditionValue > 0;
+    const hasAddition = totalAdditionValue > 0;
 
     return (
         <>
@@ -424,20 +425,20 @@ function PreviewStep({ preview }) {
  *  - onHide       {Function} đóng modal
  *  - onSuccess    {Function} gọi lại khi amendment thành công
  */
-export default function BookingAmendmentModal({ show, booking, onHide, onSuccess }) {
-    const [step, setStep]             = useState(1);
-    const [lines, setLines]           = useState({});
-    const [newArrival, setNewArrival]     = useState("");
+export default function BookingAmendmentModal({ show, booking, onHide, onSuccess, onRequestCancel }) {
+    const [step, setStep] = useState(1);
+    const [lines, setLines] = useState({});
+    const [newArrival, setNewArrival] = useState("");
     const [newDeparture, setNewDeparture] = useState("");
-    const [note, setNote]             = useState("");
+    const [note, setNote] = useState("");
     const [availableRoomTypes, setAvailableRoomTypes] = useState([]);
-    const [showCancelInterface, setShowCancelInterface] = useState(false);
+
 
     const [previewing, setPreviewing] = useState(false);
-    const [preview, setPreview]       = useState(null);
+    const [preview, setPreview] = useState(null);
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError]           = useState("");
-    const [success, setSuccess]       = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState(false);
 
     // Reset khi mở modal
     useEffect(() => {
@@ -450,7 +451,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
             setPreview(null);
             setError("");
             setSuccess(false);
-            setShowCancelInterface(false);
+
         }
     }, [show]);
 
@@ -497,7 +498,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
     const buildPayload = () => {
         const linesPayload = [];
         const details = booking?.bookingDetails ?? booking?.details ?? [];
-        
+
         Object.entries(lines).forEach(([roomTypeId, v]) => {
             linesPayload.push({
                 roomTypeId: parseInt(roomTypeId),
@@ -519,8 +520,8 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
             });
         }
 
-        const finalLines = (newArrival || newDeparture) 
-            ? linesPayload 
+        const finalLines = (newArrival || newDeparture)
+            ? linesPayload
             : linesPayload.filter(l => l.deltaQuantity !== 0);
 
         const payload = {
@@ -528,7 +529,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
             amendedBy: "STAFF",
             note: note.trim() || null,
         };
-        if (newArrival)   payload.newArrivalDate   = newArrival;
+        if (newArrival) payload.newArrivalDate = newArrival;
         if (newDeparture) payload.newDepartureDate = newDeparture;
         return payload;
     };
@@ -539,6 +540,34 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
             setError("Vui lòng thực hiện ít nhất một thay đổi trước khi preview.");
             return;
         }
+
+        // Nếu tất cả phòng về 0 → hỏi user có muốn hủy booking không
+        if (allRoomsZero()) {
+            const { isConfirmed } = await Swal.fire({
+                icon: "warning",
+                title: "Tất cả phòng đã về 0",
+                html: `<p>Bạn đã giảm số lượng tất cả các loại phòng về <strong>0</strong>.</p>
+                       <p>Bạn có muốn <strong>hủy booking</strong> này không?</p>`,
+                showCancelButton: true,
+                confirmButtonText: "Hủy Booking",
+                cancelButtonText: "Quay lại chỉnh sửa",
+                confirmButtonColor: "#dc3545",
+                cancelButtonColor: "#6b7280",
+                reverseButtons: true,
+            });
+
+            if (isConfirmed) {
+                // Đóng modal chỉnh sửa và mở modal hủy booking
+                onHide();
+                onRequestCancel?.(booking.bookingId);
+            } else {
+                // Hoàn tác: reset tất cả thay đổi về 0
+                setLines({});
+                setError("");
+            }
+            return;
+        }
+
         try {
             setError("");
             setPreviewing(true);

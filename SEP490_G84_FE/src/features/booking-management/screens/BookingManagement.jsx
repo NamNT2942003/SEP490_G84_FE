@@ -669,6 +669,9 @@ export default function BookingManagement() {
                 bookingId={selectedBookingId}
                 onHide={closeDetail}
                 onStatusChanged={fetchBookings}
+                onRequestCancel={(bookingId) => {
+                    openCancelModal(bookingId);
+                }}
             />
 
             <CancelBookingModal
