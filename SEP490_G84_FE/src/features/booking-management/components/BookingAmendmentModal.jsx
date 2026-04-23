@@ -8,12 +8,12 @@ import "./BookingAmendmentModal.css";
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 const formatVND = (amount) =>
-    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount ?? 0);
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "VND" }).format(amount ?? 0);
 
 const formatDate = (value) => {
     if (!value) return "-";
     const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("vi-VN");
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("en-US");
 };
 
 const toISODate = (localDateTime) => {
@@ -23,18 +23,18 @@ const toISODate = (localDateTime) => {
 };
 
 const REFUND_BADGE = {
-    FREE_CANCEL: { cls: "free", icon: "bi-check-circle-fill", label: "Miễn phí hủy (hoàn 100%)" },
-    PARTIAL_REFUND: { cls: "partial", icon: "bi-clock-history", label: "Hoàn một phần" },
-    NO_REFUND: { cls: "none", icon: "bi-x-circle-fill", label: "Không hoàn tiền" },
-    NOT_APPLICABLE: { cls: "free", icon: "bi-dash-circle", label: "Không áp dụng" },
+    FREE_CANCEL: { cls: "free", icon: "bi-check-circle-fill", label: "Free cancellation (100% refund)" },
+    PARTIAL_REFUND: { cls: "partial", icon: "bi-clock-history", label: "Partial refund" },
+    NO_REFUND: { cls: "none", icon: "bi-x-circle-fill", label: "No refund" },
+    NOT_APPLICABLE: { cls: "free", icon: "bi-dash-circle", label: "Not applicable" },
 };
 
 // ─── Step indicator ────────────────────────────────────────────────────────
 
 function StepIndicator({ step }) {
     const steps = [
-        { num: 1, label: "Chọn thay đổi" },
-        { num: 2, label: "Xác nhận" },
+        { num: 1, label: "Edit Changes" },
+        { num: 2, label: "Confirm" },
     ];
     return (
         <div className="ba-steps">
@@ -117,23 +117,23 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
             {/* Bảng phòng hiện tại */}
             <div className="ba-section-label">
                 <i className="bi bi-door-open" />
-                Các loại phòng hiện tại
+                Current Room Types
             </div>
             <table className="ba-rooms-table">
                 <thead>
                     <tr>
-                        <th>Loại phòng</th>
-                        <th className="text-end">Số lượng hiện tại</th>
-                        <th className="text-end">Giá/đêm</th>
-                        <th className="text-center">Thay đổi (+/-)</th>
-                        <th className="text-end">Sau thay đổi</th>
+                        <th>Room Type</th>
+                        <th className="text-end">Current Qty</th>
+                        <th className="text-end">Price/Night</th>
+                        <th className="text-center">Change (+/-)</th>
+                        <th className="text-end">After Change</th>
                     </tr>
                 </thead>
                 <tbody>
                     {combinedDetails.length === 0 ? (
                         <tr>
                             <td colSpan={5} className="text-center text-muted py-3">
-                                Không có dữ liệu phòng
+                                No room data available
                             </td>
                         </tr>
                     ) : combinedDetails.map((item) => {
@@ -153,7 +153,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                                                 item.priceAtBooking, item.quantity, -1
                                             )}
                                             disabled={delta <= -item.quantity}
-                                            title="Bớt phòng"
+                                            title="Remove room"
                                         >−</button>
                                         <span className={`ba-delta-count ${delta > 0 ? "positive" : delta < 0 ? "negative" : ""}`}>
                                             {delta > 0 ? `+${delta}` : delta}
@@ -164,7 +164,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                                                 item.roomTypeId, item.roomTypeName,
                                                 item.priceAtBooking, item.quantity, +1
                                             )}
-                                            title="Thêm phòng"
+                                            title="Add room"
                                         >+</button>
                                     </div>
                                 </td>
@@ -176,7 +176,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                                         {afterQty}
                                         {afterQty === 0 && (
                                             <span style={{ fontSize: "0.72rem", marginLeft: 4, color: "#dc3545" }}>
-                                                (xóa)
+                                                (removed)
                                             </span>
                                         )}
                                     </span>
@@ -194,7 +194,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                     value={addingRoomTypeId}
                     onChange={(e) => setAddingRoomTypeId(e.target.value)}
                 >
-                    <option value="">-- Thêm loại phòng khác --</option>
+                    <option value="">-- Add another room type --</option>
                     {availableRoomTypes?.map(rt => {
                         const id = rt.id || rt.roomTypeId;
                         if (combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == id)) return null;
@@ -206,18 +206,18 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                     onClick={handleAddNewRoomType}
                     disabled={!addingRoomTypeId}
                 >
-                    Thêm phòng mới
+                    Add New Room
                 </button>
             </div>
 
-            {/* Ngày check-in/out */}
+            {/* Date change */}
             <div className="ba-section-label" style={{ marginTop: 16 }}>
                 <i className="bi bi-calendar-range" />
-                Thay đổi ngày (tuỳ chọn)
+                Change Dates (optional)
             </div>
             <div className="ba-date-row">
                 <div className="ba-date-field">
-                    <label>Check-in mới</label>
+                    <label>New Check-in</label>
                     <input
                         type="date"
                         value={newArrival}
@@ -227,12 +227,12 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                     />
                     {booking?.arrivalDate && (
                         <div style={{ fontSize: "0.73rem", color: "#adb5bd", marginTop: 3 }}>
-                            Hiện tại: {formatDate(booking.arrivalDate)}
+                            Current: {formatDate(booking.arrivalDate)}
                         </div>
                     )}
                 </div>
                 <div className="ba-date-field">
-                    <label>Check-out mới</label>
+                    <label>New Check-out</label>
                     <input
                         type="date"
                         value={newDeparture}
@@ -242,19 +242,19 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                     />
                     {booking?.departureDate && (
                         <div style={{ fontSize: "0.73rem", color: "#adb5bd", marginTop: 3 }}>
-                            Hiện tại: {formatDate(booking.departureDate)}
+                            Current: {formatDate(booking.departureDate)}
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Ghi chú */}
+            {/* Internal note */}
             <div className="ba-note-field">
-                <label>Ghi chú nội bộ</label>
+                <label>Internal Note</label>
                 <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    placeholder="Lý do thay đổi booking..."
+                    placeholder="Reason for booking amendment..."
                     maxLength={500}
                 />
             </div>
@@ -286,8 +286,8 @@ function PreviewStep({ preview }) {
                 <div className="ba-warning-banner danger">
                     <i className="bi bi-exclamation-triangle-fill" style={{ flexShrink: 0, marginTop: 1 }} />
                     <div>
-                        <strong>Không đủ phòng!</strong> Một hoặc nhiều ngày không đủ số phòng yêu cầu.
-                        Vui lòng điều chỉnh lại số lượng.
+                        <strong>Insufficient rooms!</strong> One or more dates do not have enough rooms.
+                        Please adjust the quantities.
                     </div>
                 </div>
             )}
@@ -295,15 +295,15 @@ function PreviewStep({ preview }) {
                 <div className="ba-warning-banner danger">
                     <i className="bi bi-x-circle-fill" style={{ flexShrink: 0 }} />
                     <div>
-                        <strong>Đã qua thời hạn hoàn tiền.</strong> Phần giảm bớt sẽ không được hoàn.
-                        Khách sạn giữ toàn bộ phí phạt.
+                        <strong>Refund deadline has passed.</strong> The reduced portion will not be refunded.
+                        The hotel retains the full penalty fee.
                     </div>
                 </div>
             )}
             {warningMessage === "NULL_POLICY" && (
                 <div className="ba-warning-banner">
                     <i className="bi bi-exclamation-circle" style={{ flexShrink: 0 }} />
-                    <div>Booking gốc không có chính sách hoàn hủy — mặc định áp dụng <strong>hoàn 0%</strong>.</div>
+                    <div>Original booking has no cancellation policy — defaulting to <strong>0% refund</strong>.</div>
                 </div>
             )}
 
@@ -311,12 +311,12 @@ function PreviewStep({ preview }) {
             <div className="ba-preview-card">
                 <div className="ba-preview-title">
                     <i className="bi bi-calculator" />
-                    Tóm Tắt Tài Chính
+                    Financial Summary
                 </div>
 
                 <div className="ba-financial-grid">
                     <div className={`ba-fin-cell ${deltaTotalAmount >= 0 ? "positive" : "negative"}`}>
-                        <div className="ba-fin-label">Chênh lệch tổng cộng</div>
+                        <div className="ba-fin-label">Total Difference</div>
                         <div className="ba-fin-value">
                             {deltaTotalAmount >= 0 ? "+" : ""}
                             {formatVND(deltaTotalAmount)}
@@ -324,13 +324,13 @@ function PreviewStep({ preview }) {
                     </div>
                     {hasAddition && (
                         <div className="ba-fin-cell positive">
-                            <div className="ba-fin-label">Phần thêm mới</div>
+                            <div className="ba-fin-label">Additions</div>
                             <div className="ba-fin-value">+{formatVND(totalAdditionValue)}</div>
                         </div>
                     )}
                     {hasReduction && (
                         <div className="ba-fin-cell negative">
-                            <div className="ba-fin-label">Phần giảm ròng</div>
+                            <div className="ba-fin-label">Net Reduction</div>
                             <div className="ba-fin-value">−{formatVND(grossReductionAmount)}</div>
                         </div>
                     )}
@@ -341,7 +341,7 @@ function PreviewStep({ preview }) {
                     <>
                         <div className="ba-section-label" style={{ marginBottom: 8 }}>
                             <i className="bi bi-shield-check" />
-                            Chính Sách Hoàn Hủy Áp Dụng
+                            Applied Cancellation Policy
                         </div>
 
                         <div className={`ba-refund-badge ${badgeCfg.cls}`}>
@@ -349,26 +349,26 @@ function PreviewStep({ preview }) {
                             {badgeCfg.label}
                             {refundWindow !== "FREE_CANCEL" && refundWindow !== "NOT_APPLICABLE" && (
                                 <span style={{ opacity: 0.7, marginLeft: 4 }}>
-                                    ({daysUntilCheckIn} ngày trước check-in • {snapshotRefundRateUsed}% hoàn)
+                                    ({daysUntilCheckIn} days before check-in • {snapshotRefundRateUsed}% refund)
                                 </span>
                             )}
                         </div>
 
                         <div className="ba-financial-grid">
                             <div className="ba-fin-cell positive">
-                                <div className="ba-fin-label">Hoàn cho khách</div>
+                                <div className="ba-fin-label">Guest Refund</div>
                                 <div className="ba-fin-value">{formatVND(refundableAmount)}</div>
                             </div>
                             <div className="ba-fin-cell warning">
-                                <div className="ba-fin-label">Phí phạt (KS giữ)</div>
+                                <div className="ba-fin-label">Penalty (Hotel retains)</div>
                                 <div className="ba-fin-value">{formatVND(nonRefundableAmount)}</div>
                             </div>
                         </div>
 
                         <div style={{ fontSize: "0.75rem", color: "#6c757d", marginTop: 6 }}>
                             <i className="bi bi-info-circle me-1" />
-                            Netting: phí phạt chỉ tính trên phần giảm ròng ({formatVND(grossReductionAmount)}),
-                            không phải tổng giá trị phòng hủy ({formatVND(totalCancellationValue)}).
+                            Netting: penalty is calculated on the net reduction ({formatVND(grossReductionAmount)}),
+                            not the total cancelled room value ({formatVND(totalCancellationValue)}).
                         </div>
                     </>
                 )}
@@ -379,16 +379,16 @@ function PreviewStep({ preview }) {
                 <div className="ba-preview-card" style={{ marginTop: 0 }}>
                     <div className="ba-preview-title">
                         <i className="bi bi-calendar-check" />
-                        Kiểm Tra Phòng Trống
+                        Availability Check
                     </div>
                     <table className="ba-inv-table">
                         <thead>
                             <tr>
-                                <th>Ngày</th>
-                                <th>Loại phòng</th>
-                                <th className="text-end">Cần thêm</th>
-                                <th className="text-end">Còn trống</th>
-                                <th className="text-center">Trạng thái</th>
+                                <th>Date</th>
+                                <th>Room Type</th>
+                                <th className="text-end">Required</th>
+                                <th className="text-end">Available</th>
+                                <th className="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -400,8 +400,8 @@ function PreviewStep({ preview }) {
                                     <td className="text-end">{row.availableQuantity}</td>
                                     <td className="text-center">
                                         {row.sufficient
-                                            ? <span className="ba-ok"><i className="bi bi-check-circle-fill" /> Đủ phòng</span>
-                                            : <span className="ba-fail"><i className="bi bi-x-circle-fill" /> Thiếu phòng</span>
+                                            ? <span className="ba-ok"><i className="bi bi-check-circle-fill" /> Available</span>
+                                            : <span className="ba-fail"><i className="bi bi-x-circle-fill" /> Insufficient</span>
                                         }
                                     </td>
                                 </tr>
@@ -537,7 +537,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
     // Bước 1 → 2: gọi preview
     const handlePreview = async () => {
         if (!hasChanges) {
-            setError("Vui lòng thực hiện ít nhất một thay đổi trước khi preview.");
+            setError("Please make at least one change before previewing.");
             return;
         }
 
@@ -545,12 +545,12 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
         if (allRoomsZero()) {
             const { isConfirmed } = await Swal.fire({
                 icon: "warning",
-                title: "Tất cả phòng đã về 0",
-                html: `<p>Bạn đã giảm số lượng tất cả các loại phòng về <strong>0</strong>.</p>
-                       <p>Bạn có muốn <strong>hủy booking</strong> này không?</p>`,
+                title: "All rooms reduced to 0",
+                html: `<p>You have reduced all room types to <strong>0</strong>.</p>
+                       <p>Would you like to <strong>cancel this booking</strong> instead?</p>`,
                 showCancelButton: true,
-                confirmButtonText: "Hủy Booking",
-                cancelButtonText: "Quay lại chỉnh sửa",
+                confirmButtonText: "Cancel Booking",
+                cancelButtonText: "Go back to edit",
                 confirmButtonColor: "#dc3545",
                 cancelButtonColor: "#6b7280",
                 reverseButtons: true,
@@ -578,7 +578,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
             setStep(2);
         } catch (err) {
             const detail = err?.response?.data?.error || err?.response?.data?.detail || err?.message;
-            setError("Lỗi khi preview: " + (detail || "Không xác định"));
+            setError("Preview error: " + (detail || "Unknown error"));
         } finally {
             setPreviewing(false);
         }
@@ -589,7 +589,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
         // Block nếu có ngày thiếu phòng
         const insufficient = preview?.inventoryStatus?.some(s => !s.sufficient);
         if (insufficient) {
-            setError("Không thể xác nhận: một hoặc nhiều ngày không đủ phòng.");
+            setError("Cannot confirm: one or more dates have insufficient rooms.");
             return;
         }
         try {
@@ -604,13 +604,13 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
         } catch (err) {
             const data = err?.response?.data;
             if (err?.response?.status === 403) {
-                setError("Booking OTA không thể sửa đổi qua hệ thống nội bộ.");
+                setError("OTA bookings cannot be amended through the internal system.");
             } else if (err?.response?.status === 409) {
-                setError(data?.detail || data?.error || "Booking đang trong trạng thái không cho phép sửa đổi.");
+                setError(data?.detail || data?.error || "Booking is in a status that does not allow amendments.");
             } else if (err?.response?.status === 423) {
-                setError("Booking đang được xử lý bởi request khác. Vui lòng thử lại sau vài giây.");
+                setError("Booking is being processed by another request. Please try again in a few seconds.");
             } else {
-                setError(data?.error || data?.detail || err?.message || "Lỗi không xác định.");
+                setError(data?.error || data?.detail || err?.message || "Unknown error.");
             }
         } finally {
             setSubmitting(false);
@@ -626,7 +626,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
                 {/* Header */}
                 <div className="ba-header">
                     <div>
-                        <h5><i className="bi bi-pencil-square me-2" />Sửa Đổi Booking</h5>
+                        <h5><i className="bi bi-pencil-square me-2" />Amend Booking</h5>
                         <div className="ba-subtitle">
                             #{booking?.bookingCode || booking?.bookingId} · {booking?.customerName}
                         </div>
@@ -650,8 +650,8 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
                             <div style={{ fontSize: "3rem", color: "#198754", marginBottom: 12 }}>
                                 <i className="bi bi-check-circle-fill" />
                             </div>
-                            <h5 style={{ color: "#198754", fontWeight: 700 }}>Amendment áp dụng thành công!</h5>
-                            <p className="text-muted small">Modal sẽ tự đóng...</p>
+                            <h5 style={{ color: "#198754", fontWeight: 700 }}>Amendment applied successfully!</h5>
+                            <p className="text-muted small">This modal will close automatically...</p>
                         </div>
                     ) : step === 1 ? (
                         <EditStep
@@ -689,7 +689,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
                                     onClick={onHide}
                                     disabled={previewing}
                                 >
-                                    Hủy bỏ
+                                    Cancel
                                 </button>
                                 <button
                                     className="ba-btn ba-btn-primary"
@@ -699,12 +699,12 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
                                     {previewing ? (
                                         <>
                                             <span className="ba-spinner" />
-                                            Đang kiểm tra...
+                                            Checking...
                                         </>
                                     ) : (
                                         <>
                                             <i className="bi bi-eye" />
-                                            Preview & Kiểm tra
+                                            Preview & Check
                                         </>
                                     )}
                                 </button>
@@ -717,32 +717,32 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
                                     disabled={submitting}
                                 >
                                     <i className="bi bi-arrow-left" />
-                                    Quay lại
+                                    Go Back
                                 </button>
                                 <button
                                     className="ba-btn ba-btn-danger"
                                     onClick={onHide}
                                     disabled={submitting}
                                 >
-                                    Hủy bỏ
+                                    Cancel
                                 </button>
                                 <button
                                     className="ba-btn ba-btn-primary"
                                     onClick={handleConfirm}
                                     disabled={!canConfirm}
                                     title={!canConfirm && preview?.inventoryStatus?.some(s => !s.sufficient)
-                                        ? "Không đủ phòng — không thể xác nhận"
+                                        ? "Insufficient rooms — cannot confirm"
                                         : ""}
                                 >
                                     {submitting ? (
                                         <>
                                             <span className="ba-spinner" />
-                                            Đang xử lý...
+                                            Processing...
                                         </>
                                     ) : (
                                         <>
                                             <i className="bi bi-check-lg" />
-                                            Xác nhận thay đổi
+                                            Confirm Changes
                                         </>
                                     )}
                                 </button>
