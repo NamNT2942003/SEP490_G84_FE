@@ -26,6 +26,7 @@ const RevenueReportScreen = () => {
     const [yearlyData, setYearlyData] = useState(null);
     const [monthlyData, setMonthlyData] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     const [branches, setBranches] = useState([]);
 
@@ -57,11 +58,18 @@ const RevenueReportScreen = () => {
         if (viewLevel === 'yearly' && selectedBranch) {
             const fetchYearlyData = async () => {
                 setLoading(true);
+                setError(null);
                 try {
                     const data = await reportApi.getYearlyRoomDashboard(selectedBranch, selectedYear);
+                    console.log('[RevenueReport] Yearly data loaded:', data);
                     setYearlyData(data);
-                } catch (error) {
+                } catch (err) {
+                    console.error('[RevenueReport] Yearly API Error:', err);
+                    console.error('[RevenueReport] Status:', err.response?.status);
+                    console.error('[RevenueReport] Response data:', err.response?.data);
+                    console.error('[RevenueReport] URL:', err.config?.url);
                     setYearlyData(null);
+                    setError(`Yearly API Error ${err.response?.status || ''}: ${err.response?.data?.message || err.response?.data?.error || err.message}`);
                 } finally {
                     setLoading(false);
                 }
@@ -76,11 +84,17 @@ const RevenueReportScreen = () => {
         if (viewLevel === 'monthly' && selectedMonth && selectedBranch) {
             const fetchMonthlyData = async () => {
                 setLoading(true);
+                setError(null);
                 try {
                     const data = await reportApi.getRoomRevenue(selectedBranch, selectedMonth, selectedYear);
+                    console.log('[RevenueReport] Monthly data loaded:', data);
                     setMonthlyData(data);
-                } catch (error) {
+                } catch (err) {
+                    console.error('[RevenueReport] Monthly API Error:', err);
+                    console.error('[RevenueReport] Status:', err.response?.status);
+                    console.error('[RevenueReport] Response data:', err.response?.data);
                     setMonthlyData(null);
+                    setError(`Monthly API Error ${err.response?.status || ''}: ${err.response?.data?.message || err.response?.data?.error || err.message}`);
                 } finally {
                     setLoading(false);
                 }
@@ -149,6 +163,19 @@ const RevenueReportScreen = () => {
             {loading && (
                 <div className="text-center p-5 mt-5">
                     <div className="spinner-border" style={{color: COLORS.PRIMARY, width: '3rem', height: '3rem'}}></div>
+                </div>
+            )}
+
+            {!loading && error && (
+                <div className="mx-3 mt-4">
+                    <div className="alert alert-danger d-flex align-items-start gap-3" role="alert" style={{ borderRadius: '12px' }}>
+                        <i className="bi bi-exclamation-triangle-fill fs-4 mt-1"></i>
+                        <div>
+                            <h6 className="fw-bold mb-1">Failed to load report data</h6>
+                            <p className="mb-1" style={{ fontSize: '0.88rem' }}>{error}</p>
+                            <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>Check browser console (F12) for full error details.</p>
+                        </div>
+                    </div>
                 </div>
             )}
 
