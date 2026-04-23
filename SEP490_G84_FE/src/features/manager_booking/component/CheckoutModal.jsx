@@ -659,11 +659,6 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                         </button>
                       </>
                     )}
-                    {amountDue > 0 && !allowServiceDebt && !paymentMethod && (
-                      <p className="text-muted text-center mb-0" style={{ fontSize: '0.72rem' }}>
-                        ⚠️ Please select a payment method to continue
-                      </p>
-                    )}
                   </div>
                 </div>
 
