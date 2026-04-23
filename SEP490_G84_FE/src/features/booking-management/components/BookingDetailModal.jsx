@@ -287,8 +287,8 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
 
                                 const total = Number(booking.totalAmount || 0);
                                 const prepaidAmt = Number(booking.prepaidAmount || Math.round(total * prepaidRate / 100));
-                                const refundAmt = Math.round(total * refundRate / 100);
-                                const retainAmt = Math.max(0, total - refundAmt);
+                                const refundAmt = Math.round(prepaidAmt * refundRate / 100);
+                                const retainAmt = Math.max(0, prepaidAmt - refundAmt);
 
                                 // Free cancel deadline from backend
                                 let deadlineStr = null;
