@@ -416,7 +416,7 @@ export default function BookingTable({
 
                 {/* Actions */}
                 <td className="text-end pe-3">
-                  <div className="d-flex justify-content-end align-items-center gap-1">
+                  <div className="d-flex justify-content-end align-items-center gap-1 flex-wrap">
 
                     {/* Check-in day: Notify only (guest expected today) */}
                     {isCheckinDay && booking.status !== 'NO_SHOW' && (
