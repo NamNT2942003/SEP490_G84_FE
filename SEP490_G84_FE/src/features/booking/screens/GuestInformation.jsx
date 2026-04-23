@@ -1273,7 +1273,7 @@ const GuestInformation = () => {
                                                 </div>
 
                                                 {/* 3 key figures */}
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: (deadlineStr || (policy.activeTimeStart && policy.activeTimeEnd)) ? 10 : 0 }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
                                                     {/* Deposit */}
                                                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
                                                         <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Deposit</div>
@@ -1286,68 +1286,86 @@ const GuestInformation = () => {
                                                         <div style={{ fontSize: 15, fontWeight: 800, color: refundAmount > 0 ? '#16a34a' : '#dc2626' }}>{formatVND(refundAmount)}</div>
                                                         <div style={{ fontSize: 10, color: '#9ca3af' }}>{pRefundRate}% of deposit</div>
                                                     </div>
-                                                    {/* Hotel retains */}
-                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: '3px solid #e5e7eb' }}>
-                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Hotel retains</div>
-                                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#374151' }}>{formatVND(retainedAmount)}</div>
-                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{100 - pRefundRate}% of deposit</div>
+                                                    {/* Total booking */}
+                                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', borderLeft: `3px solid ${typeConfig.color}` }}>
+                                                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 3 }}>Total booking</div>
+                                                        <div style={{ fontSize: 15, fontWeight: 800, color: typeConfig.color }}>{formatVND(policyTotal)}</div>
+                                                        <div style={{ fontSize: 10, color: '#9ca3af' }}>incl. policy</div>
                                                     </div>
                                                 </div>
 
-                                                {/* Free cancellation deadline */}
-                                                {deadline && (
-                                                    isDeadlineToday ? (
+                                                {/* Policy rules - structured description */}
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                    {/* Rule 1: Free cancel before deadline */}
+                                                    {deadline && (
                                                         <div style={{
-                                                            fontSize: 12, display: 'flex', alignItems: 'center', gap: 6,
-                                                            background: '#fffbeb', border: '1px solid #fcd34d',
-                                                            borderRadius: 8, padding: '6px 10px',
-                                                            marginTop: 8, color: '#92400e',
-                                                        }}>
-                                                            <i className="bi bi-clock-fill" />
-                                                            <span>
-                                                                <strong>Free cancellation</strong> until{' '}
-                                                                <strong>today</strong>
-                                                                {isSameDayCancel
-                                                                    ? <span style={{ color: '#b45309', fontWeight: 400 }}> — cancel on check-in day for full refund</span>
-                                                                    : <span style={{ color: '#b45309', fontWeight: 400 }}> — partial refund after today</span>
-                                                                }
-                                                            </span>
-                                                        </div>
-                                                    ) : isDeadlinePast ? (
-                                                        <div style={{
-                                                            fontSize: 12, display: 'flex', alignItems: 'center', gap: 6,
-                                                            background: '#fff7ed', border: '1px solid #fed7aa',
-                                                            borderRadius: 8, padding: '6px 10px',
-                                                            marginTop: 8, color: '#c2410c',
-                                                        }}>
-                                                            <i className="bi bi-exclamation-triangle-fill" />
-                                                            <span>
-                                                                <strong>Free cancellation expired</strong> on{' '}
-                                                                <strong>{deadlineStr}</strong>
-                                                                <span style={{ color: '#9a3412', fontWeight: 400 }}>
-                                                                    {' '}— only {pRefundRate}% of deposit will be refunded
-                                                                </span>
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <div style={{
-                                                            fontSize: 12, display: 'flex', alignItems: 'center', gap: 6,
+                                                            fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 8,
                                                             background: '#f0fdf4', border: '1px solid #bbf7d0',
-                                                            borderRadius: 8, padding: '6px 10px',
-                                                            marginTop: 8, color: '#15803d',
+                                                            borderRadius: 8, padding: '8px 12px', color: '#15803d',
                                                         }}>
-                                                            <i className="bi bi-check-circle-fill" />
+                                                            <i className="bi bi-check-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
                                                             <span>
-                                                                <strong>Free cancellation</strong> until{' '}
-                                                                <strong>{deadlineStr}</strong>
-                                                                {isSameDayCancel
-                                                                    ? <span style={{ color: '#6b7280', fontWeight: 400 }}> — cancel on check-in day for full refund</span>
-                                                                    : <span style={{ color: '#6b7280', fontWeight: 400 }}> — {policy.dateRange} days before check-in</span>
-                                                                }
+                                                                Cancel before 23:59, <strong>{deadlineStr}</strong>{isSameDayCancel ? ' (check-in day)' : ''}: Get back <strong>{formatVND(prepaidAmount)}</strong> (100% refund).
                                                             </span>
                                                         </div>
-                                                    )
-                                                )}
+                                                    )}
+
+                                                    {/* Rule 2: Cancel after deadline → partial refund */}
+                                                    {deadline && pRefundRate > 0 && pRefundRate < 100 && (
+                                                        <div style={{
+                                                            fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 8,
+                                                            background: '#fffbeb', border: '1px solid #fcd34d',
+                                                            borderRadius: 8, padding: '8px 12px', color: '#92400e',
+                                                        }}>
+                                                            <i className="bi bi-exclamation-triangle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
+                                                            <span>
+                                                                Cancel from <strong>{(() => { const d = new Date(deadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }); })()}</strong>: Get back <strong>{formatVND(refundAmount)}</strong> ({pRefundRate}% refund). Cancellation fee is <strong>{formatVND(retainedAmount)}</strong>.
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Rule 2 alt: Cancel after deadline → no refund */}
+                                                    {deadline && pRefundRate === 0 && (
+                                                        <div style={{
+                                                            fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 8,
+                                                            background: '#fef2f2', border: '1px solid #fecaca',
+                                                            borderRadius: 8, padding: '8px 12px', color: '#991b1b',
+                                                        }}>
+                                                            <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
+                                                            <span>
+                                                                Cancel from <strong>{(() => { const d = new Date(deadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }); })()}</strong>: No refund. Hotel retains the full <strong>{formatVND(prepaidAmount)}</strong> deposit.
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Non-refundable policy (no free cancel window at all) */}
+                                                    {!deadline && pRefundRate === 0 && (
+                                                        <div style={{
+                                                            fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 8,
+                                                            background: '#fef2f2', border: '1px solid #fecaca',
+                                                            borderRadius: 8, padding: '8px 12px', color: '#991b1b',
+                                                        }}>
+                                                            <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
+                                                            <span>
+                                                                No refund supported. Hotel retains the full <strong>{formatVND(prepaidAmount)}</strong> deposit.
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Non-refundable policy but has partial rate (no free cancel window) */}
+                                                    {!deadline && pRefundRate > 0 && (
+                                                        <div style={{
+                                                            fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 8,
+                                                            background: '#fffbeb', border: '1px solid #fcd34d',
+                                                            borderRadius: 8, padding: '8px 12px', color: '#92400e',
+                                                        }}>
+                                                            <i className="bi bi-exclamation-triangle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
+                                                            <span>
+                                                                If cancelled: Get back <strong>{formatVND(refundAmount)}</strong> ({pRefundRate}% refund). Cancellation fee is <strong>{formatVND(retainedAmount)}</strong>.
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
 
                                                 {/* Seasonal range */}
                                                 {policy.activeTimeStart && policy.activeTimeEnd && (

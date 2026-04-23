@@ -339,18 +339,84 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                             </div>
                                         )}
 
-                                        {/* Refund deadline */}
-                                        {deadlineStr && (
-                                            <div style={{ fontSize: 12, color: booking.isFreeCancel ? "#15803d" : "#b91c1c", background: booking.isFreeCancel ? "#f0fdf4" : "#fef2f2", border: `1px solid ${booking.isFreeCancel ? "#bbf7d0" : "#fecaca"}`, borderRadius: 7, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6 }}>
-                                                <i className={`bi ${booking.isFreeCancel ? "bi-check-circle-fill" : "bi-exclamation-circle-fill"}`} />
-                                                {isSameDayCancel
-                                                    ? <><strong>Free cancellation</strong> on or before <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong> <span style={{ color: "#9aaa9b", marginLeft: 4 }}>(check-in day)</span></>
-                                                    : <><strong>Free cancellation</strong> before <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong> <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({freeCancelDays} days before check-in)</span></>
-                                                }
-                                                {booking.isFreeCancel === true && <span style={{ marginLeft: "auto", fontWeight: 700, color: "#15803d" }}>✓ Eligible</span>}
-                                                {booking.isFreeCancel === false && <span style={{ marginLeft: "auto", fontWeight: 700, color: "#b91c1c" }}>✗ Expired</span>}
-                                            </div>
-                                        )}
+                                        {/* Policy rules - structured description */}
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                            {/* Rule 1: Free cancel before deadline */}
+                                            {deadlineStr && (
+                                                <div style={{
+                                                    fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
+                                                    background: booking.isFreeCancel ? "#f0fdf4" : "#f8fafc",
+                                                    border: `1px solid ${booking.isFreeCancel ? "#bbf7d0" : "#e5e7eb"}`,
+                                                    borderRadius: 7, padding: "8px 12px", color: booking.isFreeCancel ? "#15803d" : "#374151",
+                                                }}>
+                                                    <i className="bi bi-check-circle-fill" style={{ marginTop: 1, flexShrink: 0, color: "#16a34a" }} />
+                                                    <span style={{ flex: 1 }}>
+                                                        Cancel before 23:59, <strong>{deadlineStr}</strong>{isSameDayCancel ? " (check-in day)" : ""}: Get back <strong>{formatVND(prepaidAmt)}</strong> (100% refund).
+                                                    </span>
+                                                    {booking.isFreeCancel === true && <span style={{ flexShrink: 0, fontWeight: 700, color: "#15803d" }}>✓ Eligible</span>}
+                                                </div>
+                                            )}
+
+                                            {/* Rule 2: Cancel after deadline → partial refund */}
+                                            {deadlineStr && refundRate > 0 && refundRate < 100 && (
+                                                <div style={{
+                                                    fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
+                                                    background: booking.isFreeCancel === false ? "#fffbeb" : "#f8fafc",
+                                                    border: `1px solid ${booking.isFreeCancel === false ? "#fcd34d" : "#e5e7eb"}`,
+                                                    borderRadius: 7, padding: "8px 12px", color: booking.isFreeCancel === false ? "#92400e" : "#374151",
+                                                }}>
+                                                    <i className="bi bi-exclamation-triangle-fill" style={{ marginTop: 1, flexShrink: 0, color: "#d97706" }} />
+                                                    <span style={{ flex: 1 }}>
+                                                        Cancel from <strong>{(() => { const d = new Date(booking.freeCancelDeadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>: Get back <strong>{formatVND(refundAmt)}</strong> ({refundRate}% refund). Cancellation fee is <strong>{formatVND(retainAmt)}</strong>.
+                                                    </span>
+                                                    {booking.isFreeCancel === false && <span style={{ flexShrink: 0, fontWeight: 700, color: "#b91c1c" }}>✗ Expired</span>}
+                                                </div>
+                                            )}
+
+                                            {/* Rule 2 alt: Cancel after deadline → no refund */}
+                                            {deadlineStr && refundRate === 0 && (
+                                                <div style={{
+                                                    fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
+                                                    background: booking.isFreeCancel === false ? "#fef2f2" : "#f8fafc",
+                                                    border: `1px solid ${booking.isFreeCancel === false ? "#fecaca" : "#e5e7eb"}`,
+                                                    borderRadius: 7, padding: "8px 12px", color: booking.isFreeCancel === false ? "#991b1b" : "#374151",
+                                                }}>
+                                                    <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0, color: "#dc2626" }} />
+                                                    <span style={{ flex: 1 }}>
+                                                        Cancel from <strong>{(() => { const d = new Date(booking.freeCancelDeadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>: No refund. Hotel retains the full <strong>{formatVND(prepaidAmt)}</strong> deposit.
+                                                    </span>
+                                                    {booking.isFreeCancel === false && <span style={{ flexShrink: 0, fontWeight: 700, color: "#b91c1c" }}>✗ Expired</span>}
+                                                </div>
+                                            )}
+
+                                            {/* Non-refundable (no free cancel window at all) */}
+                                            {!deadlineStr && refundRate === 0 && (
+                                                <div style={{
+                                                    fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
+                                                    background: "#fef2f2", border: "1px solid #fecaca",
+                                                    borderRadius: 7, padding: "8px 12px", color: "#991b1b",
+                                                }}>
+                                                    <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
+                                                    <span>
+                                                        No refund supported. Hotel retains the full <strong>{formatVND(prepaidAmt)}</strong> deposit.
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {/* No free cancel window but partial refund available */}
+                                            {!deadlineStr && refundRate > 0 && (
+                                                <div style={{
+                                                    fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
+                                                    background: "#fffbeb", border: "1px solid #fcd34d",
+                                                    borderRadius: 7, padding: "8px 12px", color: "#92400e",
+                                                }}>
+                                                    <i className="bi bi-exclamation-triangle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
+                                                    <span>
+                                                        If cancelled: Get back <strong>{formatVND(refundAmt)}</strong> ({refundRate}% refund). Cancellation fee is <strong>{formatVND(retainAmt)}</strong>.
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </InfoSection>
                                 );
                             })()}
