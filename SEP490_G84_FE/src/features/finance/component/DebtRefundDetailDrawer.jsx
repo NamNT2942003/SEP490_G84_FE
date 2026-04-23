@@ -150,43 +150,6 @@ const DebtRefundDetailDrawer = ({ show, onClose, type, id }) => {
                                 <InfoRow label="Tổng HĐ" value={fmt(data.invoiceTotalAmount)} bold color="#2c3e50" />
                             </Section>
 
-                            {/* Invoice Lines */}
-                            {data.invoiceLines && data.invoiceLines.length > 0 && (
-                                <Section icon="bi-list-ul" title="Chi tiết hóa đơn">
-                                    <div className="table-responsive">
-                                        <table className="table table-sm mb-0" style={{ fontSize: '0.78rem' }}>
-                                            <thead>
-                                                <tr style={{ background: '#f8f9fa' }}>
-                                                    <th style={{ fontWeight: 600 }}>Loại</th>
-                                                    <th style={{ fontWeight: 600 }}>Mô tả</th>
-                                                    <th style={{ fontWeight: 600, textAlign: 'right' }}>Số tiền</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {data.invoiceLines.map((line, i) => (
-                                                    <tr key={i}>
-                                                        <td>
-                                                            <span className="badge bg-light text-dark" style={{ fontSize: '0.7rem' }}>
-                                                                {line.itemType}
-                                                            </span>
-                                                        </td>
-                                                        <td style={{ color: '#555', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                            {line.description || '—'}
-                                                        </td>
-                                                        <td style={{
-                                                            textAlign: 'right', fontWeight: 600,
-                                                            color: line.amount < 0 ? '#dc3545' : '#198754'
-                                                        }}>
-                                                            {line.amount < 0 ? '-' : ''}{fmt(line.amount)}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </Section>
-                            )}
-
                             {/* Payment History */}
                             {data.payments && data.payments.length > 0 && (
                                 <Section icon="bi-credit-card" title="Lịch sử thanh toán">
