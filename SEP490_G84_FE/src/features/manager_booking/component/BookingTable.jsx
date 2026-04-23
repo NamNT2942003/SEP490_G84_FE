@@ -416,29 +416,15 @@ export default function BookingTable({
                 <td className="text-end pe-3">
                   <div className="d-flex justify-content-end align-items-center gap-1 flex-wrap">
 
-                    {/* Check-in day: Notify only (guest expected today) */}
-                    {isCheckinDay && booking.status !== 'NO_SHOW' && (
-                      <button className="btn btn-sm fw-semibold"
-                        style={{ background: '#e3f2fd', color: '#1565c0', border: 'none', fontSize: '0.79rem' }}
-                        onClick={() => handleNotifyNoShow(booking)}>
-                        <i className="bi bi-envelope-fill me-1"></i>Notify
-                      </button>
-                    )}
 
-                    {/* Overdue no-show: past check-in day → Notify + No-Show */}
+
+                    {/* Overdue no-show: past check-in day → No-Show */}
                     {isNoShow && booking.status !== 'NO_SHOW' && (
-                      <>
-                        <button className="btn btn-sm fw-semibold"
-                          style={{ background: '#e3f2fd', color: '#1565c0', border: 'none', fontSize: '0.79rem' }}
-                          onClick={() => handleNotifyNoShow(booking)}>
-                          <i className="bi bi-envelope-fill me-1"></i>Notify
-                        </button>
                         <button className="btn btn-sm fw-semibold"
                           style={{ background: '#212121', color: '#fff', border: 'none', fontSize: '0.79rem' }}
                           onClick={() => handleMarkNoShow(booking)}>
                           <i className="bi bi-person-slash me-1"></i>No-Show
                         </button>
-                      </>
                     )}
 
                     {/* Check-in button: available on check-in day and before */}
@@ -467,13 +453,6 @@ export default function BookingTable({
                     {/* Check-out mode */}
                     {booking.status === 'CHECKED_IN' && (
                       <>
-                        {isCheckoutToday && (
-                          <button className="btn btn-sm fw-semibold"
-                            style={{ background: '#fff3e0', color: '#e65100', border: '1px solid #ffe0b2', fontSize: '0.79rem' }}
-                            onClick={() => handleRemindCheckout(booking)}>
-                            <i className="bi bi-bell-fill me-1"></i>Remind
-                          </button>
-                        )}
                         <button className="btn btn-sm fw-semibold"
                           style={{ background: '#c62828', color: '#fff', border: 'none', fontSize: '0.82rem' }}
                           onClick={() => onCheckoutClick(booking)}>
