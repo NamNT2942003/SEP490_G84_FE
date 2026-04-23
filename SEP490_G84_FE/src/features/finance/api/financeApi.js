@@ -80,4 +80,16 @@ export const financeApi = {
     const { data } = await apiClient.post(`/finance/debts/${invoiceId}/collect`, body);
     return data;
   },
+
+  /** Chi tiết khoản hoàn tiền (cho Drawer) */
+  getRefundDetail: async (paymentId) => {
+    const { data } = await apiClient.get(`/finance/refund-detail/${paymentId}`);
+    return data;
+  },
+
+  /** Chi tiết khoản nợ (cho Drawer) */
+  getDebtDetail: async (invoiceId) => {
+    const { data } = await apiClient.get(`/finance/debt-detail/${invoiceId}`);
+    return data;
+  },
 };
