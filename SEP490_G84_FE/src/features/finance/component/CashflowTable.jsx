@@ -21,34 +21,34 @@ const getMethod = (m) => METHOD_LABEL[m?.toUpperCase()] ?? (m || '—');
 
 const TYPE_STYLE = {
   // Room
-  'Room Charge':              { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
-  'Room Deposit':             { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
-  'Room Deposit (Partial)':   { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
-  'Room Payment (Full)':      { color: '#065f46', bg: '#d1fae5', icon: '🏨' },
-  'Room Balance Payment':     { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
+  'Room Charge':              { color: '#0369a1', bg: '#e0f2fe' },
+  'Room Deposit':             { color: '#0369a1', bg: '#e0f2fe' },
+  'Room Deposit (Partial)':   { color: '#0369a1', bg: '#e0f2fe' },
+  'Room Payment (Full)':      { color: '#065f46', bg: '#d1fae5' },
+  'Room Balance Payment':     { color: '#0369a1', bg: '#e0f2fe' },
   // Service
-  'Service Charge':           { color: '#92400e', bg: '#fef3c7', icon: '🛎' },
+  'Service Charge':           { color: '#92400e', bg: '#fef3c7' },
   // Surcharge
-  'Surcharge':                { color: '#ea580c', bg: '#fff7ed', icon: '💰' },
-  'Early Check-in Surcharge': { color: '#ea580c', bg: '#fff7ed', icon: '⏰' },
-  'Late Checkout Fee':        { color: '#ea580c', bg: '#fff7ed', icon: '⏰' },
-  'Room Type Change Surcharge': { color: '#ea580c', bg: '#fff7ed', icon: '🔄' },
-  'Room Change Surcharge':    { color: '#ea580c', bg: '#fff7ed', icon: '🔄' },
+  'Surcharge':                { color: '#ea580c', bg: '#fff7ed' },
+  'Early Check-in Surcharge': { color: '#ea580c', bg: '#fff7ed' },
+  'Late Checkout Fee':        { color: '#ea580c', bg: '#fff7ed' },
+  'Room Type Change Surcharge': { color: '#ea580c', bg: '#fff7ed' },
+  'Room Change Surcharge':    { color: '#ea580c', bg: '#fff7ed' },
   // Damage
-  'Damage Compensation':      { color: '#991b1b', bg: '#fee2e2', icon: '⚠️' },
+  'Damage Compensation':      { color: '#991b1b', bg: '#fee2e2' },
   // Cancel
-  'Cancellation Refund':      { color: '#dc2626', bg: '#fef2f2', icon: '🔴' },
-  'Cancellation Fee (Retained)': { color: '#d97706', bg: '#fffbeb', icon: '🟡' },
-  'Cancellation Reversal':    { color: '#6b7280', bg: '#f3f4f6', icon: '↩️' },
+  'Cancellation Refund':      { color: '#dc2626', bg: '#fef2f2' },
+  'Cancellation Fee (Retained)': { color: '#d97706', bg: '#fffbeb' },
+  'Cancellation Reversal':    { color: '#6b7280', bg: '#f3f4f6' },
   // Other
-  'Checkout Settlement':      { color: '#065f46', bg: '#d1fae5', icon: '✅' },
-  'Mixed Charges':            { color: '#374151', bg: '#f3f4f6', icon: '📦' },
-  'Adjustment / Discount':    { color: '#16a34a', bg: '#f0fdf4', icon: '🏷️' },
+  'Checkout Settlement':      { color: '#065f46', bg: '#d1fae5' },
+  'Mixed Charges':            { color: '#374151', bg: '#f3f4f6' },
+  'Adjustment / Discount':    { color: '#16a34a', bg: '#f0fdf4' },
 };
 const getTypeStyle = (t) => {
   const style = TYPE_STYLE[t];
   if (style) return { ...style, label: t };
-  return { color: '#374151', bg: '#f3f4f6', label: t || '—', icon: '📋' };
+  return { color: '#374151', bg: '#f3f4f6', label: t || '—' };
 };
 
 const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalElements, setPage }) => {
@@ -76,7 +76,7 @@ const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalEl
       <table className="table table-hover mb-0" style={{ fontSize: '0.875rem' }}>
         <thead style={{ background: '#f8f9fb' }}>
           <tr>
-            {['Txn ID', 'Date & Time', 'Branch', 'Booking', 'Type', 'Amount', 'Method', 'Collected by', ''].map((h) => (
+            {['Txn ID', 'Date & Time', 'Branch', 'Booking', 'Type', 'Amount', 'Method', 'Processed by', ''].map((h) => (
               <th key={h} className="py-3 px-3" style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6c757d', border: 'none', whiteSpace: 'nowrap' }}>{h}</th>
             ))}
           </tr>
@@ -111,7 +111,7 @@ const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalEl
                 <td className="py-3 px-3" style={{ minWidth: 180, maxWidth: 260 }}>
                   <div>
                     <span style={{ fontSize: '0.78rem', fontWeight: 600, color: ts.color, background: ts.bg, padding: '2px 8px', borderRadius: 4, display: 'inline-block' }}>
-                      {ts.icon} {ts.label}
+                      {ts.label}
                     </span>
                   </div>
                   {visibleLabels.length > 0 && (
