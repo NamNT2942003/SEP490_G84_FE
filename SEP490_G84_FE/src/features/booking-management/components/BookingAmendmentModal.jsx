@@ -22,12 +22,7 @@ const toISODate = (localDateTime) => {
     return localDateTime.substring(0, 10);
 };
 
-const REFUND_BADGE = {
-    FREE_CANCEL: { cls: "free", icon: "bi-check-circle-fill", label: "Free cancellation (100% refund)" },
-    PARTIAL_REFUND: { cls: "partial", icon: "bi-clock-history", label: "Partial refund" },
-    NO_REFUND: { cls: "none", icon: "bi-x-circle-fill", label: "No refund" },
-    NOT_APPLICABLE: { cls: "free", icon: "bi-dash-circle", label: "Not applicable" },
-};
+
 
 // ─── Step indicator ────────────────────────────────────────────────────────
 
@@ -274,7 +269,7 @@ function PreviewStep({ preview }) {
         warningMessage, inventoryStatus,
     } = preview;
 
-    const badgeCfg = REFUND_BADGE[refundWindow] || REFUND_BADGE.NOT_APPLICABLE;
+
     const allSufficient = !inventoryStatus?.some(s => !s.sufficient);
     const hasReduction = grossReductionAmount > 0;
     const hasAddition = totalAdditionValue > 0;
@@ -344,16 +339,74 @@ function PreviewStep({ preview }) {
                             Applied Cancellation Policy
                         </div>
 
-                        <div className={`ba-refund-badge ${badgeCfg.cls}`}>
-                            <i className={`bi ${badgeCfg.icon}`} />
-                            {badgeCfg.label}
-                            {refundWindow !== "FREE_CANCEL" && refundWindow !== "NOT_APPLICABLE" && (
-                                <span style={{ opacity: 0.7, marginLeft: 4 }}>
-                                    ({daysUntilCheckIn} days before check-in • {snapshotRefundRateUsed}% refund)
-                                </span>
+                        {/* Structured policy rules — matching CancelBookingModal format */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+                            {/* FREE_CANCEL window */}
+                            {refundWindow === "FREE_CANCEL" && (
+                                <div style={{
+                                    fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
+                                    background: "#f0fdf4", border: "1px solid #bbf7d0",
+                                    borderRadius: 7, padding: "8px 12px", color: "#15803d",
+                                }}>
+                                    <i className="bi bi-check-circle-fill" style={{ marginTop: 1, flexShrink: 0, color: "#16a34a" }} />
+                                    <span style={{ flex: 1 }}>
+                                        Free cancellation window — <strong>{daysUntilCheckIn} days</strong> before check-in.
+                                        The net reduction of <strong>{formatVND(grossReductionAmount)}</strong> is <strong>100% refundable</strong>.
+                                    </span>
+                                    <span style={{ flexShrink: 0, fontWeight: 700, color: "#15803d" }}>✓ Eligible</span>
+                                </div>
+                            )}
+
+                            {/* PARTIAL_REFUND window */}
+                            {refundWindow === "PARTIAL_REFUND" && snapshotRefundRateUsed > 0 && (
+                                <div style={{
+                                    fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
+                                    background: "#fffbeb", border: "1px solid #fcd34d",
+                                    borderRadius: 7, padding: "8px 12px", color: "#92400e",
+                                }}>
+                                    <i className="bi bi-exclamation-triangle-fill" style={{ marginTop: 1, flexShrink: 0, color: "#d97706" }} />
+                                    <span style={{ flex: 1 }}>
+                                        Free cancellation window expired ({daysUntilCheckIn} days before check-in).
+                                        Partial refund: get back <strong>{formatVND(refundableAmount)}</strong> ({snapshotRefundRateUsed}% of net reduction).
+                                        Cancellation fee is <strong>{formatVND(nonRefundableAmount)}</strong>.
+                                    </span>
+                                    <span style={{ flexShrink: 0, fontWeight: 700, color: "#b91c1c" }}>✗ Expired</span>
+                                </div>
+                            )}
+
+                            {/* PARTIAL_REFUND window with 0% rate — effectively no refund */}
+                            {refundWindow === "PARTIAL_REFUND" && snapshotRefundRateUsed === 0 && (
+                                <div style={{
+                                    fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
+                                    background: "#fef2f2", border: "1px solid #fecaca",
+                                    borderRadius: 7, padding: "8px 12px", color: "#991b1b",
+                                }}>
+                                    <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0, color: "#dc2626" }} />
+                                    <span style={{ flex: 1 }}>
+                                        Free cancellation window expired ({daysUntilCheckIn} days before check-in).
+                                        No refund (0% refund rate). Hotel retains the full <strong>{formatVND(grossReductionAmount)}</strong> net reduction.
+                                    </span>
+                                    <span style={{ flexShrink: 0, fontWeight: 700, color: "#b91c1c" }}>✗ Expired</span>
+                                </div>
+                            )}
+
+                            {/* NO_REFUND — check-in day or past */}
+                            {refundWindow === "NO_REFUND" && (
+                                <div style={{
+                                    fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
+                                    background: "#fef2f2", border: "1px solid #fecaca",
+                                    borderRadius: 7, padding: "8px 12px", color: "#991b1b",
+                                }}>
+                                    <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0, color: "#dc2626" }} />
+                                    <span style={{ flex: 1 }}>
+                                        Refund deadline has passed (check-in day or past).
+                                        No refund. Hotel retains the full <strong>{formatVND(grossReductionAmount)}</strong> net reduction.
+                                    </span>
+                                </div>
                             )}
                         </div>
 
+                        {/* Financial breakdown */}
                         <div className="ba-financial-grid">
                             <div className="ba-fin-cell positive">
                                 <div className="ba-fin-label">Guest Refund</div>
@@ -367,8 +420,8 @@ function PreviewStep({ preview }) {
 
                         <div style={{ fontSize: "0.75rem", color: "#6c757d", marginTop: 6 }}>
                             <i className="bi bi-info-circle me-1" />
-                            Netting: penalty is calculated on the net reduction ({formatVND(grossReductionAmount)}),
-                            not the total cancelled room value ({formatVND(totalCancellationValue)}).
+                            Refund is calculated on the net reduction amount ({formatVND(grossReductionAmount)}), after netting
+                            additions against the total cancelled value ({formatVND(totalCancellationValue)}).
                         </div>
                     </>
                 )}
