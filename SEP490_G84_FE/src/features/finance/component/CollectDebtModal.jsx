@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
 const CollectDebtModal = ({ show, onClose, debt, onCollect }) => {
-    const [amount, setAmount] = useState('');
     const [method, setMethod] = useState('CASH');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -9,20 +8,10 @@ const CollectDebtModal = ({ show, onClose, debt, onCollect }) => {
     const fmt = (v) => v ? new Intl.NumberFormat('vi-VN').format(v) + ' ₫' : '0 ₫';
 
     const handleCollect = async () => {
-        const numAmount = parseFloat(amount);
-        if (!numAmount || numAmount <= 0) {
-            setError('Vui lòng nhập số tiền hợp lệ');
-            return;
-        }
-        if (numAmount > debt.remainingAmount) {
-            setError(`Số tiền không được vượt quá ${fmt(debt.remainingAmount)}`);
-            return;
-        }
         setError('');
         setLoading(true);
         try {
-            await onCollect(debt.invoiceId, { amount: numAmount, paymentMethod: method });
-            setAmount('');
+            await onCollect(debt.invoiceId, { amount: debt.remainingAmount, paymentMethod: method });
             setMethod('CASH');
             onClose();
         } catch (err) {
@@ -53,40 +42,15 @@ const CollectDebtModal = ({ show, onClose, debt, onCollect }) => {
                             <div style={{ fontWeight: 600 }}>{debt.customerName || '—'}</div>
                         </div>
 
-                        {/* Remaining */}
+                        {/* Amount to collect */}
                         <div style={{
-                            background: '#fff3cd', borderRadius: 10, padding: '12px 16px', marginBottom: 16,
-                            border: '1px solid #ffc107', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                            background: '#f8d7da', borderRadius: 10, padding: '16px',
+                            border: '1px solid #f5c6cb', textAlign: 'center', marginBottom: 16
                         }}>
-                            <span style={{ fontWeight: 600, color: '#856404' }}>Còn nợ</span>
-                            <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#d63384' }}>
+                            <div style={{ fontSize: '0.82rem', color: '#856404', fontWeight: 600 }}>Số tiền thu</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#dc3545', marginTop: 4 }}>
                                 {fmt(debt.remainingAmount)}
-                            </span>
-                        </div>
-
-                        {/* Amount */}
-                        <div className="mb-3">
-                            <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Số tiền thu</label>
-                            <div className="input-group">
-                                <input
-                                    type="number"
-                                    className="form-control form-control-lg"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    placeholder="Nhập số tiền"
-                                    min="1000"
-                                    max={debt.remainingAmount}
-                                />
-                                <span className="input-group-text">₫</span>
                             </div>
-                            <button
-                                type="button"
-                                className="btn btn-link btn-sm p-0 mt-1"
-                                style={{ fontSize: '0.8rem' }}
-                                onClick={() => setAmount(String(debt.remainingAmount))}
-                            >
-                                Thu toàn bộ ({fmt(debt.remainingAmount)})
-                            </button>
                         </div>
 
                         {/* Method */}
@@ -115,7 +79,7 @@ const CollectDebtModal = ({ show, onClose, debt, onCollect }) => {
                             {loading ? (
                                 <span className="spinner-border spinner-border-sm me-2" />
                             ) : '✅ '}
-                            Xác nhận thu tiền
+                            Xác nhận thu {fmt(debt.remainingAmount)}
                         </button>
                     </div>
                 </div>
