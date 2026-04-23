@@ -5,6 +5,7 @@ import BookingDetailModal from '../component/BookingDetailModal';
 import CheckoutModal from '../component/CheckoutModal';
 import LateCheckoutModal from '../component/LateCheckoutModal';
 import CollectRemainingModal from '../component/CollectRemainingModal';
+import CollectServiceDebtModal from '../component/CollectServiceDebtModal';
 import DebtContactModal from '../component/DebtContactModal';
 import { checkInApi } from '../api/checkInApi';
 import { useSelector } from 'react-redux';
@@ -66,6 +67,7 @@ export default function FrontDeskDashboard() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showLateCheckoutModal, setShowLateCheckoutModal] = useState(false);
   const [showCollectRemainingModal, setShowCollectRemainingModal] = useState(false);
+  const [showCollectServiceModal, setShowCollectServiceModal] = useState(false);
   const [showDebtModal, setShowDebtModal] = useState(false);
 
   const authUser = useSelector((state) => state.auth.user);
@@ -416,6 +418,7 @@ export default function FrontDeskDashboard() {
             onCheckoutClick={handleOpenCheckout}
             onLateCheckoutClick={handleOpenLateCheckout}
             onCollectRemainingClick={handleOpenCollectRemaining}
+            onCollectServiceDebt={(b) => { setSelectedBooking(b); setShowCollectServiceModal(true); }}
             onDebtDetailClick={handleOpenDebtDetail}
             onRefresh={refreshAll}
             accent={accent}
@@ -448,6 +451,11 @@ export default function FrontDeskDashboard() {
       {showCollectRemainingModal && (
         <CollectRemainingModal key={`collect-${selectedBooking?.id}`} show={showCollectRemainingModal}
           onClose={() => setShowCollectRemainingModal(false)}
+          booking={selectedBooking} onSuccess={refreshAll} />
+      )}
+      {showCollectServiceModal && (
+        <CollectServiceDebtModal key={`collect-svc-${selectedBooking?.id}`} show={showCollectServiceModal}
+          onClose={() => setShowCollectServiceModal(false)}
           booking={selectedBooking} onSuccess={refreshAll} />
       )}
       {showDebtModal && (

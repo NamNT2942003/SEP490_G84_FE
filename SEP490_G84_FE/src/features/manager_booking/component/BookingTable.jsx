@@ -65,6 +65,7 @@ export default function BookingTable({
   onCheckoutClick,
   onLateCheckoutClick,
   onCollectRemainingClick,
+  onCollectServiceDebt,
   onDebtDetailClick,
   onRefresh,
   mode = 'checkin',
@@ -202,7 +203,7 @@ export default function BookingTable({
                         background: '#fff8e1', padding: '8px 14px', fontSize: '0.76rem',
                         color: '#e65100', fontWeight: 700, borderTop: '2px solid #ffe082',
                       }}>
-                        💰 Outstanding Debts — Checked Out with Unpaid Room Balance
+                        💰 Outstanding Debts — Checked Out with Unpaid Balance
                       </td>
                     </tr>
                   )}
@@ -246,10 +247,18 @@ export default function BookingTable({
                     {/* Amount — show debt */}
                     <td>
                       <div className="fw-bold small text-muted">{booking.totalAmount?.toLocaleString('en-US')} VND</div>
-                      <span className="px-2 py-1 rounded-2 fw-bold mt-1 d-inline-block"
-                        style={{ fontSize: '0.71rem', background: '#ffebee', color: '#c62828' }}>
-                        ⚠ Debt: {Number(booking.roomDebtAmount || 0).toLocaleString('en-US')} VND
-                      </span>
+                      {Number(booking.roomDebtAmount || 0) > 0 && (
+                        <span className="px-2 py-1 rounded-2 fw-bold mt-1 d-inline-block"
+                          style={{ fontSize: '0.71rem', background: '#ffebee', color: '#c62828' }}>
+                          ⚠ Room: {Number(booking.roomDebtAmount).toLocaleString('en-US')} VND
+                        </span>
+                      )}
+                      {Number(booking.serviceDebtAmount || 0) > 0 && (
+                        <span className="px-2 py-1 rounded-2 fw-bold mt-1 d-inline-block ms-1"
+                          style={{ fontSize: '0.71rem', background: '#fff3e0', color: '#e65100' }}>
+                          🛎 Service: {Number(booking.serviceDebtAmount).toLocaleString('en-US')} VND
+                        </span>
+                      )}
                     </td>
                     {/* Status */}
                     <td>
@@ -261,11 +270,20 @@ export default function BookingTable({
                     {/* Actions */}
                     <td className="text-end pe-3">
                       <div className="d-flex justify-content-end align-items-center gap-1">
-                        <button className="btn btn-sm fw-semibold"
-                          style={{ background: '#fffbeb', color: '#92400e', border: '1px solid #f59e0b', fontSize: '0.79rem' }}
-                          onClick={() => onCollectRemainingClick && onCollectRemainingClick(booking)}>
-                          <i className="bi bi-cash-coin me-1"></i>Collect
-                        </button>
+                        {Number(booking.roomDebtAmount || 0) > 0 && (
+                          <button className="btn btn-sm fw-semibold"
+                            style={{ background: '#fffbeb', color: '#92400e', border: '1px solid #f59e0b', fontSize: '0.79rem' }}
+                            onClick={() => onCollectRemainingClick && onCollectRemainingClick(booking)}>
+                            <i className="bi bi-cash-coin me-1"></i>Collect Room
+                          </button>
+                        )}
+                        {Number(booking.serviceDebtAmount || 0) > 0 && (
+                          <button className="btn btn-sm fw-semibold"
+                            style={{ background: '#e8f5e9', color: '#2e7d32', border: '1px solid #81c784', fontSize: '0.79rem' }}
+                            onClick={() => onCollectServiceDebt && onCollectServiceDebt(booking)}>
+                            <i className="bi bi-receipt me-1"></i>Collect Service
+                          </button>
+                        )}
                         <button className="btn btn-sm fw-semibold"
                           style={{ background: '#fff3e0', color: '#e65100', border: '1px solid #ffcc80', fontSize: '0.79rem' }}
                           onClick={() => onDebtDetailClick && onDebtDetailClick(booking)}>
