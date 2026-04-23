@@ -222,6 +222,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                         value={newArrival}
                         onChange={(e) => setNewArrival(e.target.value)}
                         placeholder={toISODate(booking?.arrivalDate)}
+                        min={new Date().toISOString().split('T')[0]}
                     />
                     {booking?.arrivalDate && (
                         <div style={{ fontSize: "0.73rem", color: "#adb5bd", marginTop: 3 }}>
@@ -236,6 +237,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                         value={newDeparture}
                         onChange={(e) => setNewDeparture(e.target.value)}
                         placeholder={toISODate(booking?.departureDate)}
+                        min={new Date().toISOString().split('T')[0]}
                     />
                     {booking?.departureDate && (
                         <div style={{ fontSize: "0.73rem", color: "#adb5bd", marginTop: 3 }}>
