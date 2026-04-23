@@ -452,7 +452,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
 
     useEffect(() => {
         if (show && booking?.branchId) {
-            apiClient.get(API_ENDPOINTS.ROOM_TYPES.BY_BRANCH, { params: { branchId: booking.branchId } })
+            apiClient.get(`${API_ENDPOINTS.ROOM_TYPES.BY_BRANCH}/${booking.branchId}`)
                 .then(res => setAvailableRoomTypes(res.data?.data || res.data || []))
                 .catch(err => console.error("Could not fetch room types", err));
         }
