@@ -296,20 +296,6 @@
 .ba-fin-cell.negative .ba-fin-value { color: #dc3545; }
 .ba-fin-cell.warning  .ba-fin-value { color: #b45309; }
 
-/* ── Refund window badge ── */
-.ba-refund-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 4px 12px;
-    border-radius: 20px;
-    margin-bottom: 10px;
-}
-.ba-refund-badge.free    { background: #dcfce7; color: #15803d; }
-.ba-refund-badge.partial { background: #fef3c7; color: #92400e; }
-.ba-refund-badge.none    { background: #fee2e2; color: #991b1b; }
 
 /* ── Warning banner ── */
 .ba-warning-banner {
