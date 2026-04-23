@@ -113,7 +113,7 @@ const computeFreeCancelDeadline = (arrivalDate, dateRange) => {
 
 const formatDeadline = (dt) => {
     if (!dt) return null;
-    return dt.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return dt.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
 const resolvePayableRate = (option) => {
@@ -480,10 +480,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             setError(err);
             Swal.fire({
                 icon: "warning",
-                title: "Vui lòng hoàn thiện thông tin",
+                title: "Please complete the required information",
                 text: err,
                 confirmButtonColor: "#465c47",
-                confirmButtonText: "Đã hiểu",
+                confirmButtonText: "Understood",
             });
             return;
         }
@@ -738,10 +738,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         const policyRow = selectedPolicy
             ? `<tr>
                 <td colspan="3" style="padding:8px;background:#f0fdf4;border-radius:6px;text-align:center;color:#15803d;font-size:12px">
-                    🛡 <strong>${selectedPolicy.name}</strong> — Trả trước: <strong>${formatVnd(prepaidAmt)}</strong> ${form.customPrepaidAmount !== "" ? "(Điều chỉnh)" : `(${selectedPolicy.prepaidRate}%)`} • Hoàn nếu huỷ: ${refundRateToDisplay}% ${form.customRefundRate !== "" ? "(Điều chỉnh)" : ""}
+                    🛡 <strong>${selectedPolicy.name}</strong> — Prepaid: <strong>${formatVnd(prepaidAmt)}</strong> ${form.customPrepaidAmount !== "" ? "(Adjusted)" : `(${selectedPolicy.prepaidRate}%)`} • Refund if cancelled: ${refundRateToDisplay}% ${form.customRefundRate !== "" ? "(Adjusted)" : ""}
                 </td>
             </tr>`
-            : `<tr><td colspan="3" style="padding:6px 8px;color:#9ca3af;font-size:12px">Không có chính sách hủy áp dụng — đặt cọc 100%</td></tr>`;
+            : `<tr><td colspan="3" style="padding:6px 8px;color:#9ca3af;font-size:12px">No cancellation policy applied — 100% deposit required</td></tr>`;
 
         const confirmHtml = `
             <div style="text-align:left;font-family:system-ui,sans-serif">
@@ -749,14 +749,14 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
                     <span style="font-size:20px;flex-shrink:0">⚠️</span>
                     <div>
-                        <div style="font-weight:800;color:#b91c1c;font-size:13px;margin-bottom:2px">Thao tác không thể hoàn tác!</div>
-                        <div style="color:#7f1d1d;font-size:12px">Vui lòng kiểm tra kỹ thông tin booking bên dưới trước khi xác nhận. Sau khi tạo, dữ liệu sẽ được lưu vào hệ thống và không thể xóa tự động.</div>
+                        <div style="font-weight:800;color:#b91c1c;font-size:13px;margin-bottom:2px">This action cannot be undone!</div>
+                        <div style="color:#7f1d1d;font-size:12px">Please carefully review the booking details below before confirming. Once created, the data will be saved to the system and cannot be automatically deleted.</div>
                     </div>
                 </div>
 
                 <!-- Thông tin khách -->
                 <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;margin-bottom:10px">
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">👤 Khách hàng</div>
+                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">👤 Guest</div>
                     <div style="font-weight:700;font-size:14px;color:#111827">${form.customer.fullName || "—"}</div>
                     <div style="font-size:12px;color:#6b7280">${form.customer.email || "—"} • ${form.customer.phone || "—"}</div>
                 </div>
@@ -764,24 +764,24 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 <!-- Chi nhánh & ngày -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
                     <div style="background:#f8fafc;border-radius:8px;padding:10px 12px">
-                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:4px">🏨 Chi nhánh</div>
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:4px">🏨 Branch</div>
                         <div style="font-weight:700;font-size:13px;color:#1f2937">${branchLabel}</div>
                     </div>
                     <div style="background:#f8fafc;border-radius:8px;padding:10px 12px">
-                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:4px">📅 Thời gian lưu trú</div>
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:4px">📅 Stay period</div>
                         <div style="font-weight:700;font-size:13px;color:#1f2937">${form.arrivalDate} → ${form.departureDate}</div>
                     </div>
                 </div>
 
                 <!-- Phòng -->
                 <div style="margin-bottom:10px">
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">🛏 Phòng đặt</div>
+                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">🛏 Rooms booked</div>
                     <table style="width:100%;border-collapse:collapse;font-size:12px">
                         <thead>
                             <tr style="background:#f0f0f0">
-                                <th style="padding:4px 8px;text-align:left;font-weight:700;color:#374151">Loại phòng</th>
-                                <th style="padding:4px 8px;text-align:center;font-weight:700;color:#374151">SL</th>
-                                <th style="padding:4px 8px;text-align:right;font-weight:700;color:#374151">Thành tiền</th>
+                                <th style="padding:4px 8px;text-align:left;font-weight:700;color:#374151">Room type</th>
+                                <th style="padding:4px 8px;text-align:center;font-weight:700;color:#374151">Qty</th>
+                                <th style="padding:4px 8px;text-align:right;font-weight:700;color:#374151">Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>${roomSummaryRows}</tbody>
@@ -792,11 +792,11 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 <!-- Tổng tiền -->
                 <div style="background:#465c47;border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
                     <div>
-                        <div style="color:#c8d9c0;font-size:11px;font-weight:700;text-transform:uppercase">Tổng cộng</div>
+                        <div style="color:#c8d9c0;font-size:11px;font-weight:700;text-transform:uppercase">Grand total</div>
                         <div style="color:#fff;font-size:18px;font-weight:800">${formatVnd(estimatedGrandTotal)}</div>
                     </div>
                     <div style="text-align:right">
-                        <div style="color:#c8d9c0;font-size:11px;font-weight:700;text-transform:uppercase">Trả ngay (${selectedPaymentMethod})</div>
+                        <div style="color:#c8d9c0;font-size:11px;font-weight:700;text-transform:uppercase">Pay now (${selectedPaymentMethod})</div>
                         <div style="color:#f9d71c;font-size:16px;font-weight:800">${formatVnd(prepaidAmt)}</div>
                     </div>
                 </div>
@@ -804,12 +804,12 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         `;
 
         const { isConfirmed } = await Swal.fire({
-            title: "Xác nhận tạo Booking",
+            title: "Confirm Booking Creation",
             html: confirmHtml,
             icon: undefined,
             showCancelButton: true,
-            confirmButtonText: "✓ Xác nhận tạo Booking",
-            cancelButtonText: "Kiểm tra lại",
+            confirmButtonText: "✓ Confirm and create booking",
+            cancelButtonText: "Review again",
             confirmButtonColor: "#465c47",
             cancelButtonColor: "#6b7280",
             reverseButtons: true,
@@ -1583,8 +1583,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 <div style={{ background: "#fef2f2", border: "1.5px solid #fca5a5", borderRadius: 10, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "flex-start", gap: 10 }}>
                     <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
                     <div>
-                        <div style={{ fontWeight: 800, color: "#b91c1c", fontSize: 13, marginBottom: 2 }}>Thao tác không thể hoàn tác!</div>
-                        <div style={{ color: "#7f1d1d", fontSize: 12 }}>Vui lòng kiểm tra kỹ thông tin bên dưới trước khi tạo booking. Sau khi tạo, dữ liệu sẽ được lưu vào hệ thống và không thể xóa tự động.</div>
+                        <div style={{ fontWeight: 800, color: "#b91c1c", fontSize: 13, marginBottom: 2 }}>This action cannot be undone!</div>
+                        <div style={{ color: "#7f1d1d", fontSize: 12 }}>Please carefully review the details below before creating the booking. Once created, the data will be saved to the system and cannot be automatically deleted.</div>
                     </div>
                 </div>
 

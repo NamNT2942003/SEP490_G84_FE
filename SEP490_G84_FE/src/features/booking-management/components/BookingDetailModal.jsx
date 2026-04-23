@@ -299,17 +299,17 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                         const dt = new Date(arrivalDate);
                                         if (!isNaN(dt.getTime())) {
                                             dt.setDate(dt.getDate() - days);
-                                            deadlineStr = dt.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+                                            deadlineStr = dt.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
                                         }
                                     }
                                 }
 
                                 const typeCfg = {
-                                    FREE_CANCEL:    { label: "Miễn phí huỷ",            dot: "#16a34a", bg: "#dcfce7", color: "#15803d" },
-                                    PARTIAL_REFUND: { label: "Hoàn một phần",            dot: "#d97706", bg: "#fef3c7", color: "#92400e" },
-                                    NON_REFUND:     { label: "Không hoàn tiền",          dot: "#dc2626", bg: "#fee2e2", color: "#991b1b" },
-                                    PAY_AT_HOTEL:   { label: "Thanh toán tại khách sạn", dot: "#2563eb", bg: "#dbeafe", color: "#1e40af" },
-                                }[policyType] || { label: policyType || "Chính sách chuẩn", dot: "#6b7280", bg: "#f3f4f6", color: "#374151" };
+                                    FREE_CANCEL:    { label: "Free cancellation",   dot: "#16a34a", bg: "#dcfce7", color: "#15803d" },
+                                    PARTIAL_REFUND: { label: "Partial refund",       dot: "#d97706", bg: "#fef3c7", color: "#92400e" },
+                                    NON_REFUND:     { label: "Non-refundable",       dot: "#dc2626", bg: "#fee2e2", color: "#991b1b" },
+                                    PAY_AT_HOTEL:   { label: "Pay at hotel",         dot: "#2563eb", bg: "#dbeafe", color: "#1e40af" },
+                                }[policyType] || { label: policyType || "Standard policy", dot: "#6b7280", bg: "#f3f4f6", color: "#374151" };
 
                                 return (
                                     <InfoSection icon="bi-shield-check" title="Cancellation Policy">
@@ -326,17 +326,17 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                         {total > 0 && (
                                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: deadlineStr ? 10 : 0 }}>
                                                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #465c47" }}>
-                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Trả trước</div>
+                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Prepaid</div>
                                                     <div style={{ fontSize: 14, fontWeight: 800, color: "#111827" }}>{formatVND(prepaidAmt)}</div>
                                                     <div style={{ fontSize: 10, color: "#9ca3af" }}>{prepaidRate}%</div>
                                                 </div>
                                                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: `3px solid ${refundAmt > 0 ? "#16a34a" : "#e5e7eb"}` }}>
-                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Hoàn nếu huỷ</div>
+                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Refund if cancelled</div>
                                                     <div style={{ fontSize: 14, fontWeight: 800, color: refundAmt > 0 ? "#16a34a" : "#dc2626" }}>{formatVND(refundAmt)}</div>
                                                     <div style={{ fontSize: 10, color: "#9ca3af" }}>{refunRate}%</div>
                                                 </div>
                                                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #e5e7eb" }}>
-                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>KS giữ</div>
+                                                    <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Hotel retains</div>
                                                     <div style={{ fontSize: 14, fontWeight: 800, color: "#374151" }}>{formatVND(retainAmt)}</div>
                                                     <div style={{ fontSize: 10, color: "#9ca3af" }}>{100 - refunRate}%</div>
                                                 </div>
@@ -347,8 +347,8 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                         {deadlineStr && (
                                             <div style={{ fontSize: 12, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 7, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6 }}>
                                                 <i className="bi bi-clock-history" />
-                                                Hoàn 100% nếu huỷ trước <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong>
-                                                <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({parseInt(dateRange, 10)} ngày trước check-in)</span>
+                                                100% refund if cancelled before <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong>
+                                                <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({parseInt(dateRange, 10)} days before check-in)</span>
                                             </div>
                                         )}
                                     </InfoSection>
@@ -385,7 +385,7 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                             disabled={actionLoading}
                         >
                             <i className="bi bi-pencil-square me-1" />
-                            Sửa Booking
+                            Amend Booking
                         </Buttons>
                     )}
                     <Buttons variant="outline" className="btn-sm" onClick={onHide} disabled={actionLoading}>

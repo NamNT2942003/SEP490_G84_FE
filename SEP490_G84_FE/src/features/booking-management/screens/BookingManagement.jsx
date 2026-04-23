@@ -293,24 +293,24 @@ export default function BookingManagement() {
     const handleDeleteBooking = async (booking) => {
         // Bước 1: hiển thị cảnh báo
         const { isConfirmed: step1 } = await Swal.fire({
-            title: "Xóa Booking?",
+            title: "Delete Booking?",
             html: `
                 <div style="text-align:left;font-family:system-ui,sans-serif">
                     <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
                         <span style="font-size:22px;flex-shrink:0">🚨</span>
                         <div>
-                            <div style="font-weight:800;color:#b91c1c;font-size:14px;margin-bottom:4px">Hành động này không thể hoàn tác!</div>
+                            <div style="font-weight:800;color:#b91c1c;font-size:14px;margin-bottom:4px">This action cannot be undone!</div>
                             <div style="color:#7f1d1d;font-size:12px;line-height:1.6">
-                                Xóa booking sẽ <strong>xóa vĩnh viễn</strong> toàn bộ dữ liệu liên quan, bao gồm:<br/>
-                                • Thông tin khách hàng<br/>
-                                • Chi tiết phòng và giá<br/>
-                                • Lịch sử thanh toán và hoàn tiền<br/>
-                                • Nhật ký chính sách hủy bỏ
+                                Deleting this booking will <strong>permanently remove</strong> all related data, including:<br/>
+                                • Guest information<br/>
+                                • Room details and pricing<br/>
+                                • Payment and refund history<br/>
+                                • Cancellation policy records
                             </div>
                         </div>
                     </div>
                     <div style="background:#f8fafc;border-radius:8px;padding:10px 14px">
-                        <div style="font-size:10px;color:#9ca3af;font-weight:700;text-transform:uppercase;margin-bottom:6px">📋 Booking cần xóa</div>
+                        <div style="font-size:10px;color:#9ca3af;font-weight:700;text-transform:uppercase;margin-bottom:6px">📋 Booking to delete</div>
                         <div style="font-weight:800;font-size:15px;color:#111827">${booking.bookingCode || booking.bookingId}</div>
                         <div style="font-size:12px;color:#6b7280;margin-top:2px">${booking.customerName} &bull; ${booking.branchName}</div>
                         <div style="font-size:12px;color:#6b7280">${formatVND(booking.totalAmount)} &bull; ${booking.status}</div>
@@ -319,8 +319,8 @@ export default function BookingManagement() {
             `,
             icon: undefined,
             showCancelButton: true,
-            confirmButtonText: "Tiếp tục xóa →",
-            cancelButtonText: "Hủy bỏ",
+            confirmButtonText: "Continue to delete →",
+            cancelButtonText: "Cancel",
             confirmButtonColor: "#dc2626",
             cancelButtonColor: "#6b7280",
             reverseButtons: true,
@@ -332,11 +332,11 @@ export default function BookingManagement() {
         // Bước 2: yêu cầu nhập mã booking để xác nhận
         const bookingCode = (booking.bookingCode || String(booking.bookingId)).trim();
         const { value: typedCode } = await Swal.fire({
-            title: "Xác nhận xóa",
+            title: "Confirm Deletion",
             html: `
                 <div style="font-family:system-ui,sans-serif">
                     <p style="color:#374151;margin-bottom:12px">
-                        Nhập mã booking <strong style="color:#dc2626;font-family:monospace">${bookingCode}</strong> để xác nhận xóa:
+                        Enter booking code <strong style="color:#dc2626;font-family:monospace">${bookingCode}</strong> to confirm deletion:
                     </p>
                     <input
                         id="delete-confirm-input"
@@ -347,8 +347,8 @@ export default function BookingManagement() {
                 </div>
             `,
             showCancelButton: true,
-            confirmButtonText: "🗑️ Xóa vĩnh viễn",
-            cancelButtonText: "Quay lại",
+            confirmButtonText: "🗑️ Delete permanently",
+            cancelButtonText: "Go back",
             confirmButtonColor: "#dc2626",
             cancelButtonColor: "#6b7280",
             reverseButtons: true,
@@ -356,7 +356,7 @@ export default function BookingManagement() {
             preConfirm: () => {
                 const val = document.getElementById("delete-confirm-input")?.value?.trim();
                 if (val !== bookingCode) {
-                    Swal.showValidationMessage(`Mã không khớp — nhập chính xác "${bookingCode}"`);
+                    Swal.showValidationMessage(`Code does not match — enter exactly "${bookingCode}"`);
                     return false;
                 }
                 return val;
@@ -370,15 +370,15 @@ export default function BookingManagement() {
             await bookingManagementApi.deleteBooking(booking.bookingId);
             await Swal.fire({
                 icon: "success",
-                title: "Booking đã được xóa",
-                text: `Booking ${bookingCode} và toàn bộ dữ liệu liên quan đã được xóa khỏi hệ thống.`,
+                title: "Booking Deleted",
+                text: `Booking ${bookingCode} and all related data have been removed from the system.`,
                 timer: 2500,
                 showConfirmButton: false,
             });
             fetchBookings();
         } catch (err) {
-            const msg = err?.response?.data?.message || "Xóa booking thất bại. Vui lòng thử lại.";
-            Swal.fire({ icon: "error", title: "Không thể xóa", text: msg, confirmButtonColor: "#dc2626" });
+            const msg = err?.response?.data?.message || "Failed to delete booking. Please try again.";
+            Swal.fire({ icon: "error", title: "Cannot delete", text: msg, confirmButtonColor: "#dc2626" });
         }
     };
 
@@ -589,7 +589,6 @@ export default function BookingManagement() {
                                         </td>
                                         <td>
                                             <div className={sourceBadge.className}>{sourceBadge.label}</div>
-                                            <div className="source-note">{sourceBadge.sub}</div>
                                         </td>
                                         <td className="small">{formatDate(booking.checkInDate)}</td>
                                         <td className="small">{formatDate(booking.checkOutDate)}</td>
@@ -620,7 +619,7 @@ export default function BookingManagement() {
                                                 <button
                                                     className="btn btn-sm btn-danger"
                                                     style={{ fontSize: "0.78rem", padding: "3px 10px" }}
-                                                    title="Xóa toàn bộ dữ liệu booking"
+                                                    title="Delete all booking data"
                                                     onClick={() => handleDeleteBooking(booking)}
                                                 >
                                                     <i className="bi bi-trash3 me-1" />
