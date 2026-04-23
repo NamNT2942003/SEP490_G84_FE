@@ -108,7 +108,7 @@ const PaymentResult = () => {
                 {/* Actions */}
                 <button 
                     className="btn btn-luxury w-100"
-                    onClick={() => navigate(isSuccess ? '/guest/bookings' : '/')} 
+                    onClick={() => navigate(isSuccess ? '/guest-access' : '/')} 
                 >
                     {isSuccess ? 'View My Booking' : 'Try Again'}
                 </button>
