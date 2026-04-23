@@ -1514,7 +1514,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10, lineHeight: 1.4 }}>
                             Leave blank to use default policy values.
                         </div>
-                        
+
                         <div className="cbsm-field" style={{ marginBottom: 8 }}>
                             <label style={{ fontSize: 11, color: "#4b5563", marginBottom: 2 }}>Prepaid Amount (VND)</label>
                             <input

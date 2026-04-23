@@ -7,8 +7,8 @@ import Buttons from "@/components/ui/Buttons";
 
 const STATUS_CONFIG = {
     CONFIRMED: { bg: "rgba(25,135,84,0.12)", text: "#198754", dot: "#198754" },
-    PENDING:   { bg: "rgba(255,193,7,0.18)",  text: "#997404", dot: "#ffc107" },
-    CANCELLED: { bg: "rgba(220,53,69,0.12)",  text: "#b02a37", dot: "#dc3545" },
+    PENDING: { bg: "rgba(255,193,7,0.18)", text: "#997404", dot: "#ffc107" },
+    CANCELLED: { bg: "rgba(220,53,69,0.12)", text: "#b02a37", dot: "#dc3545" },
     COMPLETED: { bg: "rgba(13,110,253,0.12)", text: "#0d6efd", dot: "#0d6efd" },
 };
 
@@ -228,7 +228,7 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                             {/* Stay */}
                             <InfoSection icon="bi-calendar-range" title="Booking Details">
                                 <div className="info-row">
-                                    <InfoItem label="Check-in"  value={formatDate(booking.arrivalDate)} />
+                                    <InfoItem label="Check-in" value={formatDate(booking.arrivalDate)} />
                                     <InfoItem label="Check-out" value={formatDate(booking.departureDate)} />
                                     <InfoItem label="Total Amount" value={<span className="fw-semibold text-success">{formatVND(booking.totalAmount)}</span>} />
                                     <InfoItem label="Invoice Status" value={booking.invoiceStatus} />
@@ -278,42 +278,38 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                             </InfoSection>
 
                             {/* Cancellation Policy */}
-                            {(booking.cancellationPolicyName || booking.policyName || booking.appliedPolicyId) && (() => {
-                                const policyName = booking.cancellationPolicyName || booking.policyName || `Policy #${booking.appliedPolicyId}`;
-                                const policyType = String(booking.cancellationPolicyType || booking.policyType || "").trim().toUpperCase();
-                                const prepaidRate = Number(booking.prepaidRate ?? booking.cancellationPolicyPrepaidRate ?? 0);
-                                const refunRate   = Number(booking.refunRate ?? booking.cancellationPolicyRefunRate ?? 0);
-                                const dateRange   = booking.cancellationPolicyDateRange ?? booking.policyDateRange ?? null;
-                                const arrivalDate = booking.arrivalDate || booking.checkInDate;
+                            {(booking.cancellationPolicyName || booking.freeCancelDays != null || booking.snapshotRefundRate != null) && (() => {
+                                const policyName = booking.cancellationPolicyName || "Default Policy";
+                                const policyType = String(booking.cancellationPolicyType || "").trim().toUpperCase();
+                                const prepaidRate = Number(booking.cancellationPolicyPrepaidRate ?? 0);
+                                const refundRate = Number(booking.snapshotRefundRate ?? 0);
+                                const freeCancelDays = booking.freeCancelDays;
 
                                 const total = Number(booking.totalAmount || 0);
-                                const prepaidAmt = Math.round(total * prepaidRate / 100);
-                                const refundAmt  = Math.round(total * refunRate  / 100);
-                                const retainAmt  = Math.max(0, total - refundAmt);
+                                const prepaidAmt = Number(booking.prepaidAmount || Math.round(total * prepaidRate / 100));
+                                const refundAmt = Math.round(total * refundRate / 100);
+                                const retainAmt = Math.max(0, total - refundAmt);
 
-                                // Tính deadline huỷ miễn phí
+                                // Free cancel deadline from backend
                                 let deadlineStr = null;
-                                if (arrivalDate && dateRange) {
-                                    const days = parseInt(dateRange, 10);
-                                    if (Number.isFinite(days) && days > 0) {
-                                        const dt = new Date(arrivalDate);
-                                        if (!isNaN(dt.getTime())) {
-                                            dt.setDate(dt.getDate() - days);
-                                            deadlineStr = dt.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
-                                        }
+                                const isSameDayCancel = freeCancelDays === 0;
+                                if (booking.freeCancelDeadline) {
+                                    const dt = new Date(booking.freeCancelDeadline);
+                                    if (!isNaN(dt.getTime())) {
+                                        deadlineStr = dt.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
                                     }
                                 }
 
                                 const typeCfg = {
-                                    FREE_CANCEL:    { label: "Free cancellation",   dot: "#16a34a", bg: "#dcfce7", color: "#15803d" },
-                                    PARTIAL_REFUND: { label: "Partial refund",       dot: "#d97706", bg: "#fef3c7", color: "#92400e" },
-                                    NON_REFUND:     { label: "Non-refundable",       dot: "#dc2626", bg: "#fee2e2", color: "#991b1b" },
-                                    PAY_AT_HOTEL:   { label: "Pay at hotel",         dot: "#2563eb", bg: "#dbeafe", color: "#1e40af" },
+                                    FREE_CANCEL: { label: "Free cancellation", dot: "#16a34a", bg: "#dcfce7", color: "#15803d" },
+                                    PARTIAL_REFUND: { label: "Partial refund", dot: "#d97706", bg: "#fef3c7", color: "#92400e" },
+                                    NON_REFUND: { label: "Non-refundable", dot: "#dc2626", bg: "#fee2e2", color: "#991b1b" },
+                                    PAY_AT_HOTEL: { label: "Pay at hotel", dot: "#2563eb", bg: "#dbeafe", color: "#1e40af" },
                                 }[policyType] || { label: policyType || "Standard policy", dot: "#6b7280", bg: "#f3f4f6", color: "#374151" };
 
                                 return (
                                     <InfoSection icon="bi-shield-check" title="Cancellation Policy">
-                                        {/* Badge + tên */}
+                                        {/* Badge + name */}
                                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                                             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: typeCfg.bg, color: typeCfg.color }}>
                                                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: typeCfg.dot, display: "inline-block" }} />
@@ -322,9 +318,9 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                             <span style={{ fontWeight: 700, fontSize: 13, color: "#1f2937" }}>{policyName}</span>
                                         </div>
 
-                                        {/* 3 ô số tiền */}
+                                        {/* 3 amount cards */}
                                         {total > 0 && (
-                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: deadlineStr ? 10 : 0 }}>
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: (deadlineStr || booking.isFreeCancel != null) ? 10 : 0 }}>
                                                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #465c47" }}>
                                                     <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Prepaid</div>
                                                     <div style={{ fontSize: 14, fontWeight: 800, color: "#111827" }}>{formatVND(prepaidAmt)}</div>
@@ -333,32 +329,38 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: `3px solid ${refundAmt > 0 ? "#16a34a" : "#e5e7eb"}` }}>
                                                     <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Refund if cancelled</div>
                                                     <div style={{ fontSize: 14, fontWeight: 800, color: refundAmt > 0 ? "#16a34a" : "#dc2626" }}>{formatVND(refundAmt)}</div>
-                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{refunRate}%</div>
+                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{refundRate}%</div>
                                                 </div>
                                                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #e5e7eb" }}>
                                                     <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Hotel retains</div>
                                                     <div style={{ fontSize: 14, fontWeight: 800, color: "#374151" }}>{formatVND(retainAmt)}</div>
-                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{100 - refunRate}%</div>
+                                                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{100 - refundRate}%</div>
                                                 </div>
                                             </div>
                                         )}
 
-                                        {/* Deadline */}
+                                        {/* Refund deadline */}
                                         {deadlineStr && (
-                                            <div style={{ fontSize: 12, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 7, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6 }}>
-                                                <i className="bi bi-clock-history" />
-                                                100% refund if cancelled before <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong>
-                                                <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({parseInt(dateRange, 10)} days before check-in)</span>
+                                            <div style={{ fontSize: 12, color: booking.isFreeCancel ? "#15803d" : "#b91c1c", background: booking.isFreeCancel ? "#f0fdf4" : "#fef2f2", border: `1px solid ${booking.isFreeCancel ? "#bbf7d0" : "#fecaca"}`, borderRadius: 7, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                                                <i className={`bi ${booking.isFreeCancel ? "bi-check-circle-fill" : "bi-exclamation-circle-fill"}`} />
+                                                {isSameDayCancel
+                                                    ? <>100% refund if cancelled on or before <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong> <span style={{ color: "#9aaa9b", marginLeft: 4 }}>(check-in day)</span></>
+                                                    : <>100% refund if cancelled before <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong> <span style={{ color: "#9aaa9b", marginLeft: 4 }}>({freeCancelDays} days before check-in)</span></>
+                                                }
+                                                {booking.isFreeCancel === true && <span style={{ marginLeft: "auto", fontWeight: 700, color: "#15803d" }}>✓ Eligible</span>}
+                                                {booking.isFreeCancel === false && <span style={{ marginLeft: "auto", fontWeight: 700, color: "#b91c1c" }}>✗ Expired</span>}
                                             </div>
                                         )}
                                     </InfoSection>
                                 );
                             })()}
 
+
+
                             {/* Meta */}
                             <InfoSection icon="bi-info-circle" title="Metadata">
                                 <div className="info-row">
-                                    <InfoItem label="Created At"       value={formatDate(booking.createdAt)} />
+                                    <InfoItem label="Created At" value={formatDate(booking.createdAt)} />
                                     <InfoItem label="Transaction Code" value={booking.transactionCode} />
                                 </div>
                             </InfoSection>
@@ -377,17 +379,17 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                     {booking &&
                         ["FRONT_END", "STAFF"].includes((booking.source || "").toUpperCase()) &&
                         !["CHECKED_IN", "CHECKED_OUT", "CANCELLED"].includes((booking.status || "").toUpperCase()) && (
-                        <Buttons
-                            variant="outline"
-                            className="btn-sm me-auto"
-                            style={{ borderColor: "#3d6b3d", color: "#3d6b3d" }}
-                            onClick={() => setShowAmendment(true)}
-                            disabled={actionLoading}
-                        >
-                            <i className="bi bi-pencil-square me-1" />
-                            Amend Booking
-                        </Buttons>
-                    )}
+                            <Buttons
+                                variant="outline"
+                                className="btn-sm me-auto"
+                                style={{ borderColor: "#3d6b3d", color: "#3d6b3d" }}
+                                onClick={() => setShowAmendment(true)}
+                                disabled={actionLoading}
+                            >
+                                <i className="bi bi-pencil-square me-1" />
+                                Amend Booking
+                            </Buttons>
+                        )}
                     <Buttons variant="outline" className="btn-sm" onClick={onHide} disabled={actionLoading}>
                         Close
                     </Buttons>
@@ -414,4 +416,4 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
             )}
         </div>
     );
-}
+}
