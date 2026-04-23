@@ -29,6 +29,27 @@ const ITEM_TYPE_MAP = {
 };
 const getItemType = (t) => ITEM_TYPE_MAP[t?.toUpperCase()] ?? { label: t ?? '—', bg: '#f3f4f6', color: '#374151' };
 
+const TYPE_STYLE_MAP = {
+  'Room Charge':              { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
+  'Room Deposit':             { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
+  'Room Deposit (Partial)':   { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
+  'Room Payment (Full)':      { color: '#065f46', bg: '#d1fae5', icon: '🏨' },
+  'Room Balance Payment':     { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
+  'Service Charge':           { color: '#92400e', bg: '#fef3c7', icon: '🛎' },
+  'Surcharge':                { color: '#ea580c', bg: '#fff7ed', icon: '💰' },
+  'Early Check-in Surcharge': { color: '#ea580c', bg: '#fff7ed', icon: '⏰' },
+  'Late Checkout Fee':        { color: '#ea580c', bg: '#fff7ed', icon: '⏰' },
+  'Room Type Change Surcharge': { color: '#ea580c', bg: '#fff7ed', icon: '🔄' },
+  'Room Change Surcharge':    { color: '#ea580c', bg: '#fff7ed', icon: '🔄' },
+  'Damage Compensation':      { color: '#991b1b', bg: '#fee2e2', icon: '⚠️' },
+  'Cancellation Refund':      { color: '#dc2626', bg: '#fef2f2', icon: '🔴' },
+  'Cancellation Fee (Retained)': { color: '#d97706', bg: '#fffbeb', icon: '🟡' },
+  'Cancellation Reversal':    { color: '#6b7280', bg: '#f3f4f6', icon: '↩️' },
+  'Checkout Settlement':      { color: '#065f46', bg: '#d1fae5', icon: '✅' },
+  'Mixed Charges':            { color: '#374151', bg: '#f3f4f6', icon: '📦' },
+  'Adjustment / Discount':    { color: '#16a34a', bg: '#f0fdf4', icon: '🏷️' },
+};
+
 const Section = ({ title, children }) => (
   <div style={{ marginBottom: 20 }}>
     <div style={{
@@ -152,15 +173,11 @@ const CashflowDetailDrawer = ({ payment, onClose }) => {
             <InfoRow label="Checkout date" value={payment?.departureDate ? fmtTime(payment.departureDate) : null} />
             <InfoRow label="Charge type" value={
               <span style={{
-                background: typeLabel === 'Room Charge' ? '#e0f2fe'
-                          : typeLabel === 'Damage Compensation' ? '#fee2e2'
-                          : '#fef3c7',
-                color: typeLabel === 'Room Charge' ? '#0369a1'
-                     : typeLabel === 'Damage Compensation' ? '#991b1b'
-                     : '#92400e',
+                background: TYPE_STYLE_MAP[typeLabel]?.bg || '#f3f4f6',
+                color: TYPE_STYLE_MAP[typeLabel]?.color || '#374151',
                 padding: '2px 10px', borderRadius: 20, fontSize: '0.82rem', fontWeight: 700,
               }}>
-                {typeLabel}
+                {TYPE_STYLE_MAP[typeLabel]?.icon || '📋'} {typeLabel}
               </span>
             } />
           </Section>

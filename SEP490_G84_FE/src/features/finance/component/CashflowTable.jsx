@@ -20,11 +20,36 @@ const METHOD_LABEL = {
 const getMethod = (m) => METHOD_LABEL[m?.toUpperCase()] ?? (m || '—');
 
 const TYPE_STYLE = {
-  'Room Charge':           { color: '#0369a1', bg: '#e0f2fe', label: 'Room Charge' },
-  'Service Charge':        { color: '#92400e', bg: '#fef3c7', label: 'Service Charge' },
-  'Damage Compensation':   { color: '#991b1b', bg: '#fee2e2', label: 'Damage Compensation' },
+  // Room
+  'Room Charge':              { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
+  'Room Deposit':             { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
+  'Room Deposit (Partial)':   { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
+  'Room Payment (Full)':      { color: '#065f46', bg: '#d1fae5', icon: '🏨' },
+  'Room Balance Payment':     { color: '#0369a1', bg: '#e0f2fe', icon: '🏨' },
+  // Service
+  'Service Charge':           { color: '#92400e', bg: '#fef3c7', icon: '🛎' },
+  // Surcharge
+  'Surcharge':                { color: '#ea580c', bg: '#fff7ed', icon: '💰' },
+  'Early Check-in Surcharge': { color: '#ea580c', bg: '#fff7ed', icon: '⏰' },
+  'Late Checkout Fee':        { color: '#ea580c', bg: '#fff7ed', icon: '⏰' },
+  'Room Type Change Surcharge': { color: '#ea580c', bg: '#fff7ed', icon: '🔄' },
+  'Room Change Surcharge':    { color: '#ea580c', bg: '#fff7ed', icon: '🔄' },
+  // Damage
+  'Damage Compensation':      { color: '#991b1b', bg: '#fee2e2', icon: '⚠️' },
+  // Cancel
+  'Cancellation Refund':      { color: '#dc2626', bg: '#fef2f2', icon: '🔴' },
+  'Cancellation Fee (Retained)': { color: '#d97706', bg: '#fffbeb', icon: '🟡' },
+  'Cancellation Reversal':    { color: '#6b7280', bg: '#f3f4f6', icon: '↩️' },
+  // Other
+  'Checkout Settlement':      { color: '#065f46', bg: '#d1fae5', icon: '✅' },
+  'Mixed Charges':            { color: '#374151', bg: '#f3f4f6', icon: '📦' },
+  'Adjustment / Discount':    { color: '#16a34a', bg: '#f0fdf4', icon: '🏷️' },
 };
-const getTypeStyle = (t) => TYPE_STYLE[t] ?? { color: '#374151', bg: '#f3f4f6', label: t || '—' };
+const getTypeStyle = (t) => {
+  const style = TYPE_STYLE[t];
+  if (style) return { ...style, label: t };
+  return { color: '#374151', bg: '#f3f4f6', label: t || '—', icon: '📋' };
+};
 
 const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalElements, setPage }) => {
   if (loading) {
@@ -59,6 +84,12 @@ const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalEl
         <tbody>
           {items.map((item) => {
             const ts = getTypeStyle(item.paymentType);
+            const isRefund = (item.amount ?? 0) < 0;
+            const breakdownLabels = item.breakdownLabels || [];
+            // Hiển thị tối đa 2 dòng breakdown trên bảng, phần còn lại xem trong drawer
+            const visibleLabels = breakdownLabels.filter(l => !l.startsWith('(Legacy')).slice(0, 2);
+            const hasMore = breakdownLabels.filter(l => !l.startsWith('(Legacy')).length > 2;
+
             return (
               <tr
                 key={item.paymentId}
@@ -77,13 +108,29 @@ const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalEl
                 <td className="py-3 px-3" style={{ fontFamily: 'monospace', color: COLORS.PRIMARY, fontWeight: 600, fontSize: '0.82rem' }}>
                   {item.bookingCode || '—'}
                 </td>
-                <td className="py-3 px-3">
-                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: ts.color, background: ts.bg, padding: '2px 8px', borderRadius: 4 }}>
-                    {ts.label}
-                  </span>
+                <td className="py-3 px-3" style={{ minWidth: 180, maxWidth: 260 }}>
+                  <div>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: ts.color, background: ts.bg, padding: '2px 8px', borderRadius: 4, display: 'inline-block' }}>
+                      {ts.icon} {ts.label}
+                    </span>
+                  </div>
+                  {visibleLabels.length > 0 && (
+                    <div style={{ marginTop: 4 }}>
+                      {visibleLabels.map((label, i) => (
+                        <div key={i} style={{ fontSize: '0.72rem', color: '#6b7280', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 240 }} title={label}>
+                          {label}
+                        </div>
+                      ))}
+                      {hasMore && (
+                        <div style={{ fontSize: '0.68rem', color: '#9ca3af', fontStyle: 'italic' }}>
+                          +{breakdownLabels.filter(l => !l.startsWith('(Legacy')).length - 2} more…
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </td>
-                <td className="py-3 px-3 fw-semibold" style={{ color: '#111827', whiteSpace: 'nowrap' }}>
-                  {fmt(item.amount)}
+                <td className="py-3 px-3 fw-semibold" style={{ color: isRefund ? '#dc2626' : '#111827', whiteSpace: 'nowrap' }}>
+                  {isRefund ? '−' : ''}{fmt(Math.abs(item.amount ?? 0))}
                 </td>
                 <td className="py-3 px-3" style={{ color: '#374151' }}>
                   {getMethod(item.paymentMethod)}
@@ -137,3 +184,4 @@ const CashflowTable = ({ items, loading, onSelectItem, page, totalPages, totalEl
 };
 
 export default CashflowTable;
+
