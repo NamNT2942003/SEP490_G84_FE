@@ -20,6 +20,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   const [paymentMethod, setPaymentMethod] = useState('');
   const [stayPaymentMethods, setStayPaymentMethods] = useState({}); // stayId -> paymentMethod
   const [activeRoomIdx, setActiveRoomIdx] = useState('ALL');
+  const [allowServiceDebt, setAllowServiceDebt] = useState(false);
   const currentBranch = BRANCH_CONFIG[branchId] || {
     name: "AN Nguyen HOTEL & RESORT", address: "Ha Noi, Vietnam", phone: "0123.456.789"
   };
@@ -40,6 +41,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
     setPaymentMethod('');
     setStayPaymentMethods({});
     setActiveRoomIdx('ALL');
+    setAllowServiceDebt(false);
     fetchBilling();
   }, [show, booking]);
 
@@ -141,7 +143,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
 
     setIsSubmitting(true);
     try {
-      await checkoutApi.checkoutSingleRoom(booking.id, { stayId, paymentMethod: method });
+      await checkoutApi.checkoutSingleRoom(booking.id, { stayId, paymentMethod: method, allowServiceDebt });
       Swal.fire({ icon: 'success', title: 'Done!', text: `${roomName} checked out!`, timer: 1800, showConfirmButton: false });
       // Reload billing để cập nhật trạng thái các phòng còn lại
       await fetchBilling();
@@ -207,7 +209,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
         stayId: room.stayId,
         paymentMethod: method,
       }));
-      await checkoutApi.processSplitCheckout(booking.id, { roomPayments });
+      await checkoutApi.processSplitCheckout(booking.id, { roomPayments, allowServiceDebt });
       Swal.fire({ icon: 'success', title: 'Done!', text: 'All rooms checked out successfully!', timer: 2000, showConfirmButton: false });
       if (onSuccess) onSuccess();
       onClose();
@@ -255,7 +257,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
 
     setIsSubmitting(true);
     try {
-      await checkoutApi.processCheckout(booking.id, method);
+      await checkoutApi.processCheckout(booking.id, allowServiceDebt ? 'CASH' : method, allowServiceDebt);
       Swal.fire({ icon: 'success', title: 'Done!', text: 'Check-out completed successfully!', timer: 2000, showConfirmButton: false });
       if (onSuccess) onSuccess();
       onClose();
@@ -465,6 +467,38 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                     </div>
                   )}
 
+                  {/* ═══ CHO NỢ DỊCH VỤ ═══ */}
+                  {amountDue > 0 && (
+                    <div className="mb-2">
+                      <div
+                        className={`p-2 rounded border ${allowServiceDebt ? 'border-danger bg-danger bg-opacity-10' : 'border-secondary bg-light'}`}
+                        style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                        onClick={() => setAllowServiceDebt(!allowServiceDebt)}
+                      >
+                        <div className="form-check mb-0">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={allowServiceDebt}
+                            onChange={() => setAllowServiceDebt(!allowServiceDebt)}
+                            id="allowServiceDebtCheck"
+                          />
+                          <label className="form-check-label fw-bold" htmlFor="allowServiceDebtCheck" style={{ fontSize: '0.82rem', cursor: 'pointer' }}>
+                            ⚠️ Cho nợ dịch vụ (Ghi nợ)
+                          </label>
+                        </div>
+                        {allowServiceDebt && (
+                          <div className="mt-2 p-2 rounded" style={{ background: '#fff3cd', fontSize: '0.75rem', color: '#664d03', border: '1px solid #ffc107' }}>
+                            <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                            <strong>CẢNH BÁO:</strong> Khách sẽ rời khách sạn mà CHƯA thanh toán dịch vụ.
+                            <br />Nhân viên lễ tân PHẢI đảm bảo thu lại được khoản nợ này.
+                            <br />Khoản nợ <strong>{fmtMoney(amountDue)} VND</strong> sẽ được ghi nhận vào hệ thống.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {rooms.length > 1 ? (
                     /* ── MULTI-ROOM: mỗi phòng có payment selector + nút Checkout riêng ── */
                     <div className="flex-grow-1 overflow-auto" style={{ gap: 8 }}>
@@ -493,7 +527,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                             {/* Payment + nút Checkout (chỉ hiện khi chưa checkout) */}
                             {!isRoomDone && (
                               <>
-                                {due > 0 && (
+                                {due > 0 && !allowServiceDebt && (
                                   <div className="d-flex gap-1 mb-1">
                                     {PAYMENT_METHODS.map(({ value, icon, label }) => (
                                       <button key={value} type="button"
@@ -512,14 +546,14 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                                 <button
                                   className={`btn btn-sm w-100 fw-bold ${
                                     due > 0
-                                      ? (selectedMethod ? 'btn-danger' : 'btn-outline-danger')
+                                      ? ((selectedMethod || allowServiceDebt) ? 'btn-danger' : 'btn-outline-danger')
                                       : 'btn-outline-secondary'
                                   }`}
                                   onClick={() => handleCheckoutRoom(room.stayId)}
-                                  disabled={isSubmitting || (due > 0 && !selectedMethod)}
+                                  disabled={isSubmitting || (due > 0 && !allowServiceDebt && !selectedMethod)}
                                   style={{ fontSize: '0.75rem' }}>
                                   <i className="bi bi-box-arrow-right me-1"></i>
-                                  {due > 0 ? `Collect ${fmtMoney(due)} & Checkout` : 'Checkout Room'}
+                                  {allowServiceDebt && due > 0 ? `Ghi nợ ${fmtMoney(due)} & Checkout` : due > 0 ? `Collect ${fmtMoney(due)} & Checkout` : 'Checkout Room'}
                                 </button>
                               </>
                             )}
@@ -543,20 +577,28 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                   {/* Global payment selector — dùng cho single-room hoặc Checkout All */}
                   {(rooms.length <= 1 || pendingRooms.length > 0) && (
                     <>
-                      <div className="d-flex gap-2 mb-3">
-                        {PAYMENT_METHODS.map(({ value, icon, label }) => (
-                          <button key={value} type="button"
-                            className={`btn flex-fill py-2 d-flex flex-column align-items-center gap-1 fw-semibold ${paymentMethod === value ? 'btn-primary shadow' : 'btn-outline-secondary'}`}
-                            onClick={() => setPaymentMethod(value)} disabled={isSubmitting}
-                            style={{ fontSize: '0.72rem', transition: 'all 0.15s' }}>
-                            <i className={`bi ${icon}`} style={{ fontSize: '1.2rem' }}></i>
-                            {label}
-                          </button>
-                        ))}
-                      </div>
+                      {!allowServiceDebt && (
+                        <div className="d-flex gap-2 mb-3">
+                          {PAYMENT_METHODS.map(({ value, icon, label }) => (
+                            <button key={value} type="button"
+                              className={`btn flex-fill py-2 d-flex flex-column align-items-center gap-1 fw-semibold ${paymentMethod === value ? 'btn-primary shadow' : 'btn-outline-secondary'}`}
+                              onClick={() => setPaymentMethod(value)} disabled={isSubmitting}
+                              style={{ fontSize: '0.72rem', transition: 'all 0.15s' }}>
+                              <i className={`bi ${icon}`} style={{ fontSize: '1.2rem' }}></i>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Amount display */}
-                      {amountDue > 0 && paymentMethod === 'TRANSFER' ? (
+                      {allowServiceDebt && amountDue > 0 ? (
+                        <div className="p-3 bg-danger bg-opacity-10 rounded text-center mb-3 border border-danger flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 80 }}>
+                          <i className="bi bi-exclamation-triangle-fill text-danger" style={{ fontSize: '2rem' }}></i>
+                          <div className="fw-bold text-danger fs-5 mt-2">{fmtMoney(amountDue)} VND</div>
+                          <div className="small text-danger">Sẽ ghi nợ — Không thu tiền</div>
+                        </div>
+                      ) : amountDue > 0 && paymentMethod === 'TRANSFER' ? (
                         <div className="p-3 bg-primary bg-opacity-10 rounded text-center mb-3 border border-primary flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 80 }}>
                           <i className="bi bi-bank text-primary" style={{ fontSize: '2rem' }}></i>
                           <div className="fw-bold text-primary fs-5 mt-2">{fmtMoney(amountDue)} VND</div>
@@ -586,14 +628,16 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                       <>
                         <button className="btn btn-danger fw-bold shadow-sm py-2"
                           onClick={handleConfirmCheckout}
-                          disabled={isSubmitting || (amountDue > 0 && !paymentMethod)}
+                          disabled={isSubmitting || (amountDue > 0 && !allowServiceDebt && !paymentMethod)}
                           style={{ fontSize: '0.85rem' }}>
                           {isSubmitting
                             ? <><span className="spinner-border spinner-border-sm me-2"></span>Processing...</>
-                            : <><i className="bi bi-check2-all me-2"></i>Confirm Checkout</>
+                            : allowServiceDebt && amountDue > 0
+                              ? <><i className="bi bi-pencil-square me-2"></i>Checkout & Ghi nợ {fmtMoney(amountDue)} VND</>
+                              : <><i className="bi bi-check2-all me-2"></i>Confirm Checkout</>
                           }
                         </button>
-                        {amountDue > 0 && !paymentMethod && (
+                        {amountDue > 0 && !allowServiceDebt && !paymentMethod && (
                           <p className="text-muted text-center mb-0" style={{ fontSize: '0.72rem' }}>
                             ⚠️ Please select a payment method to continue
                           </p>
@@ -604,19 +648,16 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                       <>
                         <button className="btn btn-danger fw-bold shadow-sm py-2"
                           onClick={handleCheckoutAll}
-                          disabled={isSubmitting || (amountDue > 0 && !paymentMethod)}
+                          disabled={isSubmitting || (amountDue > 0 && !allowServiceDebt && !paymentMethod)}
                           style={{ fontSize: '0.85rem' }}>
                           {isSubmitting
                             ? <><span className="spinner-border spinner-border-sm me-2"></span>Processing...</>
-                            : <><i className="bi bi-check2-all me-2"></i>Checkout All ({pendingRooms.length} rooms)</>
+                            : allowServiceDebt && amountDue > 0
+                              ? <><i className="bi bi-pencil-square me-2"></i>Checkout All & Ghi nợ ({pendingRooms.length} rooms)</>
+                              : <><i className="bi bi-check2-all me-2"></i>Checkout All ({pendingRooms.length} rooms)</>
                           }
                         </button>
                       </>
-                    )}
-                    {amountDue > 0 && !paymentMethod && (
-                      <p className="text-muted text-center mb-0" style={{ fontSize: '0.72rem' }}>
-                        ⚠️ Please select a payment method to continue
-                      </p>
                     )}
                   </div>
                 </div>

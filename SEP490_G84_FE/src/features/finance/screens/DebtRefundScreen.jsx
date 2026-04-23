@@ -281,8 +281,13 @@ const DebtRefundScreen = () => {
                                         </tr>
                                     ) : debts.map((d) => (
                                         <tr key={d.invoiceId} style={{ cursor: 'pointer' }} onClick={() => setDrawer({ show: true, type: 'DEBT', id: d.invoiceId })}>
-                                            <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0d6efd', textDecoration: 'underline' }}>
-                                                {d.bookingCode}
+                                            <td style={{ padding: '12px 16px' }}>
+                                                <span style={{ fontWeight: 700, color: '#0d6efd', textDecoration: 'underline' }}>{d.bookingCode}</span>
+                                                <br />
+                                                <span className={`badge ${d.invoiceType === 'SERVICE' ? 'bg-info' : 'bg-secondary'}`}
+                                                    style={{ fontSize: '0.65rem', fontWeight: 600 }}>
+                                                    {d.invoiceType === 'SERVICE' ? '🛎 Dịch vụ' : '🏠 Tiền phòng'}
+                                                </span>
                                             </td>
                                             <td>
                                                 <div style={{ fontWeight: 600 }}>{d.customerName || '—'}</div>

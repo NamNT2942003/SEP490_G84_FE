@@ -40,6 +40,9 @@ const DebtRefundDetailDrawer = ({ show, onClose, type, id }) => {
             }
             return 'Khách sửa booking (giảm phòng/ngày) → hoàn tiền thừa';
         }
+        if (data.invoiceType === 'SERVICE') {
+            return 'Khách checkout nhưng chưa trả tiền dịch vụ / phụ thu / hư hỏng';
+        }
         return 'Khách checkout nhưng chưa trả hết tiền phòng';
     };
 
