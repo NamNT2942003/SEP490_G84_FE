@@ -20,6 +20,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   const [paymentMethod, setPaymentMethod] = useState('');
   const [stayPaymentMethods, setStayPaymentMethods] = useState({}); // stayId -> paymentMethod
   const [activeRoomIdx, setActiveRoomIdx] = useState('ALL');
+  const [allowServiceDebt, setAllowServiceDebt] = useState(false);
   const currentBranch = BRANCH_CONFIG[branchId] || {
     name: "AN Nguyen HOTEL & RESORT", address: "Ha Noi, Vietnam", phone: "0123.456.789"
   };
@@ -40,6 +41,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
     setPaymentMethod('');
     setStayPaymentMethods({});
     setActiveRoomIdx('ALL');
+    setAllowServiceDebt(false);
     fetchBilling();
   }, [show, booking]);
 
@@ -141,7 +143,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
 
     setIsSubmitting(true);
     try {
-      await checkoutApi.checkoutSingleRoom(booking.id, { stayId, paymentMethod: method });
+      await checkoutApi.checkoutSingleRoom(booking.id, { stayId, paymentMethod: method, allowServiceDebt });
       Swal.fire({ icon: 'success', title: 'Done!', text: `${roomName} checked out!`, timer: 1800, showConfirmButton: false });
       // Reload billing để cập nhật trạng thái các phòng còn lại
       await fetchBilling();
@@ -207,7 +209,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
         stayId: room.stayId,
         paymentMethod: method,
       }));
-      await checkoutApi.processSplitCheckout(booking.id, { roomPayments });
+      await checkoutApi.processSplitCheckout(booking.id, { roomPayments, allowServiceDebt });
       Swal.fire({ icon: 'success', title: 'Done!', text: 'All rooms checked out successfully!', timer: 2000, showConfirmButton: false });
       if (onSuccess) onSuccess();
       onClose();
@@ -255,7 +257,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
 
     setIsSubmitting(true);
     try {
-      await checkoutApi.processCheckout(booking.id, method);
+      await checkoutApi.processCheckout(booking.id, allowServiceDebt ? 'CASH' : method, allowServiceDebt);
       Swal.fire({ icon: 'success', title: 'Done!', text: 'Check-out completed successfully!', timer: 2000, showConfirmButton: false });
       if (onSuccess) onSuccess();
       onClose();
@@ -461,6 +463,38 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                       <strong>Outstanding Room Debt: {fmtMoney(roomBilling.roomBalance)} VND</strong>
                       <div className="text-muted mt-1">
                         This checkout only collects service charges. Room debt will be recorded and collected later.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ═══ CHO NỢ DỊCH VỤ ═══ */}
+                  {amountDue > 0 && (
+                    <div className="mb-2">
+                      <div
+                        className={`p-2 rounded border ${allowServiceDebt ? 'border-danger bg-danger bg-opacity-10' : 'border-secondary bg-light'}`}
+                        style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                        onClick={() => setAllowServiceDebt(!allowServiceDebt)}
+                      >
+                        <div className="form-check mb-0">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={allowServiceDebt}
+                            onChange={() => setAllowServiceDebt(!allowServiceDebt)}
+                            id="allowServiceDebtCheck"
+                          />
+                          <label className="form-check-label fw-bold" htmlFor="allowServiceDebtCheck" style={{ fontSize: '0.82rem', cursor: 'pointer' }}>
+                            ⚠️ Cho nợ dịch vụ (Ghi nợ)
+                          </label>
+                        </div>
+                        {allowServiceDebt && (
+                          <div className="mt-2 p-2 rounded" style={{ background: '#fff3cd', fontSize: '0.75rem', color: '#664d03', border: '1px solid #ffc107' }}>
+                            <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                            <strong>CẢNH BÁO:</strong> Khách sẽ rời khách sạn mà CHƯA thanh toán dịch vụ.
+                            <br />Nhân viên lễ tân PHẢI đảm bảo thu lại được khoản nợ này.
+                            <br />Khoản nợ <strong>{fmtMoney(amountDue)} VND</strong> sẽ được ghi nhận vào hệ thống.
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

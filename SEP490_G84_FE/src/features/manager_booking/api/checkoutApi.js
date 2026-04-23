@@ -11,10 +11,10 @@ export const checkoutApi = {
     return data;
   },
 
-  processCheckout: async (bookingId, paymentMethod = 'CASH') => {
+  processCheckout: async (bookingId, paymentMethod = 'CASH', allowServiceDebt = false) => {
     const { data } = await apiClient.post(
       `/checkout/bookings/${bookingId}/process`,
-      { paymentMethod }
+      { paymentMethod, allowServiceDebt: String(allowServiceDebt) }
     );
     return data;
   },
