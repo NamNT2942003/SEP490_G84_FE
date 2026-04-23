@@ -382,25 +382,23 @@ export default function BookingTable({
                   {(() => {
                     // OTA: platform already collected — no breakdown needed
                     if (!isInternalFrontendBooking(booking.source)) return null;
-                    // Fully paid or no data — no breakdown needed
-                    if (booking.paymentStatus === 'PAID') return null;
                     const paid  = Number(booking.prepaidAmount ?? 0);
-                    const total = Number(booking.totalAmount   ?? 0);
-                    const due   = Math.max(0, total - paid);
+                    const roomAmt = Number(booking.roomAmount ?? booking.totalAmount ?? 0);
+                    const roomDue = Math.max(0, roomAmt - paid);
                     // Only show breakdown when there's a partial payment
                     if (paid <= 0) return null;
+                    // Room fully paid — no breakdown needed
+                    if (roomDue <= 0) return null;
                     return (
                       <div className="d-flex flex-column gap-1 mt-1">
                         <span className="px-2 py-1 rounded-2 fw-bold"
                           style={{ fontSize: '0.71rem', background: '#e8f5e9', color: '#2e7d32' }}>
                           ✓ {paid.toLocaleString('en-US')}
                         </span>
-                        {due > 0 && (
-                          <span className="px-2 py-1 rounded-2 fw-bold"
-                            style={{ fontSize: '0.71rem', background: '#fff3e0', color: '#e65100' }}>
-                            · Due: {due.toLocaleString('en-US')}
-                          </span>
-                        )}
+                        <span className="px-2 py-1 rounded-2 fw-bold"
+                          style={{ fontSize: '0.71rem', background: '#fff3e0', color: '#e65100' }}>
+                          - Due: {roomDue.toLocaleString('en-US')}
+                        </span>
                       </div>
                     );
                   })()}
@@ -453,10 +451,12 @@ export default function BookingTable({
                         </button>
                       )}
 
-                    {/* Collect Remaining — only for partial-payment bookings */}
-                    {booking.paymentStatus !== 'PAID'
-                      && (booking.prepaidAmount ?? 0) > 0
-                      && booking.status !== 'NO_SHOW' && (
+                    {/* Collect Remaining — only when ROOM charges not fully paid */}
+                    {(() => {
+                      const paid = Number(booking.prepaidAmount ?? 0);
+                      const roomAmt = Number(booking.roomAmount ?? booking.totalAmount ?? 0);
+                      return paid > 0 && paid < roomAmt && booking.status !== 'NO_SHOW';
+                    })() && (
                         <button className="btn btn-sm fw-semibold"
                           style={{ background: '#fffbeb', color: '#92400e', border: '1px solid #f59e0b', fontSize: '0.79rem' }}
                           onClick={() => onCollectRemainingClick && onCollectRemainingClick(booking)}>
