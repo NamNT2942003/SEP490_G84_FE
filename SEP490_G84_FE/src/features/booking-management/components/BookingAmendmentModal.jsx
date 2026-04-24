@@ -23,6 +23,43 @@ const toISODate = (localDateTime) => {
     return localDateTime.substring(0, 10);
 };
 
+const safeNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+/**
+ * Extract the pre-computed delta value from the pricing engine's reason string.
+ * Example: "Date Range matching [194000]" → 194000
+ * This matches the logic used in SearchRoom.jsx.
+ */
+const extractDeltaFromReason = (reason) => {
+    const text = String(reason || "");
+    const match = text.match(/\[\s*([-+]?\d+(?:[.,]\d+)?)\s*\]/);
+    if (!match) return null;
+    const parsed = Number(match[1].replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+/**
+ * Calculate the final price from basePrice + availablePriceModifiers.
+ * Uses the same approach as SearchRoom: extract deltas from [reason] brackets.
+ */
+const calculatePriceFromModifiers = (room) => {
+    const basePrice = safeNumber(room?.basePrice ?? room?.price, 0);
+    const modifiers = Array.isArray(room?.availablePriceModifiers) ? room.availablePriceModifiers : [];
+    const totalAdjustment = modifiers.reduce((sum, modifier) => {
+        const delta = extractDeltaFromReason(modifier?.reason);
+        if (delta !== null) return sum + delta;
+        // Fallback: compute from adjustmentType/adjustmentValue
+        const adjValue = safeNumber(modifier?.adjustmentValue, 0);
+        const adjType = String(modifier?.adjustmentType || "").toUpperCase();
+        if (adjType === "PERCENT") return sum + (basePrice * adjValue) / 100;
+        return sum + adjValue;
+    }, 0);
+    return Math.max(0, basePrice + totalAdjustment);
+};
+
 
 
 // ─── Step indicator ────────────────────────────────────────────────────────
@@ -549,12 +586,18 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
                 (data?.content || []).forEach((room) => {
                     const options = (Array.isArray(room.pricingOptions) ? room.pricingOptions : [])
                         .sort((a, b) => (a.finalPrice || 0) - (b.finalPrice || 0));
+                    // Determine final price: pricingOptions > basePrice+modifiers > basePrice
+                    const engineFinalPrice = options.length > 0
+                        ? Number(options[0].finalPrice)
+                        : null;
+                    const modifierCalculatedPrice = calculatePriceFromModifiers(room);
+                    const resolvedFinalPrice = engineFinalPrice ?? modifierCalculatedPrice;
                     map[String(room.roomTypeId)] = {
                         roomTypeId: room.roomTypeId,
                         name: room.name,
                         availableCount: Number(room.availableCount ?? 0),
                         basePrice: Number(room.basePrice ?? 0),
-                        finalPrice: Number(options[0]?.finalPrice ?? room.basePrice ?? 0),
+                        finalPrice: resolvedFinalPrice,
                         pricingOptions: options,
                     };
                 });
