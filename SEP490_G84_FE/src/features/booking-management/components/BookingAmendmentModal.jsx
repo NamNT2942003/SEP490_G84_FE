@@ -174,18 +174,22 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                     ) : combinedDetails.map((item) => {
                         const delta = getDelta(item.roomTypeId);
                         const afterQty = item.quantity + delta;
+                        // Resolve current live price from pricing engine;
+                        // fallback to DB snapshot (priceAtBooking) if live pricing unavailable.
+                        const livePricing = roomPricingMap?.[String(item.roomTypeId)];
+                        const currentPrice = livePricing?.finalPrice ?? item.priceAtBooking;
                         return (
                             <tr key={item.roomTypeId}>
                                 <td><strong>{item.roomTypeName}</strong></td>
                                 <td className="text-end">{item.quantity}</td>
-                                <td className="text-end">{formatVND(item.priceAtBooking)}</td>
+                                <td className="text-end">{formatVND(currentPrice)}</td>
                                 <td className="text-center">
                                     <div className="ba-delta-input">
                                         <button
                                             className="ba-delta-btn"
                                             onClick={() => changeDelta(
                                                 item.roomTypeId, item.roomTypeName,
-                                                item.priceAtBooking, item.quantity, -1
+                                                currentPrice, item.quantity, -1
                                             )}
                                             disabled={delta <= -item.quantity}
                                             title="Remove room"
@@ -197,7 +201,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                                             className="ba-delta-btn"
                                             onClick={() => changeDelta(
                                                 item.roomTypeId, item.roomTypeName,
-                                                item.priceAtBooking, item.quantity, +1
+                                                currentPrice, item.quantity, +1
                                             )}
                                             title="Add room"
                                         >+</button>
