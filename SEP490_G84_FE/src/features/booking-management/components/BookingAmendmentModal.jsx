@@ -96,9 +96,8 @@ function StepIndicator({ step }) {
 function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
     newDeparture, setNewDeparture, note, setNote, availableRoomTypes, roomPricingMap }) {
     const details = booking?.details ?? [];
-    const [addingRoomTypeId, setAddingRoomTypeId] = useState("");
 
-    // Combine original details and newly mapped lines
+    // Combine original details and newly added lines
     const combinedDetails = [...details];
     Object.keys(lines).forEach(rId => {
         if (!combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == rId)) {
@@ -112,44 +111,74 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
         }
     });
 
-    // lines = { [roomTypeId]: { roomTypeName, priceAtBooking, currentQty, delta } }
     const getDelta = (roomTypeId) => lines[roomTypeId]?.delta ?? 0;
 
-    const changeDelta = (roomTypeId, roomTypeName, priceAtBooking, currentQty, change) => {
+    const changeDelta = (roomTypeId, roomTypeName, price, currentQty, change) => {
         setLines(prev => {
             const current = prev[roomTypeId]?.delta ?? 0;
             const next = current + change;
             if (next < -currentQty) return prev;
+            // Auto-remove newly added rooms (currentQty=0) when delta returns to 0
+            if (currentQty === 0 && next === 0) {
+                const copy = { ...prev };
+                delete copy[roomTypeId];
+                return copy;
+            }
             return {
                 ...prev,
-                [roomTypeId]: { roomTypeName, priceAtBooking, currentQty, delta: next }
+                [roomTypeId]: { roomTypeName, priceAtBooking: price, currentQty, delta: next }
             };
         });
     };
 
-    const handleAddNewRoomType = () => {
-        if (!addingRoomTypeId) return;
-        const targetType = availableRoomTypes?.find(rt => rt.id == addingRoomTypeId || rt.roomTypeId == addingRoomTypeId);
-        if (!targetType) return;
-
-        const rId = targetType.id || targetType.roomTypeId;
-        if (lines[rId] || combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == rId)) return; // already in panel
-
-        const roomTypeName = targetType.name || targetType.roomTypeName;
-        // Use live pricing (engine-computed finalPrice) if available, fallback to basePrice
-        const livePricing = roomPricingMap?.[String(rId)];
-        const price = livePricing?.finalPrice ?? targetType.basePrice ?? targetType.price ?? 0;
-
+    const handleAddFromCard = (rt) => {
+        const rId = String(rt.roomTypeId || rt.id);
+        if (lines[rId] || combinedDetails.some(d => String(d.roomTypeId || d.roomType?.id) === rId)) return;
+        const roomTypeName = rt.name || rt.roomTypeName;
+        const livePricing = roomPricingMap?.[rId];
+        // Use live engine price — already includes all modifiers (no double-counting)
+        const price = livePricing?.finalPrice ?? calculatePriceFromModifiers(rt) ?? rt.basePrice ?? 0;
         setLines(prev => ({
             ...prev,
             [rId]: { roomTypeName, priceAtBooking: price, currentQty: 0, delta: 1 }
         }));
-        setAddingRoomTypeId("");
     };
+
+    // Room types available to add: not already in booking, have availability
+    const existingRoomTypeIds = new Set(combinedDetails.map(d => String(d.roomTypeId || d.roomType?.id)));
+    const addableRoomTypes = Object.values(roomPricingMap).filter(rp =>
+        !existingRoomTypeIds.has(String(rp.roomTypeId)) && rp.availableCount > 0
+    );
 
     return (
         <>
-            {/* Bảng phòng hiện tại */}
+            {/* ── Stay Dates ── */}
+            <div className="ba-section-label">
+                <i className="bi bi-calendar-range" />
+                Stay Dates
+            </div>
+            <div className="ba-date-row">
+                <div className="ba-date-field">
+                    <label>Check-in</label>
+                    <input
+                        type="date"
+                        value={newArrival}
+                        onChange={(e) => setNewArrival(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                    />
+                </div>
+                <div className="ba-date-field">
+                    <label>Check-out</label>
+                    <input
+                        type="date"
+                        value={newDeparture}
+                        onChange={(e) => setNewDeparture(e.target.value)}
+                        min={newArrival || new Date().toISOString().split('T')[0]}
+                    />
+                </div>
+            </div>
+
+            {/* ── Current Room Types ── */}
             <div className="ba-section-label">
                 <i className="bi bi-door-open" />
                 Current Room Types
@@ -158,10 +187,10 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                 <thead>
                     <tr>
                         <th>Room Type</th>
-                        <th className="text-end">Current Qty</th>
-                        <th className="text-end">Price/Stay</th>
+                        <th className="text-end">Qty</th>
+                        <th className="text-end">Total Price</th>
                         <th className="text-center">Change (+/-)</th>
-                        <th className="text-end">After Change</th>
+                        <th className="text-end">After</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -174,22 +203,27 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                     ) : combinedDetails.map((item) => {
                         const delta = getDelta(item.roomTypeId);
                         const afterQty = item.quantity + delta;
-                        // Resolve current live price from pricing engine;
-                        // fallback to DB snapshot (priceAtBooking) if live pricing unavailable.
                         const livePricing = roomPricingMap?.[String(item.roomTypeId)];
-                        const currentPrice = livePricing?.finalPrice ?? item.priceAtBooking;
+                        // Price per unit: live engine price (already all-inclusive) > DB snapshot
+                        const unitPrice = livePricing?.finalPrice ?? item.priceAtBooking;
+                        const totalPrice = unitPrice * item.quantity;
                         return (
                             <tr key={item.roomTypeId}>
-                                <td><strong>{item.roomTypeName}</strong></td>
+                                <td>
+                                    <strong>{item.roomTypeName}</strong>
+                                    <div style={{ fontSize: "0.7rem", color: "#7a8a7b" }}>
+                                        {formatVND(unitPrice)} /stay
+                                    </div>
+                                </td>
                                 <td className="text-end">{item.quantity}</td>
-                                <td className="text-end">{formatVND(currentPrice)}</td>
+                                <td className="text-end">{formatVND(totalPrice)}</td>
                                 <td className="text-center">
                                     <div className="ba-delta-input">
                                         <button
                                             className="ba-delta-btn"
                                             onClick={() => changeDelta(
                                                 item.roomTypeId, item.roomTypeName,
-                                                currentPrice, item.quantity, -1
+                                                unitPrice, item.quantity, -1
                                             )}
                                             disabled={delta <= -item.quantity}
                                             title="Remove room"
@@ -201,7 +235,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                                             className="ba-delta-btn"
                                             onClick={() => changeDelta(
                                                 item.roomTypeId, item.roomTypeName,
-                                                currentPrice, item.quantity, +1
+                                                unitPrice, item.quantity, +1
                                             )}
                                             title="Add room"
                                         >+</button>
@@ -226,66 +260,68 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                 </tbody>
             </table>
 
-            <div className="ba-add-room-row d-flex align-items-center gap-2 mt-2">
-                <select
-                    className="form-select form-select-sm"
-                    style={{ width: "auto", minWidth: "200px" }}
-                    value={addingRoomTypeId}
-                    onChange={(e) => setAddingRoomTypeId(e.target.value)}
-                >
-                    <option value="">-- Add another room type --</option>
-                    {availableRoomTypes?.map(rt => {
-                        const id = rt.id || rt.roomTypeId;
-                        if (combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == id)) return null;
-                        return <option key={id} value={id}>{rt.name}</option>;
-                    })}
-                </select>
-                <button
-                    className="ba-btn ba-btn-outline ba-btn-sm m-0"
-                    onClick={handleAddNewRoomType}
-                    disabled={!addingRoomTypeId}
-                >
-                    Add New Room
-                </button>
-            </div>
-
-            {/* Date change */}
-            <div className="ba-section-label" style={{ marginTop: 16 }}>
-                <i className="bi bi-calendar-range" />
-                Change Dates (optional)
-            </div>
-            <div className="ba-date-row">
-                <div className="ba-date-field">
-                    <label>New Check-in</label>
-                    <input
-                        type="date"
-                        value={newArrival}
-                        onChange={(e) => setNewArrival(e.target.value)}
-                        placeholder={toISODate(booking?.arrivalDate)}
-                        min={new Date().toISOString().split('T')[0]}
-                    />
-                    {booking?.arrivalDate && (
-                        <div style={{ fontSize: "0.73rem", color: "#adb5bd", marginTop: 3 }}>
-                            Current: {formatDate(booking.arrivalDate)}
-                        </div>
-                    )}
-                </div>
-                <div className="ba-date-field">
-                    <label>New Check-out</label>
-                    <input
-                        type="date"
-                        value={newDeparture}
-                        onChange={(e) => setNewDeparture(e.target.value)}
-                        placeholder={toISODate(booking?.departureDate)}
-                        min={new Date().toISOString().split('T')[0]}
-                    />
-                    {booking?.departureDate && (
-                        <div style={{ fontSize: "0.73rem", color: "#adb5bd", marginTop: 3 }}>
-                            Current: {formatDate(booking.departureDate)}
-                        </div>
-                    )}
-                </div>
-            </div>
+            {/* ── Add New Room Types (visual cards) ── */}
+            {addableRoomTypes.length > 0 && (
+                <>
+                    <div className="ba-section-label" style={{ marginTop: 8 }}>
+                        <i className="bi bi-plus-circle" />
+                        Add Room Type
+                    </div>
+                    <div className="ba-rt-grid">
+                        {addableRoomTypes.map((rp) => {
+                            const baseP = rp.basePrice || 0;
+                            const finalP = rp.finalPrice || baseP;
+                            const hasDiscount = baseP > 0 && finalP < baseP;
+                            const discountPct = hasDiscount ? Math.round((1 - finalP / baseP) * 100) : 0;
+                            const modifiers = rp.pricingOptions?.[0]?.modifiers || [];
+                            // Find image from availableRoomTypes list
+                            const rtMeta = availableRoomTypes?.find(rt =>
+                                String(rt.id || rt.roomTypeId) === String(rp.roomTypeId));
+                            return (
+                                <div key={rp.roomTypeId} className="ba-rt-card" onClick={() => handleAddFromCard(rp)}>
+                                    <div className="ba-rt-card-img">
+                                        {rtMeta?.image ? (
+                                            <img src={rtMeta.image} alt={rp.name} />
+                                        ) : (
+                                            <i className="bi bi-building" />
+                                        )}
+                                    </div>
+                                    <div className="ba-rt-card-body">
+                                        <div className="ba-rt-card-name">{rp.name}</div>
+                                        <div className="ba-rt-card-cap">
+                                            {rtMeta?.maxAdults > 0 && <span><i className="bi bi-person me-1" />{rtMeta.maxAdults}</span>}
+                                            {rtMeta?.area > 0 && <span><i className="bi bi-grid me-1" />{rtMeta.area}m²</span>}
+                                        </div>
+                                        <div>
+                                            <span className="ba-rt-card-price">
+                                                {formatVND(finalP)}
+                                                <span className="ba-rt-card-price-sub">/stay</span>
+                                            </span>
+                                            {hasDiscount && (
+                                                <>
+                                                    <span className="ba-rt-card-base">{formatVND(baseP)}</span>
+                                                    <span className="ba-rt-card-discount">-{discountPct}%</span>
+                                                </>
+                                            )}
+                                        </div>
+                                        <div className="ba-rt-card-avail">{rp.availableCount} room(s) available</div>
+                                        {modifiers.length > 0 && (
+                                            <div className="ba-rt-card-tags">
+                                                {modifiers.slice(0, 3).map((m, i) => (
+                                                    <span key={i} className="ba-rt-tag ba-rt-tag-blue">{m.name || m.type}</span>
+                                                ))}
+                                                {modifiers.length > 3 && (
+                                                    <span className="ba-rt-tag ba-rt-tag-gray">+{modifiers.length - 3}</span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </>
+            )}
 
             {/* Internal note */}
             <div className="ba-note-field">
@@ -542,8 +578,8 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
         if (show) {
             setStep(1);
             setLines({});
-            setNewArrival("");
-            setNewDeparture("");
+            setNewArrival(toISODate(booking?.arrivalDate) || "");
+            setNewDeparture(toISODate(booking?.departureDate) || "");
             setNote("");
             setPreview(null);
             setError("");
@@ -574,7 +610,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
         let isMounted = true;
         const fetchPricing = async () => {
             try {
-                const data = await roomService.searchRooms({
+                const params = {
                     branchId: Number(booking.branchId),
                     checkIn: effectiveArrival,
                     checkOut: effectiveDeparture,
@@ -584,7 +620,11 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
                     page: 0,
                     size: 200,
                     sortPrice: "priceAsc",
-                });
+                };
+                // Include customer email for loyalty discount and policy for policy modifier
+                if (booking.customerEmail) params.customerEmail = booking.customerEmail;
+                if (booking.appliedPolicyId) params.policy = booking.appliedPolicyId;
+                const data = await roomService.searchRooms(params);
                 if (!isMounted) return;
                 const map = {};
                 (data?.content || []).forEach((room) => {
@@ -618,9 +658,11 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
     if (!show) return null;
 
     // Kiểm tra có thay đổi nào không
+    const origArrival = toISODate(booking?.arrivalDate);
+    const origDeparture = toISODate(booking?.departureDate);
     const hasChanges = Object.values(lines).some(l => l.delta !== 0)
-        || newArrival !== ""
-        || newDeparture !== "";
+        || (newArrival !== "" && newArrival !== origArrival)
+        || (newDeparture !== "" && newDeparture !== origDeparture);
 
     // Helper to determine if all rooms would be zero after amendment
     const allRoomsZero = () => {
@@ -659,20 +701,23 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
             });
         });
 
-        if (newArrival || newDeparture) {
+        if ((newArrival && newArrival !== origArrival) || (newDeparture && newDeparture !== origDeparture)) {
             details.forEach(item => {
                 const rId = item.roomTypeId || item.roomType?.roomTypeId || item.roomType?.id;
                 if (!linesPayload.find(l => l.roomTypeId === rId)) {
+                    // Use live pricing if available, fallback to DB snapshot
+                    const livePrice = roomPricingMap[String(rId)]?.finalPrice;
                     linesPayload.push({
                         roomTypeId: rId,
                         deltaQuantity: 0,
-                        priceAtAmendment: item.priceAtBooking || item.price,
+                        priceAtAmendment: livePrice ?? item.priceAtBooking ?? item.price,
                     });
                 }
             });
         }
 
-        const finalLines = (newArrival || newDeparture)
+        const datesChanged = (newArrival && newArrival !== origArrival) || (newDeparture && newDeparture !== origDeparture);
+        const finalLines = datesChanged
             ? linesPayload
             : linesPayload.filter(l => l.deltaQuantity !== 0);
 
@@ -681,8 +726,8 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
             amendedBy: "STAFF",
             note: note.trim() || null,
         };
-        if (newArrival) payload.newArrivalDate = newArrival;
-        if (newDeparture) payload.newDepartureDate = newDeparture;
+        if (newArrival && newArrival !== origArrival) payload.newArrivalDate = newArrival;
+        if (newDeparture && newDeparture !== origDeparture) payload.newDepartureDate = newDeparture;
         return payload;
     };
 

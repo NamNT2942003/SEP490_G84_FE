@@ -391,3 +391,50 @@
     animation: ba-spin 0.65s linear infinite;
 }
 @keyframes ba-spin { to { transform: rotate(360deg); } }
+
+/* ── Room card grid (Add New Rooms) ── */
+.ba-rt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.ba-rt-card {
+    background: #fff;
+    border: 1.5px solid #e2e8df;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.18s;
+    overflow: hidden;
+    position: relative;
+}
+.ba-rt-card:hover { border-color: #3d6b3d; box-shadow: 0 2px 12px rgba(61,107,61,0.10); }
+.ba-rt-card.added { border-color: #3d6b3d; background: #f0fdf4; }
+.ba-rt-card-img {
+    height: 90px;
+    background: #f4f7f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.ba-rt-card-img img { width: 100%; height: 100%; object-fit: cover; }
+.ba-rt-card-img i { font-size: 28px; color: #adb5bd; }
+.ba-rt-card-body { padding: 8px 10px 10px; }
+.ba-rt-card-name { font-weight: 700; font-size: 0.82rem; color: #1a2e1a; margin-bottom: 2px; }
+.ba-rt-card-cap { font-size: 0.7rem; color: #7a8a7b; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.ba-rt-card-price { font-weight: 800; font-size: 0.88rem; color: #3d6b3d; }
+.ba-rt-card-price-sub { font-size: 0.68rem; color: #7a8a7b; font-weight: 400; margin-left: 3px; }
+.ba-rt-card-base { font-size: 0.72rem; color: #adb5bd; text-decoration: line-through; margin-left: 6px; }
+.ba-rt-card-discount { font-size: 0.65rem; color: #dc3545; font-weight: 700; margin-left: 4px; }
+.ba-rt-card-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.ba-rt-tag { font-size: 0.6rem; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+.ba-rt-tag-blue { background: #dbeafe; color: #1e40af; }
+.ba-rt-tag-gray { background: #f3f4f6; color: #6b7280; }
+.ba-rt-card-badge {
+    position: absolute; top: 6px; right: 6px;
+    background: #3d6b3d; color: #fff; font-size: 0.65rem; font-weight: 700;
+    padding: 2px 7px; border-radius: 6px;
+}
+.ba-rt-card-avail { font-size: 0.65rem; color: #6b7280; margin-top: 2px; }
+
