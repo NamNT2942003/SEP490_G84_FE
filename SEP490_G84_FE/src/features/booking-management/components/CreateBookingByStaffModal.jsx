@@ -546,14 +546,6 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             .map(([id]) => roomTypeById[id]?.name || `RoomType #${id}`);
     }, [form.rooms, roomTypeById]);
 
-    const roomSubtotal = useMemo(() => {
-        return form.rooms.reduce((sum, room) => {
-            const unit = Number(room.price || roomTypeById[String(room.roomTypeId)]?.basePrice || 0);
-            const qty = Number(room.quantity || 0);
-            return sum + unit * qty;
-        }, 0);
-    }, [form.rooms, roomTypeById]);
-
     const roomSummaryRows = useMemo(() => {
         return form.rooms.map((room, index) => {
             const roomTypeName = roomTypeById[String(room.roomTypeId)]?.name || `Line ${index + 1}`;
@@ -577,12 +569,14 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         });
     }, [form.rooms, roomTypeById, roomPricingMap]);
 
+    // roomSubtotal = tổng basePrice * qty (giá gốc chưa modifier)
+    const roomSubtotal = useMemo(() => {
+        return roomSummaryRows.reduce((sum, row) => sum + row.baseLine, 0);
+    }, [roomSummaryRows]);
+
     const roomDeltaTotal = useMemo(() => {
         return roomSummaryRows.reduce((sum, row) => sum + row.lineDelta, 0);
     }, [roomSummaryRows]);
-
-    const roomTotalAfterRoomModifiers = useMemo(() => Math.max(0, roomSubtotal + roomDeltaTotal), [roomSubtotal, roomDeltaTotal]);
-    const bookingModifierDeltaTotal = 0;
 
     const selectedPaymentTypes = useMemo(() => {
         const types = form.rooms.map((room) => {
@@ -654,8 +648,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             : paymentTypeLabel(selectedPaymentType);
 
     const estimatedGrandTotal = useMemo(() => {
-        return Math.max(0, roomTotalAfterRoomModifiers + bookingModifierDeltaTotal);
-    }, [roomTotalAfterRoomModifiers, bookingModifierDeltaTotal]);
+        return Math.max(0, roomSubtotal + roomDeltaTotal);
+    }, [roomSubtotal, roomDeltaTotal]);
 
     const prepaidAmtBase = selectedPolicy ? Math.round(estimatedGrandTotal * (selectedPolicy.prepaidRate || 0) / 100) : estimatedGrandTotal;
 
@@ -1242,7 +1236,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         {/* Applied policy summary badge */}
                         {selectedPolicy ? (() => {
                             const appliedPrepaid = Math.round(estimatedGrandTotal * (selectedPolicy.prepaidRate || 0) / 100);
-                            const appliedRefund = Math.round(estimatedGrandTotal * (selectedPolicy.prepaidRate || 0) / 100);
+                            const appliedRefund = Math.round(estimatedGrandTotal * (selectedPolicy.refunRate || 0) / 100);
                             const appliedDeadlineDate = computeFreeCancelDeadline(form.arrivalDate, selectedPolicy.dateRange);
                             const appliedDeadline = formatDeadline(appliedDeadlineDate);
                             const todayApplied = new Date(); todayApplied.setHours(0, 0, 0, 0);
@@ -1276,7 +1270,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                         <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: `3px solid ${appliedRefund > 0 ? "#16a34a" : "#e5e7eb"}` }}>
                                             <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>Refund if cancelled</div>
                                             <div style={{ fontSize: 12, fontWeight: 800, color: appliedRefund > 0 ? "#16a34a" : "#dc2626" }}>{formatVnd(appliedRefund)}</div>
-                                            <div style={{ fontSize: 9, color: "#9aaa9b" }}>{selectedPolicy.prepaidRate}%</div>
+                                            <div style={{ fontSize: 9, color: "#9aaa9b" }}>{selectedPolicy.refunRate}%</div>
                                         </div>
                                     </div>
                                     {appliedDeadlineDate && (
@@ -1336,7 +1330,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
 
                                     // Số tiền cụ thể
                                     const cardPrepaid = Math.round(estimatedGrandTotal * (p.prepaidRate || 0) / 100);
-                                    const cardRefund = Math.round(estimatedGrandTotal * (p.prepaidRate || 0) / 100);
+                                    const cardRefund = Math.round(estimatedGrandTotal * (p.refunRate || 0) / 100);
                                     const cardRetain = Math.max(0, estimatedGrandTotal - cardRefund);
                                     const deadlineDate = computeFreeCancelDeadline(form.arrivalDate, p.dateRange);
                                     const deadlineStr = formatDeadline(deadlineDate);
@@ -1455,7 +1449,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                 <div style={{ background: "#f8faf8", borderRadius: 6, padding: "5px 8px", borderLeft: `3px solid ${cardRefund > 0 ? "#16a34a" : "#e5e7eb"}` }}>
                                                     <div style={{ fontSize: 9, color: "#9aaa9b", fontWeight: 700, textTransform: "uppercase" }}>Refund if cancelled</div>
                                                     <div style={{ fontSize: 12, fontWeight: 800, color: cardRefund > 0 ? "#16a34a" : "#dc2626" }}>{formatVnd(cardRefund)}</div>
-                                                    <div style={{ fontSize: 9, color: "#9aaa9b" }}>{p.prepaidRate}%</div>
+                                                    <div style={{ fontSize: 9, color: "#9aaa9b" }}>{p.refunRate}%</div>
                                                 </div>
                                             </div>
 
@@ -1636,15 +1630,9 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                             </div>
                         ))}
                         <div className="cbsm-estimate-row">
-                            <span>Room modifier delta</span>
+                            <span>Modifier adjustments</span>
                             <span className={roomDeltaTotal >= 0 ? "cbsm-money-plus" : "cbsm-money-minus"}>
                                 {roomDeltaTotal >= 0 ? "+" : ""}{formatVnd(roomDeltaTotal)}
-                            </span>
-                        </div>
-                        <div className="cbsm-estimate-row">
-                            <span>Booking modifier delta</span>
-                            <span className={bookingModifierDeltaTotal >= 0 ? "cbsm-money-plus" : "cbsm-money-minus"}>
-                                {bookingModifierDeltaTotal >= 0 ? "+" : ""}{formatVnd(bookingModifierDeltaTotal)}
                             </span>
                         </div>
                         <div className="cbsm-estimate-total">

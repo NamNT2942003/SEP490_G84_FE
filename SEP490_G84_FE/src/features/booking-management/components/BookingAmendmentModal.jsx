@@ -119,7 +119,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                     <tr>
                         <th>Room Type</th>
                         <th className="text-end">Current Qty</th>
-                        <th className="text-end">Price/Night</th>
+                        <th className="text-end">Price/Stay</th>
                         <th className="text-center">Change (+/-)</th>
                         <th className="text-end">After Change</th>
                     </tr>
