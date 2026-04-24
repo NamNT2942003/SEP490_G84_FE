@@ -484,15 +484,15 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                             id="allowServiceDebtCheck"
                           />
                           <label className="form-check-label fw-bold" htmlFor="allowServiceDebtCheck" style={{ fontSize: '0.82rem', cursor: 'pointer' }}>
-                            ⚠️ Cho nợ dịch vụ (Ghi nợ)
+                            ⚠️ Credit for services (Debit)
                           </label>
                         </div>
                         {allowServiceDebt && (
                           <div className="mt-2 p-2 rounded" style={{ background: '#fff3cd', fontSize: '0.75rem', color: '#664d03', border: '1px solid #ffc107' }}>
                             <i className="bi bi-exclamation-triangle-fill me-1"></i>
-                            <strong>CẢNH BÁO:</strong> Khách sẽ rời khách sạn mà CHƯA thanh toán dịch vụ.
-                            <br />Nhân viên lễ tân PHẢI đảm bảo thu lại được khoản nợ này.
-                            <br />Khoản nợ <strong>{fmtMoney(amountDue)} VND</strong> sẽ được ghi nhận vào hệ thống.
+                            <strong>Warning:</strong> Guests will leave the hotel WITHOUT paying for the services.
+                            <br />The receptionist MUST ensure that this debt is collected.
+                            <br />The debt of <strong>{fmtMoney(amountDue)} VND</strong> will be recorded in the system.
                           </div>
                         )}
                       </div>
@@ -553,7 +553,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                                   disabled={isSubmitting || (due > 0 && !allowServiceDebt && !selectedMethod)}
                                   style={{ fontSize: '0.75rem' }}>
                                   <i className="bi bi-box-arrow-right me-1"></i>
-                                  {allowServiceDebt && due > 0 ? `Ghi nợ ${fmtMoney(due)} & Checkout` : due > 0 ? `Collect ${fmtMoney(due)} & Checkout` : 'Checkout Room'}
+                                  {allowServiceDebt && due > 0 ? `Debt ${fmtMoney(due)} & Checkout` : due > 0 ? `Collect ${fmtMoney(due)} & Checkout` : 'Checkout Room'}
                                 </button>
                               </>
                             )}
@@ -596,7 +596,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                         <div className="p-3 bg-danger bg-opacity-10 rounded text-center mb-3 border border-danger flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 80 }}>
                           <i className="bi bi-exclamation-triangle-fill text-danger" style={{ fontSize: '2rem' }}></i>
                           <div className="fw-bold text-danger fs-5 mt-2">{fmtMoney(amountDue)} VND</div>
-                          <div className="small text-danger">Sẽ ghi nợ — Không thu tiền</div>
+                          <div className="small text-danger">The debt will be recorded — No payment will be collected.</div>
                         </div>
                       ) : amountDue > 0 && paymentMethod === 'TRANSFER' ? (
                         <div className="p-3 bg-primary bg-opacity-10 rounded text-center mb-3 border border-primary flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: 80 }}>
