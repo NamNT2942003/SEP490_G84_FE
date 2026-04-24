@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import bookingManagementApi from "../api/bookingManagementApi";
 import { API_ENDPOINTS } from "../../../constants/apiConfig";
 import apiClient from "../../../services/apiClient";
+import { roomService } from "@/features/booking/api/roomService";
 import Swal from "sweetalert2";
 import "./BookingAmendmentModal.css";
 
@@ -56,7 +57,7 @@ function StepIndicator({ step }) {
 // ─── Step 1: Edit form ──────────────────────────────────────────────────────
 
 function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
-    newDeparture, setNewDeparture, note, setNote, availableRoomTypes }) {
+    newDeparture, setNewDeparture, note, setNote, availableRoomTypes, roomPricingMap }) {
     const details = booking?.details ?? [];
     const [addingRoomTypeId, setAddingRoomTypeId] = useState("");
 
@@ -98,11 +99,13 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
         if (lines[rId] || combinedDetails.some(d => (d.roomTypeId || d.roomType?.id) == rId)) return; // already in panel
 
         const roomTypeName = targetType.name || targetType.roomTypeName;
-        const basePrice = targetType.basePrice || targetType.price || 0;
+        // Use live pricing (engine-computed finalPrice) if available, fallback to basePrice
+        const livePricing = roomPricingMap?.[String(rId)];
+        const price = livePricing?.finalPrice ?? targetType.basePrice ?? targetType.price ?? 0;
 
         setLines(prev => ({
             ...prev,
-            [rId]: { roomTypeName, priceAtBooking: basePrice, currentQty: 0, delta: 1 }
+            [rId]: { roomTypeName, priceAtBooking: price, currentQty: 0, delta: 1 }
         }));
         setAddingRoomTypeId("");
     };
@@ -485,7 +488,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
     const [newDeparture, setNewDeparture] = useState("");
     const [note, setNote] = useState("");
     const [availableRoomTypes, setAvailableRoomTypes] = useState([]);
-
+    const [roomPricingMap, setRoomPricingMap] = useState({});
 
     const [previewing, setPreviewing] = useState(false);
     const [preview, setPreview] = useState(null);
@@ -504,7 +507,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
             setPreview(null);
             setError("");
             setSuccess(false);
-
+            setRoomPricingMap({});
         }
     }, [show]);
 
@@ -515,6 +518,55 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
                 .catch(err => console.error("Could not fetch room types", err));
         }
     }, [show, booking?.branchId]);
+
+    // Fetch live pricing from the same engine used by SearchRoom / CreateBookingByStaffModal
+    // so that new room types added during amendment use engine-computed finalPrice.
+    const effectiveArrival = newArrival || toISODate(booking?.arrivalDate);
+    const effectiveDeparture = newDeparture || toISODate(booking?.departureDate);
+
+    useEffect(() => {
+        if (!show || !booking?.branchId || !effectiveArrival || !effectiveDeparture) {
+            return;
+        }
+        if (effectiveArrival >= effectiveDeparture) return;
+
+        let isMounted = true;
+        const fetchPricing = async () => {
+            try {
+                const data = await roomService.searchRooms({
+                    branchId: Number(booking.branchId),
+                    checkIn: effectiveArrival,
+                    checkOut: effectiveDeparture,
+                    adults: 1,
+                    children: 0,
+                    totalRooms: 1,
+                    page: 0,
+                    size: 200,
+                    sortPrice: "priceAsc",
+                });
+                if (!isMounted) return;
+                const map = {};
+                (data?.content || []).forEach((room) => {
+                    const options = (Array.isArray(room.pricingOptions) ? room.pricingOptions : [])
+                        .sort((a, b) => (a.finalPrice || 0) - (b.finalPrice || 0));
+                    map[String(room.roomTypeId)] = {
+                        roomTypeId: room.roomTypeId,
+                        name: room.name,
+                        availableCount: Number(room.availableCount ?? 0),
+                        basePrice: Number(room.basePrice ?? 0),
+                        finalPrice: Number(options[0]?.finalPrice ?? room.basePrice ?? 0),
+                        pricingOptions: options,
+                    };
+                });
+                setRoomPricingMap(map);
+            } catch (err) {
+                console.error("Failed to fetch amendment pricing:", err);
+                if (isMounted) setRoomPricingMap({});
+            }
+        };
+        fetchPricing();
+        return () => { isMounted = false; };
+    }, [show, booking?.branchId, effectiveArrival, effectiveDeparture]);
 
     if (!show) return null;
 
@@ -718,6 +770,7 @@ export default function BookingAmendmentModal({ show, booking, onHide, onSuccess
                             note={note}
                             setNote={setNote}
                             availableRoomTypes={availableRoomTypes}
+                            roomPricingMap={roomPricingMap}
                         />
                     ) : (
                         <PreviewStep preview={preview} />
