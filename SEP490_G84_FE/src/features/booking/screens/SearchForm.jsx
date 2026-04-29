@@ -3,8 +3,9 @@ import {
     AGE_GROUPS,
     DEFAULT_AGE_GROUP,
     calculateEffectiveAdults,
+    countEffectiveChildren,
+    countInfants,
     calculatePerRoom,
-    countNonInfantChildren,
 } from "../utils/childrenAgePolicy.js";
 
 const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange, initialSearchParams }) => {
@@ -69,10 +70,12 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
     };
 
     // Derived values
+    // Teen (12+) counts as 1 ADULT, Child (6-11) counts as 1 CHILD, Infant (0-5) = free
     const effectiveAdults = calculateEffectiveAdults(sp.adults, sp.childrenAges);
+    const effectiveChildren = countEffectiveChildren(sp.childrenAges);
+    const infantCount = countInfants(sp.childrenAges);
     const adultsPerRoom = calculatePerRoom(effectiveAdults, sp.roomCount);
-    const nonInfantChildren = countNonInfantChildren(sp.childrenAges);
-    const childrenPerRoom = calculatePerRoom(nonInfantChildren, sp.roomCount);
+    const childrenPerRoom = calculatePerRoom(effectiveChildren, sp.roomCount);
 
     const guestText = () => {
         let t = `${sp.adults} adult${sp.adults > 1 ? 's' : ''}`;
@@ -325,11 +328,11 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                                         <div style={{ paddingBottom: 6 }}>
                                             {sp.childrenAges.map((ageGroup, idx) => {
                                                 const group = AGE_GROUPS.find(g => g.key === ageGroup);
-                                                const equivLabel = group?.adultEquivalent === 0
+                                                const equivLabel = group?.countsAs === "FREE"
                                                     ? "Free"
-                                                    : group?.adultEquivalent === 1
+                                                    : group?.countsAs === "ADULT"
                                                         ? "= 1 adult"
-                                                        : `= ${group?.adultEquivalent} adult`;
+                                                        : "= 1 child";
                                                 return (
                                                     <div key={idx} className="child-age-row">
                                                         <span className="child-age-label">Child {idx + 1}:</span>
@@ -355,20 +358,28 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                                             <i className="bi bi-calculator"></i>
                                             Occupancy Summary
                                         </div>
+                                        {/* Line 1: Breakdown */}
                                         <div className="os-line">
                                             <span className="os-highlight">{sp.adults}</span> adult{sp.adults > 1 ? "s" : ""}
                                             {sp.children > 0 && (
                                                 <> + <span className="os-highlight">{sp.children}</span> child{sp.children > 1 ? "ren" : ""}</>
                                             )}
-                                            {" = "}
-                                            <span className="os-highlight">{effectiveAdults % 1 === 0 ? effectiveAdults : effectiveAdults.toFixed(1)}</span> effective adult{effectiveAdults !== 1 ? "s" : ""}
                                         </div>
+                                        {/* Line 2: Conversion annotation */}
+                                        {sp.children > 0 && (
+                                            <div className="os-line" style={{ fontSize: '.72rem', color: '#718096' }}>
+                                                {infantCount > 0 && <span>🍼 {infantCount} infant{infantCount > 1 ? 's' : ''} (free) &nbsp;</span>}
+                                                {effectiveChildren > 0 && <span>👶 {effectiveChildren} child{effectiveChildren > 1 ? 'ren' : ''} → MaxChildren &nbsp;</span>}
+                                                {effectiveAdults > sp.adults && <span>🧑 {effectiveAdults - sp.adults} teen{(effectiveAdults - sp.adults) > 1 ? 's' : ''} → MaxAdult</span>}
+                                            </div>
+                                        )}
+                                        {/* Line 3: Per-room requirement */}
                                         <div className="os-line">
                                             <span className="os-highlight">{sp.roomCount}</span> room{sp.roomCount > 1 ? "s" : ""}
                                             {" → need ≥ "}
-                                            <span className="os-highlight">{adultsPerRoom}</span> adult{adultsPerRoom > 1 ? "s" : ""}
+                                            <span className="os-highlight">{adultsPerRoom}</span> MaxAdult
                                             {childrenPerRoom > 0 && (
-                                                <> + <span className="os-highlight">{childrenPerRoom}</span> child{childrenPerRoom > 1 ? "ren" : ""}</>
+                                                <> + <span className="os-highlight">{childrenPerRoom}</span> MaxChildren</>
                                             )}
                                             {" per room"}
                                         </div>
