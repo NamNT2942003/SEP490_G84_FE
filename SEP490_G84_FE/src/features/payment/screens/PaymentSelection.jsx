@@ -63,6 +63,7 @@ const PaymentSelection = () => {
         checkIn = '',
         checkOut = '',
         selectedPolicy = null,
+        branchName = '',
     } = location.state || { bookingId: null, totalAmount: 0 };
     const effectiveAmount = Number(prepaidAmount ?? depositAmount ?? finalAmount ?? totalAmount ?? bookingTotalAmount ?? 0);
     const displayedBookingTotal = Number(bookingTotalAmount ?? totalAmount ?? finalAmount ?? effectiveAmount);
@@ -353,6 +354,8 @@ const PaymentSelection = () => {
                                 prepaidAmount={effectiveAmount}
                                 depositAmount={effectiveAmount}
                                 bookingTotalAmount={displayedBookingTotal}
+                                branchName={branchName}
+                                policySelected={true}
                             />
                             </div>
                         </div>
@@ -365,6 +368,8 @@ const PaymentSelection = () => {
                                 prepaidAmount={effectiveAmount}
                                 depositAmount={effectiveAmount}
                                 bookingTotalAmount={displayedBookingTotal}
+                                branchName={branchName}
+                                policySelected={true}
                             />
                         </div>
                     </div>

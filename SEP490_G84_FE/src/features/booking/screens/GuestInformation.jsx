@@ -1065,6 +1065,7 @@ const GuestInformation = () => {
                     checkIn,
                     checkOut,
                     branchId: currentBranchId,
+                    branchName,
                     selectedPolicy: selectedPolicy ? {
                         id: selectedPolicy.id,
                         name: selectedPolicy.name,
