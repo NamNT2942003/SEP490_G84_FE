@@ -417,6 +417,18 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         if (step === 0) {
             if (!form.branchId) return "Please select a branch.";
             if (!form.arrivalDate || !form.departureDate) return "Arrival and departure dates are required.";
+
+            // Validate date format
+            const arrDate = new Date(form.arrivalDate);
+            const depDate = new Date(form.departureDate);
+            if (isNaN(arrDate.getTime())) return "Arrival date is not a valid date.";
+            if (isNaN(depDate.getTime())) return "Departure date is not a valid date.";
+
+            // Arrival must not be in the past (compare date only, ignore time)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (arrDate < today) return "Arrival date cannot be in the past.";
+
             if (form.arrivalDate >= form.departureDate) return "Departure date must be after arrival date.";
             if (!form.customer.fullName?.trim()) return "Guest full name is required.";
             if (!form.customer.email?.trim() && !form.customer.phone?.trim()) {
@@ -985,7 +997,42 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                     )}
 
                     <div className="cbsm-rt-grid">
-                        {roomTypes.map((rt) => {
+                        {(() => {
+                            // Filter out unavailable rooms (availableCount === 0 when pricing data is loaded)
+                            const hasPricingData = Object.keys(roomPricingMap).length > 0;
+                            const visibleRoomTypes = hasPricingData
+                                ? roomTypes.filter((rt) => {
+                                    const rtId = String(rt.roomTypeId);
+                                    const roomPricing = roomPricingMap[rtId];
+                                    // Keep rooms that: have pricing data AND availableCount > 0 OR are already selected
+                                    const isCurrentlySelected = form.rooms.some(r => String(r.roomTypeId) === rtId && Number(r.quantity) > 0);
+                                    if (isCurrentlySelected) return true;
+                                    return roomPricing && Number(roomPricing.availableCount) > 0;
+                                })
+                                : roomTypes;
+                            const hiddenCount = roomTypes.length - visibleRoomTypes.length;
+
+                            return (
+                                <>
+                                    {hiddenCount > 0 && (
+                                        <div style={{
+                                            gridColumn: '1 / -1', background: '#fef9c3', border: '1px solid #fcd34d',
+                                            borderRadius: 10, padding: '10px 16px', fontSize: 12, color: '#92400e',
+                                            display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4,
+                                        }}>
+                                            <i className="bi bi-eye-slash" style={{ fontSize: 14 }} />
+                                            <span><strong>{hiddenCount}</strong> room type{hiddenCount > 1 ? 's' : ''} hidden — no availability for the selected dates.</span>
+                                        </div>
+                                    )}
+                                    {visibleRoomTypes.length === 0 && !loadingRoomTypes && (
+                                        <div style={{
+                                            gridColumn: '1 / -1', textAlign: 'center', padding: '32px 0', color: '#9ca3af',
+                                        }}>
+                                            <i className="bi bi-calendar-x" style={{ fontSize: 28, display: 'block', marginBottom: 8, opacity: 0.4 }} />
+                                            No rooms available for the selected dates. Try different dates.
+                                        </div>
+                                    )}
+                                    {visibleRoomTypes.map((rt) => {
                             const rtId = String(rt.roomTypeId);
                             const roomPricing = roomPricingMap[rtId] || null;
                             const pricingOptions = roomPricing?.pricingOptions || [];
@@ -1174,6 +1221,9 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                 </div>
                             );
                         })}
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
 
