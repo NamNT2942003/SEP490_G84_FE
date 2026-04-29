@@ -1,4 +1,11 @@
 import { useState, useRef, useEffect } from "react";
+import {
+    AGE_GROUPS,
+    DEFAULT_AGE_GROUP,
+    calculateEffectiveAdults,
+    calculatePerRoom,
+    countNonInfantChildren,
+} from "../utils/childrenAgePolicy.js";
 
 const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange, initialSearchParams }) => {
     const fmtYmd = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -8,7 +15,14 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
     const tom = new Date(now); tom.setDate(now.getDate()+1);
     const tomorrow = fmtYmd(tom);
 
-    const [sp, setSp] = useState({ checkIn: today, checkOut: tomorrow, adults: 1, children: 0 });
+    const [sp, setSp] = useState({
+        checkIn: today,
+        checkOut: tomorrow,
+        adults: 1,
+        children: 0,
+        roomCount: 1,
+        childrenAges: [],      // e.g. ["INFANT", "CHILD"]
+    });
     const [validationMessage, setValidationMessage] = useState("");
 
     // guest picker
@@ -19,16 +33,51 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         document.addEventListener("mousedown", h);
         return () => document.removeEventListener("mousedown", h);
     }, []);
+
     const adj = (f, d) => {
         setValidationMessage("");
         setSp(p => {
-        const mn = f==="adults"?1:0, mx = f==="adults"?6:4;
-        return { ...p, [f]: Math.min(mx, Math.max(mn, p[f]+d)) };
+            const limits = { adults: [1, 20], children: [0, 10], roomCount: [1, 10] };
+            const [mn, mx] = limits[f] || [0, 99];
+            const newVal = Math.min(mx, Math.max(mn, p[f] + d));
+
+            if (f === "children") {
+                // Adjust childrenAges array to match new count
+                let newAges = [...p.childrenAges];
+                if (newVal > p.children) {
+                    // Adding children — append default age group
+                    for (let i = p.children; i < newVal; i++) {
+                        newAges.push(DEFAULT_AGE_GROUP);
+                    }
+                } else {
+                    // Removing children — trim from end
+                    newAges = newAges.slice(0, newVal);
+                }
+                return { ...p, [f]: newVal, childrenAges: newAges };
+            }
+            return { ...p, [f]: newVal };
         });
     };
+
+    const handleChildAgeChange = (index, newGroup) => {
+        setValidationMessage("");
+        setSp(p => {
+            const newAges = [...p.childrenAges];
+            newAges[index] = newGroup;
+            return { ...p, childrenAges: newAges };
+        });
+    };
+
+    // Derived values
+    const effectiveAdults = calculateEffectiveAdults(sp.adults, sp.childrenAges);
+    const adultsPerRoom = calculatePerRoom(effectiveAdults, sp.roomCount);
+    const nonInfantChildren = countNonInfantChildren(sp.childrenAges);
+    const childrenPerRoom = calculatePerRoom(nonInfantChildren, sp.roomCount);
+
     const guestText = () => {
         let t = `${sp.adults} adult${sp.adults > 1 ? 's' : ''}`;
         if (sp.children > 0) t += `, ${sp.children} child${sp.children > 1 ? 'ren' : ''}`;
+        t += ` · ${sp.roomCount} room${sp.roomCount > 1 ? 's' : ''}`;
         return t;
     };
 
@@ -56,8 +105,12 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         );
     };
     const isSameSearchParams = (nextParams, currentParams) => {
-        const keys = ["checkIn", "checkOut", "adults", "children"];
-        return keys.every((key) => String(nextParams?.[key] ?? "") === String(currentParams?.[key] ?? ""));
+        const keys = ["checkIn", "checkOut", "adults", "children", "roomCount"];
+        if (!keys.every((key) => String(nextParams?.[key] ?? "") === String(currentParams?.[key] ?? ""))) return false;
+        // Also compare childrenAges arrays
+        const nextAges = Array.isArray(nextParams?.childrenAges) ? nextParams.childrenAges : [];
+        const currAges = Array.isArray(currentParams?.childrenAges) ? currentParams.childrenAges : [];
+        return nextAges.length === currAges.length && nextAges.every((v, i) => v === currAges[i]);
     };
     useEffect(() => {
         if (!initialSearchParams) return;
@@ -66,8 +119,18 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         if (initialKey === lastInitialKeyRef.current) return;
         if (isSameSearchParams(normalized, sp)) return;
         lastInitialKeyRef.current = initialKey;
-        setSp((prev) => ({ ...prev, ...normalized }));
+        setSp((prev) => {
+            const next = { ...prev, ...normalized };
+            // Ensure childrenAges array is properly restored
+            if (Array.isArray(normalized.childrenAges)) {
+                next.childrenAges = normalized.childrenAges;
+            } else if (next.children > 0 && (!next.childrenAges || next.childrenAges.length !== next.children)) {
+                next.childrenAges = Array.from({ length: next.children }, () => DEFAULT_AGE_GROUP);
+            }
+            return next;
+        });
     }, [initialSearchParams]);
+
     useEffect(() => {
         if (isFirstRun.current) {
             isFirstRun.current = false;
@@ -83,7 +146,14 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
             return;
         }
         setValidationMessage("");
-        onSearch(sp);
+
+        // Include computed values in search params
+        onSearch({
+            ...sp,
+            effectiveAdults,
+            adultsPerRoom,
+            childrenPerRoom,
+        });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sp]);
 
@@ -95,7 +165,7 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         .sf-g{display:flex;flex-direction:column;min-width:0}
         .sf-g.br{flex:0 0 175px}
         .sf-g.dt{flex:1 1 auto;min-width:320px}
-        .sf-g.gu{flex:0 0 170px;position:relative}
+        .sf-g.gu{flex:0 0 200px;position:relative}
         .sf-g.ac{flex:0 0 auto}
         .sf-l{font-size:.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;display:flex;align-items:center;gap:4px}
         .sf-l i{color:#465c47;font-size:.78rem}
@@ -111,12 +181,12 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         .sf-db .dm{font-size:.82rem;font-weight:600;color:#333;line-height:1.2}
         .sf-db .ds{font-size:.66rem;color:#999}
         .sf-nb{display:flex;align-items:center;justify-content:center;background:#f0f4ec;color:#465c47;border-radius:8px;font-size:.68rem;font-weight:700;padding:4px 8px;white-space:nowrap;height:46px}
-        .gt{width:100%;height:46px;border:2px solid #e8e8e8;border-radius:10px;background:#fafafa;padding:0 12px 0 38px;font-size:.88rem;font-weight:500;color:#333;cursor:pointer;transition:border-color .2s;display:flex;align-items:center;user-select:none;position:relative}
+        .gt{width:100%;height:46px;border:2px solid #e8e8e8;border-radius:10px;background:#fafafa;padding:0 12px 0 38px;font-size:.85rem;font-weight:500;color:#333;cursor:pointer;transition:border-color .2s;display:flex;align-items:center;user-select:none;position:relative}
         .gt:hover{border-color:#ccc;background:#fff}
         .gt.op{border-color:#465c47;box-shadow:0 0 0 3px rgba(92,111,78,.1);background:#fff}
         .gt .ch{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#999;font-size:.7rem;transition:transform .2s}
         .gt.op .ch{transform:translateY(-50%) rotate(180deg)}
-        .gdd{position:absolute;top:calc(100% + 6px);left:0;right:0;min-width:250px;background:#fff;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.12);z-index:1060;padding:16px 20px;animation:gF .2s}
+        .gdd{position:absolute;top:calc(100% + 6px);left:0;right:0;min-width:300px;background:#fff;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.12);z-index:1060;padding:16px 20px;animation:gF .2s}
         @keyframes gF{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
         .gr{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
         .gr+.gr{border-top:1px solid #f0f0f0}
@@ -135,8 +205,17 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         .sf-btn .spinner-border{width:16px;height:16px;border-width:2px}
         .sf-msg{margin-top:10px;font-size:.82rem;font-weight:600;color:#c0392b;display:flex;align-items:center;gap:6px}
         .sf-help{margin-top:8px;font-size:.75rem;color:#6c757d}
+        .child-age-row{display:flex;align-items:center;gap:8px;margin-top:6px;padding:4px 0}
+        .child-age-label{font-size:.78rem;font-weight:600;color:#555;min-width:55px}
+        .child-age-select{flex:1;height:32px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fafafa;font-size:.78rem;font-weight:500;color:#333;padding:0 8px;cursor:pointer;transition:border-color .2s}
+        .child-age-select:focus{border-color:#465c47;outline:none;box-shadow:0 0 0 2px rgba(92,111,78,.1)}
+        .child-age-equiv{font-size:.68rem;color:#718096;font-weight:600;min-width:42px;text-align:right}
+        .occupancy-summary{margin-top:10px;padding:10px 12px;background:linear-gradient(135deg,#f0f4ec,#e8ede4);border-radius:10px;border:1px solid #d4dcc8}
+        .occupancy-summary .os-title{font-size:.72rem;font-weight:700;color:#465c47;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+        .occupancy-summary .os-line{font-size:.76rem;color:#4a5568;line-height:1.5}
+        .occupancy-summary .os-highlight{font-weight:700;color:#2d3748}
         @media(max-width:992px){.sf-r{flex-wrap:wrap}.sf-g.br{flex:1 1 100%}.sf-g.dt{flex:1 1 100%;min-width:0}.sf-g.gu{flex:1 1 calc(50% - 5px)}.sf-g.ac{flex:1 1 calc(50% - 5px)}}
-        @media(max-width:576px){.sf{padding:18px 14px 16px}.sf-g.gu,.sf-g.ac{flex:1 1 100%}}
+        @media(max-width:576px){.sf{padding:18px 14px 16px}.sf-g.gu,.sf-g.ac{flex:1 1 100%}.gdd{min-width:auto;left:-10px;right:-10px}}
       `}</style>
 
             <div className="sf" tabIndex={0}>
@@ -191,9 +270,9 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                             </div>
                         </div>
 
-                        {/* Guests */}
+                        {/* Guests & Rooms */}
                         <div className="sf-g gu" ref={gRef}>
-                            <span className="sf-l"><i className="bi bi-people-fill"></i>Guests</span>
+                            <span className="sf-l"><i className="bi bi-people-fill"></i>Guests &amp; Rooms</span>
                             <div className="sf-w">
                                 <i className="bi bi-people-fill si"></i>
                                 <div
@@ -213,22 +292,88 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                             </div>
                             {guestOpen && (
                                 <div className="gdd">
+                                    {/* Rooms */}
+                                    <div className="gr">
+                                        <div><div className="grl">Rooms</div><div className="grh">Number of rooms</div></div>
+                                        <div className="gc">
+                                            <button type="button" className="gb" onClick={() => adj("roomCount",-1)} disabled={sp.roomCount<=1}>−</button>
+                                            <span className="gv">{sp.roomCount}</span>
+                                            <button type="button" className="gb" onClick={() => adj("roomCount",1)} disabled={sp.roomCount>=10}>+</button>
+                                        </div>
+                                    </div>
+                                    {/* Adults */}
                                     <div className="gr">
                                         <div><div className="grl">Adults</div><div className="grh">Ages 13 and above</div></div>
                                         <div className="gc">
                                             <button type="button" className="gb" onClick={() => adj("adults",-1)} disabled={sp.adults<=1}>−</button>
                                             <span className="gv">{sp.adults}</span>
-                                            <button type="button" className="gb" onClick={() => adj("adults",1)} disabled={sp.adults>=6}>+</button>
+                                            <button type="button" className="gb" onClick={() => adj("adults",1)} disabled={sp.adults>=20}>+</button>
                                         </div>
                                     </div>
-                                    <div className="gr">
+                                    {/* Children */}
+                                    <div className="gr" style={{ borderBottom: sp.children > 0 ? "none" : undefined, paddingBottom: sp.children > 0 ? 4 : undefined }}>
                                         <div><div className="grl">Children</div><div className="grh">Ages 0 – 12</div></div>
                                         <div className="gc">
                                             <button type="button" className="gb" onClick={() => adj("children",-1)} disabled={sp.children<=0}>−</button>
                                             <span className="gv">{sp.children}</span>
-                                            <button type="button" className="gb" onClick={() => adj("children",1)} disabled={sp.children>=4}>+</button>
+                                            <button type="button" className="gb" onClick={() => adj("children",1)} disabled={sp.children>=10}>+</button>
                                         </div>
                                     </div>
+
+                                    {/* Age group selector per child */}
+                                    {sp.children > 0 && (
+                                        <div style={{ paddingBottom: 6 }}>
+                                            {sp.childrenAges.map((ageGroup, idx) => {
+                                                const group = AGE_GROUPS.find(g => g.key === ageGroup);
+                                                const equivLabel = group?.adultEquivalent === 0
+                                                    ? "Free"
+                                                    : group?.adultEquivalent === 1
+                                                        ? "= 1 adult"
+                                                        : `= ${group?.adultEquivalent} adult`;
+                                                return (
+                                                    <div key={idx} className="child-age-row">
+                                                        <span className="child-age-label">Child {idx + 1}:</span>
+                                                        <select
+                                                            className="child-age-select"
+                                                            value={ageGroup}
+                                                            onChange={(e) => handleChildAgeChange(idx, e.target.value)}
+                                                        >
+                                                            {AGE_GROUPS.map(g => (
+                                                                <option key={g.key} value={g.key}>{g.label}</option>
+                                                            ))}
+                                                        </select>
+                                                        <span className="child-age-equiv">{equivLabel}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {/* Occupancy Summary */}
+                                    <div className="occupancy-summary">
+                                        <div className="os-title">
+                                            <i className="bi bi-calculator"></i>
+                                            Occupancy Summary
+                                        </div>
+                                        <div className="os-line">
+                                            <span className="os-highlight">{sp.adults}</span> adult{sp.adults > 1 ? "s" : ""}
+                                            {sp.children > 0 && (
+                                                <> + <span className="os-highlight">{sp.children}</span> child{sp.children > 1 ? "ren" : ""}</>
+                                            )}
+                                            {" = "}
+                                            <span className="os-highlight">{effectiveAdults % 1 === 0 ? effectiveAdults : effectiveAdults.toFixed(1)}</span> effective adult{effectiveAdults !== 1 ? "s" : ""}
+                                        </div>
+                                        <div className="os-line">
+                                            <span className="os-highlight">{sp.roomCount}</span> room{sp.roomCount > 1 ? "s" : ""}
+                                            {" → need ≥ "}
+                                            <span className="os-highlight">{adultsPerRoom}</span> adult{adultsPerRoom > 1 ? "s" : ""}
+                                            {childrenPerRoom > 0 && (
+                                                <> + <span className="os-highlight">{childrenPerRoom}</span> child{childrenPerRoom > 1 ? "ren" : ""}</>
+                                            )}
+                                            {" per room"}
+                                        </div>
+                                    </div>
+
                                     <button type="button" className="gdone" onClick={() => setGuestOpen(false)}>Done</button>
                                 </div>
                             )}
@@ -243,7 +388,7 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
                         </div>
                     )}
                     <div className="sf-help">
-                        <span>Tip: Select your dates first, then choose guests to get accurate room availability.</span>
+                        <span>Tip: Select your dates first, then choose guests and rooms to get accurate room availability.</span>
                     </div>
                 </div>
             </div>

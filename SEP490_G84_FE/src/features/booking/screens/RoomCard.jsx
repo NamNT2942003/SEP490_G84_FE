@@ -130,10 +130,10 @@ const RoomCard = ({ room, onBooking, onViewDetail, isPricing = false }) => {
                     <div className="rc-info">
                         <div className="rc-name">{room.name}</div>
                         <div className="rc-tags">
-                            <span className="rc-tag"><i className="bi bi-people-fill" /> Max {room.maxAdult + (room.maxChildren || 0)} guests</span>
+                            <span className="rc-tag"><i className="bi bi-person-fill" /> Max {room.maxAdult} adult{room.maxAdult > 1 ? 's' : ''}</span>
+                            {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile" /> + {room.maxChildren} child{room.maxChildren > 1 ? 'ren' : ''}</span>}
                             <span className="rc-tag"><i className="bi bi-arrows-fullscreen" /> {room.area} m²</span>
-                            <span className="rc-tag"><i className="bi bi-person-fill" /> Adults: {room.maxAdult}</span>
-                            {room.maxChildren > 0 && <span className="rc-tag"><i className="bi bi-emoji-smile" /> Children: {room.maxChildren}</span>}
+                            {room.bedType && <span className="rc-tag"><i className="bi bi-lamp" /> {room.bedType}{room.bedCount > 1 ? ` ×${room.bedCount}` : ''}</span>}
                         </div>
                         <div className="rc-desc">{room.description}</div>
 

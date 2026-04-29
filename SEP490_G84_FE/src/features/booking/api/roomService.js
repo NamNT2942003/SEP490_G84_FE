@@ -6,6 +6,7 @@ const DEFAULT_SEARCH_PARAMS = {
     branchId: 1,
     adults: 1,
     children: 0,
+    roomCount: 1,
     sortPrice: "priceAsc",
     strictRateConditionMatching: false,
     page: 0,
@@ -21,6 +22,8 @@ const normalizeSearchParams = (params = {}) => {
     const queryParams = new URLSearchParams();
     Object.entries(merged).forEach(([key, value]) => {
         if (value === undefined || value === null || value === "") return;
+        // Skip derived fields that backend doesn't need directly
+        if (key === "effectiveAdults") return;
         if (Array.isArray(value)) {
             value.forEach((v) => queryParams.append(key, v));
             return;

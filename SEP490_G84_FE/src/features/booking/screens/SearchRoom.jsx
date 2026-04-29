@@ -309,11 +309,18 @@ const SearchRoom = () => {
             const cartTotalRooms = selectedCartRef.current.reduce(
                 (sum, r) => sum + (Number(r?.quantity) || 1), 0
             );
+            // Use per-room values from SearchForm for capacity filtering
+            const searchRoomCount = Number(searchParams?.roomCount) || 1;
             const apiParams = {
                 ...searchParams,
                 ...filters,
+                // Send per-room adults/children for capacity filtering (backend WHERE clause)
+                adults: searchParams?.adultsPerRoom ?? searchParams?.adults ?? 1,
+                children: searchParams?.childrenPerRoom ?? searchParams?.children ?? 0,
                 policy: selectedPolicyId ?? null,
-                totalRooms: cartTotalRooms > 0 ? cartTotalRooms : 1,
+                // totalRooms for OCCUPANCY pricing modifier = max(search roomCount, cart total)
+                totalRooms: Math.max(searchRoomCount, cartTotalRooms > 0 ? cartTotalRooms : 1),
+                roomCount: searchRoomCount,
             };
 
             // Luôn gửi email khi có → đảm bảo room cards hiển đúng giá sau khi email modifier được apply.
@@ -355,11 +362,17 @@ const SearchRoom = () => {
         const roomTypeIds = [...new Set(currentCart.map((room) => room?.roomTypeId).filter(Boolean))];
         if (roomTypeIds.length === 0) { setIsPricing(false); return; }
 
+        const searchRoomCount = Number(searchParams?.roomCount) || 1;
+        const cartTotalRooms = currentCart.reduce((sum, room) => sum + (Number(room?.quantity) || 1), 0);
         const apiParams = {
             ...searchParams,
             branchId: filters.branchId,
             roomTypeIds,
-            totalRooms: currentCart.reduce((sum, room) => sum + (Number(room?.quantity) || 1), 0),
+            // Send per-room adults/children for capacity filtering
+            adults: searchParams?.adultsPerRoom ?? searchParams?.adults ?? 1,
+            children: searchParams?.childrenPerRoom ?? searchParams?.children ?? 0,
+            totalRooms: Math.max(searchRoomCount, cartTotalRooms > 0 ? cartTotalRooms : 1),
+            roomCount: searchRoomCount,
             page: 0,
             size: Math.max(roomTypeIds.length, 10),
             sortPrice: filters.sortPrice,
@@ -499,6 +512,9 @@ const SearchRoom = () => {
                 prefillEmail: customerHistoryEmail.trim() || undefined,
                 appliedPolicyId: selectedPolicyId,
                 policy: selectedPolicyId ?? null,
+                roomCount: searchParams?.roomCount || 1,
+                childrenAges: searchParams?.childrenAges || [],
+                effectiveAdults: searchParams?.effectiveAdults || searchParams?.adults || 1,
             }
         });
     };
@@ -526,7 +542,7 @@ const SearchRoom = () => {
         const fmtYmd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         const now = new Date(); now.setHours(0, 0, 0, 0);
         const tom = new Date(now); tom.setDate(now.getDate() + 1);
-        searchRooms({ checkIn: fmtYmd(now), checkOut: fmtYmd(tom), adults: 1, children: 0 });
+        searchRooms({ checkIn: fmtYmd(now), checkOut: fmtYmd(tom), adults: 1, children: 0, roomCount: 1, childrenAges: [], effectiveAdults: 1, adultsPerRoom: 1, childrenPerRoom: 0 });
     }, [hasRestoredSearch, isInitialized, searchParams, searchRooms]);
 
     useEffect(() => {
