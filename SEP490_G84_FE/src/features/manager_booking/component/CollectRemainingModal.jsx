@@ -27,7 +27,7 @@ export default function CollectRemainingModal({ show, onClose, booking, onSucces
 
   if (!show || !booking) return null;
 
-  const totalAmount  = Number(booking.totalAmount || 0);
+  const totalAmount  = Number(booking.roomAmount || booking.totalAmount || 0);
   const prepaidAmount = Number(booking.prepaidAmount || 0);
   // If it's a debt row, use roomDebtAmount directly; otherwise calculate from prepaidAmount
   const amountDue    = booking.roomDebtAmount != null 
