@@ -285,27 +285,47 @@ export default function GuestBookingHistoryPage() {
                                                             <div style={S.requestHint}>Cancellation request pending review</div>
                                                         </div>
                                                     )}
-                                                    {!b.cancelRequested && b.status !== "CANCELLED" && (
-                                                        <div style={S.bookingActions}>
-                                                            {b.source !== "OTA" && !["CHECKED_IN", "CHECKED_OUT"].includes(b.status) && (
+                                                    {!b.cancelRequested && b.status !== "CANCELLED" && (() => {
+                                                        const isExternal = b.source && !["FRONT_END", "STAFF"].includes(b.source.toUpperCase());
+                                                        const isActionable = !["CHECKED_IN", "CHECKED_OUT"].includes(b.status);
+                                                        return isExternal ? (
+                                                            isActionable && (
+                                                                <div style={{
+                                                                    display: "flex", justifyContent: "flex-end", marginTop: 8,
+                                                                }}>
+                                                                    <div style={{
+                                                                        display: "inline-flex", alignItems: "center", gap: 6,
+                                                                        background: C.amberDim, border: `1px solid rgba(183,121,31,0.25)`,
+                                                                        borderRadius: 999, padding: "6px 14px",
+                                                                        fontSize: 11, fontWeight: 600, color: C.amber,
+                                                                    }}>
+                                                                        <span>⚠</span>
+                                                                        <span>Booked via <strong>{b.source}</strong> — contact the channel to cancel or modify</span>
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        ) : (
+                                                            <div style={S.bookingActions}>
+                                                                {isActionable && (
+                                                                    <button
+                                                                        type="button"
+                                                                        style={{ ...S.requestBtn, borderColor: C.primary, color: C.primary, marginRight: 8 }}
+                                                                        onClick={() => setAmendingBooking(b)}
+                                                                    >
+                                                                        Edit booking
+                                                                    </button>
+                                                                )}
                                                                 <button
                                                                     type="button"
-                                                                    style={{ ...S.requestBtn, borderColor: C.primary, color: C.primary, marginRight: 8 }}
-                                                                    onClick={() => setAmendingBooking(b)}
+                                                                    style={S.requestBtn}
+                                                                    onClick={() => handleRequestCancel(b)}
+                                                                    disabled={requestingBookingCode === b.bookingCode}
                                                                 >
-                                                                    Edit booking
+                                                                    {requestingBookingCode === b.bookingCode ? "Sending..." : "Request cancel"}
                                                                 </button>
-                                                            )}
-                                                            <button
-                                                                type="button"
-                                                                style={S.requestBtn}
-                                                                onClick={() => handleRequestCancel(b)}
-                                                                disabled={requestingBookingCode === b.bookingCode}
-                                                            >
-                                                                {requestingBookingCode === b.bookingCode ? "Sending..." : "Request cancel"}
-                                                            </button>
-                                                        </div>
-                                                    )}
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
                                         ))}
