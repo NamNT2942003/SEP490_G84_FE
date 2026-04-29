@@ -471,6 +471,8 @@ const GuestInformation = () => {
     // trước khi API trả về (set false khi refreshRoomsByEmail xong).
     const [isRepricing, setIsRepricing] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Booking Review Modal state
+    const [showReviewModal, setShowReviewModal] = useState(false);
     // OTP Modal state
     const [showOtpModal, setShowOtpModal] = useState(false);
     const [otpValue, setOtpValue] = useState('');
@@ -922,6 +924,22 @@ const GuestInformation = () => {
                 return;
             }
 
+            // Show Booking Review modal for confirmation
+            setShowReviewModal(true);
+
+        } catch (error) {
+            console.error('Validation Error:', error);
+            Swal.fire({ icon: 'error', title: 'Error', text: error?.message || 'An unexpected error occurred.', confirmButtonColor: '#d33' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Called when user confirms booking in the Review modal → sends OTP
+    const handleReviewConfirm = async () => {
+        setShowReviewModal(false);
+        setIsSubmitting(true);
+        try {
             // Send OTP then open the React modal
             Swal.fire({
                 title: 'Sending Verification Code...',
@@ -1496,6 +1514,167 @@ const GuestInformation = () => {
                     </button>
                 </div>
             </footer>
+
+            {/* ═══ Booking Review Confirmation Modal ═══ */}
+            {showReviewModal && (
+                <div
+                    style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 9998,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        animation: 'fadeIn 0.2s ease',
+                    }}
+                    onClick={(e) => { if (e.target === e.currentTarget) setShowReviewModal(false); }}
+                >
+                    <div style={{
+                        background: '#fff', borderRadius: 20, width: '95%', maxWidth: 600,
+                        maxHeight: '90vh', overflow: 'auto',
+                        boxShadow: '0 24px 60px rgba(0,0,0,0.25)', padding: '0',
+                        animation: 'slideUp 0.3s ease',
+                    }}>
+                        {/* Header */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #465c47, #384a39)', color: '#fff',
+                            padding: '24px 28px', borderRadius: '20px 20px 0 0',
+                            display: 'flex', alignItems: 'center', gap: 12,
+                        }}>
+                            <i className="bi bi-clipboard-check" style={{ fontSize: 28 }} />
+                            <div>
+                                <div style={{ fontWeight: 800, fontSize: 18 }}>Review Your Booking</div>
+                                <div style={{ fontSize: 12, opacity: 0.85 }}>Please confirm all details before proceeding</div>
+                            </div>
+                        </div>
+
+                        <div style={{ padding: '20px 28px 28px' }}>
+                            {/* Guest Information */}
+                            <div style={{ marginBottom: 20 }}>
+                                <div style={{ fontWeight: 700, fontSize: 14, color: '#374151', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <i className="bi bi-person-fill" style={{ color: '#5C6F4E' }} /> Guest Information
+                                </div>
+                                <div style={{ background: '#f9fafb', borderRadius: 12, padding: '14px 16px', border: '1px solid #e5e7eb' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px', fontSize: 13 }}>
+                                        <div><span style={{ color: '#6b7280' }}>Full Name:</span> <strong>{formData.fullName}</strong></div>
+                                        <div><span style={{ color: '#6b7280' }}>Phone:</span> <strong>{formData.phone}</strong></div>
+                                        <div style={{ gridColumn: '1 / -1' }}><span style={{ color: '#6b7280' }}>Email:</span> <strong>{formData.email}</strong></div>
+                                        {formData.estimatedArrivalTime && (
+                                            <div><span style={{ color: '#6b7280' }}>Arrival:</span> <strong>{formData.estimatedArrivalTime}</strong></div>
+                                        )}
+                                        {formData.specialRequests && (
+                                            <div style={{ gridColumn: '1 / -1' }}><span style={{ color: '#6b7280' }}>Special Requests:</span> <em>{formData.specialRequests}</em></div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Stay Details */}
+                            <div style={{ marginBottom: 20 }}>
+                                <div style={{ fontWeight: 700, fontSize: 14, color: '#374151', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <i className="bi bi-calendar-event" style={{ color: '#5C6F4E' }} /> Stay Details
+                                </div>
+                                <div style={{ background: '#f9fafb', borderRadius: 12, padding: '14px 16px', border: '1px solid #e5e7eb' }}>
+                                    <div style={{ display: 'flex', gap: 20, fontSize: 13, flexWrap: 'wrap' }}>
+                                        <div><span style={{ color: '#6b7280' }}>Check-in:</span> <strong>{checkIn}</strong></div>
+                                        <div><span style={{ color: '#6b7280' }}>Check-out:</span> <strong>{checkOut}</strong></div>
+                                        <div><span style={{ color: '#6b7280' }}>Nights:</span> <strong>{(() => {
+                                            if (!checkIn || !checkOut) return 0;
+                                            return Math.max(0, Math.round((new Date(checkOut) - new Date(checkIn)) / 864e5));
+                                        })()}</strong></div>
+                                        <div><span style={{ color: '#6b7280' }}>Branch:</span> <strong>{branchName}</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Room Details */}
+                            <div style={{ marginBottom: 20 }}>
+                                <div style={{ fontWeight: 700, fontSize: 14, color: '#374151', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <i className="bi bi-door-open" style={{ color: '#5C6F4E' }} /> Rooms ({rooms.reduce((s, r) => s + (Number(r?.quantity) || 1), 0)} room{rooms.reduce((s, r) => s + (Number(r?.quantity) || 1), 0) > 1 ? 's' : ''})
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {rooms.map((room, idx) => {
+                                        const qty = Number(room?.quantity) || 1;
+                                        const unitPrice = calculateRoomUnitPrice(room, selectedPolicyId);
+                                        return (
+                                            <div key={idx} style={{
+                                                background: '#f9fafb', borderRadius: 12, padding: '12px 16px',
+                                                border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            }}>
+                                                <div>
+                                                    <div style={{ fontWeight: 700, fontSize: 14, color: '#1f2937' }}>{room.name}</div>
+                                                    <div style={{ fontSize: 12, color: '#6b7280' }}>
+                                                        {qty > 1 ? `${qty} rooms × ` : ''}{formatVND(unitPrice)} / night
+                                                    </div>
+                                                </div>
+                                                <div style={{ fontWeight: 800, fontSize: 15, color: '#465c47' }}>
+                                                    {formatVND(unitPrice * qty)}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Cancellation Policy */}
+                            {selectedPolicy && (
+                                <div style={{ marginBottom: 20 }}>
+                                    <div style={{ fontWeight: 700, fontSize: 14, color: '#374151', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <i className="bi bi-shield-check" style={{ color: '#5C6F4E' }} /> Cancellation Policy
+                                    </div>
+                                    <div style={{ background: '#f0f4ec', borderRadius: 12, padding: '12px 16px', border: '1px solid #d4dcc8', fontSize: 13 }}>
+                                        <strong>{selectedPolicy.name || selectedPolicy.policyName}</strong>
+                                        {selectedPolicy.prepaidRate != null && (
+                                            <span style={{ color: '#6b7280', marginLeft: 8 }}>({safeNumber(selectedPolicy.prepaidRate, 100)}% prepaid)</span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Total */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, #f0f4ec, #e8ede4)', borderRadius: 14,
+                                padding: '16px 20px', border: '1px solid #c8d4b8',
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20,
+                            }}>
+                                <div>
+                                    <div style={{ fontWeight: 800, fontSize: 15, color: '#374151' }}>Total Booking</div>
+                                    {selectedPolicy && depositRate < 100 && (
+                                        <div style={{ fontSize: 12, color: '#6b7280' }}>Prepaid: {formatVND(depositAmount)} ({depositRate}%)</div>
+                                    )}
+                                </div>
+                                <div style={{ fontWeight: 900, fontSize: 22, color: '#465c47' }}>
+                                    {formatVND(finalBookingAmount)}
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div style={{ display: 'flex', gap: 12 }}>
+                                <button
+                                    onClick={() => setShowReviewModal(false)}
+                                    style={{
+                                        flex: 1, padding: '12px', border: '2px solid #e5e7eb', borderRadius: 12,
+                                        background: '#fff', color: '#374151', fontWeight: 700, fontSize: 14,
+                                        cursor: 'pointer', transition: 'all 0.2s',
+                                    }}
+                                >
+                                    <i className="bi bi-arrow-left me-2" />Go Back
+                                </button>
+                                <button
+                                    onClick={handleReviewConfirm}
+                                    disabled={isSubmitting}
+                                    style={{
+                                        flex: 2, padding: '12px', border: 'none', borderRadius: 12,
+                                        background: 'linear-gradient(135deg, #465c47, #384a39)', color: '#fff',
+                                        fontWeight: 700, fontSize: 14, cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                                        opacity: isSubmitting ? 0.6 : 1, transition: 'all 0.2s',
+                                        boxShadow: '0 4px 14px rgba(92,111,78,0.3)',
+                                    }}
+                                >
+                                    <i className="bi bi-shield-lock-fill me-2" />Confirm & Verify Email
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* OTP Verification Modal */}
             {showOtpModal && (
