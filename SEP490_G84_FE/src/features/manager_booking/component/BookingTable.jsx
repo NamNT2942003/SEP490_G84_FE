@@ -34,7 +34,7 @@ function sourceTag(source) {
   const s = source.toLowerCase();
   if (s.includes('booking.com') || s.includes('ota')) return { label: 'Booking.com', bg: '#003580', color: '#fff' };
   if (s.includes('agoda')) return { label: 'Agoda', bg: '#e31837', color: '#fff' };
-  if (s.includes('front_end') || s.includes('direct') || s.includes('internal') || s.includes('nội bộ'))
+  if (s.includes('front_end') || s.includes('direct') || s.includes('internal'))
     return { label: 'Direct', bg: '#e8f5e9', color: '#2e7d32' };
   return { label: source, bg: '#eeeeee', color: '#444' };
 }
