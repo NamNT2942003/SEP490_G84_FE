@@ -99,15 +99,26 @@ const paymentTypeLabel = (value) => {
 const formatVnd = (amount) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount || 0);
 
 /**
- * Tính ngày hạn huỷ miễn phí: arrivalDate - dateRange (ngày).
+ * Compute free cancellation deadline: arrivalDate - dateRange (days).
+ * dateRange is a string number of days (e.g. "3") or null.
+ * dateRange=0 means free cancel on check-in day itself.
+ *
+ * When the computed deadline falls before today (booking creation day),
+ * clamp it to today so the guest always sees a valid free-cancel window.
+ * This matches the backend logic that clamps to booking.createdAt.
  */
 const computeFreeCancelDeadline = (arrivalDate, dateRange) => {
-    if (!arrivalDate || !dateRange) return null;
+    if (!arrivalDate || dateRange == null) return null;
     const days = parseInt(dateRange, 10);
-    if (!Number.isFinite(days) || days <= 0) return null;
+    if (!Number.isFinite(days) || days < 0) return null;
     const dt = new Date(arrivalDate);
     if (isNaN(dt.getTime())) return null;
     dt.setDate(dt.getDate() - days);
+    // Clamp: deadline must not be before today (booking creation day)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dt.setHours(0, 0, 0, 0);
+    if (dt < today) return today;
     return dt;
 };
 

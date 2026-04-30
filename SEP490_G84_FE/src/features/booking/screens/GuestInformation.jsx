@@ -94,6 +94,10 @@ const normalizePolicyId = (policy) => policy?.id ?? policy?.policyId ?? null;
  * Compute free cancellation deadline: checkIn - dateRange (days).
  * dateRange is a string number of days (e.g. "3") or null.
  * dateRange=0 means free cancel on check-in day itself.
+ *
+ * When the computed deadline falls before today (booking creation day),
+ * clamp it to today so the guest always sees a valid free-cancel window.
+ * This matches the backend logic that clamps to booking.createdAt.
  */
 const computeFreeCancelDeadline = (checkIn, dateRange) => {
     if (!checkIn || dateRange == null) return null;
@@ -102,6 +106,11 @@ const computeFreeCancelDeadline = (checkIn, dateRange) => {
     const dt = new Date(checkIn);
     if (isNaN(dt.getTime())) return null;
     dt.setDate(dt.getDate() - days);
+    // Clamp: deadline must not be before today (booking creation day)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dt.setHours(0, 0, 0, 0);
+    if (dt < today) return today;
     return dt;
 };
 
