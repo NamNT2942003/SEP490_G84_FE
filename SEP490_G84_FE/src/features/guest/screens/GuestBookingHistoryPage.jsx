@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { guest } from "../api/guestService.js";
 import BookingCard from "../components/BookingCard.jsx";
-import GuestAmendmentModal from "../components/GuestAmendmentModal.jsx";
+
 import { Link } from "react-router-dom";
 import { COLORS } from "../../../constants";
 import Swal from "sweetalert2";
@@ -101,7 +101,7 @@ export default function GuestBookingHistoryPage() {
     const [activeTab, setActiveTab]   = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const [requestingBookingCode, setRequestingBookingCode] = useState("");
-    const [amendingBooking, setAmendingBooking] = useState(null);
+    const [requestingAmendCode, setRequestingAmendCode] = useState("");
 
     const fetchBookings = async () => {
         try {
@@ -171,6 +171,48 @@ export default function GuestBookingHistoryPage() {
             });
         } finally {
             setRequestingBookingCode("");
+        }
+    };
+
+    const handleRequestAmendment = async (booking) => {
+        if (!booking?.bookingCode || !token) return;
+
+        const { value: note } = await Swal.fire({
+            title: "Request booking amendment",
+            html: `<p style="text-align:left;font-size:14px;color:#555;margin-bottom:12px">Describe the changes you'd like to make to your booking <strong>${booking.bookingCode}</strong>:</p>`,
+            input: "textarea",
+            inputPlaceholder: "e.g. I'd like to change to a Deluxe room, or add one more night...",
+            inputAttributes: { "aria-label": "Amendment note", style: "min-height:100px" },
+            showCancelButton: true,
+            confirmButtonText: "Send request",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: C.primary,
+            cancelButtonColor: "#6b7280",
+            inputValidator: (value) => {
+                if (!value || !value.trim()) return "Please describe the changes you want.";
+            },
+        });
+
+        if (!note) return;
+
+        try {
+            setRequestingAmendCode(booking.bookingCode);
+            await guest.requestAmendment(token, booking.bookingCode, note.trim());
+            const refreshed = await guest.getBookingsByToken(token);
+            setBookings(refreshed);
+            setPageStatus(refreshed.length === 0 ? "empty" : "success");
+            await Swal.fire({
+                icon: "success",
+                title: "Request sent!",
+                text: "Our staff will review and process your amendment request shortly.",
+                timer: 2000,
+                showConfirmButton: false,
+            });
+        } catch (err) {
+            const msg = err.response?.data?.error || err.response?.data?.message || "Please try again later.";
+            await Swal.fire({ icon: "error", title: "Unable to send request", text: msg });
+        } finally {
+            setRequestingAmendCode("");
         }
     };
 
@@ -280,6 +322,13 @@ export default function GuestBookingHistoryPage() {
                                             <div key={b.bookingCode} style={{ animation: `fadeUp .4s ${i * 0.06}s ease both`, opacity: 0 }}>
                                                 <div>
                                                     <BookingCard booking={b} />
+                                                        {b.amendmentRequested && (
+                                                            <div style={S.requestHintWrap}>
+                                                                <div style={{ ...S.requestHint, background: "rgba(13,110,253,0.08)", color: "#0d6efd", borderColor: "rgba(13,110,253,0.2)" }}>
+                                                                    Amendment request pending review
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     {b.cancelRequested && (
                                                         <div style={S.requestHintWrap}>
                                                             <div style={S.requestHint}>Cancellation request pending review</div>
@@ -310,9 +359,10 @@ export default function GuestBookingHistoryPage() {
                                                                     <button
                                                                         type="button"
                                                                         style={{ ...S.requestBtn, borderColor: C.primary, color: C.primary, marginRight: 8 }}
-                                                                        onClick={() => setAmendingBooking(b)}
+                                                                        onClick={() => handleRequestAmendment(b)}
+                                                                        disabled={requestingAmendCode === b.bookingCode}
                                                                     >
-                                                                        Edit booking
+                                                                        {requestingAmendCode === b.bookingCode ? "Sending..." : "Request amendment"}
                                                                     </button>
                                                                 )}
                                                                 <button
@@ -358,19 +408,6 @@ export default function GuestBookingHistoryPage() {
                 </div>
             </div>
 
-            {/* Guest Amendment Modal */}
-            {amendingBooking && (
-                <GuestAmendmentModal
-                    show={true}
-                    booking={amendingBooking}
-                    token={token}
-                    onHide={() => setAmendingBooking(null)}
-                    onSuccess={() => {
-                        setAmendingBooking(null);
-                        fetchBookings();
-                    }}
-                />
-            )}
         </>
     );
 }

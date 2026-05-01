@@ -53,20 +53,14 @@ export const guest = {
     },
 
     /**
-     * Preview chi tiết hủy/hoàn cho guest amendment.
+     * Guest sends an amendment request (note only) — staff will process it.
+     * @param {string} token
+     * @param {string} bookingCode
+     * @param {string} note - Description of the requested changes
      */
-    previewAmendment: async (token, bookingCode, payload) => {
-        const endpoint = API_ENDPOINTS.GUEST.AMENDMENT_PREVIEW.replace(":bookingCode", encodeURIComponent(bookingCode));
-        const response = await apiClient.post(`${endpoint}?token=${encodeURIComponent(token)}`, payload);
-        return response.data;
-    },
-
-    /**
-     * Xác nhận và áp dụng amendment.
-     */
-    applyAmendment: async (token, bookingCode, payload) => {
-        const endpoint = API_ENDPOINTS.GUEST.AMENDMENT_APPLY.replace(":bookingCode", encodeURIComponent(bookingCode));
-        const response = await apiClient.post(`${endpoint}?token=${encodeURIComponent(token)}`, payload);
+    requestAmendment: async (token, bookingCode, note) => {
+        const endpoint = API_ENDPOINTS.GUEST.AMENDMENT_REQUEST.replace(":bookingCode", encodeURIComponent(bookingCode));
+        const response = await apiClient.post(`${endpoint}?token=${encodeURIComponent(token)}`, { note });
         return response.data;
     },
 };

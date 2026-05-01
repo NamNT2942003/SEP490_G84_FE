@@ -51,7 +51,6 @@ export const API_ENDPOINTS = {
     BOOKINGS: "/guest/bookings",
     REQUEST_CANCEL: "/guest/bookings/:bookingCode/request-cancel",
     SEND_BOOKING_OTP: "/guest/booking-otp/send",
-    AMENDMENT_PREVIEW: "/guest/bookings/:bookingCode/amendments/preview",
-    AMENDMENT_APPLY: "/guest/bookings/:bookingCode/amendments",
+    AMENDMENT_REQUEST: "/guest/bookings/:bookingCode/amendment-request",
   },
 };

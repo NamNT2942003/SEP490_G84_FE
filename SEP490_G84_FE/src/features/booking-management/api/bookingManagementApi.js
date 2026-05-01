@@ -30,6 +30,7 @@ const normalizeBooking = (item = {}) => {
         checkOutDate: item.checkOutDate || item.departure_date || item.departureDate || "",
         createdAt: item.createdAt || item.createdDate || item.bookingDate || "",
         cancelRequested: Boolean(item.cancelRequested),
+        amendmentRequested: Boolean(item.amendmentRequested),
         status,
         source,
         raw: item,
@@ -137,6 +138,12 @@ const bookingManagementApi = {
 
     getCancelRequests: async () => {
         const response = await apiClient.get(`${ADMIN_BOOKING_BASE}/cancel-requests`);
+        const data = response.data;
+        return Array.isArray(data) ? data.map(normalizeBooking) : [];
+    },
+
+    getAmendmentRequests: async () => {
+        const response = await apiClient.get(`${ADMIN_BOOKING_BASE}/amendment-requests`);
         const data = response.data;
         return Array.isArray(data) ? data.map(normalizeBooking) : [];
     },

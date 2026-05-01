@@ -3,6 +3,7 @@ import bookingManagementApi from "../api/bookingManagementApi";
 import BookingDetailModal from "../components/BookingDetailModal";
 import CreateBookingByStaffModal from "../components/CreateBookingByStaffModal";
 import CancelRequestsModal from "../components/CancelRequestsModal";
+import AmendmentRequestsModal from "../components/AmendmentRequestsModal";
 import CancelBookingModal from "../components/CancelBookingModal";
 import "./BookingManagement.css";
 import Buttons from "@/components/ui/Buttons";
@@ -27,6 +28,7 @@ const STAT_CARDS = [
     { key: "pending",   label: "Pending",   icon: "bi-clock-history",color: "#997404", bg: "rgba(255,193,7,0.14)" },
     { key: "cancelled", label: "Cancelled", icon: "bi-x-circle",     color: "#b02a37", bg: "rgba(220,53,69,0.10)" },
     { key: "cancelRequested", label: "Cancel Requests", icon: "bi-bell-fill", color: "#b02a37", bg: "rgba(220,53,69,0.12)" },
+    { key: "amendmentRequested", label: "Amendment Requests", icon: "bi-pencil-square", color: "#0d6efd", bg: "rgba(13,110,253,0.12)" },
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -109,11 +111,13 @@ export default function BookingManagement() {
     const [branches, setBranches] = useState([]);
     const [cancelRequests, setCancelRequests] = useState([]);
     const [showCancelRequests, setShowCancelRequests] = useState(false);
+    const [amendmentRequests, setAmendmentRequests] = useState([]);
+    const [showAmendmentRequests, setShowAmendmentRequests] = useState(false);
 
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
-    const [stats, setStats] = useState({ total: 0, confirmed: 0, pending: 0, cancelled: 0, cancelRequested: 0 });
+    const [stats, setStats] = useState({ total: 0, confirmed: 0, pending: 0, cancelled: 0, cancelRequested: 0, amendmentRequested: 0 });
 
     const [selectedBookingId, setSelectedBookingId] = useState(null);
     const [showDetail, setShowDetail] = useState(false);
@@ -121,6 +125,7 @@ export default function BookingManagement() {
     const [cancelBookingId, setCancelBookingId] = useState(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const prevCancelRequestCountRef = useRef(null);
+    const prevAmendmentRequestCountRef = useRef(null);
 
     const branchOptions = useMemo(
         () => [...branches].sort((a, b) => String(a.branchName || "").localeCompare(String(b.branchName || ""))),
@@ -223,16 +228,35 @@ export default function BookingManagement() {
         }
     }, [playNotificationSound]);
 
+    const fetchAmendmentRequests = useCallback(async () => {
+        try {
+            const data = await bookingManagementApi.getAmendmentRequests();
+            setAmendmentRequests(data || []);
+
+            const nextCount = (data || []).length;
+            if (prevAmendmentRequestCountRef.current !== null && nextCount > prevAmendmentRequestCountRef.current) {
+                playNotificationSound();
+            }
+            prevAmendmentRequestCountRef.current = nextCount;
+            setStats((prev) => ({ ...prev, amendmentRequested: nextCount }));
+        } catch (err) {
+            console.warn("Failed to load amendment requests", err);
+            setAmendmentRequests([]);
+        }
+    }, [playNotificationSound]);
+
     useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
     useEffect(() => {
         fetchCancelRequests();
+        fetchAmendmentRequests();
         const timer = window.setInterval(() => {
             fetchBookings();
             fetchCancelRequests();
+            fetchAmendmentRequests();
         }, 30000);
         return () => window.clearInterval(timer);
-    }, [fetchBookings, fetchCancelRequests]);
+    }, [fetchBookings, fetchCancelRequests, fetchAmendmentRequests]);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -418,8 +442,12 @@ export default function BookingManagement() {
                         card={card}
                         value={stats[card.key] || 0}
                         loading={loading}
-                        isClickable={card.key === "cancelRequested"}
-                        onClick={card.key === "cancelRequested" ? () => setShowCancelRequests(true) : undefined}
+                        isClickable={card.key === "cancelRequested" || card.key === "amendmentRequested"}
+                        onClick={
+                            card.key === "cancelRequested" ? () => setShowCancelRequests(true)
+                            : card.key === "amendmentRequested" ? () => setShowAmendmentRequests(true)
+                            : undefined
+                        }
                     />
                 ))}
             </div>
@@ -560,7 +588,7 @@ export default function BookingManagement() {
                                     return (
                                     <tr
                                         key={booking.bookingId}
-                                        className={`booking-row ${booking.cancelRequested ? "booking-row-cancel-requested" : ""}`}
+                                        className={`booking-row ${booking.cancelRequested ? "booking-row-cancel-requested" : ""} ${booking.amendmentRequested ? "booking-row-amendment-requested" : ""}`}
                                     >
                                         <td className="ps-4">
                                             <div className="booking-code-line">
@@ -572,12 +600,20 @@ export default function BookingManagement() {
                                                         Request cancel
                                                     </span>
                                                 )}
+                                                {booking.amendmentRequested && (
+                                                    <span className="cancel-request-chip" style={{ background: "rgba(13,110,253,0.12)", color: "#0d6efd" }}>
+                                                        Amendment request
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="text-muted" style={{ fontSize: "0.75rem" }}>
                                                 {formatDate(booking.createdAt)}
                                             </div>
                                             {booking.cancelRequested && (
                                                 <div className="cancel-request-note">Guest is waiting for cancellation review.</div>
+                                            )}
+                                            {booking.amendmentRequested && (
+                                                <div className="cancel-request-note" style={{ color: "#0d6efd" }}>Guest requested a booking amendment.</div>
                                             )}
                                         </td>
                                         <td>
@@ -697,6 +733,16 @@ export default function BookingManagement() {
                 onCancelBooking={(bookingId) => {
                     setShowCancelRequests(false);
                     openCancelModal(bookingId);
+                }}
+            />
+
+            <AmendmentRequestsModal
+                show={showAmendmentRequests}
+                requests={amendmentRequests}
+                onClose={() => setShowAmendmentRequests(false)}
+                onOpenAmendment={(bookingId) => {
+                    setShowAmendmentRequests(false);
+                    openDetail(bookingId);
                 }}
             />
         </div>
