@@ -30,7 +30,7 @@ const TimelineItem = ({ title, date, user, badgeColor, children }) => (
             </div>
             {user && (
                 <div style={{ fontSize: "0.85rem", color: "#6c757d", marginBottom: "0.5rem" }}>
-                    Bởi: {user}
+                    By: {user}
                 </div>
             )}
             <div style={{ fontSize: "0.9rem" }}>
@@ -53,7 +53,7 @@ export default function BookingAmendmentHistory({ bookingId }) {
                 const data = await bookingManagementApi.getAmendmentHistory(bookingId);
                 setHistory(data);
             } catch (err) {
-                setError(err?.response?.data?.error || "Lỗi tải lịch sử");
+                setError(err?.response?.data?.error || "Failed to load history");
             } finally {
                 setLoading(false);
             }
@@ -62,7 +62,7 @@ export default function BookingAmendmentHistory({ bookingId }) {
     }, [bookingId]);
 
     if (loading) {
-        return <div className="text-center p-3"><span className="spinner-border spinner-border-sm me-2"/>Đang tải...</div>;
+        return <div className="text-center p-3"><span className="spinner-border spinner-border-sm me-2"/>Loading...</div>;
     }
 
     if (error) {
@@ -70,27 +70,27 @@ export default function BookingAmendmentHistory({ bookingId }) {
     }
 
     if (!history || (!history.primalSnapshot && (!history.amendments || history.amendments.length === 0))) {
-        return <div className="text-center text-muted p-3">Chưa có lịch sử sửa đổi.</div>;
+        return <div className="text-center text-muted p-3">No amendment history available.</div>;
     }
 
     return (
         <div className="amendment-history-container mt-3 pt-3 border-top">
-            <h6 className="fw-bold mb-3">Lịch Sử Thay Đổi:</h6>
+            <h6 className="fw-bold mb-3">Amendment History:</h6>
             
             <div className="timeline">
                 {/* 1. Trạng thái gốc */}
                 {history.primalSnapshot && (
                     <TimelineItem
-                        title="Trạng thái Booking Gốc"
+                        title="Original Booking"
                         date={history.primalSnapshot.createdAt}
                         badgeColor="#6c757d"
                     >
                         <div>
-                            Tổng tiền: <strong>{formatVND(history.primalSnapshot.totalAmount)}</strong>
+                            Total: <strong>{formatVND(history.primalSnapshot.totalAmount)}</strong>
                         </div>
                         <ul className="mb-0 mt-1 pl-3" style={{ paddingLeft: "20px" }}>
                             {history.primalSnapshot.details?.map((d, i) => (
-                                <li key={i}>{d.quantity}x {d.roomTypeName} ({formatVND(d.priceAtBooking)}/đêm)</li>
+                                <li key={i}>{d.quantity}x {d.roomTypeName} ({formatVND(d.priceAtBooking)}/night)</li>
                             ))}
                         </ul>
                     </TimelineItem>
@@ -100,33 +100,33 @@ export default function BookingAmendmentHistory({ bookingId }) {
                 {history.amendments?.map((amend, index) => (
                     <TimelineItem
                         key={amend.modifierBookingId}
-                        title={`Sửa đổi #${index + 1}`}
+                        title={`Amendment #${index + 1}`}
                         date={amend.createdAt}
                         user={amend.amendedBy || "System"}
                         badgeColor={amend.deltaTotalAmount > 0 ? "#198754" : (amend.deltaTotalAmount < 0 ? "#dc3545" : "#0d6efd")}
                     >
                         {amend.note && (
-                            <div className="mb-2 fst-italic text-muted">Ghi chú: {amend.note}</div>
+                            <div className="mb-2 fst-italic text-muted">Note: {amend.note}</div>
                         )}
                         <div className="mb-2">
-                            Mức chênh lệch: <strong className={amend.deltaTotalAmount >= 0 ? "text-success" : "text-danger"}>
+                            Price difference: <strong className={amend.deltaTotalAmount >= 0 ? "text-success" : "text-danger"}>
                                 {amend.deltaTotalAmount > 0 ? "+" : ""}{formatVND(amend.deltaTotalAmount)}
                             </strong>
                         </div>
                         {amend.grossReductionAmount > 0 && (
                             <div className="p-2 mb-2 bg-light border rounded">
                                 <small>
-                                    <div><strong>Chi tiết hoàn/phạt ({amend.refundWindow}):</strong></div>
-                                    <div className="text-success">Được hoàn: {formatVND(amend.refundableAmount)}</div>
-                                    <div className="text-danger">Phí phạt (KS giữ): {formatVND(amend.nonRefundableAmount)}</div>
+                                    <div><strong>Refund / Penalty ({amend.refundWindow}):</strong></div>
+                                    <div className="text-success">Refundable: {formatVND(amend.refundableAmount)}</div>
+                                    <div className="text-danger">Penalty (retained): {formatVND(amend.nonRefundableAmount)}</div>
                                 </small>
                             </div>
                         )}
                         <ul className="mb-0 pl-3" style={{ paddingLeft: "20px", fontSize: "0.85rem" }}>
                             {amend.details?.map((d, idx) => (
                                 <li key={idx}>
-                                    {d.deltaQuantity > 0 ? "Thêm" : "Bớt"} <strong>{Math.abs(d.deltaQuantity)}</strong> {d.roomTypeName} 
-                                    ({formatVND(d.priceAtAmendment)}/đêm)
+                                    {d.deltaQuantity > 0 ? "Added" : "Removed"} <strong>{Math.abs(d.deltaQuantity)}</strong> {d.roomTypeName} 
+                                    ({formatVND(d.priceAtAmendment)}/night)
                                 </li>
                             ))}
                         </ul>
