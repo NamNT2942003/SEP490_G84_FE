@@ -633,7 +633,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                           {isSubmitting
                             ? <><span className="spinner-border spinner-border-sm me-2"></span>Processing...</>
                             : allowServiceDebt && amountDue > 0
-                              ? <><i className="bi bi-pencil-square me-2"></i>Checkout & Ghi nợ {fmtMoney(amountDue)} VND</>
+                              ? <><i className="bi bi-pencil-square me-2"></i>Checkout & Record Debt {fmtMoney(amountDue)} VND</>
                               : <><i className="bi bi-check2-all me-2"></i>Confirm Checkout</>
                           }
                         </button>
@@ -653,7 +653,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
                           {isSubmitting
                             ? <><span className="spinner-border spinner-border-sm me-2"></span>Processing...</>
                             : allowServiceDebt && amountDue > 0
-                              ? <><i className="bi bi-pencil-square me-2"></i>Checkout All & Ghi nợ ({pendingRooms.length} rooms)</>
+                              ? <><i className="bi bi-pencil-square me-2"></i>Checkout All & Record Debt ({pendingRooms.length} rooms)</>
                               : <><i className="bi bi-check2-all me-2"></i>Checkout All ({pendingRooms.length} rooms)</>
                           }
                         </button>
