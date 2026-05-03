@@ -23,7 +23,6 @@ const STATUS_CONFIG = {
 };
 
 const STAT_CARDS = [
-    { key: "cancelled", label: "Cancelled", icon: "bi-x-circle",     color: "#b02a37", bg: "rgba(220,53,69,0.10)" },
     { key: "cancelRequested", label: "Cancel Requests", icon: "bi-bell-fill", color: "#b02a37", bg: "rgba(220,53,69,0.12)" },
     { key: "amendmentRequested", label: "Amendment Requests", icon: "bi-pencil-square", color: "#0d6efd", bg: "rgba(13,110,253,0.12)" },
 ];
