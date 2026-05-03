@@ -1494,8 +1494,9 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     const isManuallySelected = Number(manualPolicyId) === Number(pId);
 
                                     // ── Tính policyAdjustedTotal cho policy card ──
-                                    // POLICY adjustment tính trên rate2 (giá sau L1+L2, CHƯA có USER_HISTORY_DISCOUNT).
-                                    // Prepaid/Refund dựa trên tổng giá sau POLICY.
+                                    // POLICY delta tính trên rate2 (giá sau L1+L2, CHƯA có USER_HISTORY_DISCOUNT).
+                                    // Giá cuối cùng = finalPrice (đã có USER_HISTORY_DISCOUNT) + policyDelta.
+                                    // Prepaid/Refund dựa trên tổng giá cuối cùng.
                                     const policyModsForCard = policyModifierMap[pId] || {};
                                     let policyAdjustedTotal = 0;
                                     const selectedCartItems = form.rooms.filter(r => r.roomTypeId && Number(r.quantity) > 0);
@@ -1505,11 +1506,16 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                             .find(o => o.optionCode === room.selectedOptionCode);
                                         const currentFinalPrice = toMoney(opt?.finalPrice || roomTypeById[rtId]?.basePrice || 0);
                                         const modifiers = opt?.modifiers || [];
-                                        // Reverse USER_HISTORY_DISCOUNT để lấy rate2
-                                        const rate2 = reverseUserHistoryDiscount(currentFinalPrice, modifiers);
                                         const pMod = policyModsForCard[room.roomTypeId];
-                                        const adjustedUnit = pMod ? applyPolicyAdjustment(rate2, pMod) : rate2;
-                                        policyAdjustedTotal += adjustedUnit * Number(room.quantity || 0);
+                                        if (pMod) {
+                                            // Reverse USER_HISTORY_DISCOUNT để lấy rate2 → tính POLICY delta trên rate2
+                                            const rate2 = reverseUserHistoryDiscount(currentFinalPrice, modifiers);
+                                            const policyDelta = applyPolicyAdjustment(rate2, pMod) - rate2;
+                                            // Giá cuối cùng = finalPrice (có discount) + policyDelta (tính trên rate2)
+                                            policyAdjustedTotal += (currentFinalPrice + policyDelta) * Number(room.quantity || 0);
+                                        } else {
+                                            policyAdjustedTotal += currentFinalPrice * Number(room.quantity || 0);
+                                        }
                                     });
                                     policyAdjustedTotal = Math.max(0, Math.round(policyAdjustedTotal));
 
@@ -1653,19 +1659,23 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                     const currentFinalPrice = toMoney(option?.finalPrice || roomTypeById[rtId]?.basePrice || 0);
                                                     const qty = Number(room.quantity || 0);
                                                     const modifiers = option?.modifiers || [];
-                                                    // Reverse USER_HISTORY_DISCOUNT để lấy rate2 — giá trước L3
-                                                    const rate2 = reverseUserHistoryDiscount(currentFinalPrice, modifiers);
                                                     const mod = policyMods[room.roomTypeId];
-                                                    // POLICY adjustment tính trên rate2 (không phải finalPrice có discount)
-                                                    const adjustedPrice = mod ? applyPolicyAdjustment(rate2, mod) : rate2;
+                                                    let adjustedPrice = currentFinalPrice;
+                                                    let policyDelta = 0;
+                                                    if (mod) {
+                                                        // POLICY delta tính trên rate2 (giá trước USER_HISTORY_DISCOUNT)
+                                                        const rate2 = reverseUserHistoryDiscount(currentFinalPrice, modifiers);
+                                                        policyDelta = applyPolicyAdjustment(rate2, mod) - rate2;
+                                                        // Giá cuối = finalPrice (có discount) + policyDelta (tính trên rate2)
+                                                        adjustedPrice = currentFinalPrice + policyDelta;
+                                                    }
                                                     const lineTotal = adjustedPrice * qty;
                                                     policyGrandTotal += lineTotal;
-                                                    const delta = adjustedPrice - rate2;
                                                     const pctLabel = mod && String(mod.adjustmentType || "").toUpperCase().startsWith("PERCENT")
                                                         ? `${mod.adjustmentValue > 0 ? "+" : ""}${mod.adjustmentValue}%`
                                                         : mod ? `${mod.adjustmentValue > 0 ? "+" : ""}${formatVnd(mod.adjustmentValue)}` : null;
 
-                                                    return { rtName, qty, rate2, adjustedPrice, lineTotal, delta, pctLabel, hasMod: !!mod };
+                                                    return { rtName, qty, currentFinalPrice, adjustedPrice, lineTotal, delta: policyDelta, pctLabel, hasMod: !!mod };
                                                 });
 
                                                 return (
@@ -1688,7 +1698,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                                     {row.hasMod && row.delta !== 0 ? (
                                                                         <>
                                                                             <span style={{ textDecoration: "line-through", color: "#9ca3af", fontSize: 10, marginRight: 4 }}>
-                                                                                {formatVnd(row.rate2 * row.qty)}
+                                                                                {formatVnd(row.currentFinalPrice * row.qty)}
                                                                             </span>
                                                                             <span style={{ fontWeight: 700, color: "#7c3aed" }}>{formatVnd(row.lineTotal)}</span>
                                                                         </>
