@@ -308,23 +308,7 @@ const PaymentSelection = () => {
                                         </div>
                                     </div>
 
-                                    {hasPolicyBasedPayment && rooms.length > 0 && (
-                                        <div className="mb-4">
-                                            {rooms.map((room, index) => {
-                                                const roomAmount = getPolicyAmountForRoom(room);
-                                                const roomPolicy = getPolicyLabel(getRoomPolicyType(room));
-                                                return (
-                                                    <div key={`${room.roomTypeId || index}-policy`} className="d-flex justify-content-between align-items-center py-2 border-bottom">
-                                                        <div>
-                                                            <div className="fw-semibold">{room.name || `Room ${index + 1}`}</div>
-                                                            <small className="text-muted">{roomPolicy} · Final room amount</small>
-                                                        </div>
-                                                        <div className="fw-bold" style={{ color: '#465c47' }}>{formatCurrency(roomAmount)}</div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
+
 
                                     <div className="mb-4">
                                         {effectiveAmount > 0 ? (
