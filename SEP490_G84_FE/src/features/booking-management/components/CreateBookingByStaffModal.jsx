@@ -3,6 +3,7 @@ import Swal from "sweetalert2";
 import roomTypeManagementApi from "@/features/room-type-management/api/roomTypeManagementApi";
 import { roomService } from "@/features/booking/api/roomService";
 import { cancellationPolicyService } from "@/features/booking/api/cancellationPolicyService";
+import { priceModifierApi } from "@/features/price-modifiers/api/priceModifierApi";
 import { useMyBranches } from "@/hooks/useMyBranches";
 import "./CreateBookingByStaffModal.css";
 
@@ -136,6 +137,23 @@ const resolvePayableRate = (option) => {
     return normalizePaymentType(option.paymentType) === "PAY_AT_HOTEL" ? 0 : 100;
 };
 
+/**
+ * Tính giá sau khi áp dụng POLICY modifier.
+ * @param {number} basePrice - Giá hiện tại (đã có modifiers khác, CHƯA có POLICY)
+ * @param {{ adjustmentType: string, adjustmentValue: number }} policyMod - POLICY modifier info
+ * @returns {number} Giá sau POLICY adjustment (floor 0)
+ */
+const applyPolicyAdjustment = (basePrice, policyMod) => {
+    if (!policyMod || !basePrice) return basePrice || 0;
+    const { adjustmentType, adjustmentValue } = policyMod;
+    const type = String(adjustmentType || "").toUpperCase();
+    if (type === "PERCENT" || type === "PERCENTAGE") {
+        return Math.max(0, basePrice + (basePrice * adjustmentValue) / 100);
+    }
+    // FIXED
+    return Math.max(0, basePrice + adjustmentValue);
+};
+
 export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onSuccess }) {
     const { branches, isLoading: isLoadingBranches } = useMyBranches();
 
@@ -150,6 +168,9 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
     const [loadingPolicies, setLoadingPolicies] = useState(false);
     // manualPolicyId: staff chủ động chọn policy (override auto-resolve từ pricing option)
     const [manualPolicyId, setManualPolicyId] = useState(null);
+    // policyModifierMap: policyId → roomTypeId → { adjustmentType, adjustmentValue, name }
+    // Dùng để policy card tính giá sau khi áp dụng POLICY modifier cho từng room type.
+    const [policyModifierMap, setPolicyModifierMap] = useState({});
     const [form, setForm] = useState(initialFormState);
     const [error, setError] = useState("");
     // policyFetchKey tăng mỗi khi cần force-refetch policy (tránh race condition khi modal mở)
@@ -167,6 +188,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         setAvailablePolicies([]);
         setLoadingPolicies(false);
         setManualPolicyId(null);
+        setPolicyModifierMap({});
         setForm((prev) => ({
             ...initialFormState,
             branchId:
@@ -206,6 +228,50 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             isMounted = false;
         };
     }, [show, form.branchId]);
+
+    // Fetch POLICY-type modifiers cho tất cả room types — dùng để policy card
+    // hiển thị giá sau khi áp dụng điều chỉnh POLICY cho từng room type.
+    // Map: policyId → roomTypeId → { adjustmentType, adjustmentValue, name, priceModifierId }
+    useEffect(() => {
+        if (!show || roomTypes.length === 0) {
+            setPolicyModifierMap({});
+            return;
+        }
+
+        let isMounted = true;
+        const fetchPolicyModifiers = async () => {
+            try {
+                const map = {}; // policyId → roomTypeId → modifier info
+                await Promise.all(
+                    roomTypes.map(async (rt) => {
+                        try {
+                            const modifiers = await priceModifierApi.getModifiersByRoomType(rt.roomTypeId);
+                            (modifiers || []).forEach((mod) => {
+                                if (mod.type !== "POLICY" || !mod.active || !mod.metadata) return;
+                                const policyId = mod.metadata?.policyId;
+                                if (!policyId) return;
+                                if (!map[policyId]) map[policyId] = {};
+                                map[policyId][rt.roomTypeId] = {
+                                    adjustmentType: mod.adjustmentType,
+                                    adjustmentValue: Number(mod.adjustmentValue ?? 0),
+                                    name: mod.name,
+                                    priceModifierId: mod.priceModifierId,
+                                };
+                            });
+                        } catch {
+                            // Skip room types that fail
+                        }
+                    })
+                );
+                if (isMounted) setPolicyModifierMap(map);
+            } catch {
+                if (isMounted) setPolicyModifierMap({});
+            }
+        };
+
+        fetchPolicyModifiers();
+        return () => { isMounted = false; };
+    }, [show, roomTypes]);
 
     // Tổng số phòng hiện tại trong form — dùng để:
     // 1) Truyền đúng totalRooms vào API để OCCUPANCY modifier được đánh giá đúng.
@@ -263,6 +329,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         pricingOptions: (Array.isArray(room.pricingOptions) ? room.pricingOptions : [])
                             .map(normalizePricingOption)
                             .sort((a, b) => a.finalPrice - b.finalPrice),
+                        // Lưu availablePriceModifiers để policy card có thể tra cứu POLICY modifier
+                        // và tính giá sau khi áp dụng điều chỉnh policy cho từng room type.
+                        availablePriceModifiers: Array.isArray(room.availablePriceModifiers)
+                            ? room.availablePriceModifiers : [],
                     };
                 });
                 setRoomPricingMap(map);
@@ -1521,6 +1591,71 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                     <div style={{ fontSize: 9, color: "#9aaa9b" }}>{p.refunRate}%</div>
                                                 </div>
                                             </div>
+
+                                            {/* Per-item POLICY-adjusted pricing breakdown */}
+                                            {(() => {
+                                                const policyCartItems = form.rooms.filter(r => r.roomTypeId && Number(r.quantity) > 0);
+                                                const policyMods = policyModifierMap[pId] || {};
+                                                const hasAnyMod = policyCartItems.some(r => policyMods[r.roomTypeId]);
+                                                if (!hasAnyMod || policyCartItems.length === 0) return null;
+
+                                                let policyGrandTotal = 0;
+                                                const policyRows = policyCartItems.map((room) => {
+                                                    const rtId = String(room.roomTypeId);
+                                                    const rtName = roomTypeById[rtId]?.name || `Room #${rtId}`;
+                                                    const option = (roomPricingMap[rtId]?.pricingOptions || [])
+                                                        .find(opt => opt.optionCode === room.selectedOptionCode);
+                                                    const currentPrice = toMoney(option?.finalPrice || roomTypeById[rtId]?.basePrice || 0);
+                                                    const qty = Number(room.quantity || 0);
+                                                    const mod = policyMods[room.roomTypeId];
+                                                    const adjustedPrice = mod ? applyPolicyAdjustment(currentPrice, mod) : currentPrice;
+                                                    const lineTotal = adjustedPrice * qty;
+                                                    policyGrandTotal += lineTotal;
+                                                    const delta = adjustedPrice - currentPrice;
+                                                    const pctLabel = mod && String(mod.adjustmentType || "").toUpperCase().startsWith("PERCENT")
+                                                        ? `${mod.adjustmentValue > 0 ? "+" : ""}${mod.adjustmentValue}%`
+                                                        : mod ? `${mod.adjustmentValue > 0 ? "+" : ""}${formatVnd(mod.adjustmentValue)}` : null;
+
+                                                    return { rtName, qty, currentPrice, adjustedPrice, lineTotal, delta, pctLabel, hasMod: !!mod };
+                                                });
+
+                                                return (
+                                                    <div style={{ background: "#f5f0ff", border: "1px solid #e0d4f5", borderRadius: 8, padding: "8px 10px", marginTop: 8, marginBottom: 8 }}>
+                                                        <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", color: "#7c3aed", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                                                            <i className="bi bi-tag-fill" />Price with policy applied
+                                                        </div>
+                                                        {policyRows.map((row, i) => (
+                                                            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, padding: "3px 0", borderBottom: i < policyRows.length - 1 ? "1px solid #e8e0f5" : "none" }}>
+                                                                <div>
+                                                                    <span style={{ fontWeight: 600, color: "#374151" }}>{row.rtName}</span>
+                                                                    <span style={{ color: "#9aaa9b", marginLeft: 4 }}>×{row.qty}</span>
+                                                                    {row.hasMod && row.pctLabel && (
+                                                                        <span style={{ marginLeft: 6, fontSize: 10, color: row.delta < 0 ? "#16a34a" : row.delta > 0 ? "#dc2626" : "#6b7280", fontWeight: 600 }}>
+                                                                            ({row.pctLabel})
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div style={{ textAlign: "right" }}>
+                                                                    {row.hasMod && row.delta !== 0 ? (
+                                                                        <>
+                                                                            <span style={{ textDecoration: "line-through", color: "#9ca3af", fontSize: 10, marginRight: 4 }}>
+                                                                                {formatVnd(row.currentPrice * row.qty)}
+                                                                            </span>
+                                                                            <span style={{ fontWeight: 700, color: "#7c3aed" }}>{formatVnd(row.lineTotal)}</span>
+                                                                        </>
+                                                                    ) : (
+                                                                        <span style={{ fontWeight: 600, color: "#374151" }}>{formatVnd(row.lineTotal)}</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1.5px solid #d4c4f0", marginTop: 4, paddingTop: 4 }}>
+                                                            <span style={{ fontSize: 10, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase" }}>Total with policy</span>
+                                                            <span style={{ fontSize: 13, fontWeight: 800, color: "#7c3aed" }}>{formatVnd(policyGrandTotal)}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
 
                                             {deadlineDate && (
                                                 isDeadlineToday ? (
