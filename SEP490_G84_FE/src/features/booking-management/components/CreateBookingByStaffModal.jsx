@@ -549,6 +549,16 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             if (!form.customer.email?.trim() && !form.customer.phone?.trim()) {
                 return "At least email or phone is required.";
             }
+            // Validate email format (nếu có nhập)
+            const emailVal = (form.customer.email || "").trim();
+            if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+                return "Email is not in a valid format.";
+            }
+            // Validate phone format (nếu có nhập) — 9-15 chữ số, có thể bắt đầu bằng +
+            const phoneVal = (form.customer.phone || "").trim();
+            if (phoneVal && !/^\+?\d{9,15}$/.test(phoneVal)) {
+                return "Phone number must be 9–15 digits (optionally starting with +).";
+            }
         }
 
         if (step === 1) {
