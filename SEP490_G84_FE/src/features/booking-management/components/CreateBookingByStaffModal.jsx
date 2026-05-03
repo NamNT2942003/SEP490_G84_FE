@@ -215,6 +215,10 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         form.rooms.reduce((sum, r) => sum + Number(r.quantity || 0), 0),
     );
 
+    // Trimmed customer email — used for USER_HISTORY_DISCOUNT lookup in pricing engine.
+    // Stabilized as a constant to avoid unnecessary re-fetches on every keystroke.
+    const customerEmailForPricing = (form.customer.email || "").trim();
+
     useEffect(() => {
         if (!show || !form.branchId || !form.arrivalDate || !form.departureDate) {
             setRoomPricingMap({});
@@ -237,10 +241,14 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                     sortPrice: "priceAsc",
                 };
 
-                // Thêm policy nếu staff đã chọn — để có được pricingOptions với L3-POLICY modifier.
-                if (manualPolicyId) {
-                    params.policy = manualPolicyId;
+                // Truyền customerEmail để backend lookup booking history → USER_HISTORY_DISCOUNT.
+                if (customerEmailForPricing) {
+                    params.customerEmail = customerEmailForPricing;
                 }
+
+                // Policy KHÔNG được gửi vào pricing API — policy chỉ ảnh hưởng đến
+                // deposit/refund, KHÔNG điều chỉnh giá phòng. Giá hiển thị trên room card
+                // và cart luôn là giá gốc (không có POLICY modifier).
 
                 const data = await roomService.searchRooms(params);
 
@@ -268,8 +276,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             isMounted = false;
         };
         // totalRoomsForPricing: re-fetch khi số phòng thay đổi — OCCUPANCY cần được re-evaluate.
-        // manualPolicyId: re-fetch khi staff chọn policy — để có L3-POLICY modifier trong options.
-    }, [show, form.branchId, form.arrivalDate, form.departureDate, totalRoomsForPricing, manualPolicyId]);
+        // customerEmailForPricing: re-fetch khi staff nhập email khách — USER_HISTORY_DISCOUNT cần được evaluate.
+    }, [show, form.branchId, form.arrivalDate, form.departureDate, totalRoomsForPricing, customerEmailForPricing]);
 
     // Fetch danh sách policy khả dĩ theo seasonal window của ngày check-in.
     // Dùng policyFetchKey để force re-run sau khi modal reset form (tránh race condition).
