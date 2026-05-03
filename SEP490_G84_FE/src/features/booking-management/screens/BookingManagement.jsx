@@ -23,9 +23,6 @@ const STATUS_CONFIG = {
 };
 
 const STAT_CARDS = [
-    { key: "total",     label: "Total",     icon: "bi-journals",     color: COLORS.PRIMARY,     bg: "rgba(92,111,78,0.10)" },
-    { key: "confirmed", label: "Confirmed", icon: "bi-check2-circle",color: "#198754", bg: "rgba(25,135,84,0.10)" },
-    { key: "pending",   label: "Pending",   icon: "bi-clock-history",color: "#997404", bg: "rgba(255,193,7,0.14)" },
     { key: "cancelled", label: "Cancelled", icon: "bi-x-circle",     color: "#b02a37", bg: "rgba(220,53,69,0.10)" },
     { key: "cancelRequested", label: "Cancel Requests", icon: "bi-bell-fill", color: "#b02a37", bg: "rgba(220,53,69,0.12)" },
     { key: "amendmentRequested", label: "Amendment Requests", icon: "bi-pencil-square", color: "#0d6efd", bg: "rgba(13,110,253,0.12)" },
@@ -640,7 +637,7 @@ export default function BookingManagement() {
                                                 <i className="bi bi-eye me-1" />
                                                 View
                                             </button>
-                                            {booking.status !== "CANCELLED" && isInternalFrontendBooking(booking.source) && (
+                                            {booking.status !== "CANCELLED" && booking.status !== "NO_SHOW" && isInternalFrontendBooking(booking.source) && (
                                                 <button
                                                     className="btn btn-sm btn-outline-danger me-1"
                                                     style={{ fontSize: "0.78rem", padding: "3px 10px" }}

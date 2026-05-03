@@ -451,7 +451,7 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                     {/* Nút Sửa Booking — chỉ hiển thị cho booking nội bộ chưa check-in */}
                     {booking &&
                         ["FRONT_END", "STAFF"].includes((booking.source || "").toUpperCase()) &&
-                        !["CHECKED_IN", "CHECKED_OUT", "CANCELLED"].includes((booking.status || "").toUpperCase()) && (
+                        !["CHECKED_IN", "CHECKED_OUT", "CANCELLED", "NO_SHOW"].includes((booking.status || "").toUpperCase()) && (
                             <Buttons
                                 variant="outline"
                                 className="btn-sm me-auto"

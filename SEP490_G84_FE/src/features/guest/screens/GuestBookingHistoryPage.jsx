@@ -336,7 +336,7 @@ export default function GuestBookingHistoryPage() {
                                                     )}
                                                     {!b.cancelRequested && b.status !== "CANCELLED" && (() => {
                                                         const isExternal = b.source && !["FRONT_END", "STAFF"].includes(b.source.toUpperCase());
-                                                        const isActionable = !["CHECKED_IN", "CHECKED_OUT"].includes(b.status);
+                                                        const isActionable = !["CHECKED_IN", "CHECKED_OUT", "NO_SHOW"].includes(b.status);
                                                         return isExternal ? (
                                                             isActionable && (
                                                                 <div style={{
