@@ -139,7 +139,7 @@ const resolvePayableRate = (option) => {
 
 /**
  * Tính giá sau khi áp dụng POLICY modifier.
- * @param {number} basePrice - Giá hiện tại (đã có modifiers khác, CHƯA có POLICY)
+ * @param {number} basePrice - Giá rate2 (sau L1+L2, CHƯA có USER_HISTORY_DISCOUNT và POLICY)
  * @param {{ adjustmentType: string, adjustmentValue: number }} policyMod - POLICY modifier info
  * @returns {number} Giá sau POLICY adjustment (floor 0)
  */
@@ -152,6 +152,32 @@ const applyPolicyAdjustment = (basePrice, policyMod) => {
     }
     // FIXED
     return Math.max(0, basePrice + adjustmentValue);
+};
+
+/**
+ * Reverse out USER_HISTORY_DISCOUNT từ finalPrice để lấy lại rate2
+ * (giá sau L1+L2, trước L3). Cần thiết vì POLICY modifier cũng là L3
+ * và phải tính trên rate2 (cùng base reference với USER_HISTORY_DISCOUNT).
+ *
+ * Pricing funnel: rate2 → +USER_HISTORY_DISCOUNT(rate2) → finalPrice
+ * Reverse:        rate2 = finalPrice - userHistoryDelta
+ *                 Với PERCENT: userHistoryDelta = rate2 * val/100
+ *                   → finalPrice = rate2 * (1 + val/100)
+ *                   → rate2 = finalPrice / (1 + val/100)
+ */
+const reverseUserHistoryDiscount = (finalPrice, modifiers) => {
+    if (!finalPrice || !Array.isArray(modifiers)) return finalPrice || 0;
+    const uhMod = modifiers.find(m => m?.type === "USER_HISTORY_DISCOUNT");
+    if (!uhMod) return finalPrice;
+    const type = String(uhMod.adjustmentType || "").toUpperCase();
+    const value = Number(uhMod.adjustmentValue ?? 0);
+    if (value === 0) return finalPrice;
+    if (type === "PERCENT" || type === "PERCENTAGE") {
+        const factor = 1 + value / 100;
+        return factor !== 0 ? finalPrice / factor : finalPrice;
+    }
+    // FIXED: rate2 = finalPrice - fixedDelta
+    return finalPrice - value;
 };
 
 export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onSuccess }) {
@@ -1467,10 +1493,29 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     const isSelected = Number(effectivePolicyId) === Number(pId);
                                     const isManuallySelected = Number(manualPolicyId) === Number(pId);
 
-                                    // Số tiền cụ thể
-                                    const cardPrepaid = Math.round(estimatedGrandTotal * (p.prepaidRate || 0) / 100);
-                                    const cardRefund = Math.round(estimatedGrandTotal * (p.refunRate || 0) / 100);
-                                    const cardRetain = Math.max(0, estimatedGrandTotal - cardRefund);
+                                    // ── Tính policyAdjustedTotal cho policy card ──
+                                    // POLICY adjustment tính trên rate2 (giá sau L1+L2, CHƯA có USER_HISTORY_DISCOUNT).
+                                    // Prepaid/Refund dựa trên tổng giá sau POLICY.
+                                    const policyModsForCard = policyModifierMap[pId] || {};
+                                    let policyAdjustedTotal = 0;
+                                    const selectedCartItems = form.rooms.filter(r => r.roomTypeId && Number(r.quantity) > 0);
+                                    selectedCartItems.forEach((room) => {
+                                        const rtId = String(room.roomTypeId);
+                                        const opt = (roomPricingMap[rtId]?.pricingOptions || [])
+                                            .find(o => o.optionCode === room.selectedOptionCode);
+                                        const currentFinalPrice = toMoney(opt?.finalPrice || roomTypeById[rtId]?.basePrice || 0);
+                                        const modifiers = opt?.modifiers || [];
+                                        // Reverse USER_HISTORY_DISCOUNT để lấy rate2
+                                        const rate2 = reverseUserHistoryDiscount(currentFinalPrice, modifiers);
+                                        const pMod = policyModsForCard[room.roomTypeId];
+                                        const adjustedUnit = pMod ? applyPolicyAdjustment(rate2, pMod) : rate2;
+                                        policyAdjustedTotal += adjustedUnit * Number(room.quantity || 0);
+                                    });
+                                    policyAdjustedTotal = Math.max(0, Math.round(policyAdjustedTotal));
+
+                                    const cardPrepaid = Math.round(policyAdjustedTotal * (p.prepaidRate || 0) / 100);
+                                    const cardRefund = Math.round(policyAdjustedTotal * (p.refunRate || 0) / 100);
+                                    const cardRetain = Math.max(0, policyAdjustedTotal - cardRefund);
                                     const deadlineDate = computeFreeCancelDeadline(form.arrivalDate, p.dateRange);
                                     const deadlineStr = formatDeadline(deadlineDate);
                                     const todayCard = new Date(); todayCard.setHours(0, 0, 0, 0);
@@ -1605,18 +1650,22 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                     const rtName = roomTypeById[rtId]?.name || `Room #${rtId}`;
                                                     const option = (roomPricingMap[rtId]?.pricingOptions || [])
                                                         .find(opt => opt.optionCode === room.selectedOptionCode);
-                                                    const currentPrice = toMoney(option?.finalPrice || roomTypeById[rtId]?.basePrice || 0);
+                                                    const currentFinalPrice = toMoney(option?.finalPrice || roomTypeById[rtId]?.basePrice || 0);
                                                     const qty = Number(room.quantity || 0);
+                                                    const modifiers = option?.modifiers || [];
+                                                    // Reverse USER_HISTORY_DISCOUNT để lấy rate2 — giá trước L3
+                                                    const rate2 = reverseUserHistoryDiscount(currentFinalPrice, modifiers);
                                                     const mod = policyMods[room.roomTypeId];
-                                                    const adjustedPrice = mod ? applyPolicyAdjustment(currentPrice, mod) : currentPrice;
+                                                    // POLICY adjustment tính trên rate2 (không phải finalPrice có discount)
+                                                    const adjustedPrice = mod ? applyPolicyAdjustment(rate2, mod) : rate2;
                                                     const lineTotal = adjustedPrice * qty;
                                                     policyGrandTotal += lineTotal;
-                                                    const delta = adjustedPrice - currentPrice;
+                                                    const delta = adjustedPrice - rate2;
                                                     const pctLabel = mod && String(mod.adjustmentType || "").toUpperCase().startsWith("PERCENT")
                                                         ? `${mod.adjustmentValue > 0 ? "+" : ""}${mod.adjustmentValue}%`
                                                         : mod ? `${mod.adjustmentValue > 0 ? "+" : ""}${formatVnd(mod.adjustmentValue)}` : null;
 
-                                                    return { rtName, qty, currentPrice, adjustedPrice, lineTotal, delta, pctLabel, hasMod: !!mod };
+                                                    return { rtName, qty, rate2, adjustedPrice, lineTotal, delta, pctLabel, hasMod: !!mod };
                                                 });
 
                                                 return (
@@ -1639,7 +1688,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                                     {row.hasMod && row.delta !== 0 ? (
                                                                         <>
                                                                             <span style={{ textDecoration: "line-through", color: "#9ca3af", fontSize: 10, marginRight: 4 }}>
-                                                                                {formatVnd(row.currentPrice * row.qty)}
+                                                                                {formatVnd(row.rate2 * row.qty)}
                                                                             </span>
                                                                             <span style={{ fontWeight: 700, color: "#7c3aed" }}>{formatVnd(row.lineTotal)}</span>
                                                                         </>
