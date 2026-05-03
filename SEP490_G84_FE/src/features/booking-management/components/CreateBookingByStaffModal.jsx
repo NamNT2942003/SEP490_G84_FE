@@ -602,17 +602,22 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
     };
 
     const nextStep = () => {
-        const err = validateStep(currentStep);
-        if (err) {
-            setError(err);
-            Swal.fire({
-                icon: "warning",
-                title: "Please complete the required information",
-                text: err,
-                confirmButtonColor: "#465c47",
-                confirmButtonText: "Understood",
-            });
-            return;
+        // Luôn validate tất cả các bước từ 0 đến currentStep trước khi sang bước tiếp.
+        // VD: step 0 → validate [0], step 1 → validate [0, 1].
+        // Đảm bảo thông tin khách hàng (step 0) luôn hợp lệ trước khi chọn phòng (step 1).
+        for (let s = 0; s <= currentStep; s++) {
+            const err = validateStep(s);
+            if (err) {
+                setError(err);
+                Swal.fire({
+                    icon: "warning",
+                    title: "Please complete the required information",
+                    text: err,
+                    confirmButtonColor: "#465c47",
+                    confirmButtonText: "Understood",
+                });
+                return;
+            }
         }
         setError("");
         setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -1643,78 +1648,6 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                 </div>
                                             </div>
 
-                                            {/* Per-item POLICY-adjusted pricing breakdown */}
-                                            {(() => {
-                                                const policyCartItems = form.rooms.filter(r => r.roomTypeId && Number(r.quantity) > 0);
-                                                const policyMods = policyModifierMap[pId] || {};
-                                                const hasAnyMod = policyCartItems.some(r => policyMods[r.roomTypeId]);
-                                                if (!hasAnyMod || policyCartItems.length === 0) return null;
-
-                                                let policyGrandTotal = 0;
-                                                const policyRows = policyCartItems.map((room) => {
-                                                    const rtId = String(room.roomTypeId);
-                                                    const rtName = roomTypeById[rtId]?.name || `Room #${rtId}`;
-                                                    const option = (roomPricingMap[rtId]?.pricingOptions || [])
-                                                        .find(opt => opt.optionCode === room.selectedOptionCode);
-                                                    const currentFinalPrice = toMoney(option?.finalPrice || roomTypeById[rtId]?.basePrice || 0);
-                                                    const qty = Number(room.quantity || 0);
-                                                    const modifiers = option?.modifiers || [];
-                                                    const mod = policyMods[room.roomTypeId];
-                                                    let adjustedPrice = currentFinalPrice;
-                                                    let policyDelta = 0;
-                                                    if (mod) {
-                                                        // POLICY delta tính trên rate2 (giá trước USER_HISTORY_DISCOUNT)
-                                                        const rate2 = reverseUserHistoryDiscount(currentFinalPrice, modifiers);
-                                                        policyDelta = applyPolicyAdjustment(rate2, mod) - rate2;
-                                                        // Giá cuối = finalPrice (có discount) + policyDelta (tính trên rate2)
-                                                        adjustedPrice = currentFinalPrice + policyDelta;
-                                                    }
-                                                    const lineTotal = adjustedPrice * qty;
-                                                    policyGrandTotal += lineTotal;
-                                                    const pctLabel = mod && String(mod.adjustmentType || "").toUpperCase().startsWith("PERCENT")
-                                                        ? `${mod.adjustmentValue > 0 ? "+" : ""}${mod.adjustmentValue}%`
-                                                        : mod ? `${mod.adjustmentValue > 0 ? "+" : ""}${formatVnd(mod.adjustmentValue)}` : null;
-
-                                                    return { rtName, qty, currentFinalPrice, adjustedPrice, lineTotal, delta: policyDelta, pctLabel, hasMod: !!mod };
-                                                });
-
-                                                return (
-                                                    <div style={{ background: "#f5f0ff", border: "1px solid #e0d4f5", borderRadius: 8, padding: "8px 10px", marginTop: 8, marginBottom: 8 }}>
-                                                        <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", color: "#7c3aed", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
-                                                            <i className="bi bi-tag-fill" />Price with policy applied
-                                                        </div>
-                                                        {policyRows.map((row, i) => (
-                                                            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, padding: "3px 0", borderBottom: i < policyRows.length - 1 ? "1px solid #e8e0f5" : "none" }}>
-                                                                <div>
-                                                                    <span style={{ fontWeight: 600, color: "#374151" }}>{row.rtName}</span>
-                                                                    <span style={{ color: "#9aaa9b", marginLeft: 4 }}>×{row.qty}</span>
-                                                                    {row.hasMod && row.pctLabel && (
-                                                                        <span style={{ marginLeft: 6, fontSize: 10, color: row.delta < 0 ? "#16a34a" : row.delta > 0 ? "#dc2626" : "#6b7280", fontWeight: 600 }}>
-                                                                            ({row.pctLabel})
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <div style={{ textAlign: "right" }}>
-                                                                    {row.hasMod && row.delta !== 0 ? (
-                                                                        <>
-                                                                            <span style={{ textDecoration: "line-through", color: "#9ca3af", fontSize: 10, marginRight: 4 }}>
-                                                                                {formatVnd(row.currentFinalPrice * row.qty)}
-                                                                            </span>
-                                                                            <span style={{ fontWeight: 700, color: "#7c3aed" }}>{formatVnd(row.lineTotal)}</span>
-                                                                        </>
-                                                                    ) : (
-                                                                        <span style={{ fontWeight: 600, color: "#374151" }}>{formatVnd(row.lineTotal)}</span>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1.5px solid #d4c4f0", marginTop: 4, paddingTop: 4 }}>
-                                                            <span style={{ fontSize: 10, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase" }}>Total with policy</span>
-                                                            <span style={{ fontSize: 13, fontWeight: 800, color: "#7c3aed" }}>{formatVnd(policyGrandTotal)}</span>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })()}
 
                                             {deadlineDate && (
                                                 isDeadlineToday ? (
@@ -1837,11 +1770,11 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         return (
             <div className="cbsm-step-content">
                 {/* Warning block added at the top of the final step */}
-                <div style={{ background: "#fef2f2", border: "1.5px solid #fca5a5", borderRadius: 10, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <div style={{ background: "#fefce8", border: "1.5px solid #fcd34d", borderRadius: 10, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "flex-start", gap: 10 }}>
                     <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
                     <div>
-                        <div style={{ fontWeight: 800, color: "#b91c1c", fontSize: 13, marginBottom: 2 }}>This action cannot be undone!</div>
-                        <div style={{ color: "#7f1d1d", fontSize: 12 }}>Please carefully review the details below before creating the booking. Once created, the data will be saved to the system and cannot be automatically deleted.</div>
+                        <div style={{ fontWeight: 800, color: "#92400e", fontSize: 13, marginBottom: 2 }}>This action cannot be undone!</div>
+                        <div style={{ color: "#78350f", fontSize: 12 }}>Please carefully review the details below before creating the booking. Once created, the data will be saved to the system and cannot be automatically deleted.</div>
                     </div>
                 </div>
 
