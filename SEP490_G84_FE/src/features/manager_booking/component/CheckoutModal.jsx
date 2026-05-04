@@ -271,7 +271,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   return (
     <>
       <div className="modal-backdrop fade show no-print" style={{ zIndex: 1040 }}></div>
-      <div className="modal fade show d-block no-print" tabIndex="-1"
+      <div className="modal fade show no-print" tabIndex="-1"
         style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="modal-dialog"
           style={{
