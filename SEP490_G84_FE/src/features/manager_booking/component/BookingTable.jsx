@@ -45,11 +45,11 @@ function isInternalFrontendBooking(source) {
 
 function statusBadge(booking, isNoShow, isCheckinDay, isCheckoutOverdue, isCheckoutToday) {
   if (booking.status === 'NO_SHOW') return { text: 'No-Show', bg: '#212121', color: '#fff' };
-  if (isNoShow) return { text: '⚠ Overdue / No-Show', bg: '#ffcdd2', color: '#b71c1c' };
-  if (isCheckinDay) return { text: '📋 Check-in Today', bg: '#fff3e0', color: '#e65100' };
-  if (isCheckoutOverdue) return { text: '⚠ Overstayed', bg: '#ffcdd2', color: '#b71c1c' };
-  if (isCheckoutToday) return { text: '⏰ Checkout Due Today', bg: '#fff3e0', color: '#e65100' };
-  if (booking.status === 'ARRIVED') return { text: '🧳 Arrived · Luggage Stored', bg: '#e1f5fe', color: '#01579b' };
+  if (isNoShow) return { text: 'Overdue / No-Show', bg: '#ffcdd2', color: '#b71c1c' };
+  if (isCheckinDay) return { text: 'Check-in Today', bg: '#fff3e0', color: '#e65100' };
+  if (isCheckoutOverdue) return { text: 'Overstayed', bg: '#ffcdd2', color: '#b71c1c' };
+  if (isCheckoutToday) return { text: 'Checkout Due Today', bg: '#fff3e0', color: '#e65100' };
+  if (booking.status === 'ARRIVED') return { text: 'Arrived · Luggage Stored', bg: '#e1f5fe', color: '#01579b' };
   if (booking.status === 'CONFIRMED') return { text: 'Awaiting Check-in', bg: '#e8f5e9', color: '#2e7d32' };
   if (booking.status === 'CHECKED_IN') return { text: 'In-House', bg: '#fce4ec', color: '#880e4f' };
   return { text: booking.status, bg: '#eee', color: '#555' };
@@ -203,7 +203,7 @@ export default function BookingTable({
                         background: '#fff8e1', padding: '8px 14px', fontSize: '0.76rem',
                         color: '#e65100', fontWeight: 700, borderTop: '2px solid #ffe082',
                       }}>
-                        💰 Outstanding Debts — Checked Out with Unpaid Balance
+                        Outstanding Debts — Checked Out with Unpaid Balance
                       </td>
                     </tr>
                   )}
@@ -250,13 +250,13 @@ export default function BookingTable({
                       {Number(booking.roomDebtAmount || 0) > 0 && (
                         <span className="px-2 py-1 rounded-2 fw-bold mt-1 d-inline-block"
                           style={{ fontSize: '0.71rem', background: '#ffebee', color: '#c62828' }}>
-                          ⚠ Room: {Number(booking.roomDebtAmount).toLocaleString('en-US')} VND
+                          Room: {Number(booking.roomDebtAmount).toLocaleString('en-US')} VND
                         </span>
                       )}
                       {Number(booking.serviceDebtAmount || 0) > 0 && (
                         <span className="px-2 py-1 rounded-2 fw-bold mt-1 d-inline-block ms-1"
                           style={{ fontSize: '0.71rem', background: '#fff3e0', color: '#e65100' }}>
-                          🛎 Service: {Number(booking.serviceDebtAmount).toLocaleString('en-US')} VND
+                          Service: {Number(booking.serviceDebtAmount).toLocaleString('en-US')} VND
                         </span>
                       )}
                     </td>
@@ -264,7 +264,7 @@ export default function BookingTable({
                     <td>
                       <span className="px-2 py-1 rounded-2 fw-bold d-inline-block"
                         style={{ background: '#fff3e0', color: '#e65100', fontSize: '0.77rem' }}>
-                        💰 Checked Out · Debt
+                        Checked Out · Debt
                       </span>
                     </td>
                     {/* Actions */}
@@ -274,20 +274,20 @@ export default function BookingTable({
                           <button className="btn btn-sm fw-semibold"
                             style={{ background: '#fffbeb', color: '#92400e', border: '1px solid #f59e0b', fontSize: '0.79rem' }}
                             onClick={() => onCollectRemainingClick && onCollectRemainingClick(booking)}>
-                            <i className="bi bi-cash-coin me-1"></i>Collect Room
+                            Collect Room
                           </button>
                         )}
                         {Number(booking.serviceDebtAmount || 0) > 0 && (
                           <button className="btn btn-sm fw-semibold"
                             style={{ background: '#e8f5e9', color: '#2e7d32', border: '1px solid #81c784', fontSize: '0.79rem' }}
                             onClick={() => onCollectServiceDebt && onCollectServiceDebt(booking)}>
-                            <i className="bi bi-receipt me-1"></i>Collect Service
+                            Collect Service
                           </button>
                         )}
                         <button className="btn btn-sm fw-semibold"
                           style={{ background: '#fff3e0', color: '#e65100', border: '1px solid #ffcc80', fontSize: '0.79rem' }}
                           onClick={() => onDebtDetailClick && onDebtDetailClick(booking)}>
-                          <i className="bi bi-telephone-fill me-1"></i>Contact
+                          Contact
                         </button>
                         <div className="dropdown">
                           <button className="btn btn-sm btn-light border-0 text-secondary"
@@ -411,7 +411,7 @@ export default function BookingTable({
                       <div className="d-flex flex-column gap-1 mt-1">
                         <span className="px-2 py-1 rounded-2 fw-bold"
                           style={{ fontSize: '0.71rem', background: '#e8f5e9', color: '#2e7d32' }}>
-                          ✓ {paid.toLocaleString('en-US')}
+                          Paid: {paid.toLocaleString('en-US')}
                         </span>
                         <span className="px-2 py-1 rounded-2 fw-bold"
                           style={{ fontSize: '0.71rem', background: '#fff3e0', color: '#e65100' }}>
@@ -441,7 +441,7 @@ export default function BookingTable({
                         <button className="btn btn-sm fw-semibold"
                           style={{ background: '#212121', color: '#fff', border: 'none', fontSize: '0.79rem' }}
                           onClick={() => handleMarkNoShow(booking)}>
-                          <i className="bi bi-person-slash me-1"></i>No-Show
+                          No-Show
                         </button>
                     )}
 
@@ -451,7 +451,7 @@ export default function BookingTable({
                         <button className="btn btn-sm fw-semibold"
                           style={{ background: accent, color: '#fff', border: 'none', fontSize: '0.82rem' }}
                           onClick={() => onCheckInClick(booking)}>
-                          <i className="bi bi-box-arrow-in-right me-1"></i>Check In
+                          Check In
                         </button>
                       )}
 
@@ -464,7 +464,7 @@ export default function BookingTable({
                         <button className="btn btn-sm fw-semibold"
                           style={{ background: '#fffbeb', color: '#92400e', border: '1px solid #f59e0b', fontSize: '0.79rem' }}
                           onClick={() => onCollectRemainingClick && onCollectRemainingClick(booking)}>
-                          <i className="bi bi-cash-coin me-1"></i>Collect Remaining
+                          Collect Remaining
                         </button>
                       )}
 
@@ -474,7 +474,7 @@ export default function BookingTable({
                         <button className="btn btn-sm fw-semibold"
                           style={{ background: '#c62828', color: '#fff', border: 'none', fontSize: '0.82rem' }}
                           onClick={() => onCheckoutClick(booking)}>
-                          <i className="bi bi-box-arrow-right me-1"></i>Check Out
+                          Check Out
                         </button>
                         <button className="btn btn-sm fw-semibold px-2"
                           style={{ background: '#6c757d', color: '#fff', border: 'none', fontSize: '0.82rem' }}
