@@ -16,9 +16,15 @@ const enrichData = (data) => {
     return data.map((item, i) => {
         const monthName = MONTH_NAMES[item.monthValue - 1] || item.monthLabel;
         const prev = data[i - 1];
-        const momGrowth = prev && prev.revenue > 0
-            ? (((item.revenue - prev.revenue) / prev.revenue) * 100)
-            : null;
+        let momGrowth = null;
+        if (prev) {
+            if (prev.revenue > 0) {
+                momGrowth = ((item.revenue - prev.revenue) / prev.revenue) * 100;
+            } else if (item.revenue > 0) {
+                momGrowth = 100; // từ 0 lên có doanh thu = tăng trưởng mới 100%
+            }
+            // cả 2 đều 0 → null → hiển thị 0.0%
+        }
         return { ...item, monthLabel: monthName, momGrowth };
     });
 };
