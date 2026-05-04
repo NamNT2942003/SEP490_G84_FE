@@ -178,6 +178,10 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
         });
     });
 
+    // Compute total from the breakdown shown to the user (base + all modifier deltas)
+    // so the displayed Total always matches the line items above it.
+    const breakdownTotal = Math.max(0, totalBasePrice + allModifiers.reduce((sum, mod) => sum + mod.delta, 0));
+
     return (
         <div className="d-flex flex-column gap-2">
             {/* Card 1: Property Details */}
@@ -272,12 +276,12 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                     <div className="p-4 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#ebf3ff' }}>
                         <h5 className="fw-bold m-0 text-dark" style={{ fontSize: '18px' }}>Total</h5>
                         <div className="text-end">
-                            {totalBasePrice > bookingTotalAmount && (
+                            {totalBasePrice > breakdownTotal && (
                                 <div className="text-danger text-decoration-line-through mb-1 fw-medium" style={{ fontSize: '15px' }}>
                                     {formatCurrency(totalBasePrice)}
                                 </div>
                             )}
-                            <h3 className="fw-bold m-0 text-dark">{formatCurrency(bookingTotalAmount)}</h3>
+                            <h3 className="fw-bold m-0 text-dark">{formatCurrency(breakdownTotal)}</h3>
                             <div className="text-muted mt-1" style={{ fontSize: '13px' }}>Includes taxes and fees</div>
                         </div>
                     </div>

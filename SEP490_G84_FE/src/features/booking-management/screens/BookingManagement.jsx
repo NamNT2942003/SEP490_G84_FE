@@ -16,10 +16,12 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 const PAGE_SIZE = 10;
 
 const STATUS_CONFIG = {
-    CONFIRMED: { bg: "rgba(25,135,84,0.12)", text: "#198754", dot: "#198754" },
-    PENDING:   { bg: "rgba(255,193,7,0.18)",  text: "#997404", dot: "#ffc107" },
-    CANCELLED: { bg: "rgba(220,53,69,0.12)",  text: "#b02a37", dot: "#dc3545" },
-    COMPLETED: { bg: "rgba(13,110,253,0.12)", text: "#0d6efd", dot: "#0d6efd" },
+    PENDING_PAYMENT: { bg: "rgba(255,193,7,0.18)",  text: "#997404", dot: "#ffc107" },
+    CONFIRMED:       { bg: "rgba(25,135,84,0.12)",  text: "#198754", dot: "#198754" },
+    CHECKED_IN:      { bg: "rgba(13,110,253,0.12)", text: "#0d6efd", dot: "#0d6efd" },
+    CHECKED_OUT:     { bg: "rgba(108,66,196,0.12)", text: "#6c42c4", dot: "#6c42c4" },
+    CANCELLED:       { bg: "rgba(220,53,69,0.12)",  text: "#b02a37", dot: "#dc3545" },
+    NO_SHOW:         { bg: "rgba(108,117,125,0.12)", text: "#495057", dot: "#6c757d" },
 };
 
 const STAT_CARDS = [
@@ -486,10 +488,12 @@ export default function BookingManagement() {
                             onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
                         >
                             <option value="">All statuses</option>
-                            <option value="PENDING">Pending</option>
+                            <option value="PENDING_PAYMENT">Pending Payment</option>
                             <option value="CONFIRMED">Confirmed</option>
-                            <option value="COMPLETED">Completed</option>
+                            <option value="CHECKED_IN">Checked In</option>
+                            <option value="CHECKED_OUT">Checked Out</option>
                             <option value="CANCELLED">Cancelled</option>
+                            <option value="NO_SHOW">No Show</option>
                         </select>
                         <select
                             className="form-select bm-filter-select"

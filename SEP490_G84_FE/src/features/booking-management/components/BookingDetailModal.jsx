@@ -6,13 +6,15 @@ import "./BookingDetailModal.css";
 import Buttons from "@/components/ui/Buttons";
 
 const STATUS_CONFIG = {
-    CONFIRMED: { bg: "rgba(25,135,84,0.12)", text: "#198754", dot: "#198754" },
-    PENDING: { bg: "rgba(255,193,7,0.18)", text: "#997404", dot: "#ffc107" },
-    CANCELLED: { bg: "rgba(220,53,69,0.12)", text: "#b02a37", dot: "#dc3545" },
-    COMPLETED: { bg: "rgba(13,110,253,0.12)", text: "#0d6efd", dot: "#0d6efd" },
+    PENDING_PAYMENT: { bg: "rgba(255,193,7,0.18)",  text: "#997404", dot: "#ffc107" },
+    CONFIRMED:       { bg: "rgba(25,135,84,0.12)",  text: "#198754", dot: "#198754" },
+    CHECKED_IN:      { bg: "rgba(13,110,253,0.12)", text: "#0d6efd", dot: "#0d6efd" },
+    CHECKED_OUT:     { bg: "rgba(108,66,196,0.12)", text: "#6c42c4", dot: "#6c42c4" },
+    CANCELLED:       { bg: "rgba(220,53,69,0.12)",  text: "#b02a37", dot: "#dc3545" },
+    NO_SHOW:         { bg: "rgba(108,117,125,0.12)", text: "#495057", dot: "#6c757d" },
 };
 
-const UPDATABLE_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
+const UPDATABLE_STATUSES = ["PENDING_PAYMENT", "CONFIRMED", "CHECKED_IN", "CHECKED_OUT", "NO_SHOW"];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
