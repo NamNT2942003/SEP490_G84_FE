@@ -683,6 +683,24 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             .map(([id]) => roomTypeById[id]?.name || `RoomType #${id}`);
     }, [form.rooms, roomTypeById]);
 
+    const selectedPolicyIds = useMemo(() => {
+        const policyIds = form.rooms
+            .map((room) => {
+                const option = (roomPricingMap[String(room.roomTypeId)]?.pricingOptions || [])
+                    .find((opt) => opt.optionCode === room.selectedOptionCode);
+                return option?.cancellationPolicyId;
+            })
+            .filter((id) => Number.isFinite(Number(id)));
+
+        return uniqueIds(policyIds.map((id) => Number(id)));
+    }, [form.rooms, roomPricingMap]);
+
+    // Auto-resolve policy từ pricing option (chỉ khi không có manual selection)
+    const autoPolicyId = selectedPolicyIds.length === 1 ? selectedPolicyIds[0] : null;
+
+    // effectivePolicyId: ưu tiên manual selection của staff, fallback về auto từ pricing
+    const effectivePolicyId = manualPolicyId ?? autoPolicyId;
+
     const roomSummaryRows = useMemo(() => {
         return form.rooms.map((room, index) => {
             const roomTypeName = roomTypeById[String(room.roomTypeId)]?.name || `Line ${index + 1}`;
@@ -693,14 +711,13 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             let finalUnit = toMoney(option?.finalPrice ?? baseUnit);
             
             // Apply selected policy modifier manually if a policy is selected
-            if (selectedPolicy && selectedPolicy.priceModifiers) {
-                const pMod = selectedPolicy.priceModifiers.find(m => String(m.roomTypeId) === String(room.roomTypeId));
-                if (pMod) {
-                    const modifiers = (option?.modifiers || []).filter(m => DETAIL_LEVEL_TYPES.has(m?.type));
-                    const rate2 = reverseUserHistoryDiscount(finalUnit, modifiers);
-                    const policyDelta = applyPolicyAdjustment(rate2, pMod) - rate2;
-                    finalUnit += policyDelta;
-                }
+            const policyModsForRoom = policyModifierMap[effectivePolicyId] || {};
+            const pMod = policyModsForRoom[room.roomTypeId];
+            if (pMod) {
+                const modifiers = (option?.modifiers || []).filter(m => DETAIL_LEVEL_TYPES.has(m?.type));
+                const rate2 = reverseUserHistoryDiscount(finalUnit, modifiers);
+                const policyDelta = applyPolicyAdjustment(rate2, pMod) - rate2;
+                finalUnit += policyDelta;
             }
             
             const qty = Number(room.quantity || 0);
@@ -718,7 +735,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 payableNow: Math.max(0, finalUnit * qty * resolvePayableRate(option) / 100),
             };
         });
-    }, [form.rooms, roomTypeById, roomPricingMap, selectedPolicy]);
+    }, [form.rooms, roomTypeById, roomPricingMap, effectivePolicyId, policyModifierMap]);
 
     // roomSubtotal = tổng basePrice * qty (giá gốc chưa modifier)
     const roomSubtotal = useMemo(() => {
@@ -744,24 +761,6 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         : selectedPaymentTypes.length > 1
             ? "MIXED"
             : "";
-
-    const selectedPolicyIds = useMemo(() => {
-        const policyIds = form.rooms
-            .map((room) => {
-                const option = (roomPricingMap[String(room.roomTypeId)]?.pricingOptions || [])
-                    .find((opt) => opt.optionCode === room.selectedOptionCode);
-                return option?.cancellationPolicyId;
-            })
-            .filter((id) => Number.isFinite(Number(id)));
-
-        return uniqueIds(policyIds.map((id) => Number(id)));
-    }, [form.rooms, roomPricingMap]);
-
-    // Auto-resolve policy từ pricing option (chỉ khi không có manual selection)
-    const autoPolicyId = selectedPolicyIds.length === 1 ? selectedPolicyIds[0] : null;
-
-    // effectivePolicyId: ưu tiên manual selection của staff, fallback về auto từ pricing
-    const effectivePolicyId = manualPolicyId ?? autoPolicyId;
 
     useEffect(() => {
         if (!show || !effectivePolicyId) {
