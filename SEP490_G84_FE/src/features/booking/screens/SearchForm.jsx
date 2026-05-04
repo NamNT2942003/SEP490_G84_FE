@@ -166,8 +166,8 @@ const SearchForm = ({ onSearch, loading, branches = [], branchId, onBranchChange
         .sf{background:#fff;border-radius:18px;padding:24px 28px 20px;box-shadow:0 8px 40px rgba(0,0,0,.10);position:relative;overflow:visible}
         .sf-r{display:flex;align-items:flex-end;gap:10px;flex-wrap:nowrap}
         .sf-g{display:flex;flex-direction:column;min-width:0}
-        .sf-g.br{flex:0 0 175px}
-        .sf-g.dt{flex:1 1 auto;min-width:320px}
+        .sf-g.br{flex:0 0 220px}
+        .sf-g.dt{flex:1 1 auto;min-width:260px}
         .sf-g.gu{flex:0 0 200px;position:relative}
         .sf-g.ac{flex:0 0 auto}
         .sf-l{font-size:.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;display:flex;align-items:center;gap:4px}
