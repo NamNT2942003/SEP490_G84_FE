@@ -694,7 +694,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             const option = (roomPricingMap[String(room.roomTypeId)]?.pricingOptions || [])
                 .find((opt) => opt.optionCode === room.selectedOptionCode);
             const baseUnit = toMoney(option?.basePrice || roomTypeById[String(room.roomTypeId)]?.basePrice || 0);
-            const finalUnit = toMoney(option?.finalPrice || baseUnit);
+            const finalUnit = toMoney(option?.finalPrice ?? baseUnit);
             const qty = Number(room.quantity || 0);
             const baseLine = baseUnit * qty;
             const unitDelta = finalUnit - baseUnit;
