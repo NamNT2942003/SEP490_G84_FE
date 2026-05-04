@@ -44,6 +44,8 @@ export const HousekeepingDashboard = () => {
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [selectedIncidentRoom, setSelectedIncidentRoom] = useState(null);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
+  const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
 
   useEffect(() => {
     if (!currentUser) return;
@@ -61,7 +63,17 @@ export const HousekeepingDashboard = () => {
     }
   }, [currentUser]);
 
-  useEffect(() => { if (selectedBranch) fetchRooms(); }, [selectedBranch]);
+  useEffect(() => {
+    if (selectedBranch) fetchRooms();
+  }, [selectedBranch]);
+
+  useEffect(() => {
+    if (!selectedBranch) return;
+    const interval = setInterval(() => {
+      fetchRooms();
+    }, AUTO_REFRESH_INTERVAL);
+    return () => clearInterval(interval);
+  }, [selectedBranch]);
 
   const fetchRooms = async () => {
     if (!selectedBranch) return;
@@ -69,6 +81,7 @@ export const HousekeepingDashboard = () => {
       setLoading(true);
       const res = await housekeepingApi.getRooms(selectedBranch);
       setRooms(res.data || []);
+      setLastRefreshed(new Date());
     } catch {
       Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load rooms. Please try again.', confirmButtonColor: P.primary });
     } finally {
@@ -191,7 +204,6 @@ export const HousekeepingDashboard = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
             <div>
               <h2 className="page-title d-flex align-items-center gap-2">
-                <i className="bi bi-brush-fill" style={{ color: P.primary }} />
                 Housekeeping Board
               </h2>
               <p style={{ margin: '4px 0 0', fontSize: 13, color: '#888' }}>
@@ -214,19 +226,30 @@ export const HousekeepingDashboard = () => {
                   {branches.map(b => <option key={b.branchId} value={b.branchId}>{b.branchName}</option>)}
                 </select>
               )}
-              <button
-                onClick={fetchRooms}
-                style={{
-                  padding: '7px 14px', borderRadius: 8,
-                  background: '#fff', border: '1px solid #ddd',
-                  color: '#555', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                  display: 'flex', alignItems: 'center', gap: 6,
-                }}
-                onMouseOver={e => e.currentTarget.style.borderColor = P.primary}
-                onMouseOut={e => e.currentTarget.style.borderColor = '#ddd'}
-              >
-                <i className="bi bi-arrow-clockwise" /> Refresh
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                <button
+                  onClick={fetchRooms}
+                  style={{
+                    padding: '7px 14px', borderRadius: 8,
+                    background: '#fff', border: '1px solid #ddd',
+                    color: '#555', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                  onMouseOver={e => e.currentTarget.style.borderColor = P.primary}
+                  onMouseOut={e => e.currentTarget.style.borderColor = '#ddd'}
+                >
+                  <i className="bi bi-arrow-clockwise" /> Refresh
+                </button>
+                {lastRefreshed && (
+                  <span style={{ fontSize: 11, color: '#aaa', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{
+                      display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+                      background: '#4caf50', animation: 'pulse-dot 2s infinite',
+                    }} />
+                    Auto-refresh 30s · Updated {lastRefreshed.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
