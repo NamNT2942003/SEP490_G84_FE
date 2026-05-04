@@ -26,7 +26,7 @@ const RoomRevenueExcelRowTable = ({ branchId, month, year }) => {
     const formatDateTime = (isoStr) => {
         if (!isoStr) return '';
         const d = new Date(isoStr);
-        return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        return d.toLocaleDateString('en-GB');
     };
 
     const fmt = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'VND' }).format(val || 0);
