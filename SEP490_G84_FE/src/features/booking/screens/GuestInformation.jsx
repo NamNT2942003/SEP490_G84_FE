@@ -101,10 +101,19 @@ const normalizePolicy = (policy) => {
     };
 };
 
-// applyPolicySelectionToRoom is no longer needed because the backend directly
-// returns the correctly computed availablePriceModifiers for the requested policy.
-// We just use the cached room for the policy which has the correct modifiers.
-const applyPolicySelectionToRoom = (room) => room;
+// applyPolicySelectionToRoom directly uses the pricing option synthesized from the backend response.
+const applyPolicySelectionToRoom = (room) => {
+    if (!room) return room;
+    const options = Array.isArray(room?.pricingOptions) ? room.pricingOptions : [];
+    const selectedOption = options[0] || null;
+    const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
+    return {
+        ...room,
+        selectedPricingOption: selectedOption,
+        selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : safeNumber(room?.basePrice ?? room?.price, 0),
+        policyApplied: true,
+    };
+};
 
 const formatPolicyTypeLabel = (type) => {
     const normalized = String(type || '').trim().toUpperCase();
@@ -747,6 +756,23 @@ const GuestInformation = () => {
         refreshRoomsByEmail();
     }, [selectedPolicyId, checkIn, checkOut, refreshRoomsByEmail]);
 
+    useEffect(() => {
+        if (selectedPolicyId !== null && selectedPolicyId !== undefined) {
+            const cachedMap = policyPricingCacheRef.current.get(Number(selectedPolicyId));
+            if (cachedMap) {
+                setRooms((prevRooms) =>
+                    prevRooms.map((room) => {
+                        const cachedRoom = cachedMap.get(room.roomTypeId);
+                        if (cachedRoom) {
+                            return applyPolicySelectionToRoom({ ...cachedRoom, quantity: room.quantity });
+                        }
+                        return room;
+                    })
+                );
+            }
+        }
+    }, [selectedPolicyId]);
+
     const calculateTotalPrice = () => {
         return rooms.reduce(
             (sum, room) => sum + calculateRoomUnitPrice(room) * (room.quantity || 1),
@@ -771,10 +797,12 @@ const GuestInformation = () => {
             const cachedRoom = cachedRoomMap?.get(room.roomTypeId);
             if (cachedRoom) {
                 // Use cached room which already contains the correct pricingOptions for this policy
-                return sum + calculateRoomUnitPrice(cachedRoom) * (room.quantity || 1);
+                const roomWithPolicy = applyPolicySelectionToRoom({ ...cachedRoom, quantity: room.quantity });
+                return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
             }
             // Fallback: use current room's price if not cached
-            return sum + calculateRoomUnitPrice(room) * (room.quantity || 1);
+            const roomWithPolicy = applyPolicySelectionToRoom(room);
+            return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
         }, 0)
     );
 
