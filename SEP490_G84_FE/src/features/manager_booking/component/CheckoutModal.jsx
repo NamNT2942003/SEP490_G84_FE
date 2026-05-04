@@ -56,17 +56,18 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   if (!show || !booking) return null;
 
   if (loadingBill || !roomBilling) return (
-    <>
-      <div className="modal-backdrop fade show no-print" style={{ zIndex: 1040 }}></div>
-      <div className="modal fade show d-block no-print" tabIndex="-1" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)' }}>
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content p-5 text-center border-0 shadow-lg">
-            <div className="spinner-border text-primary mx-auto mb-3" role="status"></div>
-            <h5 className="text-secondary">Loading Billing Details...</h5>
-          </div>
-        </div>
+    <div style={{
+      position: 'fixed', top: 0, left: 0,
+      width: '100vw', height: '100vh',
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      zIndex: 9999,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{ background: '#fff', borderRadius: 12, padding: '2.5rem', textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+        <div className="spinner-border text-primary mx-auto mb-3" role="status"></div>
+        <h5 className="text-secondary">Loading Billing Details...</h5>
       </div>
-    </>
+    </div>
   );
 
   const rooms = roomBilling.rooms || [];
@@ -270,18 +271,25 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
 
   return (
     <>
-      <div className="modal-backdrop fade show no-print" style={{ zIndex: 1040 }}></div>
-      <div className="modal fade show no-print" tabIndex="-1"
-        style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="modal-dialog"
-          style={{
-            width: '95vw',
-            maxWidth: 1500,
-            maxHeight: '90vh',
-            margin: 0,
-          }}>
-          <div className="modal-content border-0 shadow-lg d-flex flex-column"
-            style={{ maxHeight: '90vh', overflow: 'hidden' }}>
+      {/* Pure fixed overlay — không dùng Bootstrap modal class để tránh bị ảnh hưởng bởi parent CSS */}
+      <div style={{
+        position: 'fixed', top: 0, left: 0,
+        width: '100vw', height: '100vh',
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        zIndex: 9999,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }} className="no-print">
+        <div style={{
+          width: '95vw',
+          maxWidth: 1500,
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          borderRadius: 8,
+          overflow: 'hidden',
+          boxShadow: '0 16px 48px rgba(0,0,0,0.35)',
+          background: '#fff',
+        }}>
 
             {/* HEADER */}
             <div className="modal-header bg-dark text-white border-0 py-2 px-4" style={{ flexShrink: 0 }}>
@@ -671,7 +679,6 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
             </div>
           </div>
         </div>
-      </div>
 
       {/* ═══ PRINT SECTION ═══ */}
       <div id="printable-receipt" className="bg-white text-dark p-2 d-none d-print-block">
