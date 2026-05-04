@@ -135,6 +135,41 @@ export default function FrontDeskDashboard() {
 
   const refreshAll = () => { fetchBookings(); fetchStats(); };
 
+  // Refresh list + cập nhật selectedBooking trong Drawer nếu đang mở
+  const refreshAndUpdateDrawer = async () => {
+    fetchStats();
+    if (!selectedBranch) return;
+    setLoading(true);
+    try {
+      let fresh = [];
+      if (mode === 'checkout') {
+        const activeData = await checkInApi.getDashboardBookings(selectedBranch, 'CHECKED_IN');
+        const active = (activeData || []).map(b => ({ ...b, _isDebt: false }));
+        let debt = [];
+        try {
+          const debtData = await checkInApi.getCheckedOutWithDebt(selectedBranch);
+          debt = (debtData || []).map(b => ({ ...b, _isDebt: true }));
+        } catch {}
+        fresh = [...active, ...debt];
+      } else if (mode === 'inhouse') {
+        fresh = await checkInApi.getDashboardBookings(selectedBranch, 'CHECKED_IN');
+      } else {
+        const raw = await checkInApi.getDashboardBookings(selectedBranch, '');
+        fresh = raw.filter(b => b.status === 'CONFIRMED' || b.status === 'ARRIVED');
+      }
+      setBookings(fresh);
+      // Cập nhật selectedBooking nếu Drawer đang mở
+      if (selectedBooking) {
+        const updated = fresh.find(b => b.id === selectedBooking.id);
+        if (updated) setSelectedBooking(updated);
+      }
+    } catch (err) {
+      console.error('Refresh error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedBranch) {
       fetchBookings();
@@ -436,7 +471,7 @@ export default function FrontDeskDashboard() {
       {showDetailsModal && (
         <BookingDetailModal key={`details-${selectedBooking?.id}`} show={showDetailsModal}
           onClose={() => setShowDetailsModal(false)}
-          booking={selectedBooking} onRefresh={refreshAll} />
+          booking={selectedBooking} onRefresh={refreshAndUpdateDrawer} />
       )}
       {showCheckoutModal && (
         <CheckoutModal key={`checkout-${selectedBooking?.id}`} show={showCheckoutModal}
