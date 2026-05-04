@@ -22,7 +22,6 @@ const safeNumber = (value, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const HIDDEN_PRICE_MODIFIER_TYPES = new Set();
 
 const extractDeltaFromReason = (reason) => {
     if (!reason) return null;
@@ -76,12 +75,24 @@ const getVisiblePriceFromOption = (room, option) => {
     const effectiveOption = option || room?.selectedPricingOption || null;
     if (!effectiveOption) return safeNumber(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0, 0);
 
-    // GuestInformation must display final option price including selected policy impact.
-    const hiddenDelta = (Array.isArray(effectiveOption.modifiers) ? effectiveOption.modifiers : [])
-        .filter((modifier) => HIDDEN_PRICE_MODIFIER_TYPES.has(modifier?.type))
-        .reduce((sum, modifier) => sum + getModifierDelta(room, modifier), 0);
+    // Compute price from basePrice + modifier deltas so it always matches the
+    // breakdown shown in BookingSummary (Original price + each modifier line).
+    // Previously this read option.finalPrice which could diverge from the
+    // additive breakdown when the backend applied modifiers differently.
+    const modifiers = Array.isArray(effectiveOption.modifiers) ? effectiveOption.modifiers : [];
+    if (modifiers.length > 0) {
+        const basePrice = safeNumber(
+            effectiveOption.basePrice ?? room?.basePrice ?? room?.price, 0,
+        );
+        const totalDelta = modifiers.reduce(
+            (sum, modifier) => sum + getModifierDelta(room, modifier), 0,
+        );
+        const computed = basePrice + totalDelta;
+        return computed > 0 ? computed : 0;
+    }
 
-    const visiblePrice = safeNumber(effectiveOption.finalPrice, 0) - hiddenDelta;
+    // No modifiers → use finalPrice directly
+    const visiblePrice = safeNumber(effectiveOption.finalPrice, 0);
     return visiblePrice > 0 ? visiblePrice : 0;
 };
 
