@@ -365,6 +365,7 @@ export default function BookingDetailModal({ show, bookingId, onHide, onStatusCh
                                                 const isCheckInToday = checkInDay.getTime() === today.getTime();
 
                                                 let isDeadlineToday = false;
+                                                let isBeforeDeadline = false;
                                                 if (deadlineStr) {
                                                     const dDate = new Date(booking.freeCancelDeadline);
                                                     dDate.setHours(0, 0, 0, 0);
