@@ -1384,11 +1384,9 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                             <div className="cbsm-cart-name">{row.roomTypeName}</div>
                                             <div className="cbsm-cart-meta">
                                                 ×{row.qty}
-                                                {row.lineDelta !== 0 && (
-                                                    <span className={row.lineDelta < 0 ? "cbsm-money-minus" : "cbsm-money-plus"} style={{ marginLeft: 6 }}>
-                                                        {row.lineDelta < 0 ? "−" : "+"}{formatVnd(Math.abs(row.lineDelta))}
-                                                    </span>
-                                                )}
+                                                <span className={row.lineDelta < 0 ? "cbsm-money-minus" : row.lineDelta > 0 ? "cbsm-money-plus" : ""} style={{ marginLeft: 6 }}>
+                                                    {row.lineDelta < 0 ? `−${formatVnd(Math.abs(row.lineDelta))}` : row.lineDelta > 0 ? `+${formatVnd(row.lineDelta)}` : `±${formatVnd(0)}`}
+                                                </span>
                                             </div>
                                         </div>
                                         <div className="cbsm-cart-amount">{formatVnd(row.lineTotal)}</div>
