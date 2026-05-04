@@ -1049,6 +1049,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         <input
                             type="date"
                             value={form.arrivalDate}
+                            min={new Date().toISOString().split('T')[0]}
                             onChange={(e) => updateForm({ arrivalDate: e.target.value })}
                         />
                     </div>
@@ -1057,6 +1058,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                         <input
                             type="date"
                             value={form.departureDate}
+                            min={form.arrivalDate || new Date().toISOString().split('T')[0]}
                             onChange={(e) => updateForm({ departureDate: e.target.value })}
                         />
                     </div>
