@@ -714,7 +714,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             const policyModsForRoom = policyModifierMap[effectivePolicyId] || {};
             const pMod = policyModsForRoom[room.roomTypeId];
             if (pMod) {
-                const modifiers = (option?.modifiers || []).filter(m => DETAIL_LEVEL_TYPES.has(m?.type));
+                const modifiers = option?.modifiers || [];
                 const rate2 = reverseUserHistoryDiscount(finalUnit, modifiers);
                 const policyDelta = applyPolicyAdjustment(rate2, pMod) - rate2;
                 finalUnit += policyDelta;
