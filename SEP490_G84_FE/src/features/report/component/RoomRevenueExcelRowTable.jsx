@@ -70,8 +70,6 @@ const RoomRevenueExcelRowTable = ({ branchId, month, year }) => {
                                     <th className="text-end text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Price/Night</th>
                                     <th className="text-center text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Total Nights</th>
                                     <th className="text-end text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Total Amount</th>
-                                    <th className="text-end text-secondary py-2" style={{ whiteSpace: 'nowrap' }}>Commission</th>
-                                    <th className="text-start text-secondary py-2" style={{ width: '200px' }}>Note</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -86,8 +84,6 @@ const RoomRevenueExcelRowTable = ({ branchId, month, year }) => {
                                         <td className="text-end text-dark">{fmt(r.pricePerNight)}</td>
                                         <td className="text-center fw-medium">{r.totalNights}</td>
                                         <td className="text-end text-danger fw-bold">{fmt(r.totalRevenue)}</td>
-                                        <td className="text-end text-muted">{r.commission > 0 ? fmt(r.commission) : '0'}</td>
-                                        <td className="text-start text-muted text-truncate" style={{ maxWidth: '200px' }} title={r.note}>{r.note || '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -95,7 +91,6 @@ const RoomRevenueExcelRowTable = ({ branchId, month, year }) => {
                                 <tr>
                                     <td colSpan={8} className="text-end py-3 text-danger fw-bold">SYSTEM TOTAL:</td>
                                     <td className="text-end py-3 text-danger fs-6 fw-bold">{fmt(totalSystemRev)}</td>
-                                    <td colSpan={3}></td>
                                 </tr>
                             </tfoot>
                         </table>
