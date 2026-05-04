@@ -1262,13 +1262,12 @@ const GuestInformation = () => {
                                                     </div>
 
                                                     {/* Policy Before Deadline */}
-                                                    {deadlineStr && (
-                                                        <div style={{ fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8, background: isDeadlinePassed ? "#f8fafc" : "#fffbeb", border: `1px solid ${isDeadlinePassed ? "#e5e7eb" : "#fcd34d"}`, borderRadius: 7, padding: "8px 12px", color: isDeadlinePassed ? "#94a3b8" : "#92400e" }}>
+                                                    {deadlineStr && !isDeadlinePassed && (
+                                                        <div style={{ fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 7, padding: "8px 12px", color: "#92400e" }}>
                                                             <i className="bi bi-shield-check" style={{ marginTop: 1, flexShrink: 0 }} />
-                                                            <span style={{ flex: 1, textDecoration: isDeadlinePassed ? "line-through" : "none" }}>
+                                                            <span style={{ flex: 1 }}>
                                                                 Cancel before 23:59, <strong>{deadlineStr}</strong>: Get back <strong>{formatVND(refundAmount)}</strong> ({pRefundRate}% of deposit).
                                                             </span>
-                                                            {isDeadlinePassed && <span style={{ flexShrink: 0, fontWeight: 700, color: "#94a3b8" }}>Expired</span>}
                                                         </div>
                                                     )}
 

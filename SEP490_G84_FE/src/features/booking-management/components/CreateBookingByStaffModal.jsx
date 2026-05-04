@@ -1589,7 +1589,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                             </div>
 
 
-                                            {deadlineDate && (
+                                            {deadlineDate && !isDeadlinePast && (
                                                 isDeadlineToday ? (
                                                     <div style={{ fontSize: 11, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "6px 10px", marginBottom: seasonLabel ? 6 : 0, display: "flex", flexDirection: "column", gap: 4 }}>
                                                         <div style={{ color: "#15803d", display: "flex", alignItems: "center", gap: 4 }}>

@@ -189,32 +189,32 @@ export default function CancelBookingModal({ show, bookingId, onHide, onCancelle
                                         return (
                                             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12, marginBottom: 12 }}>
                                                 {/* Grace Period */}
-                                                <div style={{
-                                                    fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
-                                                    background: isGracePeriodActive ? "#f0fdf4" : "#f8fafc",
-                                                    border: `1px solid ${isGracePeriodActive ? "#bbf7d0" : "#e5e7eb"}`,
-                                                    borderRadius: 7, padding: "8px 12px", color: isGracePeriodActive ? "#15803d" : "#94a3b8",
-                                                }}>
-                                                    <i className="bi bi-clock-fill" style={{ marginTop: 1, flexShrink: 0 }} />
-                                                    <span style={{ flex: 1, textDecoration: !isGracePeriodActive ? "line-through" : "none" }}>
-                                                        Cancel by 23:59, <strong>{createdDateStr}</strong> (booking day): Get back <strong>{formatVND(prepaidAmt)}</strong> (100% of deposit).
-                                                    </span>
-                                                    {!isGracePeriodActive && <span style={{ flexShrink: 0, fontWeight: 700, color: "#94a3b8" }}>Expired</span>}
-                                                </div>
-
-                                                {/* Policy Before Deadline */}
-                                                {deadlineStr && (
+                                                {isGracePeriodActive && (
                                                     <div style={{
                                                         fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
-                                                        background: isDeadlinePassed ? "#f8fafc" : "#fffbeb",
-                                                        border: `1px solid ${isDeadlinePassed ? "#e5e7eb" : "#fcd34d"}`,
-                                                        borderRadius: 7, padding: "8px 12px", color: isDeadlinePassed ? "#94a3b8" : "#92400e",
+                                                        background: "#f0fdf4",
+                                                        border: "1px solid #bbf7d0",
+                                                        borderRadius: 7, padding: "8px 12px", color: "#15803d",
+                                                    }}>
+                                                        <i className="bi bi-clock-fill" style={{ marginTop: 1, flexShrink: 0 }} />
+                                                        <span style={{ flex: 1 }}>
+                                                            Cancel by 23:59, <strong>{createdDateStr}</strong> (booking day): Get back <strong>{formatVND(prepaidAmt)}</strong> (100% of deposit).
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {/* Policy Before Deadline */}
+                                                {deadlineStr && !isDeadlinePassed && (
+                                                    <div style={{
+                                                        fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
+                                                        background: "#fffbeb",
+                                                        border: "1px solid #fcd34d",
+                                                        borderRadius: 7, padding: "8px 12px", color: "#92400e",
                                                     }}>
                                                         <i className="bi bi-shield-check" style={{ marginTop: 1, flexShrink: 0 }} />
-                                                        <span style={{ flex: 1, textDecoration: isDeadlinePassed ? "line-through" : "none" }}>
+                                                        <span style={{ flex: 1 }}>
                                                             Cancel before 23:59, <strong>{deadlineStr}</strong>: Get back <strong>{formatVND(refundAmt)}</strong> ({refundRate}% of deposit).
                                                         </span>
-                                                        {isDeadlinePassed && <span style={{ flexShrink: 0, fontWeight: 700, color: "#94a3b8" }}>Expired</span>}
                                                     </div>
                                                 )}
 
