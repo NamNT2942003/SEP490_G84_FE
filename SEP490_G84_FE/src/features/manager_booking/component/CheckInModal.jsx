@@ -620,6 +620,7 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
   const [step, setStep] = useState(0);
   const [assignments, setAssignments] = useState(() => generateInitialAssignments(booking));
   const [availableRooms, setAvailableRooms] = useState({});
+  const [roomsLoaded, setRoomsLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -670,9 +671,10 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
 
   useEffect(() => {
     if (!show || !branchId) return;
+    setRoomsLoaded(false);
     checkInApi.getAvailableRooms(branchId)
-      .then(setAvailableRooms)
-      .catch(() => setErrorMessage('Failed to load available rooms.'));
+      .then(data => { setAvailableRooms(data); setRoomsLoaded(true); })
+      .catch(() => { setErrorMessage('Failed to load available rooms.'); setRoomsLoaded(true); });
   }, [show, branchId]);
 
   const handleChange = (index, field, value) => {
@@ -801,7 +803,7 @@ export default function CheckInModal({ show, onClose, booking, branchId, onSucce
                   </div>
                 </div>
               )}
-              {isShortage && !isNotToday && (
+              {roomsLoaded && isShortage && !isNotToday && (
                 <div style={{
                   background: '#fff4e5', border: '1.5px solid #ff9800', borderRadius: '8px',
                   padding: '12px 16px', marginBottom: '16px', display: 'flex', gap: '10px'
