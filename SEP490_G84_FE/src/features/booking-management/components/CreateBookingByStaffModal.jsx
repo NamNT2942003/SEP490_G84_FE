@@ -115,11 +115,6 @@ const computeFreeCancelDeadline = (arrivalDate, dateRange) => {
     const dt = new Date(arrivalDate);
     if (isNaN(dt.getTime())) return null;
     dt.setDate(dt.getDate() - days);
-    // Clamp: deadline must not be before today (booking creation day)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    dt.setHours(0, 0, 0, 0);
-    if (dt < today) return today;
     return dt;
 };
 
@@ -1582,22 +1577,40 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
 
                                             {deadlineDate && (
                                                 isDeadlineToday ? (
-                                                    <div style={{ fontSize: 11, color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
-                                                        <i className="bi bi-clock-fill" />
-                                                        <strong>Refund of {formatVnd(cardRefund)}</strong> applies per policy until <strong>today</strong>
-                                                        <span style={{ color: "#b45309", fontWeight: 400 }}>— no refund after today</span>
-                                                    </div>
-                                                ) : isDeadlinePast ? (
-                                                    <div style={{ fontSize: 11, color: "#c2410c", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
-                                                        <i className="bi bi-exclamation-triangle-fill" />
-                                                        <strong>Refund period expired</strong> on <strong style={{ marginLeft: 3 }}>{deadlineStr}</strong>
-                                                        <span style={{ color: "#9a3412", fontWeight: 400 }}>— no refund will be given</span>
+                                                    <div style={{ fontSize: 11, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "6px 10px", marginBottom: seasonLabel ? 6 : 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                                                        <div style={{ color: "#15803d", display: "flex", alignItems: "center", gap: 4 }}>
+                                                            <i className="bi bi-clock-fill" />
+                                                            <span>Cancel before 23:59 <strong>today</strong>: Get back <strong>100% of deposit</strong>.</span>
+                                                        </div>
+                                                        {p.refunRate > 0 ? (
+                                                            <div style={{ color: "#92400e", display: "flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
+                                                                <i className="bi bi-arrow-return-right" style={{ fontSize: 10 }} />
+                                                                <span>Cancel from tomorrow: Get back <strong>{p.refunRate}% of deposit</strong>.</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ color: "#991b1b", display: "flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
+                                                                <i className="bi bi-arrow-return-right" style={{ fontSize: 10 }} />
+                                                                <span>Cancel from tomorrow: No refund.</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ) : (
-                                                    <div style={{ fontSize: 11, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 8px", marginBottom: seasonLabel ? 6 : 0, display: "flex", alignItems: "center", gap: 4 }}>
-                                                        <i className="bi bi-clock-history me-1 text-success" />
-                                                        <strong>Refund of {formatVnd(cardRefund)}</strong> applies per policy until <strong>{deadlineStr}</strong>
-                                                        <span style={{ color: "#15803d", fontWeight: 400 }}>— no refund after this date</span>
+                                                    <div style={{ fontSize: 11, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "6px 10px", marginBottom: seasonLabel ? 6 : 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                                                        <div style={{ color: "#15803d", display: "flex", alignItems: "center", gap: 4 }}>
+                                                            <i className="bi bi-clock-history text-success" />
+                                                            <span>Cancel before 23:59, <strong>{deadlineStr}</strong>: Get back <strong>100% of deposit</strong>.</span>
+                                                        </div>
+                                                        {p.refunRate > 0 ? (
+                                                            <div style={{ color: "#92400e", display: "flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
+                                                                <i className="bi bi-arrow-return-right" style={{ fontSize: 10 }} />
+                                                                <span>Cancel from {(() => { const d = new Date(deadlineDate); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}: Get back <strong>{p.refunRate}% of deposit</strong>.</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ color: "#991b1b", display: "flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
+                                                                <i className="bi bi-arrow-return-right" style={{ fontSize: 10 }} />
+                                                                <span>Cancel from {(() => { const d = new Date(deadlineDate); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}: No refund.</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )
                                             )}

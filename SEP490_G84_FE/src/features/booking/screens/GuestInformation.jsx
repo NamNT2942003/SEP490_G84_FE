@@ -77,11 +77,6 @@ const computeFreeCancelDeadline = (checkIn, dateRange) => {
     const dt = new Date(checkIn);
     if (isNaN(dt.getTime())) return null;
     dt.setDate(dt.getDate() - days);
-    // Clamp: deadline must not be before today (booking creation day)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    dt.setHours(0, 0, 0, 0);
-    if (dt < today) return today;
     return dt;
 };
 
@@ -235,7 +230,7 @@ const withPricingState = (room, customerEmail = "") => {
 
     // Filter out options with USER_HISTORY_DISCOUNT if email is not provided
     const hasValidEmail = Boolean(normalizeEmailForSearch(customerEmail));
-    const validOptions = options.filter(option => 
+    const validOptions = options.filter(option =>
         !(option.modifiers?.some(m => m.type === 'USER_HISTORY_DISCOUNT' && !hasValidEmail))
     );
 
@@ -1175,14 +1170,17 @@ const GuestInformation = () => {
                                         const retainedAmount = normalizeMoney(prepaidAmount - refundAmount);
                                         const isSameDayCancel = policy.dateRange != null && parseInt(policy.dateRange, 10) === 0;
 
-                                        // Free cancel deadline
                                         const deadline = computeFreeCancelDeadline(checkIn, policy.dateRange);
-                                        const deadlineStr = formatDeadlineDate(deadline);
-                                        const today = new Date(); today.setHours(0, 0, 0, 0);
-                                        const deadlineDay = deadline ? new Date(deadline) : null;
-                                        if (deadlineDay) deadlineDay.setHours(0, 0, 0, 0);
-                                        const isDeadlineToday = deadlineDay && deadlineDay.getTime() === today.getTime();
-                                        const isDeadlinePast = deadline && !isDeadlineToday && deadline < today;
+                                        let deadlineStr = null;
+                                        let isDeadlinePassed = false;
+                                        if (deadline) {
+                                            const today = new Date();
+                                            today.setHours(0, 0, 0, 0);
+                                            const dClone = new Date(deadline);
+                                            dClone.setHours(0, 0, 0, 0);
+                                            deadlineStr = dClone.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
+                                            isDeadlinePassed = dClone < today;
+                                        }
 
                                         const typeConfig = {
                                             FREE_CANCEL: { label: 'Free cancellation', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', badgeBg: '#dcfce7', badgeColor: '#15803d', icon: 'bi-check-circle-fill' },
@@ -1254,76 +1252,36 @@ const GuestInformation = () => {
                                                 </div>
 
                                                 {/* Policy rules - structured description */}
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                                    {/* Rule 1: Free cancel before deadline */}
-                                                    {deadline && (
-                                                        <div style={{
-                                                            fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 8,
-                                                            background: '#f0fdf4', border: '1px solid #bbf7d0',
-                                                            borderRadius: 8, padding: '8px 12px', color: '#15803d',
-                                                        }}>
-                                                            <i className="bi bi-check-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
-                                                            <span>
-                                                                Cancel before 23:59, <strong>{deadlineStr}</strong>{isSameDayCancel ? ' (check-in day)' : ''}: Get back <strong>{formatVND(prepaidAmount)}</strong> (100% refund).
+                                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                                    {/* Grace Period */}
+                                                    <div style={{ fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 7, padding: "8px 12px", color: "#15803d" }}>
+                                                        <i className="bi bi-clock-fill" style={{ marginTop: 1, flexShrink: 0 }} />
+                                                        <span style={{ flex: 1 }}>
+                                                            Cancel by 23:59 <strong>today</strong> (booking day): Get back <strong>{formatVND(prepaidAmount)}</strong> (100% of deposit).
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Policy Before Deadline */}
+                                                    {deadlineStr && (
+                                                        <div style={{ fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8, background: isDeadlinePassed ? "#f8fafc" : "#fffbeb", border: `1px solid ${isDeadlinePassed ? "#e5e7eb" : "#fcd34d"}`, borderRadius: 7, padding: "8px 12px", color: isDeadlinePassed ? "#94a3b8" : "#92400e" }}>
+                                                            <i className="bi bi-shield-check" style={{ marginTop: 1, flexShrink: 0 }} />
+                                                            <span style={{ flex: 1, textDecoration: isDeadlinePassed ? "line-through" : "none" }}>
+                                                                Cancel before 23:59, <strong>{deadlineStr}</strong>: Get back <strong>{formatVND(refundAmount)}</strong> ({pRefundRate}% of deposit).
                                                             </span>
+                                                            {isDeadlinePassed && <span style={{ flexShrink: 0, fontWeight: 700, color: "#94a3b8" }}>Expired</span>}
                                                         </div>
                                                     )}
 
-                                                    {/* Rule 2: Cancel after deadline → partial refund */}
-                                                    {deadline && pRefundRate > 0 && pRefundRate < 100 && (
-                                                        <div style={{
-                                                            fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 8,
-                                                            background: '#fffbeb', border: '1px solid #fcd34d',
-                                                            borderRadius: 8, padding: '8px 12px', color: '#92400e',
-                                                        }}>
-                                                            <i className="bi bi-exclamation-triangle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
-                                                            <span>
-                                                                Cancel from <strong>{(() => { const d = new Date(deadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }); })()}</strong>: Get back <strong>{formatVND(refundAmount)}</strong> ({pRefundRate}% refund). Cancellation fee is <strong>{formatVND(retainedAmount)}</strong>.
-                                                            </span>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Rule 2 alt: Cancel after deadline → no refund */}
-                                                    {deadline && pRefundRate === 0 && (
-                                                        <div style={{
-                                                            fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 8,
-                                                            background: '#fef2f2', border: '1px solid #fecaca',
-                                                            borderRadius: 8, padding: '8px 12px', color: '#991b1b',
-                                                        }}>
-                                                            <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
-                                                            <span>
-                                                                Cancel from <strong>{(() => { const d = new Date(deadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }); })()}</strong>: No refund. Hotel retains the full <strong>{formatVND(prepaidAmount)}</strong> deposit.
-                                                            </span>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Non-refundable policy (no free cancel window at all) */}
-                                                    {!deadline && pRefundRate === 0 && (
-                                                        <div style={{
-                                                            fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 8,
-                                                            background: '#fef2f2', border: '1px solid #fecaca',
-                                                            borderRadius: 8, padding: '8px 12px', color: '#991b1b',
-                                                        }}>
-                                                            <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
-                                                            <span>
-                                                                No refund supported. Hotel retains the full <strong>{formatVND(prepaidAmount)}</strong> deposit.
-                                                            </span>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Non-refundable policy but has partial rate (no free cancel window) */}
-                                                    {!deadline && pRefundRate > 0 && (
-                                                        <div style={{
-                                                            fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 8,
-                                                            background: '#fffbeb', border: '1px solid #fcd34d',
-                                                            borderRadius: 8, padding: '8px 12px', color: '#92400e',
-                                                        }}>
-                                                            <i className="bi bi-exclamation-triangle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
-                                                            <span>
-                                                                If cancelled: Get back <strong>{formatVND(refundAmount)}</strong> ({pRefundRate}% refund). Cancellation fee is <strong>{formatVND(retainedAmount)}</strong>.
-                                                            </span>
-                                                        </div>
-                                                    )}
+                                                    {/* After Deadline / Non-refundable */}
+                                                    <div style={{ fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 7, padding: "8px 12px", color: "#991b1b" }}>
+                                                        <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
+                                                        <span style={{ flex: 1 }}>
+                                                            {deadlineStr
+                                                                ? <>Cancel from <strong>{(() => { const d = new Date(deadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-GB', { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>: No refund.</>
+                                                                : <>Cancel from <strong>tomorrow</strong>: No refund.</>
+                                                            }
+                                                        </span>
+                                                    </div>
                                                 </div>
 
                                                 {/* Seasonal range */}
@@ -1390,7 +1348,7 @@ const GuestInformation = () => {
                                 <i className="bi bi-person-badge text-success fs-5"></i>
                                 <span>Please do not bring more people than the room can accommodate!</span>
                             </div>
-                           
+
                         </div>
                     </div>
 
@@ -1678,17 +1636,17 @@ const GuestInformation = () => {
                         {/* Title */}
                         <h5 style={{ textAlign: 'center', fontWeight: 700, marginBottom: 8, color: '#111827' }}>
                             {otpStep === 'creating' ? 'Creating Booking...' :
-                             otpStep === 'verifying' ? 'Verifying...' :
-                             otpStep === 'resending' ? 'Resending Code...' :
-                             'Enter Verification Code'}
+                                otpStep === 'verifying' ? 'Verifying...' :
+                                    otpStep === 'resending' ? 'Resending Code...' :
+                                        'Enter Verification Code'}
                         </h5>
 
                         {/* Subtitle */}
                         <p style={{ textAlign: 'center', color: '#6b7280', fontSize: 14, marginBottom: 20 }}>
                             {otpStep === 'creating' ? 'Please wait while we finalize your reservation.' :
-                             otpStep === 'verifying' ? 'Checking your verification code...' :
-                             otpStep === 'resending' ? `Sending a new OTP to ${formData.email}...` :
-                             <>An OTP has been sent to <strong>{formData.email}</strong>. It is valid for 15 minutes.</>}
+                                otpStep === 'verifying' ? 'Checking your verification code...' :
+                                    otpStep === 'resending' ? `Sending a new OTP to ${formData.email}...` :
+                                        <>An OTP has been sent to <strong>{formData.email}</strong>. It is valid for 15 minutes.</>}
                         </p>
 
                         {/* Error message */}

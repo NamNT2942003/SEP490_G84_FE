@@ -317,8 +317,10 @@ const PolicyFormModal = ({ isOpen, onClose, onSave, initialData, branchId, savin
                                 min={0}
                                 placeholder="Example: 7"
                             />
-                            <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>
-                                If cancelled <strong>≥ N days</strong> before check-in → <span style={{ color: "#16a34a", fontWeight: 600 }}>refund of Prepaid rate</span>. After that window → <span style={{ color: "#dc2626", fontWeight: 600 }}>no refund</span>.
+                            <div className="text-muted mt-2" style={{ fontSize: "0.75rem", lineHeight: 1.5 }}>
+                                <div style={{ color: "#16a34a", fontWeight: 600 }}>1. Cancel on booking day: 100% refund of deposit.</div>
+                                <div style={{ color: "#16a34a", fontWeight: 600 }}>2. Cancel ≥ N days before: 100% refund of deposit.</div>
+                                <div style={{ color: "#d97706", fontWeight: 600 }}>3. Cancel &lt; N days before: refund {form.refunRate}% of deposit.</div>
                             </div>
                         </div>
 
@@ -663,9 +665,10 @@ const RefundPolicyManagement = () => {
                                                         <i className="bi bi-calendar-check-fill" />
                                                         Refund deadline: {p.daysBeforeCheckIn ?? p.dateRange} days before
                                                     </span>
-                                                    <div className="mt-1 text-muted" style={{ fontSize: "0.75rem" }}>
-                                                        Cancel ≥ {p.daysBeforeCheckIn ?? p.dateRange} days before → refund {p.prepaidRate}%<br/>
-                                                        Cancel &lt; {p.daysBeforeCheckIn ?? p.dateRange} days before → no refund
+                                                    <div className="mt-1 text-muted" style={{ fontSize: "0.75rem", lineHeight: 1.4 }}>
+                                                        <div style={{ color: "#16a34a" }}>• Cancel on booking day: 100% refund</div>
+                                                        <div style={{ color: "#16a34a" }}>• Cancel ≥ {p.daysBeforeCheckIn ?? p.dateRange} days before: 100% refund</div>
+                                                        <div style={{ color: "#d97706" }}>• Cancel &lt; {p.daysBeforeCheckIn ?? p.dateRange} days before: refund {p.refunRate}% of deposit</div>
                                                     </div>
                                                 </div>
                                             ) : null}
