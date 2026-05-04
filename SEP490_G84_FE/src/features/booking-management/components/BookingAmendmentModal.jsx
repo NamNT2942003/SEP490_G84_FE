@@ -187,8 +187,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                 <thead>
                     <tr>
                         <th>Room Type</th>
-                        <th className="text-end">Qty</th>
-                        <th className="text-end">Total Price</th>
+                        <th className="text-end">Before</th>
                         <th className="text-center">Change (+/-)</th>
                         <th className="text-end">After</th>
                     </tr>
@@ -196,7 +195,7 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                 <tbody>
                     {combinedDetails.length === 0 ? (
                         <tr>
-                            <td colSpan={5} className="text-center text-muted py-3">
+                            <td colSpan={4} className="text-center text-muted py-3">
                                 No room data available
                             </td>
                         </tr>
@@ -216,7 +215,6 @@ function EditStep({ booking, lines, setLines, newArrival, setNewArrival,
                                     </div>
                                 </td>
                                 <td className="text-end">{item.quantity}</td>
-                                <td className="text-end">{formatVND(totalPrice)}</td>
                                 <td className="text-center">
                                     <div className="ba-delta-input">
                                         <button
