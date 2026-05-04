@@ -85,6 +85,29 @@ const getVisiblePriceFromOption = (room, option) => {
 // calculateRoomUnitPrice được import từ utils/roomPrice.js — dùng chung với BookingSummary
 // để đảm bảo giá ở footer và sidebar luôn nhất quán.
 
+/**
+ * Compute room unit price from basePrice + availablePriceModifiers deltas.
+ * This mirrors the BookingSummary breakdown logic so Total always matches
+ * the displayed line items (Original price + modifier adjustments).
+ * Falls back to calculateRoomUnitPrice when no modifiers are available.
+ */
+const computeRoomPriceFromModifiers = (room) => {
+    const modifiers = Array.isArray(room?.availablePriceModifiers) && room.availablePriceModifiers.length > 0
+        ? room.availablePriceModifiers
+        : Array.isArray(room?.selectedPricingOption?.modifiers)
+            ? room.selectedPricingOption.modifiers
+            : [];
+    if (modifiers.length === 0) return calculateRoomUnitPrice(room);
+    const basePrice = safeNumber(
+        room?.selectedPricingOption?.basePrice ?? room?.basePrice ?? room?.price, 0,
+    );
+    const totalDelta = modifiers.reduce(
+        (sum, mod) => sum + getModifierDelta(room, mod), 0,
+    );
+    const computed = basePrice + totalDelta;
+    return computed > 0 ? computed : 0;
+};
+
 const normalizePolicyId = (policy) => policy?.id ?? policy?.policyId ?? null;
 
 /**
@@ -845,33 +868,33 @@ const GuestInformation = () => {
 
     const selectedPolicy = policies.find((policy) => Number(policy.id) === Number(selectedPolicyId)) || null;
 
-    // Tính tổng tiền cho 1 policy cụ thể, độc lập với policy đang chọn.
+    // Tính tổng tiền cho 1 policy cụ thể dùng basePrice + availablePriceModifiers deltas
+    // (đồng bộ với breakdown hiển thị trong BookingSummary).
     // Ưu tiên dùng policyPricingCache (đã fetch đầy đủ L1+L2+L3) nếu có.
-    // Fallback về applyPolicySelectionToRoom (dùng pricingOptions hiện tại của room).
     const computeTotalForPolicy = (policyId) => normalizeMoney(
         rooms.reduce((sum, room) => {
             const cachedRoomMap = policyPricingCacheRef.current.get(Number(policyId));
             const cachedRoom = cachedRoomMap?.get(room.roomTypeId);
             if (cachedRoom) {
-                // Dùng cached room đã có đúng pricingOptions cho policy này
                 const roomWithPolicy = applyPolicySelectionToRoom(
                     { ...cachedRoom, quantity: room.quantity },
                     policyId,
                     guestEmailRef.current
                 );
-                return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
+                return sum + computeRoomPriceFromModifiers(roomWithPolicy) * (room.quantity || 1);
             }
-            // Fallback: dùng pricingOptions hiện tại (có thể không có option cho policy này)
+            // Fallback: dùng pricingOptions hiện tại
             const roomWithPolicy = applyPolicySelectionToRoom(room, policyId, guestEmailRef.current);
-            return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
+            return sum + computeRoomPriceFromModifiers(roomWithPolicy) * (room.quantity || 1);
         }, 0)
     );
 
-    // finalBookingAmount: nếu đã chọn policy → dùng computeTotalForPolicy (đồng bộ với card hiển thị)
-    // Nếu chưa chọn → dùng giá trung lập từ rooms state.
+    // finalBookingAmount: luôn tính từ basePrice + modifier deltas để đồng bộ với breakdown.
     const finalBookingAmount = selectedPolicyId != null
         ? computeTotalForPolicy(selectedPolicyId)
-        : normalizeMoney(calculateTotalPrice());
+        : normalizeMoney(rooms.reduce(
+            (sum, room) => sum + computeRoomPriceFromModifiers(room) * (room.quantity || 1), 0
+        ));
 
     // Tính deposit theo prepaidRate của policy đang chọn.
     const depositRate = selectedPolicy ? safeNumber(selectedPolicy.prepaidRate, 100) : 100;

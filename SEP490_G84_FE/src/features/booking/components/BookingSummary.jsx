@@ -78,18 +78,18 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
     };
 
     const getOptionModifiers = (room) =>
-        (Array.isArray(room?.availablePriceModifiers) && room.availablePriceModifiers.length > 0
-            ? room.availablePriceModifiers
-            : Array.isArray(room?.selectedPricingOption?.modifiers)
-                ? room.selectedPricingOption.modifiers
-                : []);
+    (Array.isArray(room?.availablePriceModifiers) && room.availablePriceModifiers.length > 0
+        ? room.availablePriceModifiers
+        : Array.isArray(room?.selectedPricingOption?.modifiers)
+            ? room.selectedPricingOption.modifiers
+            : []);
 
     const calculateRoomBaseUnitPrice = (room) => {
         return safeNumber(
             room?.selectedPricingOption?.basePrice
-                ?? room?.basePrice
-                ?? room?.price
-                ?? room?.selectedPrice,
+            ?? room?.basePrice
+            ?? room?.price
+            ?? room?.selectedPrice,
             0,
         );
     };
@@ -150,24 +150,24 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
         new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
     const nights = calculateNights(checkIn, checkOut);
-    
+
     let totalBasePrice = 0;
     let allModifiers = [];
     let totalRooms = 0;
     let totalAdults = 0;
     let totalChildren = 0;
-    
+
     selectedRooms.forEach(room => {
         const qty = room.quantity || 1;
         totalRooms += qty;
         totalAdults += (room.maxAdult || 0) * qty;
         totalChildren += (room.maxChildren || 0) * qty;
         totalBasePrice += calculateRoomBaseUnitPrice(room) * qty;
-        
+
         getAppliedModifierBreakdown(room).forEach(mod => {
             // multiply delta by qty to show total discount
-            const modDelta = mod.delta * qty; 
-            
+            const modDelta = mod.delta * qty;
+
             // Check if we already have this modifier
             const existIdx = allModifiers.findIndex(m => m.name === mod.name && m.type === mod.type);
             if (existIdx >= 0) {
@@ -204,7 +204,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
             {/* Card 2: Your booking details */}
             <div className="bg-white rounded-3 p-4 border custom-shadow">
                 <h5 className="fw-bold mb-3" style={{ fontSize: '18px' }}>Your booking details</h5>
-                
+
                 <div className="row g-0 mb-3" style={{ fontSize: '14px' }}>
                     <div className="col-6 border-end pe-3">
                         <p className="mb-1 text-dark fw-medium">Check-in</p>
@@ -223,15 +223,15 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                         <i className="bi bi-exclamation-circle me-1"></i> Check-in is today
                     </div>
                 )}
-                
+
                 <hr className="my-3 text-muted" />
-                
+
                 <div className="mb-0" style={{ fontSize: '14px' }}>
                     <p className="text-dark fw-medium mb-1">You selected</p>
                     <div className="fw-bold mb-2" style={{ fontSize: '16px' }}>
                         {nights} {nights > 1 ? 'nights' : 'night'}, {totalRooms} {totalRooms > 1 ? 'rooms' : 'room'} for {totalAdults} {totalAdults > 1 ? 'adults' : 'adult'} and {totalChildren} {totalChildren > 1 ? 'children' : 'child'}
                     </div>
-                    
+
                     {selectedRooms.length > 0 ? (
                         selectedRooms.map((room, index) => (
                             <div key={index} className="text-dark mb-1" style={{ fontSize: '15px' }}>
@@ -249,12 +249,12 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                 <div className="bg-white rounded-3 border custom-shadow overflow-hidden">
                     <div className="p-4">
                         <h5 className="fw-bold mb-3" style={{ fontSize: '18px' }}>Your price summary</h5>
-                        
+
                         <div className="d-flex justify-content-between mb-2 text-dark" style={{ fontSize: '16px' }}>
                             <span>Original price</span>
                             <span>{formatCurrency(totalBasePrice)}</span>
                         </div>
-                        
+
                         {allModifiers.map((mod, i) => (
                             <div className="d-flex justify-content-between mb-2" key={i} style={{ fontSize: '15px' }}>
                                 <div className="text-dark">
@@ -267,7 +267,7 @@ const BookingSummary = ({ selectedRooms = [], checkIn, checkOut, selectedPolicy 
                             </div>
                         ))}
                     </div>
-                    
+
                     {/* Total Section with light blue background */}
                     <div className="p-4 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#ebf3ff' }}>
                         <h5 className="fw-bold m-0 text-dark" style={{ fontSize: '18px' }}>Total</h5>
