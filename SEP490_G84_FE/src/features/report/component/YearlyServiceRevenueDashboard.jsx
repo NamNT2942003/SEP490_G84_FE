@@ -215,12 +215,15 @@ const YearlyServiceRevenueDashboard = ({ yearlyData, selectedYear, onMonthClick 
                                         </td>
                                         <td className="fw-medium" style={{ color: m.revenue > 0 ? ACCENT : '#aaa' }}>{formatCurrency(m.revenue)}</td>
                                         <td>
-                                            {m.momGrowth != null ? (
-                                                <span className={`badge rounded-pill fw-medium ${m.momGrowth >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`}
-                                                    style={{ fontSize: '0.72rem', minWidth: '56px' }}>
-                                                    {m.momGrowth > 0 ? '↑' : '↓'} {Math.abs(m.momGrowth).toFixed(1)}%
-                                                </span>
-                                            ) : <span className="text-muted">—</span>}
+                                            {(() => {
+                                                const growth = m.momGrowth ?? 0;
+                                                return (
+                                                    <span className={`badge rounded-pill fw-medium ${growth >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`}
+                                                        style={{ fontSize: '0.72rem', minWidth: '56px' }}>
+                                                        {growth > 0 ? '↑ ' : growth < 0 ? '↓ ' : ''}{Math.abs(growth).toFixed(1)}%
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                     </tr>
                                 ))}
