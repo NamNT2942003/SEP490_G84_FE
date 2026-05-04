@@ -689,7 +689,20 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
             const option = (roomPricingMap[String(room.roomTypeId)]?.pricingOptions || [])
                 .find((opt) => opt.optionCode === room.selectedOptionCode);
             const baseUnit = toMoney(option?.basePrice || roomTypeById[String(room.roomTypeId)]?.basePrice || 0);
-            const finalUnit = toMoney(option?.finalPrice ?? baseUnit);
+            
+            let finalUnit = toMoney(option?.finalPrice ?? baseUnit);
+            
+            // Apply selected policy modifier manually if a policy is selected
+            if (selectedPolicy && selectedPolicy.priceModifiers) {
+                const pMod = selectedPolicy.priceModifiers.find(m => String(m.roomTypeId) === String(room.roomTypeId));
+                if (pMod) {
+                    const modifiers = (option?.modifiers || []).filter(m => DETAIL_LEVEL_TYPES.has(m?.type));
+                    const rate2 = reverseUserHistoryDiscount(finalUnit, modifiers);
+                    const policyDelta = applyPolicyAdjustment(rate2, pMod) - rate2;
+                    finalUnit += policyDelta;
+                }
+            }
+            
             const qty = Number(room.quantity || 0);
             const baseLine = baseUnit * qty;
             const unitDelta = finalUnit - baseUnit;
@@ -700,11 +713,12 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 qty,
                 baseLine,
                 lineDelta,
+                finalUnit: Math.max(0, finalUnit),
                 lineTotal: Math.max(0, finalUnit * qty),
                 payableNow: Math.max(0, finalUnit * qty * resolvePayableRate(option) / 100),
             };
         });
-    }, [form.rooms, roomTypeById, roomPricingMap]);
+    }, [form.rooms, roomTypeById, roomPricingMap, selectedPolicy]);
 
     // roomSubtotal = tổng basePrice * qty (giá gốc chưa modifier)
     const roomSubtotal = useMemo(() => {
@@ -827,7 +841,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 email: form.customer.email?.trim() || "",
                 phone: form.customer.phone?.trim() || "",
             },
-            rooms: form.rooms.map((room) => {
+            rooms: form.rooms.map((room, index) => {
                 const option = (roomPricingMap[String(room.roomTypeId)]?.pricingOptions || [])
                     .find((opt) => opt.optionCode === room.selectedOptionCode);
                 const modifierIds = uniqueIds(
@@ -838,7 +852,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                 return {
                     roomTypeId: String(room.roomTypeId),
                     quantity: Number(room.quantity),
-                    price: Number(room.price ?? option?.finalPrice ?? option?.basePrice ?? 0),
+                    price: roomSummaryRows[index].finalUnit,
                     priceModifierIds: modifierIds,
                 };
             }),
@@ -857,12 +871,12 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
         const branchLabel = branches?.find((b) => String(b.id || b.branchId) === String(form.branchId))?.branchName || `Branch #${form.branchId}`;
         const prepaidAmt = form.customPrepaidAmount !== "" ? Number(form.customPrepaidAmount) : prepaidAmtBase;
         const refundRateToDisplay = form.customRefundRate !== "" ? form.customRefundRate : (selectedPolicy?.refunRate || 0);
-        const roomSummaryRows = form.rooms.map((room) => {
+        const roomSummaryRowsHtml = form.rooms.map((room, index) => {
             const rtName = roomTypes?.find((rt) => String(rt.id || rt.roomTypeId) === String(room.roomTypeId))?.name || `Room #${room.roomTypeId}`;
             return `<tr>
                 <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">${rtName}</td>
                 <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;text-align:center">${room.quantity}</td>
-                <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600">${formatVnd(Number(room.price) * Number(room.quantity))}</td>
+                <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600">${formatVnd(roomSummaryRows[index].lineTotal)}</td>
             </tr>`;
         }).join("");
 
@@ -915,7 +929,7 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                 <th style="padding:4px 8px;text-align:right;font-weight:700;color:#374151">Subtotal</th>
                             </tr>
                         </thead>
-                        <tbody>${roomSummaryRows}</tbody>
+                        <tbody>${roomSummaryRowsHtml}</tbody>
                         ${policyRow}
                     </table>
                 </div>
@@ -1451,8 +1465,8 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     policyAdjustedTotal = Math.max(0, Math.round(policyAdjustedTotal));
 
                                     const cardPrepaid = Math.round(policyAdjustedTotal * (p.prepaidRate || 0) / 100);
-                                    const cardRefund = Math.round(policyAdjustedTotal * (p.refunRate || 0) / 100);
-                                    const cardRetain = Math.max(0, policyAdjustedTotal - cardRefund);
+                                    const cardRefund = Math.round(cardPrepaid * (p.refunRate || 0) / 100);
+                                    const cardRetain = Math.max(0, cardPrepaid - cardRefund);
                                     const deadlineDate = computeFreeCancelDeadline(form.arrivalDate, p.dateRange);
                                     const deadlineStr = formatDeadline(deadlineDate);
                                     const todayCard = new Date(); todayCard.setHours(0, 0, 0, 0);

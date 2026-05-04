@@ -168,8 +168,6 @@ export default function CancelBookingModal({ show, bookingId, onHide, onCancelle
                                         deadlineStr = dt.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
                                     }
                                 }
-                                return (
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12, marginBottom: 12 }}>
                                         const createdDate = new Date(booking.createdAt);
                                         const createdDateStr = createdDate.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
                                         
@@ -236,8 +234,6 @@ export default function CancelBookingModal({ show, bookingId, onHide, onCancelle
                                                 </div>
                                             </div>
                                         );
-                                    </div>
-                                );
                             })()}
 
                             <div className="cancel-meta">
