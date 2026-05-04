@@ -186,7 +186,6 @@ export default function CancelBookingModal({ show, bookingId, onHide, onCancelle
                                         const isCheckInToday = checkInDay.getTime() === today.getTime();
 
                                         let isBeforeDeadline = false;
-                                        let deadlineTime = "23:59";
                                         let isDeadlineToday = false;
                                         if (deadlineStr) {
                                             const dDate = new Date(booking.freeCancelDeadline);
