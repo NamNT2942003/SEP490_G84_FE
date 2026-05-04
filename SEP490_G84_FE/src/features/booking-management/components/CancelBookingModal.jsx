@@ -140,6 +140,10 @@ export default function CancelBookingModal({ show, bookingId, onHide, onCancelle
                                     <label>Hotel retains</label>
                                     <strong>{formatVND(booking.retainedAmount)}</strong>
                                 </div>
+                                <div className="cancel-stat-card refund">
+                                    <label>Refund to guest</label>
+                                    <strong>{formatVND(booking.refundAmount)}</strong>
+                                </div>
                             </div>
 
                             {/* Cancelled at timestamp */}
