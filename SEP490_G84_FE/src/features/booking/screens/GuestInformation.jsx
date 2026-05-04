@@ -75,23 +75,9 @@ const getVisiblePriceFromOption = (room, option) => {
     const effectiveOption = option || room?.selectedPricingOption || null;
     if (!effectiveOption) return safeNumber(room?.appliedPrice ?? room?.basePrice ?? room?.price ?? 0, 0);
 
-    // Compute price from basePrice + modifier deltas so it always matches the
-    // breakdown shown in BookingSummary (Original price + each modifier line).
-    // Previously this read option.finalPrice which could diverge from the
-    // additive breakdown when the backend applied modifiers differently.
-    const modifiers = Array.isArray(effectiveOption.modifiers) ? effectiveOption.modifiers : [];
-    if (modifiers.length > 0) {
-        const basePrice = safeNumber(
-            effectiveOption.basePrice ?? room?.basePrice ?? room?.price, 0,
-        );
-        const totalDelta = modifiers.reduce(
-            (sum, modifier) => sum + getModifierDelta(room, modifier), 0,
-        );
-        const computed = basePrice + totalDelta;
-        return computed > 0 ? computed : 0;
-    }
-
-    // No modifiers → use finalPrice directly
+    // Use the backend-computed finalPrice as the authoritative price.
+    // The backend applies modifiers sequentially (Layer 1 → Layer 2 → Layer 3),
+    // so the finalPrice is the correct compound result.
     const visiblePrice = safeNumber(effectiveOption.finalPrice, 0);
     return visiblePrice > 0 ? visiblePrice : 0;
 };
@@ -870,12 +856,13 @@ const GuestInformation = () => {
                 // Dùng cached room đã có đúng pricingOptions cho policy này
                 const roomWithPolicy = applyPolicySelectionToRoom(
                     { ...cachedRoom, quantity: room.quantity },
-                    policyId
+                    policyId,
+                    guestEmailRef.current
                 );
                 return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
             }
             // Fallback: dùng pricingOptions hiện tại (có thể không có option cho policy này)
-            const roomWithPolicy = applyPolicySelectionToRoom(room, policyId);
+            const roomWithPolicy = applyPolicySelectionToRoom(room, policyId, guestEmailRef.current);
             return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
         }, 0)
     );
