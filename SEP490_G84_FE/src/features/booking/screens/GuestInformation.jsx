@@ -1187,13 +1187,9 @@ const GuestInformation = () => {
                                             deadlineStr = dClone.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
                                             isDeadlinePassed = dClone < todayCard;
                                             isDeadlineToday = dClone.getTime() === todayCard.getTime();
-                                            // Nếu Hạn chót chính là Ngày Check-in, đổi giờ thành 14:00
-                                            if (dClone.getTime() === checkInDay.getTime()) {
-                                                deadlineTime = "14:00";
-                                            }
                                         }
 
-                                        const gracePeriodTime = isCheckInToday ? "14:00" : "23:59";
+                                        const gracePeriodTime = "23:59";
 
                                         const typeConfig = {
                                             FREE_CANCEL: { label: 'Free cancellation', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', badgeBg: '#dcfce7', badgeColor: '#15803d', icon: 'bi-check-circle-fill' },
@@ -1291,10 +1287,8 @@ const GuestInformation = () => {
                                                         <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
                                                         <span style={{ flex: 1 }}>
                                                             {isDeadlinePassed || !deadlineStr
-                                                                ? (gracePeriodTime === "23:59" 
-                                                                    ? <>Cancel from <strong>tomorrow</strong>: No refund.</> 
-                                                                    : <>Cancel from <strong>today</strong> (after {gracePeriodTime}): No refund.</>)
-                                                                : <>Cancel from <strong>{deadlineTime === "14:00" ? (isDeadlineToday ? "today" : deadlineStr) : (() => { const d = new Date(deadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-GB', { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>{deadlineTime === "14:00" ? " (after 14:00)" : ""}: No refund.</>
+                                                                ? <>Cancel from <strong>tomorrow</strong>: No refund.</>
+                                                                : <>Cancel from <strong>{(() => { const d = new Date(deadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-GB', { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>: No refund.</>
                                                             }
                                                         </span>
                                                     </div>

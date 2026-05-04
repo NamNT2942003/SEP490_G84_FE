@@ -1473,15 +1473,14 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                     if (checkInDay) checkInDay.setHours(0, 0, 0, 0);
                                     
                                     const isCheckInToday = checkInDay && checkInDay.getTime() === todayCard.getTime();
-                                    const gracePeriodTime = isCheckInToday ? "14:00" : "23:59";
+                                    const gracePeriodTime = "23:59";
 
                                     const deadlineDay = deadlineDate ? new Date(deadlineDate) : null;
                                     if (deadlineDay) deadlineDay.setHours(0, 0, 0, 0);
 
                                     const isDeadlineToday = deadlineDay && deadlineDay.getTime() === todayCard.getTime();
                                     const isDeadlinePast = deadlineDate && !isDeadlineToday && deadlineDate < todayCard;
-                                    const isDeadlineCheckInDay = deadlineDay && checkInDay && deadlineDay.getTime() === checkInDay.getTime();
-                                    const deadlineTime = isDeadlineCheckInDay ? "14:00" : "23:59";
+                                    const deadlineTime = "23:59";
 
                                     const typeLabel = {
                                         FREE_CANCEL: { text: "Free cancellation", cls: "cbsm-rt-tag-green", icon: "bi-check-circle-fill text-success" },
@@ -1625,12 +1624,12 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                         {p.refunRate > 0 ? (
                                                             <div style={{ color: "#92400e", display: "flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
                                                                 <i className="bi bi-arrow-return-right" style={{ fontSize: 10 }} />
-                                                                <span>Cancel from {deadlineTime === "14:00" ? `${deadlineStr} (after 14:00)` : (() => { const d = new Date(deadlineDate); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}: Get back <strong>{p.refunRate}% of deposit</strong>.</span>
+                                                                <span>Cancel from {(() => { const d = new Date(deadlineDate); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}: Get back <strong>{p.refunRate}% of deposit</strong>.</span>
                                                             </div>
                                                         ) : (
                                                             <div style={{ color: "#991b1b", display: "flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
                                                                 <i className="bi bi-arrow-return-right" style={{ fontSize: 10 }} />
-                                                                <span>Cancel from {deadlineTime === "14:00" ? `${deadlineStr} (after 14:00)` : (() => { const d = new Date(deadlineDate); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}: No refund.</span>
+                                                                <span>Cancel from {(() => { const d = new Date(deadlineDate); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}: No refund.</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -1641,11 +1640,11 @@ export default function CreateBookingByStaffModal({ show, onClose, onSubmit, onS
                                                 <div style={{ fontSize: 11, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "6px 10px", marginBottom: seasonLabel ? 6 : 0, display: "flex", flexDirection: "column", gap: 4 }}>
                                                     <div style={{ color: "#15803d", display: "flex", alignItems: "center", gap: 4 }}>
                                                         <i className="bi bi-clock-fill" />
-                                                        <span>Cancel before {gracePeriodTime} <strong>today</strong>: Get back <strong>100% of deposit</strong>.</span>
+                                                        <span>Cancel before 23:59 <strong>today</strong>: Get back <strong>100% of deposit</strong>.</span>
                                                     </div>
                                                     <div style={{ color: "#991b1b", display: "flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
                                                         <i className="bi bi-arrow-return-right" style={{ fontSize: 10 }} />
-                                                        <span>Cancel from {gracePeriodTime === "14:00" ? "today (after 14:00)" : "tomorrow"}: No refund.</span>
+                                                        <span>Cancel from <strong>tomorrow</strong>: No refund.</span>
                                                     </div>
                                                 </div>
                                             )}

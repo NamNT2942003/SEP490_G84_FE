@@ -337,9 +337,9 @@ export default function GuestBookingHistoryPage() {
                                                     {!b.cancelRequested && b.status !== "CANCELLED" && (() => {
                                                         const isExternal = b.source && !["FRONT_END", "STAFF"].includes(b.source.toUpperCase());
                                                         const isActionable = !["CHECKED_IN", "CHECKED_OUT", "NO_SHOW"].includes(b.status);
+                                                        if (!isActionable) return null;
                                                         return isExternal ? (
-                                                            isActionable && (
-                                                                <div style={{
+                                                            <div style={{
                                                                     display: "flex", justifyContent: "flex-end", marginTop: 8,
                                                                 }}>
                                                                     <div style={{
@@ -352,11 +352,9 @@ export default function GuestBookingHistoryPage() {
                                                                         <span>Booked via <strong>{b.source}</strong> — contact the channel to cancel or modify</span>
                                                                     </div>
                                                                 </div>
-                                                            )
                                                         ) : (
                                                             <div style={S.bookingActions}>
-                                                                {isActionable && (
-                                                                    <button
+                                                                <button
                                                                         type="button"
                                                                         style={{ ...S.requestBtn, borderColor: C.primary, color: C.primary, marginRight: 8 }}
                                                                         onClick={() => handleRequestAmendment(b)}
@@ -364,7 +362,6 @@ export default function GuestBookingHistoryPage() {
                                                                     >
                                                                         {requestingAmendCode === b.bookingCode ? "Sending..." : "Request amendment"}
                                                                     </button>
-                                                                )}
                                                                 <button
                                                                     type="button"
                                                                     style={S.requestBtn}

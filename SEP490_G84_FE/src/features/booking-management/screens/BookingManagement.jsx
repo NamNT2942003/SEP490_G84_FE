@@ -640,7 +640,7 @@ export default function BookingManagement() {
                                                 <i className="bi bi-eye me-1" />
                                                 View
                                             </button>
-                                            {booking.status !== "CANCELLED" && booking.status !== "NO_SHOW" && isInternalFrontendBooking(booking.source) && (
+                                            {booking.status !== "CANCELLED" && booking.status !== "NO_SHOW" && booking.status !== "CHECKED_IN" && booking.status !== "CHECKED_OUT" && isInternalFrontendBooking(booking.source) && (
                                                 <button
                                                     className="btn btn-sm btn-outline-danger me-1"
                                                     style={{ fontSize: "0.78rem", padding: "3px 10px" }}
