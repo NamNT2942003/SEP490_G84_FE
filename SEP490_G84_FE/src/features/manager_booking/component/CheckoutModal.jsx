@@ -273,10 +273,19 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
       <div className="modal-backdrop fade show no-print" style={{ zIndex: 1040 }}></div>
       <div className="modal fade show d-block no-print" tabIndex="-1"
         style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)' }}>
-        <div className="modal-dialog modal-dialog-centered"
-          style={{ maxWidth: 1500, margin: '1.5rem auto', maxHeight: 'calc(100vh - 3rem)' }}>
+        <div className="modal-dialog"
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '95vw',
+            maxWidth: 1500,
+            maxHeight: '90vh',
+            margin: 0,
+          }}>
           <div className="modal-content border-0 shadow-lg d-flex flex-column"
-            style={{ maxHeight: 'calc(100vh - 3rem)', overflow: 'hidden' }}>
+            style={{ maxHeight: '90vh', overflow: 'hidden' }}>
 
             {/* HEADER */}
             <div className="modal-header bg-dark text-white border-0 py-2 px-4" style={{ flexShrink: 0 }}>
