@@ -48,10 +48,6 @@ const buildFallbackPricingOptions = (room, matchedModifiers) => {
         : [];
     const basePrice = safeNumber(room?.basePrice ?? room?.price, 0);
 
-    if (!modifiers.length) {
-        return [];
-    }
-
     const ordered = [...modifiers].sort((a, b) => {
         const layerDiff = getModifierLayer(a?.type) - getModifierLayer(b?.type);
         if (layerDiff !== 0) return layerDiff;
