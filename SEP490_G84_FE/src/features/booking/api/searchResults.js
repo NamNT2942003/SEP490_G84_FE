@@ -43,10 +43,8 @@ const calculateAdjustment = (reference, modifier) => {
 };
 
 const buildFallbackPricingOptions = (room, matchedModifiers) => {
-    // Exclude POLICY modifiers from fallback pricing — policy adjustments should only
-    // be applied when the backend explicitly resolves them via the selectedPolicyId param.
     const modifiers = Array.isArray(matchedModifiers)
-        ? matchedModifiers.map(normalizeModifier).filter(m => m.type !== 'POLICY')
+        ? matchedModifiers.map(normalizeModifier)
         : [];
     const basePrice = safeNumber(room?.basePrice ?? room?.price, 0);
 

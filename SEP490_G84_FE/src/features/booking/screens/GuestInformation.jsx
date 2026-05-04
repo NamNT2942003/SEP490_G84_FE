@@ -43,33 +43,7 @@ const getModifierDelta = (room, modifier) => {
     return adjustmentValue;
 };
 
-const getPolicyDeltaFromOption = (room, option) => {
-    if (!option || !Array.isArray(option?.modifiers)) return 0;
-    return option.modifiers
-        .filter((modifier) => modifier?.type === 'POLICY')
-        .reduce((sum, modifier) => sum + getModifierDelta(room, modifier), 0);
-};
-
-const stripPolicyFromOption = (room, option) => {
-    if (!option) return option;
-
-    const policyDelta = getPolicyDeltaFromOption(room, option);
-    const finalPrice = Math.max(0, safeNumber(option?.finalPrice, 0) - policyDelta);
-
-    return {
-        ...option,
-        finalPrice,
-        delta: Math.max(0, safeNumber(option?.delta, 0) - policyDelta),
-        cancellationPolicyId: null,
-        cancellationPolicyType: '',
-        cancellationPolicyName: '',
-        prepaidRate: 0,
-        refunRate: 0,
-        modifiers: Array.isArray(option?.modifiers)
-            ? option.modifiers.filter((modifier) => modifier?.type !== 'POLICY')
-            : [],
-    };
-};
+// Redundant helpers removed
 
 const getVisiblePriceFromOption = (room, option) => {
     const effectiveOption = option || room?.selectedPricingOption || null;
@@ -127,67 +101,10 @@ const normalizePolicy = (policy) => {
     };
 };
 
-const optionHasPolicyModifier = (option) =>
-    Array.isArray(option?.modifiers) && option.modifiers.some((modifier) => modifier?.type === 'POLICY');
-
-const findOptionWithoutPolicyAdjustment = (room, customerEmail = "") => {
-    const options = Array.isArray(room?.pricingOptions) ? room.pricingOptions : [];
-    if (!options.length) return null;
-
-    const hasValidEmail = Boolean(normalizeEmailForSearch(customerEmail));
-
-    const nonPolicyOptions = options.filter((option) => {
-        const hasPolicyId = option?.cancellationPolicyId !== null && option?.cancellationPolicyId !== undefined && `${option.cancellationPolicyId}`.trim() !== '';
-        return !hasPolicyId && !optionHasPolicyModifier(option) && !(option.modifiers?.some(m => m.type === 'USER_HISTORY_DISCOUNT' && !hasValidEmail));
-    });
-
-    return nonPolicyOptions[0] || options[0] || null;
-};
-
-const findPricingOptionForPolicy = (room, policyId, customerEmail = "") => {
-    const options = Array.isArray(room?.pricingOptions) ? room.pricingOptions : [];
-    if (!options.length) return room?.selectedPricingOption || null;
-
-    const hasValidEmail = Boolean(normalizeEmailForSearch(customerEmail));
-
-    if (policyId === null || policyId === undefined || `${policyId}`.trim() === '') {
-        return findOptionWithoutPolicyAdjustment(room, customerEmail);
-    }
-
-    const normalizedPolicyId = Number(policyId);
-    const matchedOptions = options.filter(
-        (option) => Number(option?.cancellationPolicyId) === normalizedPolicyId && optionHasPolicyModifier(option) && !(option.modifiers?.some(m => m.type === 'USER_HISTORY_DISCOUNT' && !hasValidEmail))
-    );
-    if (matchedOptions.length > 0) return matchedOptions[0];
-
-    // Policy not available for this room type => no policy adjustment for this room.
-    return findOptionWithoutPolicyAdjustment(room, customerEmail);
-};
-
-const applyPolicySelectionToRoom = (room, policyId, customerEmail = "") => {
-    const selectedOption = findPricingOptionForPolicy(room, policyId, customerEmail);
-    if (!selectedOption) return room;
-
-    const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
-    const hasSelectedPolicyValue = !(policyId === null || policyId === undefined || `${policyId}`.trim() === '');
-    const optionPolicyId = selectedOption?.cancellationPolicyId;
-    const optionMatchesSelectedPolicy = hasSelectedPolicyValue
-        && optionPolicyId !== null
-        && optionPolicyId !== undefined
-        && Number(optionPolicyId) === Number(policyId)
-        && optionHasPolicyModifier(selectedOption);
-
-    const effectiveOption = optionMatchesSelectedPolicy
-        ? selectedOption
-        : stripPolicyFromOption(room, selectedOption);
-
-    return {
-        ...room,
-        selectedPricingOption: effectiveOption,
-        selectedPrice: Number.isFinite(selectedPrice) ? selectedPrice : 0,
-        policyApplied: optionMatchesSelectedPolicy,
-    };
-};
+// applyPolicySelectionToRoom is no longer needed because the backend directly
+// returns the correctly computed availablePriceModifiers for the requested policy.
+// We just use the cached room for the policy which has the correct modifiers.
+const applyPolicySelectionToRoom = (room) => room;
 
 const formatPolicyTypeLabel = (type) => {
     const normalized = String(type || '').trim().toUpperCase();
@@ -307,14 +224,14 @@ const withPricingState = (room, customerEmail = "") => {
         .map(toPricingOption)
         .sort((a, b) => a.finalPrice - b.finalPrice);
 
+    // Filter out options with USER_HISTORY_DISCOUNT if email is not provided
     const hasValidEmail = Boolean(normalizeEmailForSearch(customerEmail));
+    const validOptions = options.filter(option => 
+        !(option.modifiers?.some(m => m.type === 'USER_HISTORY_DISCOUNT' && !hasValidEmail))
+    );
 
-    const nonPolicyOptions = options.filter((option) => {
-         const hasPolicyId = option?.cancellationPolicyId !== null && option?.cancellationPolicyId !== undefined && `${option.cancellationPolicyId}`.trim() !== '';
-         return !hasPolicyId && !(option.modifiers?.some(m => m.type === 'USER_HISTORY_DISCOUNT' && !hasValidEmail));
-    });
-
-    const selectedOption = nonPolicyOptions[0] || options[0] || null;
+    // The backend provides a single accurate fallback option synthesized from availablePriceModifiers
+    const selectedOption = validOptions[0] || options[0] || null;
 
     const selectedPrice = getVisiblePriceFromOption(room, selectedOption);
 
@@ -853,17 +770,11 @@ const GuestInformation = () => {
             const cachedRoomMap = policyPricingCacheRef.current.get(Number(policyId));
             const cachedRoom = cachedRoomMap?.get(room.roomTypeId);
             if (cachedRoom) {
-                // Dùng cached room đã có đúng pricingOptions cho policy này
-                const roomWithPolicy = applyPolicySelectionToRoom(
-                    { ...cachedRoom, quantity: room.quantity },
-                    policyId,
-                    guestEmailRef.current
-                );
-                return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
+                // Use cached room which already contains the correct pricingOptions for this policy
+                return sum + calculateRoomUnitPrice(cachedRoom) * (room.quantity || 1);
             }
-            // Fallback: dùng pricingOptions hiện tại (có thể không có option cho policy này)
-            const roomWithPolicy = applyPolicySelectionToRoom(room, policyId, guestEmailRef.current);
-            return sum + calculateRoomUnitPrice(roomWithPolicy) * (room.quantity || 1);
+            // Fallback: use current room's price if not cached
+            return sum + calculateRoomUnitPrice(room) * (room.quantity || 1);
         }, 0)
     );
 
