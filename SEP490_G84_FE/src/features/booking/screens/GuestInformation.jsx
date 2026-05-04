@@ -1173,14 +1173,27 @@ const GuestInformation = () => {
                                         const deadline = computeFreeCancelDeadline(checkIn, policy.dateRange);
                                         let deadlineStr = null;
                                         let isDeadlinePassed = false;
+                                        let deadlineTime = "23:59";
+                                        let isDeadlineToday = false;
+                                        const checkInDay = new Date(checkIn);
+                                        checkInDay.setHours(0, 0, 0, 0);
+                                        const todayCard = new Date();
+                                        todayCard.setHours(0, 0, 0, 0);
+                                        const isCheckInToday = checkInDay.getTime() === todayCard.getTime();
+                                        
                                         if (deadline) {
-                                            const today = new Date();
-                                            today.setHours(0, 0, 0, 0);
                                             const dClone = new Date(deadline);
                                             dClone.setHours(0, 0, 0, 0);
                                             deadlineStr = dClone.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
-                                            isDeadlinePassed = dClone < today;
+                                            isDeadlinePassed = dClone < todayCard;
+                                            isDeadlineToday = dClone.getTime() === todayCard.getTime();
+                                            // Nếu Hạn chót chính là Ngày Check-in, đổi giờ thành 14:00
+                                            if (dClone.getTime() === checkInDay.getTime()) {
+                                                deadlineTime = "14:00";
+                                            }
                                         }
+
+                                        const gracePeriodTime = isCheckInToday ? "14:00" : "23:59";
 
                                         const typeConfig = {
                                             FREE_CANCEL: { label: 'Free cancellation', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', badgeBg: '#dcfce7', badgeColor: '#15803d', icon: 'bi-check-circle-fill' },
@@ -1254,19 +1267,21 @@ const GuestInformation = () => {
                                                 {/* Policy rules - structured description */}
                                                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                                     {/* Grace Period */}
-                                                    <div style={{ fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 7, padding: "8px 12px", color: "#15803d" }}>
-                                                        <i className="bi bi-clock-fill" style={{ marginTop: 1, flexShrink: 0 }} />
-                                                        <span style={{ flex: 1 }}>
-                                                            Cancel by 23:59 <strong>today</strong> (booking day): Get back <strong>{formatVND(prepaidAmount)}</strong> (100% of deposit).
-                                                        </span>
-                                                    </div>
+                                                    {!(isDeadlineToday && pRefundRate === 100 && gracePeriodTime === deadlineTime) && (
+                                                        <div style={{ fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 7, padding: "8px 12px", color: "#15803d" }}>
+                                                            <i className="bi bi-clock-fill" style={{ marginTop: 1, flexShrink: 0 }} />
+                                                            <span style={{ flex: 1 }}>
+                                                                Cancel by {gracePeriodTime} <strong>today</strong> (booking day): Get back <strong>{formatVND(prepaidAmount)}</strong> (100% of deposit).
+                                                            </span>
+                                                        </div>
+                                                    )}
 
                                                     {/* Policy Before Deadline */}
                                                     {deadlineStr && !isDeadlinePassed && (
                                                         <div style={{ fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 7, padding: "8px 12px", color: "#92400e" }}>
                                                             <i className="bi bi-shield-check" style={{ marginTop: 1, flexShrink: 0 }} />
                                                             <span style={{ flex: 1 }}>
-                                                                Cancel before 23:59, <strong>{deadlineStr}</strong>: Get back <strong>{formatVND(refundAmount)}</strong> ({pRefundRate}% of deposit).
+                                                                Cancel before {deadlineTime}, <strong>{isDeadlineToday ? "today" : deadlineStr}</strong>: Get back <strong>{formatVND(refundAmount)}</strong> ({pRefundRate}% of deposit).
                                                             </span>
                                                         </div>
                                                     )}
@@ -1276,7 +1291,7 @@ const GuestInformation = () => {
                                                         <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
                                                         <span style={{ flex: 1 }}>
                                                             {deadlineStr
-                                                                ? <>Cancel from <strong>{(() => { const d = new Date(deadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-GB', { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>: No refund.</>
+                                                                ? <>Cancel from <strong>{deadlineTime === "14:00" ? (isDeadlineToday ? "today" : deadlineStr) : (() => { const d = new Date(deadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-GB', { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>{deadlineTime === "14:00" ? " (after 14:00)" : ""}: No refund.</>
                                                                 : <>Cancel from <strong>tomorrow</strong>: No refund.</>
                                                             }
                                                         </span>

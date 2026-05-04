@@ -177,19 +177,30 @@ export default function CancelBookingModal({ show, bookingId, onHide, onCancelle
                                         
                                         const isGracePeriodActive = today.getTime() === createdDate.getTime();
                                         
+                                        const checkInDay = new Date(booking.arrivalDate);
+                                        checkInDay.setHours(0, 0, 0, 0);
+                                        const isCheckInToday = checkInDay.getTime() === today.getTime();
+
                                         let isBeforeDeadline = false;
+                                        let deadlineTime = "23:59";
+                                        let isDeadlineToday = false;
                                         if (deadlineStr) {
                                             const dDate = new Date(booking.freeCancelDeadline);
                                             dDate.setHours(0, 0, 0, 0);
                                             isBeforeDeadline = today.getTime() <= dDate.getTime();
+                                            isDeadlineToday = dDate.getTime() === today.getTime();
+                                            if (dDate.getTime() === checkInDay.getTime()) {
+                                                deadlineTime = "14:00";
+                                            }
                                         }
                                         
+                                        const gracePeriodTime = isCheckInToday ? "14:00" : "23:59";
                                         const isDeadlinePassed = deadlineStr && !isBeforeDeadline;
 
                                         return (
                                             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12, marginBottom: 12 }}>
                                                 {/* Grace Period */}
-                                                {isGracePeriodActive && (
+                                                {isGracePeriodActive && !(isDeadlineToday && refundRate === 100 && gracePeriodTime === deadlineTime) && (
                                                     <div style={{
                                                         fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8,
                                                         background: "#f0fdf4",
@@ -198,7 +209,7 @@ export default function CancelBookingModal({ show, bookingId, onHide, onCancelle
                                                     }}>
                                                         <i className="bi bi-clock-fill" style={{ marginTop: 1, flexShrink: 0 }} />
                                                         <span style={{ flex: 1 }}>
-                                                            Cancel by 23:59, <strong>{createdDateStr}</strong> (booking day): Get back <strong>{formatVND(prepaidAmt)}</strong> (100% of deposit).
+                                                            Cancel by {gracePeriodTime}, <strong>{createdDateStr}</strong> (booking day): Get back <strong>{formatVND(prepaidAmt)}</strong> (100% of deposit).
                                                         </span>
                                                     </div>
                                                 )}
@@ -213,7 +224,7 @@ export default function CancelBookingModal({ show, bookingId, onHide, onCancelle
                                                     }}>
                                                         <i className="bi bi-shield-check" style={{ marginTop: 1, flexShrink: 0 }} />
                                                         <span style={{ flex: 1 }}>
-                                                            Cancel before 23:59, <strong>{deadlineStr}</strong>: Get back <strong>{formatVND(refundAmt)}</strong> ({refundRate}% of deposit).
+                                                            Cancel before {deadlineTime}, <strong>{isDeadlineToday ? "today" : deadlineStr}</strong>: Get back <strong>{formatVND(refundAmt)}</strong> ({refundRate}% of deposit).
                                                         </span>
                                                     </div>
                                                 )}
@@ -227,7 +238,7 @@ export default function CancelBookingModal({ show, bookingId, onHide, onCancelle
                                                     <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
                                                     <span style={{ flex: 1 }}>
                                                         {deadlineStr
-                                                            ? <>Cancel from <strong>{(() => { const d = new Date(booking.freeCancelDeadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>: No refund.</>
+                                                            ? <>Cancel from <strong>{deadlineTime === "14:00" ? (isDeadlineToday ? "today" : deadlineStr) : (() => { const d = new Date(booking.freeCancelDeadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>{deadlineTime === "14:00" ? " (after 14:00)" : ""}: No refund.</>
                                                             : <>Cancel from <strong>{(() => { const d = new Date(booking.createdAt); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>: No refund.</>
                                                         }
                                                     </span>
