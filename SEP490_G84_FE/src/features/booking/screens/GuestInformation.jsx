@@ -1290,9 +1290,11 @@ const GuestInformation = () => {
                                                     <div style={{ fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 7, padding: "8px 12px", color: "#991b1b" }}>
                                                         <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
                                                         <span style={{ flex: 1 }}>
-                                                            {deadlineStr
-                                                                ? <>Cancel from <strong>{deadlineTime === "14:00" ? (isDeadlineToday ? "today" : deadlineStr) : (() => { const d = new Date(deadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-GB', { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>{deadlineTime === "14:00" ? " (after 14:00)" : ""}: No refund.</>
-                                                                : <>Cancel from <strong>tomorrow</strong>: No refund.</>
+                                                            {isDeadlinePassed || !deadlineStr
+                                                                ? (gracePeriodTime === "23:59" 
+                                                                    ? <>Cancel from <strong>tomorrow</strong>: No refund.</> 
+                                                                    : <>Cancel from <strong>today</strong> (after {gracePeriodTime}): No refund.</>)
+                                                                : <>Cancel from <strong>{deadlineTime === "14:00" ? (isDeadlineToday ? "today" : deadlineStr) : (() => { const d = new Date(deadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-GB', { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>{deadlineTime === "14:00" ? " (after 14:00)" : ""}: No refund.</>
                                                             }
                                                         </span>
                                                     </div>

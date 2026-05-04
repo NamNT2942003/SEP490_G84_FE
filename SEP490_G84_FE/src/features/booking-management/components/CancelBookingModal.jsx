@@ -237,9 +237,13 @@ export default function CancelBookingModal({ show, bookingId, onHide, onCancelle
                                                 }}>
                                                     <i className="bi bi-x-circle-fill" style={{ marginTop: 1, flexShrink: 0 }} />
                                                     <span style={{ flex: 1 }}>
-                                                        {deadlineStr
-                                                            ? <>Cancel from <strong>{deadlineTime === "14:00" ? (isDeadlineToday ? "today" : deadlineStr) : (() => { const d = new Date(booking.freeCancelDeadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>{deadlineTime === "14:00" ? " (after 14:00)" : ""}: No refund.</>
-                                                            : <>Cancel from <strong>{(() => { const d = new Date(booking.createdAt); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>: No refund.</>
+                                                        {isDeadlinePassed || !deadlineStr
+                                                            ? (isGracePeriodActive
+                                                                ? (gracePeriodTime === "23:59"
+                                                                    ? <>Cancel from <strong>tomorrow</strong>: No refund.</>
+                                                                    : <>Cancel from <strong>today</strong> (after {gracePeriodTime}): No refund.</>)
+                                                                : <>This booking is non-refundable.</>)
+                                                            : <>Cancel from <strong>{deadlineTime === "14:00" ? (isDeadlineToday ? "today" : deadlineStr) : (() => { const d = new Date(booking.freeCancelDeadline); d.setDate(d.getDate() + 1); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })()}</strong>{deadlineTime === "14:00" ? " (after 14:00)" : ""}: No refund.</>
                                                         }
                                                     </span>
                                                 </div>
