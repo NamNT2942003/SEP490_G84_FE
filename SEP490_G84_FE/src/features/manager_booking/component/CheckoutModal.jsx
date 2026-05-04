@@ -74,10 +74,11 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   const activeRoom = rooms[activeRoomIdx] || null;
   const grandTotal = roomBilling.grandTotal || 0;
   const alreadyPaid = roomBilling.alreadyPaidTotal || 0;
-  const amountDue = roomBilling.amountDue || 0;
   const totalRoomCharge = roomBilling.totalRoomCharge || 0;
   const roomChargePaid = roomBilling.roomChargePaid || false;
   const pendingRooms = rooms.filter(r => !r.checkedOut);
+  // Chỉ tính amountDue từ các phòng CHƯA checkout — tránh tính lại phòng đã thu tiền rồi
+  const amountDue = pendingRooms.reduce((sum, r) => sum + Number(r.amountDue || 0), 0);
   const allPaymentsSelected = pendingRooms.every(r => {
     const due = Number(r.amountDue || 0);
     return due <= 0 || stayPaymentMethods[r.stayId];
