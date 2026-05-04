@@ -58,7 +58,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
   if (loadingBill || !roomBilling) return (
     <>
       <div className="modal-backdrop fade show no-print" style={{ zIndex: 1040 }}></div>
-      <div className="modal fade show d-block no-print" tabIndex="-1" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)', paddingLeft: 125 }}>
+      <div className="modal fade show d-block no-print" tabIndex="-1" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)' }}>
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content p-5 text-center border-0 shadow-lg">
             <div className="spinner-border text-primary mx-auto mb-3" role="status"></div>
@@ -272,7 +272,7 @@ export default function CheckoutModal({ show, onClose, booking, onSuccess, branc
     <>
       <div className="modal-backdrop fade show no-print" style={{ zIndex: 1040 }}></div>
       <div className="modal fade show d-block no-print" tabIndex="-1"
-        style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)', paddingLeft: 125 }}>
+        style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)' }}>
         <div className="modal-dialog modal-dialog-centered"
           style={{ maxWidth: 1500, margin: '1.5rem auto', maxHeight: 'calc(100vh - 3rem)' }}>
           <div className="modal-content border-0 shadow-lg d-flex flex-column"
