@@ -17,9 +17,15 @@ const enrichData = (data) => {
     return data.map((item, i) => {
         const monthName = MONTH_NAMES[item.monthValue - 1] || item.monthLabel;
         const prev = data[i - 1];
-        const momGrowth = prev && prev.revenue > 0
-            ? (((item.revenue - prev.revenue) / prev.revenue) * 100)
-            : null;
+        let momGrowth = 0; // mặc định 0 để đường line chạy suốt 12 tháng
+        if (prev) {
+            if (prev.revenue > 0) {
+                momGrowth = ((item.revenue - prev.revenue) / prev.revenue) * 100;
+            } else if (item.revenue > 0) {
+                momGrowth = 100; // từ 0 lên có chi phí = tăng 100%
+            }
+            // cả 2 đều 0 → giữ nguyên 0
+        }
         return { ...item, monthLabel: monthName, momGrowth };
     });
 };
@@ -294,12 +300,10 @@ const YearlyExpenseDashboard = ({ yearlyData, selectedYear, onMonthClick }) => {
                                             <td className="fw-medium" style={{ color: m.revenue > 0 ? ACCENT : '#aaa' }}>{formatCurrency(m.revenue)}</td>
                                             <td>{statusBadge}</td>
                                             <td>
-                                                {m.momGrowth != null ? (
-                                                    <span className={`badge rounded-pill fw-medium ${m.momGrowth > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}`}
-                                                        style={{ fontSize: '0.72rem', minWidth: '56px' }}>
-                                                        {m.momGrowth > 0 ? '↑' : '↓'} {Math.abs(m.momGrowth).toFixed(1)}%
-                                                    </span>
-                                                ) : <span className="text-muted">—</span>}
+                                                <span className={`badge rounded-pill fw-medium ${m.momGrowth > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}`}
+                                                    style={{ fontSize: '0.72rem', minWidth: '56px' }}>
+                                                    {m.momGrowth > 0 ? '↑ ' : m.momGrowth < 0 ? '↓ ' : ''}{Math.abs(m.momGrowth).toFixed(1)}%
+                                                </span>
                                             </td>
                                             <td>{actionBtn}</td>
                                         </tr>
