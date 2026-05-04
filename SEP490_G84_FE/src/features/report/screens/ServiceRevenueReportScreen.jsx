@@ -238,9 +238,9 @@ const ServiceRevenueReportScreen = () => {
                                                 <table className="table table-hover mb-0 align-middle text-center">
                                                     <thead className="bg-light">
                                                         <tr>
-                                                            <th className="text-start ps-4">Danh Mục</th>
-                                                            <th className="text-end">Doanh Thu</th>
-                                                            <th className="text-end pe-4">Thu Về</th>
+                                                            <th className="text-start ps-4">Category</th>
+                                                            <th className="text-end">Revenue</th>
+                                                            <th className="text-end pe-4">Net Revenue</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
